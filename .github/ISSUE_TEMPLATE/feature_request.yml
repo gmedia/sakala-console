@@ -1,0 +1,27 @@
+name: Feature request
+description: Ajukan perbaikan pengalaman console atau workflow deployment.
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Kebutuhan pengguna
+      description: Masalah apa yang ingin dibantu?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Usulan solusi
+    validations:
+      required: true
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Kesesuaian foundation
+      options:
+        - label: Tetap SSG/static-first dan tidak membutuhkan runtime server.
+          required: true
+        - label: Mengikuti copy Bahasa Indonesia serta arah visual Sakala.
+          required: true

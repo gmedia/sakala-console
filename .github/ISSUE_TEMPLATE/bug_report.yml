@@ -1,0 +1,34 @@
+name: Bug report
+description: Laporkan masalah pada halaman, layout, build, atau tautan.
+title: 'fix: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: Terima kasih telah membantu memperbaiki Sakala Console.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Masalah
+      description: Apa yang terjadi dan apa hasil yang seharusnya?
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Halaman terkait
+      placeholder: /docs/quickstart
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Cara reproduksi
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser dan perangkat
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot atau konteks tambahan

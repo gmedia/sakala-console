@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Diskusi keamanan
+    url: https://github.com/gmedia
+    about: Jangan laporkan kerentanan melalui public issue. Hubungi maintainer secara privat.

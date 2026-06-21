@@ -1,0 +1,22 @@
+name: Documentation
+description: Laporkan kebutuhan atau koreksi dokumentasi Sakala.
+title: 'docs: '
+labels: ['documentation']
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Halaman atau topik
+      placeholder: /docs/deployment-flow
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Perubahan yang dibutuhkan
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Mengapa ini membantu pembaca?

@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+@theme {
+	--color-background: #f8faf7;
+	--color-background-soft: #f1f5f2;
+	--color-surface: #ffffff;
+	--color-surface-elevated: #fbfdfb;
+	--color-foreground: #17211b;
+	--color-muted: #66736b;
+	--color-muted-2: #89958d;
+	--color-border: #dde5df;
+	--color-border-strong: #cfdad2;
+	--color-primary: #0f766e;
+	--color-primary-dark: #115e59;
+	--color-primary-soft: #ccfbf1;
+	--color-accent: #d97706;
+	--color-accent-soft: #fef3c7;
+	--color-success: #16a34a;
+	--color-warning: #d97706;
+	--color-error: #dc2626;
+	--color-info: #2563eb;
+	--color-terminal: #0f172a;
+	--color-terminal-text: #e2e8f0;
+	--font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+@layer base {
+	:root {
+		font-family: var(--font-sans);
+		color: var(--color-foreground);
+		background: var(--color-background);
+		font-synthesis: none;
+		text-rendering: optimizeLegibility;
+	}
+
+	body {
+		min-width: 320px;
+		min-height: 100vh;
+		margin: 0;
+		background: var(--color-background);
+	}
+
+	button,
+	a {
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	:focus-visible {
+		outline: 3px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+		outline-offset: 3px;
+	}
+}
+
+@layer components {
+	.surface-card {
+		border: 1px solid var(--color-border);
+		border-radius: 1.5rem;
+		background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+		box-shadow: 0 18px 50px -38px rgb(23 33 27 / 0.42);
+	}
+
+	.status-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+		border-radius: 999px;
+		background: var(--color-primary-soft);
+		padding: 0.35rem 0.7rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--color-primary-dark);
+	}
+
+	.paper-grid {
+		background-image:
+			linear-gradient(rgb(15 118 110 / 0.045) 1px, transparent 1px),
+			linear-gradient(90deg, rgb(15 118 110 / 0.045) 1px, transparent 1px);
+		background-size: 32px 32px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		scroll-behavior: auto !important;
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+	}
+}

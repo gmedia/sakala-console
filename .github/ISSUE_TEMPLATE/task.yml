@@ -1,0 +1,24 @@
+name: Task
+description: Catat pekerjaan teknis atau maintenance yang terukur.
+title: 'chore: '
+labels: ['task']
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Tujuan
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope pekerjaan
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kriteria selesai
+      placeholder: '- [ ] pnpm check lulus'
+    validations:
+      required: true
