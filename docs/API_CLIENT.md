@@ -29,3 +29,30 @@ pnpm api:types
 Command membaca Scramble OpenAPI dari `http://127.0.0.1:8000/docs/api.json` agar local proxy dan
 konfigurasi hostname tidak memengaruhi generation. File hasil generation boleh diregenerasi dan
 di-commit, tetapi tidak diedit manual.
+
+## Reference Implementation
+
+Endpoint status menunjukkan pola kontrak yang wajib diikuti resource baru:
+
+```ts
+import { z } from 'zod';
+import type { components } from '$lib/api/generated/schema';
+
+type ServiceStatus = components['schemas']['ServiceStatusResource'];
+
+const serviceStatusSchema = z.object({
+	service: z.string(),
+	status: z.literal('ok'),
+	api_version: z.string()
+}) satisfies z.ZodType<ServiceStatus>;
+```
+
+Generated OpenAPI type menjaga kecocokan saat development dan build. Zod tetap memeriksa response
+nyata saat runtime karena generated TypeScript type tidak tersedia setelah code dikompilasi.
+
+Alur lengkap referensi berada di:
+
+- `src/lib/api/resources/system.ts`: HTTP boundary, generated type, dan runtime schema.
+- `src/lib/features/system/queries.ts`: TanStack Query untuk server state.
+- `src/lib/features/system/components/ApiStatusCard.svelte`: loading, success, dan error UI.
+- `src/lib/api/resources/system.spec.ts`: contract parser test.

@@ -1,17 +1,28 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
+import type { components, operations } from '../generated/schema';
 
-const serviceStatusEnvelopeSchema = z.object({
-	data: z.object({
-		service: z.string(),
-		status: z.literal('ok'),
-		api_version: z.string()
-	})
-});
+export type ServiceStatus = components['schemas']['ServiceStatusResource'];
 
-export type ServiceStatus = z.infer<typeof serviceStatusEnvelopeSchema>['data'];
+type ServiceStatusResponse =
+	operations['v1.status']['responses'][200]['content']['application/json'];
+
+const serviceStatusSchema = z.object({
+	service: z.string(),
+	status: z.literal('ok'),
+	api_version: z.string()
+}) satisfies z.ZodType<ServiceStatus>;
+
+const serviceStatusResponseSchema = z.object({
+	data: serviceStatusSchema
+}) satisfies z.ZodType<ServiceStatusResponse>;
 
 export async function getServiceStatus(): Promise<ServiceStatus> {
 	const response = await apiRequest<unknown>('/api/v1');
-	return serviceStatusEnvelopeSchema.parse(response).data;
+
+	return parseServiceStatusResponse(response);
+}
+
+export function parseServiceStatusResponse(response: unknown): ServiceStatus {
+	return serviceStatusResponseSchema.parse(response).data;
 }

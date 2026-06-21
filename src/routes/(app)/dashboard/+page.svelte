@@ -5,6 +5,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import ApiStatusCard from '$lib/features/system/components/ApiStatusCard.svelte';
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
@@ -23,7 +24,7 @@
 		>
 	</header>
 
-	<section class="grid gap-4 sm:grid-cols-3" aria-label="Ringkasan Sakala">
+	<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Ringkasan Sakala">
 		<Card>
 			<div class="flex items-center justify-between">
 				<p class="text-sm font-medium text-muted">Projects</p>
@@ -48,6 +49,7 @@
 			<p class="mt-5 text-3xl font-semibold">0</p>
 			<p class="mt-1 text-sm text-muted">GitHub login belum dihubungkan.</p>
 		</Card>
+		<ApiStatusCard />
 	</section>
 
 	<EmptyState
