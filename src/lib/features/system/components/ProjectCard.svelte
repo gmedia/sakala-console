@@ -3,6 +3,7 @@
 	import { Boxes } from '@lucide/svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import GithubIcon from '$lib/assets/github.svg';
 
 	interface Props {
 		name: string;
@@ -35,7 +36,7 @@
 		<span
 			class="size-3.5 flex items-center justify-center [&>svg]:size-full [&>svg]:fill-current text-gray-600"
 		>
-			<img src="src/lib/assets/github.svg" alt="" />
+			<img src={GithubIcon} alt="GitHub" />
 		</span>
 		<span>{repo}</span>
 	</a>

@@ -4,6 +4,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import ApiStatusCard from '$lib/features/system/components/ApiStatusCard.svelte';
+	import Badge from '$lib/components/ui/Badge.svelte';
 
 	import ProjectCard from '$lib/features/system/components/ProjectCard.svelte';
 
@@ -39,7 +40,15 @@
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
-
+<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+	<div>
+		<Badge tone="success">Online</Badge>
+		<h1 class="mt-3 text-3xl font-semibold tracking-[-0.035em]">Selamat datang di Sakala.</h1>
+		<p class="mt-2 max-w-2xl leading-7 text-muted">
+			Pantau project, deployment, dan URL publik tanpa kehilangan konteks prosesnya.
+		</p>
+	</div>
+</header>
 <main class="flex flex-col gap-8">
 	<EmptyState
 		icon={Boxes}
@@ -51,8 +60,8 @@
 		{/snippet}
 	</EmptyState>
 
-	<header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
-		<h1 class="text-3xl font-semibold whitespace-nowrap">Recent Deploys</h1>
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+		<h2 class="text-3xl font-semibold whitespace-nowrap">Recent Deploys</h2>
 		<div class="relative w-full sm:flex-1">
 			<input
 				type="text"
@@ -60,7 +69,7 @@
 				class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e] focus:outline-none"
 			/>
 		</div>
-	</header>
+	</div>
 
 	<section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
 		{#each projects as project (project.id)}
