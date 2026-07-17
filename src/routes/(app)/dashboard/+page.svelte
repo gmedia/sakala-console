@@ -1,66 +1,79 @@
 <script lang="ts">
-	import { ArrowRight, Boxes, CircleDot, GitBranch, Plus } from '@lucide/svelte';
+	import { Boxes } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
-	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import ApiStatusCard from '$lib/features/system/components/ApiStatusCard.svelte';
+
+	import ProjectCard from '$lib/features/system/components/ProjectCard.svelte';
+
+	const projects = [
+		{
+			id: 1,
+			name: 'Project 1',
+			domain: 'domain1.com',
+			repo: 'repo1',
+			createdAt: '08 Mar on Main',
+			convention: 'feat : UI login',
+			isNew: true
+		},
+		{
+			id: 2,
+			name: 'Sakala',
+			domain: 'sakala.dev',
+			repo: 'sakala-console',
+			createdAt: '17 Jul on Main',
+			convention: 'feat(dashboard): dashboard UI',
+			isNew: true
+		},
+		{
+			id: 3,
+			name: 'Project 2',
+			domain: 'domain2.com',
+			repo: 'repo2',
+			createdAt: '20 Feb on Main',
+			convention: 'Fix(login page): Auth Redirect',
+			isNew: true
+		}
+	];
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
 
-<div class="flex flex-col gap-8">
-	<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-		<div>
-			<Badge tone="info">Foundation preview</Badge>
-			<h1 class="mt-3 text-3xl font-semibold tracking-[-0.035em]">Selamat datang di Sakala.</h1>
-			<p class="mt-2 max-w-2xl leading-7 text-muted">
-				Pantau project, deployment, dan URL publik tanpa kehilangan konteks prosesnya.
-			</p>
-		</div>
-		<Button href={resolve('/projects/new')}
-			><Plus size={18} aria-hidden="true" /> Project baru</Button
-		>
-	</header>
-
-	<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Ringkasan Sakala">
-		<Card>
-			<div class="flex items-center justify-between">
-				<p class="text-sm font-medium text-muted">Projects</p>
-				<Boxes size={18} class="text-primary" aria-hidden="true" />
-			</div>
-			<p class="mt-5 text-3xl font-semibold">0</p>
-			<p class="mt-1 text-sm text-muted">Belum ada project terhubung.</p>
-		</Card>
-		<Card>
-			<div class="flex items-center justify-between">
-				<p class="text-sm font-medium text-muted">Deployment aktif</p>
-				<CircleDot size={18} class="text-success" aria-hidden="true" />
-			</div>
-			<p class="mt-5 text-3xl font-semibold">0</p>
-			<p class="mt-1 text-sm text-muted">Runtime akan tampil di sini.</p>
-		</Card>
-		<Card>
-			<div class="flex items-center justify-between">
-				<p class="text-sm font-medium text-muted">Repository</p>
-				<GitBranch size={18} class="text-accent" aria-hidden="true" />
-			</div>
-			<p class="mt-5 text-3xl font-semibold">0</p>
-			<p class="mt-1 text-sm text-muted">GitHub login belum dihubungkan.</p>
-		</Card>
-		<ApiStatusCard />
-	</section>
-
+<main class="flex flex-col gap-8">
 	<EmptyState
 		icon={Boxes}
-		title="Mulai dari satu repository"
-		description="Saat alur project tersedia, Sakala akan membantu membaca repository dan menunjukkan setiap tahap sebelum URL publik siap dibagikan."
+		title="Create Project + CTA"
+		description="Sakala akan membaca project dari repository Github anda untuk di publish dan siap untuk dibagikan "
 	>
 		{#snippet action()}
-			<Button href={resolve('/projects/new')} variant="secondary">
-				Lihat alur project <ArrowRight size={18} aria-hidden="true" />
-			</Button>
+			<Button href={resolve('/projects/new')} variant="secondary">Upload project</Button>
 		{/snippet}
 	</EmptyState>
-</div>
+
+	<header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+		<h1 class="text-3xl font-semibold whitespace-nowrap">Recent Deploys</h1>
+		<div class="relative w-full sm:flex-1">
+			<input
+				type="text"
+				placeholder="Search Your Project..."
+				class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e] focus:outline-none"
+			/>
+		</div>
+	</header>
+
+	<section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
+		{#each projects as project (project.id)}
+			<ProjectCard
+				name={project.name}
+				domain={project.domain}
+				repo={project.repo}
+				createdAt={project.createdAt}
+				convention={project.convention}
+				isNew={project.isNew}
+			/>
+		{/each}
+	</section>
+
+	<ApiStatusCard />
+</main>
