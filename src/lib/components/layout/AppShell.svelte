@@ -34,7 +34,7 @@
 		<nav class="flex-1 space-y-1 px-4 py-6" aria-label="Navigasi utama">
 			{#each navigation as item (item.href)}
 				<a
-					href={`${base}{item.href}`}
+					href={`${base}${item.href}`}
 					aria-current={isActive(item.href) ? 'page' : undefined}
 					class={cn(
 						'flex items-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
