@@ -7,7 +7,7 @@
 		children: Snippet;
 		href?: ResolvedPathname;
 		externalHref?: string;
-		variant?: 'primary' | 'secondary' | 'ghost';
+		variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
 		type?: 'button' | 'submit' | 'reset';
 		disabled?: boolean;
 		class?: string;
@@ -28,12 +28,13 @@
 		secondary:
 			'border-border-strong bg-surface text-foreground hover:border-primary hover:text-primary',
 		ghost:
-			'border-transparent bg-transparent text-muted hover:bg-background-soft hover:text-foreground'
+			'border-transparent bg-transparent text-muted hover:bg-background-soft hover:text-foreground',
+		outline: 'border-border border-gray bg-transparent text-foreground hover:border-black'
 	};
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 			variants[variant],
 			className
 		)
