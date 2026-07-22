@@ -80,7 +80,7 @@
 
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
 		<div class="flex items-center gap-4 w-full sm:flex-1">
-			<h2 class="text-2xl font-semibold whitespace-nowrap">Recent Deploys</h2>
+			<h2 class="text-2xl font-semibold font-montserrat whitespace-nowrap">Recent Deploys</h2>
 			<select
 				class="rounded-lg border w-max border-gray-300 bg-white py-2 text-sm focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e] focus:outline-none"
 			>

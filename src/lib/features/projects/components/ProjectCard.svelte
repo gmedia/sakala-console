@@ -1,5 +1,4 @@
 <script lang="ts">
-	 
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -15,12 +14,12 @@
 <Card class="relative rounded-xl">
 	<div class="flex items-center justify-between">
 		<div class="flex-1">
-			<p class="text-sm font-semibold">{project_name}</p>
+			<p class="text-lg font-montserrat">{project_name}</p>
 		</div>
 		<Badge tone={status} class="absolute top-6 right-4 ">{status}</Badge>
 	</div>
 	<p
-		class="mt-0 mb-5 inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-gray-400"
+		class="mt-0 mb-5 inline-flex items-center gap-1.5 rounded-full text-sm font-jetbrains-mono text-gray-400"
 	>
 		<span>{repository_name}</span>
 	</p>
