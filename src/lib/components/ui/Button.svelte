@@ -29,12 +29,12 @@
 			'border-border-strong bg-surface text-foreground hover:border-primary hover:text-primary',
 		ghost:
 			'border-transparent bg-transparent text-muted hover:bg-background-soft hover:text-foreground',
-		outline: 'border-border border-gray bg-transparent text-foreground hover:border-black'
+		outline: 'border border-black bg-transparent text-foreground'
 	};
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 			variants[variant],
 			className
 		)

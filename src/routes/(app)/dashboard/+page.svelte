@@ -10,57 +10,57 @@
 	const projects: Project[] = [
 		{
 			id: 1,
-			project_name: 'Project 1',
-			repository_name: 'repo1',
+			project_name: 'E-Commerce Platform',
+			repository_name: 'ecommerce-backend',
 			status: 'success',
-			thumbnail_url: 'https://picsum.photos/600/400',
+			thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
 			status_message: null,
 			created_at: '08 Mar'
 		},
 		{
 			id: 2,
-			project_name: 'Sakala',
-			repository_name: 'sakala-console',
+			project_name: 'Customer Portal',
+			repository_name: 'customer-portal-frontend',
 			status: 'failed',
 			thumbnail_url: 'https://picsum.photos/600/400',
-			status_message: '404',
+			status_message: 'Dependency conflict: react@18.2.0 not compatible',
 			created_at: '17 Jul'
 		},
 		{
 			id: 3,
-			project_name: 'Project 2',
-			repository_name: 'repo2',
+			project_name: 'Analytics Dashboard',
+			repository_name: 'analytics-service',
 			status: 'pending',
 			thumbnail_url: 'https://picsum.photos/600/400',
-			status_message: 'Menunggu build selesai...',
+			status_message: 'Waiting for CI pipeline to start...',
 			created_at: '20 Feb'
 		},
 		{
 			id: 4,
-			project_name: 'Project 1',
-			repository_name: 'repo1',
-			status: 'success',
+			project_name: 'Mobile App',
+			repository_name: 'mobile-app-ios',
+			status: 'pending',
 			thumbnail_url: 'https://picsum.photos/600/400',
-			status_message: null,
-			created_at: '08 Mar'
+			status_message: 'Waiting for build artifacts from the CI pipeline',
+			created_at: '15 Apr'
 		},
 		{
 			id: 5,
-			project_name: 'Sakala',
-			repository_name: 'sakala-console',
+			project_name: 'Admin Panel',
+			repository_name: 'admin-dashboard',
 			status: 'failed',
 			thumbnail_url: 'https://picsum.photos/600/400',
-			status_message: '404',
-			created_at: '17 Jul'
+			status_message: 'Build timeout after 10 minutes',
+			created_at: '03 Jun'
 		},
 		{
 			id: 6,
-			project_name: 'Project 2',
-			repository_name: 'repo2',
-			status: 'pending',
-			thumbnail_url: 'https://picsum.photos/600/400',
-			status_message: 'Menunggu build selesai...',
-			created_at: '20 Feb'
+			project_name: 'Notification Service',
+			repository_name: 'notification-microservice',
+			status: 'success',
+			thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
+			status_message: null,
+			created_at: '30 May'
 		}
 	];
 </script>

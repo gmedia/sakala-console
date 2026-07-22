@@ -3,11 +3,11 @@
 
 @theme {
 	--color-background: #f8faf7;
-	--color-background-soft: #f1f5f2;
+	--color-background-soft: #ededed;
 	--color-surface: #ffffff;
 	--color-surface-elevated: #fbfdfb;
 	--color-foreground: #17211b;
-	--color-muted: #66736b;
+	--color-muted: #a2a2a2;
 	--color-muted-2: #89958d;
 	--color-border: #dde5df;
 	--color-border-strong: #cfdad2;
@@ -24,7 +24,8 @@
 	--color-terminal-text: #e2e8f0;
 	--font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
 	--font-montserrat: 'Montserrat', sans-serif;
-	--font-jetbrains-mono: 'JetBrains-Mono', monospace;
+	--font-jetbrains-mono-regular: 'JetBrains-Mono-regular', monospace;
+	--font-jetbrains-mono-medium: 'JetBrains-Mono-medium', monospace;
 }
 
 @font-face {
@@ -35,9 +36,16 @@
 }
 
 @font-face {
-	font-family: 'JetBrains-Mono';
+	font-family: 'JetBrains-Mono-regular';
 	src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
 	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'JetBrains-Mono-medium';
+	src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+	font-weight: 500;
 	font-style: normal;
 }
 
