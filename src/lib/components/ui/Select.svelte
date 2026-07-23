@@ -45,7 +45,7 @@
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-8 items-center justify-center font-montserrat gap-2 rounded-xl px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+			'inline-flex min-h-8 items-center justify-center font-montserrat-semibold gap-2 rounded-xl px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 			variants[variant],
 			className
 		)

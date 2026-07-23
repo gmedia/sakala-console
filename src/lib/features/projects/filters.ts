@@ -6,16 +6,22 @@ export function filterProjects(
 	projects: Project[],
 	options: { search: string; date: DateFilterValue }
 ): Project[] {
-	return projects
-		.filter((project) => {
-			if (options.date === 'all') return true;
-			const days = options.date === '7d' ? 7 : 30;
-			const now = Date.now();
-			const createdAt = new Date(project.created_at).getTime();
-			const diff = now - createdAt;
-			return diff <= days * 24 * 60 * 60 * 1000;
-		})
-		.filter((project) => {
-			return project.project_name.toLowerCase().includes(options.search.toLowerCase());
-		});
+	if (!projects?.length) return [];
+	const now = Date.now();
+	const searchLower = options.search.toLowerCase();
+
+	return projects.filter((project) => {
+		if (options.date === 'all') return true;
+		const days = options.date === '7d' ? 7 : 30;
+		const createdAt = new Date(project.created_at).getTime();
+		const diff = now - createdAt;
+		if (diff > days * 24 * 60 * 60 * 1000) {
+			return false;
+		}
+
+		if (searchLower) {
+			return project.project_name.toLowerCase().includes(searchLower);
+		}
+		return true;
+	});
 }

@@ -13,7 +13,7 @@
 
 <Card class="relative rounded-xl border border-muted/30">
 	<div class="flex items-center justify-between gap-2">
-		<p class="flex-1 truncate text-lg font-montserrat" title={project_name}>
+		<p class="flex-1 truncate text-lg font-montserrat-semibold" title={project_name}>
 			{project_name}
 		</p>
 		<Badge tone={status} class="shrink-0 tracking-wide">{status}</Badge>
@@ -24,7 +24,7 @@
 	<div class="h-40 w-full overflow-hidden rounded-xl bg-background-soft">
 		{#if status === 'failed' || status === 'pending'}
 			<div class="flex flex-col items-center justify-center gap-2 rounded-xl h-full p-4">
-				<p class="text-md font-montserrat text-muted">{status_message}</p>
+				<p class="text-md font-montserrat-semibold text-muted">{status_message}</p>
 			</div>
 		{:else}
 			<img class="h-full w-full object-cover" src={thumbnail_url} alt={project_name} />
@@ -32,6 +32,8 @@
 	</div>
 	<div class="flex w-full justify-between items-center mt-4">
 		<p class="mt-4 mb-2 text-sm text-muted/80 font-jetbrains-mono-medium">{created_at}</p>
-		<Button variant="outline" class="hover:cursor-pointer font-montserrat">Lihat detail</Button>
+		<Button variant="outline" class="hover:cursor-pointer font-montserrat-semibold"
+			>Lihat detail</Button
+		>
 	</div>
 </Card>

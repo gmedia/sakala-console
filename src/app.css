@@ -23,15 +23,23 @@
 	--color-terminal: #0f172a;
 	--color-terminal-text: #e2e8f0;
 	--font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
-	--font-montserrat: 'Montserrat', sans-serif;
+	--font-montserrat-semibold: 'Montserrat-semiBold', sans-serif;
+	--font-montserrat-light: 'Montserrat-Light', sans-serif;
 	--font-jetbrains-mono-regular: 'JetBrains-Mono-regular', monospace;
 	--font-jetbrains-mono-medium: 'JetBrains-Mono-medium', monospace;
 }
 
 @font-face {
-	font-family: 'Montserrat';
+	font-family: 'Montserrat-semiBold';
 	src: url('/fonts/Montserrat-SemiBold.woff2') format('woff2');
 	font-weight: 600;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Montserrat-Light';
+	src: url('/fonts/Montserrat-Light.woff2') format('woff2');
+	font-weight: 300;
 	font-style: normal;
 }
 
