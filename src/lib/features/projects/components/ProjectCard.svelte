@@ -12,11 +12,11 @@
 </script>
 
 <Card class="relative rounded-xl">
-	<div class="flex items-center justify-between">
-		<div class="flex-1">
-			<p class="text-lg font-montserrat">{project_name}</p>
-		</div>
-		<Badge tone={status} class="absolute top-6 right-6 ">{status}</Badge>
+	<div class="flex items-center justify-between gap-2">
+		<p class="flex-1 truncate text-lg font-montserrat" title={project_name}>
+			{project_name}
+		</p>
+		<Badge tone={status} class="shrink-0">{status}</Badge>
 	</div>
 	<p class="mb-5 text-sm font-jetbrains-mono-regular text-muted">
 		<span>{repository_name}</span>

@@ -103,6 +103,4 @@
 			<ProjectCard {...project} />
 		{/each}
 	</section>
-
-	<!-- <ApiStatusCard /> -->
 </main>
