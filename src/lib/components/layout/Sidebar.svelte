@@ -85,7 +85,9 @@
 					onclick={onCloseMobile}
 					class={cn(
 						'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
-						isActive(item.href) ? 'bg-primary-soft font-semibold text-primary-dark' : 'text-muted'
+						isActive(item.href)
+							? 'bg-primary-50 font-semibold text-primary-dark'
+							: 'text-muted hover:bg-background-soft hover:text-foreground'
 					)}
 				>
 					<Icon size={18} />
