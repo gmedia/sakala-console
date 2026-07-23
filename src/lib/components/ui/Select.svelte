@@ -45,7 +45,7 @@
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-8 items-center justify-center font-montserrat gap-1 rounded-xl px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+			'inline-flex min-h-8 items-center justify-center font-montserrat gap-2 rounded-xl px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 			variants[variant],
 			className
 		)
@@ -76,7 +76,7 @@
 			{@render icon()}
 		{/if}
 
-		<span class="flex-1 text-center w-auto">
+		<span class="flex-1 text-left w-auto">
 			{#if selectedLabel}
 				{selectedLabel}
 			{:else}

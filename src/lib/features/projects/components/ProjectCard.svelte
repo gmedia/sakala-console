@@ -16,7 +16,7 @@
 		<p class="flex-1 truncate text-lg font-montserrat" title={project_name}>
 			{project_name}
 		</p>
-		<Badge tone={status} class="shrink-0">{status}</Badge>
+		<Badge tone={status} class="shrink-0 tracking-wide">{status}</Badge>
 	</div>
 	<p class="mb-5 text-sm font-jetbrains-mono-regular text-muted">
 		<span>{repository_name}</span>

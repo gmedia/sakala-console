@@ -9,8 +9,8 @@
 	let { value = $bindable() }: Props = $props();
 
 	const dateOptions: { label: string; value: DateFilterValue }[] = [
-		{ label: '7 hari', value: '7d' },
-		{ label: '30 hari', value: '30d' },
+		{ label: '7 hari terakhir', value: '7d' },
+		{ label: '30 hari terakhir', value: '30d' },
 		{ label: 'Semua', value: 'all' }
 	];
 </script>
@@ -19,7 +19,7 @@
 	options={dateOptions}
 	bind:value
 	variant="primary"
-	class="w-28 px-3 hover:cursor-pointer"
+	class="w-auto min-w-30 px-3 hover:cursor-pointer"
 	placeholder="Filter berdasarkan tanggal"
 >
 	{#snippet icon()}

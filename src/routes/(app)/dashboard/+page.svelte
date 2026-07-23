@@ -11,7 +11,7 @@
 	import ProjectFilter from '$lib/features/projects/components/ProjectFilter.svelte';
 
 	let search = $state('');
-	let dateFilter: DateFilterValue = $state('all');
+	let dateFilter: DateFilterValue = $state('30d');
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
@@ -41,5 +41,5 @@
 		</div>
 	</div>
 
-	<ProjectList projects={mockProjects} {dateFilter} />
+	<ProjectList projects={mockProjects} {dateFilter} {search} />
 </main>

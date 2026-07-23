@@ -8,20 +8,33 @@
 		onSearch?: (value: string) => void;
 		icon?: Snippet;
 		disabled?: boolean;
+		debounce?: number;
+		id?: string;
 		class?: string;
 	};
 
 	let {
 		value = $bindable(''),
-		placeholder = 'Search...',
+		placeholder = 'Cari...',
 		onSearch,
-		disabled = false,
 		icon,
+		disabled = false,
+		debounce = 0,
+		id,
 		class: className = ''
 	}: Props = $props();
 
+	let debounceTimer: ReturnType<typeof setTimeout>;
+
 	function handleInput() {
-		onSearch?.(value);
+		if (!debounce) {
+			onSearch?.(value);
+			return;
+		}
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			onSearch?.(value);
+		}, debounce);
 	}
 </script>
 
@@ -41,6 +54,8 @@
 		oninput={handleInput}
 		{placeholder}
 		{disabled}
-		class="flex-1 bg-transparent text-sm border-none text-muted focus:ring-0"
+		aria-label={placeholder}
+		{id}
+		class="flex-1 bg-transparent text-sm border-none focus:ring-0"
 	/>
 </div>
