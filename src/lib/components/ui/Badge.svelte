@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { cn } from '$lib/utils/cn';
-	import type { ProjectStatus } from '$lib/types/project';
+	import type { ProjectStatus } from '$lib/features/projects/type';
 
 	type Props = {
 		children: Snippet;

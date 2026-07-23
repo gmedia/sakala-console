@@ -1,8 +1,12 @@
 <script lang="ts">
 	import Select from '$lib/components/ui/Select.svelte';
+	import type { DateFilterValue } from '$lib/features/projects/filters';
 
-	type DateFilterValue = '7d' | '30d' | 'all';
-	let dateFilter: DateFilterValue = $state('30d');
+	type Props = {
+		value: DateFilterValue;
+	};
+
+	let { value = $bindable() }: Props = $props();
 
 	const dateOptions: { label: string; value: DateFilterValue }[] = [
 		{ label: '7 hari', value: '7d' },
@@ -13,12 +17,12 @@
 
 <Select
 	options={dateOptions}
-	bind:value={dateFilter}
+	bind:value
 	variant="primary"
-	class="w-max px-3 hover:cursor-pointer"
+	class="w-28 px-3 hover:cursor-pointer"
 	placeholder="Filter berdasarkan tanggal"
 >
 	{#snippet icon()}
-		<img src="/icons/burger.svg" class="w-3 h-3" alt="burger" />
+		<img src="/icons/burger.svg" class="w-4 h-4" alt="burger" />
 	{/snippet}
 </Select>

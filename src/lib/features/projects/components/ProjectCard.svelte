@@ -3,7 +3,7 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 
-	import type { Project } from '$lib/types/project';
+	import type { Project } from '$lib/features/projects/type';
 
 	type Props = Omit<Project, 'id'>;
 
@@ -11,7 +11,7 @@
 		$props();
 </script>
 
-<Card class="relative rounded-xl">
+<Card class="relative rounded-xl border border-muted/30">
 	<div class="flex items-center justify-between gap-2">
 		<p class="flex-1 truncate text-lg font-montserrat" title={project_name}>
 			{project_name}
