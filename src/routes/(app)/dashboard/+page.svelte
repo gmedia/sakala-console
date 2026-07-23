@@ -1,12 +1,7 @@
 <script lang="ts">
-	import { Boxes } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
-	import Button from '$lib/components/ui/Button.svelte';
-	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import ApiStatusCard from '$lib/features/system/components/ApiStatusCard.svelte';
-	import Badge from '$lib/components/ui/Badge.svelte';
-
 	import ProjectCard from '$lib/features/system/components/ProjectCard.svelte';
+	import CreateProjectHeroCard from '$lib/features/projects/components/CreateProjectHeroCard.svelte';
 
 	const projects = [
 		{
@@ -40,25 +35,8 @@
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
-<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-	<div>
-		<Badge tone="success">Online</Badge>
-		<h1 class="mt-3 text-3xl font-semibold tracking-[-0.035em]">Selamat datang di Sakala.</h1>
-		<p class="mt-2 max-w-2xl leading-7 text-muted">
-			Pantau project, deployment, dan URL publik tanpa kehilangan konteks prosesnya.
-		</p>
-	</div>
-</header>
 <main class="flex flex-col gap-8">
-	<EmptyState
-		icon={Boxes}
-		title="Create Project + CTA"
-		description="Sakala akan membaca project dari repository Github anda untuk di publish dan siap untuk dibagikan "
-	>
-		{#snippet action()}
-			<Button href={resolve('/projects/new')} variant="secondary">Upload project</Button>
-		{/snippet}
-	</EmptyState>
+	<CreateProjectHeroCard />
 
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
 		<h2 class="text-3xl font-semibold whitespace-nowrap">Recent Deploys</h2>
