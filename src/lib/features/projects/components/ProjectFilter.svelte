@@ -2,7 +2,6 @@
 	import Select from '$lib/components/ui/Select.svelte';
 
 	type DateFilterValue = '7d' | '30d' | 'all';
-
 	let dateFilter: DateFilterValue = $state('30d');
 
 	const dateOptions: { label: string; value: DateFilterValue }[] = [
@@ -20,6 +19,6 @@
 	placeholder="Filter berdasarkan tanggal"
 >
 	{#snippet icon()}
-		<img src="/icons/burger.svg" class="w-3 h-3" alt="menu" />
+		<img src="/icons/burger.svg" class="w-3 h-3" alt="burger" />
 	{/snippet}
 </Select>

@@ -7,6 +7,9 @@
 
 	import ProjectCard from '$lib/features/projects/components/ProjectCard.svelte';
 	import ProjectFilter from '$lib/features/projects/components/ProjectFilter.svelte';
+	import SearchInput from '$lib/components/ui/SearchInput.svelte';
+
+	let search = $state('');
 
 	const projects: Project[] = [
 		{
@@ -85,11 +88,11 @@
 			<ProjectFilter />
 		</div>
 		<div class="relative max-w-max sm:flex-2">
-			<input
-				type="text"
-				placeholder="Search Your Project..."
-				class="max-w-max rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e] focus:outline-none"
-			/>
+			<SearchInput bind:value={search} placeholder="Cari..">
+				{#snippet icon()}
+					<img src="/icons/search.svg" alt="" class="h-4 w-4" />
+				{/snippet}
+			</SearchInput>
 		</div>
 	</div>
 
