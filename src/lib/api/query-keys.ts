@@ -14,5 +14,8 @@ export const queryKeys = {
 		all: ['deployments'] as const,
 		detail: (deploymentId: string) => ['deployments', 'detail', deploymentId] as const,
 		logs: (deploymentId: string) => ['deployments', 'logs', deploymentId] as const
+	},
+	notifications: {
+		unreadCount: ['notifications', 'unread-count'] as const
 	}
 };

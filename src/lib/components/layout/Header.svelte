@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Bell, Menu } from '@lucide/svelte';
 	import { page } from '$app/state';
+	import { createUnreadNotificationCountQuery } from '$lib/features/notifications/queries';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -8,7 +9,16 @@
 		unreadCount?: number;
 	};
 
-	let { onToggleMobile, hasUnread = false, unreadCount = 0 }: Props = $props();
+	let { onToggleMobile, hasUnread, unreadCount }: Props = $props();
+
+	const notificationQuery = createUnreadNotificationCountQuery();
+
+	const isUnread = $derived(
+		hasUnread ??
+			(notificationQuery.data?.has_unread ||
+				(notificationQuery.data?.unread_count ?? 0) > 0 ||
+				(unreadCount ?? 0) > 0)
+	);
 
 	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'User Guide' : 'Projects');
 </script>
@@ -36,7 +46,7 @@
 			aria-label="Buka notifikasi"
 		>
 			<Bell size={20} class="text-primary" />
-			{#if hasUnread || unreadCount > 0}
+			{#if isUnread}
 				<span
 					class="absolute top-2.5 right-2.5 size-2 rounded-full bg-error ring-2 ring-surface"
 					aria-hidden="true"
