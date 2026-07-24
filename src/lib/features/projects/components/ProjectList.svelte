@@ -8,9 +8,11 @@
 		projects: Project[];
 		dateFilter: DateFilterValue;
 		search: string;
+		isError?: Error | string | null;
+		onRetry?: () => void;
 	};
 
-	let { projects, dateFilter, search }: Props = $props();
+	let { projects, dateFilter, search, isError = null, onRetry }: Props = $props();
 	let expanded = $state(false);
 
 	const filteredProjects = $derived(filterProjects(projects, { date: dateFilter, search }));
@@ -18,7 +20,21 @@
 </script>
 
 <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
-	{#if projects.length === 0}
+	{#if isError}
+		<EmptyState
+			iconSrc="/icons/notFound.svg"
+			title="Terjadi kesalahan"
+			description={typeof isError === 'string' ? isError : 'Terjadi kesalahan saat memuat project.'}
+			class="col-span-full bg-transparent border-none shadow-none"
+		>
+			{#snippet action()}
+				<button
+					class="bg-white border border-muted/20 rounded-xl p-3 font-montserrat-semibold cursor-pointer"
+					onclick={onRetry}>Coba lagi...</button
+				>
+			{/snippet}
+		</EmptyState>
+	{:else if projects.length === 0}
 		<EmptyState
 			iconSrc="/icons/notFound.svg"
 			title="Belum ada deployment"
