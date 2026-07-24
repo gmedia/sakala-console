@@ -54,6 +54,24 @@ export const mockProjects: Project[] = [
 		thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
 		status_message: null,
 		created_at: '2026-05-30'
+	},
+	{
+		id: 7,
+		project_name: 'Notification Service',
+		repository_name: 'notification-microservice',
+		status: 'success',
+		thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
+		status_message: null,
+		created_at: '2026-05-30'
+	},
+	{
+		id: 8,
+		project_name: 'Notification Service',
+		repository_name: 'notification-microservice',
+		status: 'success',
+		thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
+		status_message: null,
+		created_at: '2026-05-30'
 	}
 ];
 

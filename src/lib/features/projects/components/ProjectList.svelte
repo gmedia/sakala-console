@@ -11,8 +11,10 @@
 	};
 
 	let { projects, dateFilter, search }: Props = $props();
+	let expanded = $state(false);
 
 	const filteredProjects = $derived(filterProjects(projects, { date: dateFilter, search }));
+	const visibleProjects = $derived(expanded ? filteredProjects : filteredProjects.slice(0, 6));
 </script>
 
 <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
@@ -24,7 +26,7 @@
 			class="col-span-full bg-transparent border-none shadow-none"
 		/>
 	{:else}
-		{#each filteredProjects as project (project.id)}
+		{#each visibleProjects as project (project.id)}
 			<ProjectCard {...project} />
 		{:else}
 			<EmptyState
@@ -36,3 +38,14 @@
 		{/each}
 	{/if}
 </section>
+{#if !expanded && filteredProjects.length > 6}
+	<button
+		class="inline-flex gap-2 items-center justify-center mx-auto px-4 py-2 bg-white border border-muted/20 rounded-xl font-montserrat-semibold hover:cursor-pointer"
+		onclick={() => (expanded = true)}
+		>Muat Lebih Banyak <img
+			src="/icons/chevron-down.svg"
+			alt="chevron down"
+			class="mx-auto w-4 h-4"
+		/></button
+	>
+{/if}
