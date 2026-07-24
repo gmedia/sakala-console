@@ -24,7 +24,7 @@
 </script>
 
 <aside class="relative hidden h-full w-64 flex-col border-r border-border bg-surface md:flex">
-	<div class="flex h-16 items-center border-b border-border px-6">
+	<div class="flex h-16 items-center px-6">
 		<SakalaLogo />
 	</div>
 	<nav class="flex-1 space-y-1 px-4 py-6 pb-20 overflow-y-auto" aria-label="Navigasi utama">
