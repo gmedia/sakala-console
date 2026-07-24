@@ -2,41 +2,18 @@
 	import { Boxes } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
-	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import ApiStatusCard from '$lib/features/system/components/ApiStatusCard.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 
-	import ProjectCard from '$lib/features/system/components/ProjectCard.svelte';
+	import SearchInput from '$lib/components/ui/SearchInput.svelte';
+	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import type { DateFilterValue } from '$lib/features/projects/filters';
 
-	const projects = [
-		{
-			id: 1,
-			name: 'Project 1',
-			domain: 'domain1.com',
-			repo: 'repo1',
-			createdAt: '08 Mar on Main',
-			convention: 'feat : UI login',
-			isNew: true
-		},
-		{
-			id: 2,
-			name: 'Sakala',
-			domain: 'sakala.dev',
-			repo: 'sakala-console',
-			createdAt: '17 Jul on Main',
-			convention: 'feat(dashboard): dashboard UI',
-			isNew: true
-		},
-		{
-			id: 3,
-			name: 'Project 2',
-			domain: 'domain2.com',
-			repo: 'repo2',
-			createdAt: '20 Feb on Main',
-			convention: 'Fix(login page): Auth Redirect',
-			isNew: true
-		}
-	];
+	import { mockProjects } from '$lib/features/projects/mock';
+	import ProjectList from '$lib/features/projects/components/ProjectList.svelte';
+	import ProjectFilter from '$lib/features/projects/components/ProjectFilter.svelte';
+
+	let search = $state('');
+	let dateFilter: DateFilterValue = $state('30d');
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
@@ -61,28 +38,20 @@
 	</EmptyState>
 
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
-		<h2 class="text-3xl font-semibold whitespace-nowrap">Recent Deploys</h2>
-		<div class="relative w-full sm:flex-1">
-			<input
-				type="text"
-				placeholder="Search Your Project..."
-				class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e] focus:outline-none"
-			/>
+		<div class="flex items-center justify-between sm:justify-normal gap-4 w-full sm:flex-1">
+			<h2 class="text-2xl font-semibold font-montserrat-semibold whitespace-nowrap">
+				Recent Deploys
+			</h2>
+			<ProjectFilter bind:value={dateFilter} />
+		</div>
+		<div class="relative w-full sm:max-w-max sm:flex-2">
+			<SearchInput bind:value={search} placeholder="Cari..">
+				{#snippet icon()}
+					<img src="/icons/search.svg" alt="" class="h-4 w-4" />
+				{/snippet}
+			</SearchInput>
 		</div>
 	</div>
 
-	<section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
-		{#each projects as project (project.id)}
-			<ProjectCard
-				name={project.name}
-				domain={project.domain}
-				repo={project.repo}
-				createdAt={project.createdAt}
-				convention={project.convention}
-				isNew={project.isNew}
-			/>
-		{/each}
-	</section>
-
-	<ApiStatusCard />
+	<ProjectList projects={mockProjects} {dateFilter} {search} />
 </main>
