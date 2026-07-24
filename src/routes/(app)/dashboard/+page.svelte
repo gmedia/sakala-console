@@ -2,6 +2,8 @@
 	import { Boxes } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Badge from '$lib/components/ui/Badge.svelte';
+
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import type { DateFilterValue } from '$lib/features/projects/filters';
@@ -15,7 +17,15 @@
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
-<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"></header>
+<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+	<div>
+		<Badge tone="success">Online</Badge>
+		<h1 class="mt-3 text-3xl font-semibold tracking-[-0.035em]">Selamat datang di Sakala.</h1>
+		<p class="mt-2 max-w-2xl leading-7 text-muted">
+			Pantau project, deployment, dan URL publik tanpa kehilangan konteks prosesnya.
+		</p>
+	</div>
+</header>
 <main class="flex flex-col gap-8">
 	<EmptyState
 		icon={Boxes}
