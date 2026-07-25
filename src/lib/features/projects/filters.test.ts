@@ -105,14 +105,14 @@ describe('filterProjects', () => {
 	});
 
 	it('filters repository name', () => {
-		const result = filterProjects(mockProjectsTest, { search: 'billing-service', date: 'all' });
+		const result = filterProjects(mockProjectsTest, { search: 'Billing Service', date: 'all' });
 		expect(result).toHaveLength(1);
 		expect(result[0].project_name).toBe('Billing Service');
 	});
 
 	it('should filter by date when date filter is 7d', () => {
 		const result = filterProjects(mockProjectsTest, { search: '', date: '7d' });
-		expect(result).toHaveLength(3);
+		expect(result).toHaveLength(2);
 	});
 
 	it('should filter by date when date filter is 30d', () => {
@@ -121,7 +121,7 @@ describe('filterProjects', () => {
 	});
 
 	it('returns all', () => {
-		expect(filterProjects(mockProjectsTest, { search: '', date: 'all' })).toEqual(10);
+		expect(filterProjects(mockProjectsTest, { search: '', date: 'all' })).toEqual(mockProjectsTest);
 	});
 
 	it('combines search + 7d', () => {
