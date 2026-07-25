@@ -4,11 +4,15 @@
 	import ProjectCardSkeleton from '$lib/features/projects/components/ProjectCardSkeleton.svelte';
 	import { filterProjects, type DateFilterValue } from '$lib/features/projects/filters';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import Pagination from '$lib/components/ui/pagination.svelte';
 
 	type Props = {
 		projects: Project[];
 		dateFilter: DateFilterValue;
 		search: string;
+		currentPage?: number;
+		perPage?: number;
+		onPageChange?: (page: number) => void;
 		isError?: Error | string | null;
 		isLoading?: boolean;
 		onRetry?: () => void;
@@ -18,16 +22,22 @@
 		projects,
 		dateFilter,
 		search,
+		currentPage = 1,
+		perPage = 6,
+		onPageChange = () => {},
 		isError = null,
 		isLoading = false,
 		onRetry
 	}: Props = $props();
-	let expanded = $state(false);
 
 	const skeletonCount = 6;
 	const skeletons = Array.from({ length: skeletonCount }, (_, i) => i);
+
 	const filteredProjects = $derived(filterProjects(projects, { date: dateFilter, search }));
-	const visibleProjects = $derived(expanded ? filteredProjects : filteredProjects.slice(0, 6));
+	const totalPages = $derived(Math.ceil(filteredProjects.length / perPage));
+	const visibleProjects = $derived(
+		filteredProjects.slice((currentPage - 1) * perPage, currentPage * perPage)
+	);
 </script>
 
 <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
@@ -70,15 +80,4 @@
 		{/each}
 	{/if}
 </section>
-{#if !expanded && filteredProjects.length > 6}
-	<button
-		class="inline-flex gap-2 items-center justify-center mx-auto px-4 py-2 bg-white border border-muted/20 rounded-xl font-montserrat-semibold hover:cursor-pointer"
-		onclick={() => (expanded = true)}
-	>
-		Muat Lebih Banyak <img
-			src="/icons/chevron-down.svg"
-			alt="chevron down"
-			class="mx-auto w-4 h-4"
-		/>
-	</button>
-{/if}
+<Pagination {currentPage} {totalPages} {onPageChange} />

@@ -14,6 +14,14 @@
 
 	let search = $state('');
 	let dateFilter: DateFilterValue = $state('30d');
+	let currentPage = $state(1);
+	const perPage = 6;
+
+	$effect(() => {
+		void search;
+		void dateFilter;
+		currentPage = 1;
+	});
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
@@ -53,5 +61,14 @@
 		</div>
 	</div>
 
-	<ProjectList projects={mockProjects} isLoading={false} isError={null} {dateFilter} {search} />
+	<ProjectList
+		projects={mockProjects}
+		isLoading={false}
+		{perPage}
+		{currentPage}
+		onPageChange={(page) => (currentPage = page)}
+		isError={null}
+		{dateFilter}
+		{search}
+	/>
 </main>
