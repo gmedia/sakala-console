@@ -1,11 +1,16 @@
-export type ProjectStatus = 'success' | 'failed' | 'pending';
+export type runtime_status =
+	| 'not_deployed'
+	| 'deploying'
+	| 'running'
+	| 'stopped'
+	| 'failed'
+	| 'crashed';
 
 export interface Project {
-	id: number;
+	id: string;
 	project_name: string;
-	repository_name: string;
-	status: ProjectStatus;
-	thumbnail_url: string;
-	status_message?: string | null;
+	repository_full_name: string;
+	runtime_status: runtime_status;
+	thumbnail_url: string | null;
 	created_at: string;
 }
