@@ -1,23 +1,38 @@
 <script lang="ts">
 	import type { Component, Snippet } from 'svelte';
+	import { cn } from '$lib/utils/cn';
 	import Card from '$lib/components/ui/Card.svelte';
 
 	type Props = {
 		icon?: Component<{ size?: number; 'aria-hidden'?: 'true' }>;
 		iconSrc?: string;
+		tone?: 'neutral' | 'failed' | 'warning' | 'muted';
 		title: string;
 		description: string;
 		class?: string;
 		action?: Snippet;
 	};
 
-	let { icon: Icon, iconSrc, title, description, class: cardClass, action }: Props = $props();
+	const tones = {
+		neutral: 'bg-primary/20 text-primary',
+		failed: 'bg-error/20 text-error',
+		warning: 'bg-warning/10 text-warning',
+		muted: 'bg-muted/10 text-muted'
+	};
+
+	let {
+		icon: Icon,
+		iconSrc,
+		title,
+		description,
+		tone = 'neutral',
+		class: cardClass,
+		action
+	}: Props = $props();
 </script>
 
 <Card class={`py-12 text-center sm:py-16 ${cardClass || ''}`}>
-	<div
-		class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary"
-	>
+	<div class={cn('mx-auto flex size-12 items-center justify-center rounded-2xl', tones[tone])}>
 		{#if iconSrc}
 			<img src={iconSrc} alt="icon" class="h-6 w-6" />
 		{:else}

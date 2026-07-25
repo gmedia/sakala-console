@@ -53,5 +53,5 @@
 		</div>
 	</div>
 
-	<ProjectList projects={mockProjects} {dateFilter} {search} />
+	<ProjectList projects={mockProjects} isLoading={false} isError={null} {dateFilter} {search} />
 </main>
