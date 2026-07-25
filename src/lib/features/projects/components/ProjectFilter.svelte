@@ -19,7 +19,7 @@
 	options={dateOptions}
 	bind:value
 	variant="primary"
-	class="w-full sm:w-auto sm:min-w-32 px-4 py-2 cursor-pointer"
+	class="w-40 xs:w-40 sm:w-46 px-3 xs:px-4 py-2 cursor-pointer text-sm sm:text-base"
 	placeholder="Filter berdasarkan tanggal"
 >
 	{#snippet icon()}

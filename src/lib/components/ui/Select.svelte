@@ -64,7 +64,7 @@
 	}
 </script>
 
-<div class="relative inline-block">
+<div class="relative w-auto min-w-0">
 	<button
 		type="button"
 		class={classes}
@@ -76,7 +76,7 @@
 			{@render icon()}
 		{/if}
 
-		<span class="flex-1 text-left w-auto">
+		<span class="flex-1 text-left truncate">
 			{#if selectedLabel}
 				{selectedLabel}
 			{:else}
@@ -89,7 +89,7 @@
 		<ul
 			role="listbox"
 			class={cn(
-				'absolute z-10 mt-1 min-w-full overflow-hidden rounded-lg border border-border-strong bg-surface py-1 shadow-md',
+				'absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-border-strong bg-surface py-1 shadow-md',
 				contentClass
 			)}
 		>
@@ -99,7 +99,7 @@
 						type="button"
 						disabled={opt.disabled}
 						class={cn(
-							'w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-background-soft',
+							'w-full font-montserrat-semibold cursor-pointer px-3 py-2 text-left text-sm hover:bg-background-soft',
 							opt.value === value && 'font-semibold text-primary',
 							opt.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent'
 						)}

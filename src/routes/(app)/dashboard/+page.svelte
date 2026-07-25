@@ -48,7 +48,7 @@
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
 		<div class="flex items-center justify-between sm:justify-normal gap-4 w-full sm:flex-1">
 			<h2 class="text-2xl font-semibold font-montserrat-semibold whitespace-nowrap">
-				Recent Deploys
+				Recent Projects
 			</h2>
 			<ProjectFilter bind:value={dateFilter} />
 		</div>
