@@ -4,14 +4,10 @@ import { apiRequest } from '$lib/api/client';
 import type { UnreadNotificationCount, UnreadNotificationCountResponse } from './types';
 
 export async function getUnreadNotificationCount(): Promise<UnreadNotificationCount> {
-	try {
-		const response = await apiRequest<UnreadNotificationCountResponse>(
-			'/api/v1/notifications/unread-count'
-		);
-		return response.data;
-	} catch {
-		return { has_unread: false, unread_count: 0 };
-	}
+	const response = await apiRequest<UnreadNotificationCountResponse>(
+		'/api/v1/notifications/unread-count'
+	);
+	return response.data;
 }
 
 export function createUnreadNotificationCountQuery() {

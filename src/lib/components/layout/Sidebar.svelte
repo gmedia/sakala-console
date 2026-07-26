@@ -5,13 +5,15 @@
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { LayoutGrid, BookOpen, CircleUser, Settings } from '@lucide/svelte';
+	import type { User } from '$lib/features/auth/types';
 
 	type Props = {
 		isMobileOpen?: boolean;
 		onCloseMobile?: () => void;
+		user?: Partial<User>;
 	};
 
-	let { isMobileOpen = false, onCloseMobile }: Props = $props();
+	let { isMobileOpen = false, onCloseMobile, user = { name: 'John Doe' } }: Props = $props();
 
 	const navigation = [
 		{ href: '/dashboard', label: 'Projects', icon: LayoutGrid },
@@ -49,8 +51,16 @@
 		class="absolute bottom-0 left-0 right-0 border-t border-border bg-surface px-4 py-4 flex items-center justify-between"
 	>
 		<div class="flex items-center gap-3 px-4">
-			<CircleUser size={18} class="text-primary-dark shrink-0" />
-			<span class="text-sm font-semibold text-foreground">Name</span>
+			{#if user.avatar_url}
+				<img
+					src={user.avatar_url}
+					alt={user.name}
+					class="size-4.5 shrink-0 rounded-full object-cover ring-1 ring-border"
+				/>
+			{:else}
+				<CircleUser size={18} class="text-primary-dark shrink-0" />
+			{/if}
+			<span class="text-sm font-semibold text-foreground">{user.name}</span>
 		</div>
 		<button
 			type="button"
@@ -100,8 +110,16 @@
 			class="absolute bottom-0 left-0 right-0 border-t border-border bg-surface px-4 py-4 flex items-center justify-between"
 		>
 			<div class="flex items-center gap-3 px-4">
-				<CircleUser size={18} class="text-primary-dark shrink-0" />
-				<span class="text-sm font-semibold text-foreground">Name</span>
+				{#if user.avatar_url}
+					<img
+						src={user.avatar_url}
+						alt={user.name}
+						class="size-4.5 shrink-0 rounded-full object-cover ring-1 ring-border"
+					/>
+				{:else}
+					<CircleUser size={18} class="text-primary-dark shrink-0" />
+				{/if}
+				<span class="text-sm font-semibold text-foreground">{user.name}</span>
 			</div>
 			<button
 				type="button"
