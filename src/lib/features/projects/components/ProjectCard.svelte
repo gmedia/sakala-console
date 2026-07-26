@@ -65,7 +65,9 @@
 	const badge = $derived(runtimeStatusBadge[projects.runtime_status]);
 </script>
 
-<Card class="relative rounded-xl border border-muted/30 hover:text-primary hover:shadow-lg transition-all duration-300">
+<Card
+	class="relative rounded-xl border border-muted/30 hover:text-primary hover:shadow-lg transition-all duration-300"
+>
 	<div class="flex items-center justify-between gap-2">
 		<p class="flex-1 truncate text-lg font-montserrat-semibold" title={projects.project_name}>
 			{projects.project_name}
