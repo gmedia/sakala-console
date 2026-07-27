@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
@@ -12,6 +13,17 @@
 	--color-border: #dde5df;
 	--color-border-strong: #cfdad2;
 	--color-primary: #0f766e;
+	--color-primary-base: #0f766e;
+	--color-primary-50: #e7f1f1;
+	--color-primary-100: #b5d5d2;
+	--color-primary-200: #91c0bc;
+	--color-primary-300: #5ea39e;
+	--color-primary-400: #3f918b;
+	--color-primary-500: #0f766e;
+	--color-primary-600: #0e6b64;
+	--color-primary-700: #0b544e;
+	--color-primary-800: #08413d;
+	--color-primary-900: #06322e;
 	--color-primary-dark: #115e59;
 	--color-primary-soft: #ccfbf1;
 	--color-accent: #d97706;
@@ -22,7 +34,8 @@
 	--color-info: #2563eb;
 	--color-terminal: #0f172a;
 	--color-terminal-text: #e2e8f0;
-	--font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+	--font-sans: 'Montserrat', 'Inter', 'Segoe UI', system-ui, sans-serif;
+	--font-montserrat: 'Montserrat', sans-serif;
 }
 
 @layer base {
