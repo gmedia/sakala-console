@@ -15,13 +15,21 @@
 
 	let { isMobileOpen = false, onCloseMobile, user = { name: 'John Doe' } }: Props = $props();
 
-	const navigation = [
-		{ href: '/projects', label: 'Projects', icon: LayoutGrid },
-		{ href: 'https://sakala.dev/docs', label: 'User Guide', icon: BookOpen }
-	] as const;
+	type NavItem = {
+		href: string;
+		label: string;
+		icon: typeof LayoutGrid;
+		isExternal?: boolean;
+	};
 
-	function isActive(href: string): boolean {
-		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
+	const navigation: readonly NavItem[] = [
+		{ href: '/projects', label: 'Projects', icon: LayoutGrid },
+		{ href: 'https://sakala.dev/docs', label: 'User Guide', icon: BookOpen, isExternal: true }
+	];
+
+	function isActive(item: NavItem): boolean {
+		if (item.isExternal) return false;
+		return page.url.pathname === item.href || page.url.pathname.startsWith(`${item.href}/`);
 	}
 </script>
 
@@ -33,11 +41,13 @@
 		{#each navigation as item (item.href)}
 			{@const Icon = item.icon}
 			<a
-				href={`${base}${item.href}`}
-				aria-current={isActive(item.href) ? 'page' : undefined}
+				href={item.isExternal ? item.href : `${base}${item.href}`}
+				target={item.isExternal ? '_blank' : undefined}
+				rel={item.isExternal ? 'noreferrer noopener' : undefined}
+				aria-current={isActive(item) ? 'page' : undefined}
 				class={cn(
 					'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
-					isActive(item.href)
+					isActive(item)
 						? 'bg-primary-50 font-semibold text-primary-dark'
 						: 'text-muted hover:bg-background-soft hover:text-foreground'
 				)}
@@ -91,11 +101,13 @@
 			{#each navigation as item (item.href)}
 				{@const Icon = item.icon}
 				<a
-					href={`${base}${item.href}`}
+					href={item.isExternal ? item.href : `${base}${item.href}`}
+					target={item.isExternal ? '_blank' : undefined}
+					rel={item.isExternal ? 'noreferrer noopener' : undefined}
 					onclick={onCloseMobile}
 					class={cn(
 						'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
-						isActive(item.href)
+						isActive(item)
 							? 'bg-primary-50 font-semibold text-primary-dark'
 							: 'text-muted hover:bg-background-soft hover:text-foreground'
 					)}
