@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Menu } from '@lucide/svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import type { DateFilterValue } from '$lib/features/projects/filters';
 
@@ -23,6 +24,6 @@
 	placeholder="Filter berdasarkan tanggal"
 >
 	{#snippet icon()}
-		<img src="/icons/burger.svg" class="w-4 h-4" alt="burger" />
+		<Menu class="h-5 w-5" />
 	{/snippet}
 </Select>

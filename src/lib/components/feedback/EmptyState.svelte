@@ -5,7 +5,6 @@
 
 	type Props = {
 		icon?: Component<{ size?: number; 'aria-hidden'?: 'true' }>;
-		iconSrc?: string;
 		tone?: 'neutral' | 'failed' | 'warning' | 'muted';
 		title: string;
 		description: string;
@@ -14,7 +13,7 @@
 	};
 
 	const tones = {
-		neutral: 'bg-primary/20 text-primary',
+		neutral: 'bg-primary/15 text-primary',
 		failed: 'bg-error/20 text-error',
 		warning: 'bg-warning/10 text-warning',
 		muted: 'bg-muted/10 text-muted'
@@ -22,7 +21,6 @@
 
 	let {
 		icon: Icon,
-		iconSrc,
 		title,
 		description,
 		tone = 'neutral',
@@ -32,15 +30,11 @@
 </script>
 
 <Card class={`py-12 text-center sm:py-16 ${cardClass || ''}`}>
-	<div class={cn('mx-auto flex size-12 items-center justify-center rounded-2xl', tones[tone])}>
-		{#if iconSrc}
-			<img src={iconSrc} alt="icon" class="h-6 w-6" />
-		{:else}
-			<Icon size={24} aria-hidden="true" />
-		{/if}
+	<div class={cn('mx-auto flex size-12 items-center justify-center rounded-xl', tones[tone])}>
+		<Icon size={24} aria-hidden="true" />
 	</div>
 	<h2 class="mt-5 text-xl font-montserrat-semibold tracking-tight">{title}</h2>
-	<p class="mx-auto mt-2 max-w-md font-montserrat-light leading-7 text-muted">{description}</p>
+	<p class="mx-auto mt-2 max-w-xl font-montserrat-light leading-tight text-muted">{description}</p>
 	{#if action}
 		<div class="mt-6">{@render action()}</div>
 	{/if}

@@ -1,28 +1,47 @@
 <script lang="ts">
-	import { Boxes, Plus } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
-	import Button from '$lib/components/ui/Button.svelte';
-	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import CreateProjectHeroCard from '$lib/features/projects/components/CreateProjectHeroCard.svelte';
+	import SearchInput from '$lib/components/ui/SearchInput.svelte';
+	import type { DateFilterValue } from '$lib/features/projects/filters';
+	import { mockProjects } from '$lib/features/projects/mock';
+	import ProjectList from '$lib/features/projects/components/ProjectList.svelte';
+	import ProjectFilter from '$lib/features/projects/components/ProjectFilter.svelte';
+
+	let search = $state('');
+	let dateFilter: DateFilterValue = $state('30d');
+	let currentPage = $state(1);
+	const perPage = 6;
+
+	$effect(() => {
+		void search;
+		void dateFilter;
+		currentPage = 1;
+	});
 </script>
 
 <svelte:head><title>Projects | Sakala Console</title></svelte:head>
+<main class="flex flex-col gap-8">
+	<CreateProjectHeroCard />
 
-<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-	<div>
-		<p class="text-sm font-semibold text-primary">Projects</p>
-		<h1 class="mt-2 text-3xl font-semibold tracking-[-0.035em]">Project yang kamu bawa online.</h1>
-		<p class="mt-2 max-w-2xl leading-7 text-muted">
-			Status repository, deployment terakhir, dan URL publik akan dirangkum di sini.
-		</p>
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+		<div class="flex items-center justify-between sm:justify-normal gap-4 w-full sm:flex-1">
+			<h2 class="text-2xl font-semibold font-montserrat-semibold whitespace-nowrap">
+				Recent Projects
+			</h2>
+			<ProjectFilter bind:value={dateFilter} />
+		</div>
+		<div class="relative w-full sm:max-w-max sm:flex-2">
+			<SearchInput bind:value={search} placeholder="Cari.." />
+		</div>
 	</div>
-	<Button href={resolve('/projects/new')}><Plus size={18} aria-hidden="true" /> Project baru</Button
-	>
-</header>
 
-<div class="mt-8">
-	<EmptyState
-		icon={Boxes}
-		title="Belum ada project"
-		description="Hubungkan repository pertama setelah API project dan GitHub login tersedia."
+	<ProjectList
+		projects={mockProjects}
+		isLoading={false}
+		{perPage}
+		{currentPage}
+		onPageChange={(page) => (currentPage = page)}
+		isError={null}
+		{dateFilter}
+		{search}
 	/>
-</div>
+</main>

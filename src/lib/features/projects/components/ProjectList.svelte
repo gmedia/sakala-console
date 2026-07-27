@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { RotateCcw, CircleAlert, CircleOff } from '@lucide/svelte';
 	import type { Project } from '$lib/features/projects/type';
 	import ProjectCard from '$lib/features/projects/components/ProjectCard.svelte';
 	import ProjectCardSkeleton from '$lib/features/projects/components/ProjectCardSkeleton.svelte';
@@ -30,6 +31,8 @@
 		onRetry
 	}: Props = $props();
 
+	const guide_rule = 'https://sakala.dev/docs';
+
 	const skeletonCount = 6;
 	const skeletons = Array.from({ length: skeletonCount }, (_, i) => i);
 
@@ -47,7 +50,7 @@
 		{/each}
 	{:else if isError}
 		<EmptyState
-			iconSrc="/icons/warning.svg"
+			icon={CircleAlert}
 			tone="failed"
 			title="Gagal memuat project"
 			description="Terjadi kendala saat mengambil data dari server. Ini bukan karena project kamu hilang, coba muat ulang halamannya."
@@ -56,20 +59,29 @@
 			{#snippet action()}
 				<button
 					class="inline-flex gap-2 bg-primary text-white border border-muted/20 rounded-lg py-3 px-4 font-montserrat-semibold cursor-pointer"
-					onclick={onRetry}><img src="/icons/retry.svg" alt="coba lagi" /> Coba lagi</button
+					onclick={onRetry}><RotateCcw class="w-6 h-6" /> Coba lagi</button
 				>
 			{/snippet}
 		</EmptyState>
 	{:else if projects.length === 0}
 		<EmptyState
-			iconSrc="/icons/notFound.svg"
-			title="Belum ada deployment"
-			description="Kamu belum punya project apapun. Deploy project pertamamu untuk melihat riwayatnya muncul di sini."
+			icon={CircleOff}
+			title="Belum ada proyek"
+			description="Kamu belum punya project apapun. Buat project pertamamu untuk melihatnya muncul di sini."
 			class="col-span-full bg-transparent border-none shadow-none"
-		/>
+		>
+			{#snippet action()}
+				<p class="text-sm text-muted">
+					Belum pernah deploy?
+					<a href={guide_rule} class="underline underline-offset-2">
+						Baca panduan deploy pertamamu.
+					</a>
+				</p>
+			{/snippet}
+		</EmptyState>
 	{:else if filteredProjects.length === 0}
 		<EmptyState
-			iconSrc="/icons/notFound.svg"
+			icon={CircleOff}
 			title="Tidak menemukan project"
 			description="Project yang kamu cari tidak ditemukan. Coba periksa kembali kata kunci pencarianmu atau filter tanggal yang digunakan."
 			class="col-span-full bg-transparent border-none shadow-none"
