@@ -20,7 +20,7 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	const pageTitle = $derived(page.url.pathname.startsWith('/dashboard') ? 'Dashboard' : 'Projects');
+	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
 </script>
 
 <header

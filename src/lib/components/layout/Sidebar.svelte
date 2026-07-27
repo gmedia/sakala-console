@@ -16,8 +16,8 @@
 	let { isMobileOpen = false, onCloseMobile, user = { name: 'John Doe' } }: Props = $props();
 
 	const navigation = [
-		{ href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-		{ href: '/docs', label: 'User Guide', icon: BookOpen }
+		{ href: '/projects', label: 'Projects', icon: LayoutGrid },
+		{ href: 'https://sakala.dev/docs', label: 'User Guide', icon: BookOpen }
 	] as const;
 
 	function isActive(href: string): boolean {

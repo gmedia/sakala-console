@@ -2,9 +2,11 @@ export type User = {
 	id: string;
 	name: string;
 	email: string;
-	avatar_url?: string;
-	roles: string[];
-	created_at: string;
+	avatar_url?: string | null;
+	role: string;
+	onboarding_source?: string | null;
+	onboarding_completed_at?: string | null;
+	last_login_at?: string | null;
 };
 
 export type UserResource = {

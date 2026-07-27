@@ -1,28 +1,66 @@
 <script lang="ts">
-	import { Boxes, Plus } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
-	import Button from '$lib/components/ui/Button.svelte';
-	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import ApiStatusCard from '$lib/features/system/components/ApiStatusCard.svelte';
+	import ProjectCard from '$lib/features/system/components/ProjectCard.svelte';
+	import CreateProjectHeroCard from '$lib/features/projects/components/CreateProjectHeroCard.svelte';
+
+	const projects = [
+		{
+			id: 1,
+			name: 'Project 1',
+			domain: 'domain1.com',
+			repo: 'repo1',
+			createdAt: '08 Mar on Main',
+			convention: 'feat : UI login',
+			isNew: true
+		},
+		{
+			id: 2,
+			name: 'Sakala',
+			domain: 'sakala.dev',
+			repo: 'sakala-console',
+			createdAt: '17 Jul on Main',
+			convention: 'feat(dashboard): dashboard UI',
+			isNew: true
+		},
+		{
+			id: 3,
+			name: 'Project 2',
+			domain: 'domain2.com',
+			repo: 'repo2',
+			createdAt: '20 Feb on Main',
+			convention: 'Fix(login page): Auth Redirect',
+			isNew: true
+		}
+	];
 </script>
 
 <svelte:head><title>Projects | Sakala Console</title></svelte:head>
+<main class="flex flex-col gap-8">
+	<CreateProjectHeroCard />
 
-<header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-	<div>
-		<p class="text-sm font-semibold text-primary">Projects</p>
-		<h1 class="mt-2 text-3xl font-semibold tracking-[-0.035em]">Project yang kamu bawa online.</h1>
-		<p class="mt-2 max-w-2xl leading-7 text-muted">
-			Status repository, deployment terakhir, dan URL publik akan dirangkum di sini.
-		</p>
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+		<h2 class="text-3xl font-semibold whitespace-nowrap">Recent Deploys</h2>
+		<div class="relative w-full sm:flex-1">
+			<input
+				type="text"
+				placeholder="Search Your Project..."
+				class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e] focus:outline-none"
+			/>
+		</div>
 	</div>
-	<Button href={resolve('/projects/new')}><Plus size={18} aria-hidden="true" /> Project baru</Button
-	>
-</header>
 
-<div class="mt-8">
-	<EmptyState
-		icon={Boxes}
-		title="Belum ada project"
-		description="Hubungkan repository pertama setelah API project dan GitHub login tersedia."
-	/>
-</div>
+	<section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
+		{#each projects as project (project.id)}
+			<ProjectCard
+				name={project.name}
+				domain={project.domain}
+				repo={project.repo}
+				createdAt={project.createdAt}
+				convention={project.convention}
+				isNew={project.isNew}
+			/>
+		{/each}
+	</section>
+
+	<ApiStatusCard />
+</main>
