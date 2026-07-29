@@ -34,7 +34,7 @@
 	<title>Onboarding | Sakala Console</title>
 </svelte:head>
 
-<div class="flex min-h-screen w-full items-center justify-center bg-background text-foreground">
+<div class="flex min-h-screen w-full items-center justify-center bg-background text-black">
 	{#if currentStep === 1}
 		<OnboardingStep1
 			selectedSource={data.source}

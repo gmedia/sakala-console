@@ -44,7 +44,7 @@
 	</div>
 
 	<!-- Heading -->
-	<h1 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+	<h1 class="text-3xl font-bold tracking-tight text-black sm:text-4xl">
 		Dari mana Anda mengetahui <span class="text-primary">Sakala?</span>
 	</h1>
 	<p class="mt-2 text-sm text-black">Bantu kami memahami bagaimana Anda menemukan platform kami.</p>
@@ -61,7 +61,7 @@
 					class={cn(
 						'flex h-16.5 w-full items-center gap-3.5 rounded-lg border px-4 text-left transition-all sm:w-52',
 						isSelected
-							? 'border-primary bg-primary-50/40 text-foreground ring-1 ring-primary'
+							? 'border-primary bg-primary-50/40 text-black ring-1 ring-primary'
 							: 'border-border bg-surface text-black hover:border-primary/40 hover:bg-background/50'
 					)}
 				>
@@ -73,19 +73,19 @@
 					>
 						<Icon size={18} />
 					</div>
-					<span class="text-sm font-medium">{source.label}</span>
+					<span class="text-sm font-normal text-black">{source.label}</span>
 				</button>
 			{/each}
 		</div>
 	</div>
 
 	<!-- Footer Navigation Controls -->
-	<div class="mt-12 flex items-center justify-between pt-6">
+	<div class="mt-20 flex items-center justify-between pt-6">
 		<button
 			type="button"
 			onclick={onBack}
 			disabled={!onBack}
-			class="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary disabled:opacity-30"
+			class="inline-flex items-center gap-2 text-[22px] font-normal text-black hover:text-primary disabled:opacity-30"
 		>
 			<ArrowLeft size={16} />
 			Kembali
@@ -94,7 +94,7 @@
 		<button
 			type="button"
 			onclick={onNext}
-			class="rounded-lg bg-primary-200 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary hover:text-white"
+			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary-200 text-[22px] font-normal text-white transition-colors hover:bg-primary hover:text-white"
 		>
 			Lanjutkan
 		</button>
