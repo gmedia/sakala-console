@@ -1,0 +1,102 @@
+<script lang="ts">
+	import {
+		GraduationCap,
+		Share2,
+		Users,
+		Megaphone,
+		GitFork,
+		FileText,
+		MoreHorizontal,
+		ArrowLeft
+	} from '@lucide/svelte';
+	import { cn } from '$lib/utils/cn';
+	import type { OnboardingSource } from '../types';
+
+	type Props = {
+		selectedSource?: OnboardingSource;
+		onSelect: (source: OnboardingSource) => void;
+		onNext: () => void;
+		onBack?: () => void;
+	};
+
+	let { selectedSource, onSelect, onNext, onBack }: Props = $props();
+
+	const sources: { id: OnboardingSource; label: string; icon: typeof GraduationCap }[] = [
+		{ id: 'campus', label: 'Kampus', icon: GraduationCap },
+		{ id: 'social_media', label: 'Media Sosial', icon: Share2 },
+		{ id: 'friend', label: 'Teman', icon: Users },
+		{ id: 'gmedia', label: 'Gmedia', icon: Share2 },
+		{ id: 'community', label: 'Komunitas', icon: Megaphone },
+		{ id: 'github', label: 'GitHub', icon: GitFork },
+		{ id: 'workshop', label: 'Workshop', icon: FileText },
+		{ id: 'other', label: 'Lainnya', icon: MoreHorizontal }
+	];
+</script>
+
+<div class="mx-auto w-full py-12 px-6 md:px-27">
+	<!-- Badge -->
+	<div class="mb-10">
+		<span
+			class="inline-block rounded-lg border border-primary/40 bg-primary-50/50 px-3 py-1 font-mono text-[14px] text-primary"
+		>
+			Langkah 1 dari 3
+		</span>
+	</div>
+
+	<!-- Heading -->
+	<h1 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+		Dari mana Anda mengetahui <span class="text-primary">Sakala?</span>
+	</h1>
+	<p class="mt-2 text-sm text-black">Bantu kami memahami bagaimana Anda menemukan platform kami.</p>
+
+	<!-- 2-Column Options Grid -->
+	<div class="mt-10 flex justify-center">
+		<div class="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-14.5">
+			{#each sources as source (source.id)}
+				{@const Icon = source.icon}
+				{@const isSelected = selectedSource === source.id}
+				<button
+					type="button"
+					onclick={() => onSelect(source.id)}
+					class={cn(
+						'flex h-16.5 w-full items-center gap-3.5 rounded-lg border px-4 text-left transition-all sm:w-52',
+						isSelected
+							? 'border-primary bg-primary-50/40 text-foreground ring-1 ring-primary'
+							: 'border-border bg-surface text-black hover:border-primary/40 hover:bg-background/50'
+					)}
+				>
+					<div
+						class={cn(
+							'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+							isSelected ? 'bg-primary text-white' : 'bg-primary-50 text-primary'
+						)}
+					>
+						<Icon size={18} />
+					</div>
+					<span class="text-sm font-medium">{source.label}</span>
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Footer Navigation Controls -->
+	<div class="mt-12 flex items-center justify-between pt-6">
+		<button
+			type="button"
+			onclick={onBack}
+			disabled={!onBack}
+			class="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary disabled:opacity-30"
+		>
+			<ArrowLeft size={16} />
+			Kembali
+		</button>
+
+		<button
+			type="button"
+			onclick={onNext}
+			class="rounded-lg bg-primary-200 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary hover:text-white"
+		>
+			Lanjutkan
+		</button>
+	</div>
+</div>
