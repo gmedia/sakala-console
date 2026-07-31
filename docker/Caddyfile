@@ -7,9 +7,13 @@
 	encode zstd gzip
 	root * /srv
 
-	@health path /healthz
-	respond @health "ok" 200
+	# `route` preserves handler order. Without it, Caddy runs `try_files`
+	# before `respond`, causing the SPA fallback to mask this health endpoint.
+	route {
+		@health path /healthz
+		respond @health "ok" 200
 
-	try_files {path} /index.html
-	file_server
+		try_files {path} /index.html
+		file_server
+	}
 }
