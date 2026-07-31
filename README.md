@@ -32,6 +32,22 @@ pnpm dev
 
 Console tersedia di `http://app.sakala.localhost:5173` jika host lokal tersebut diarahkan ke loopback. API default berada di `http://api.sakala.localhost:8000`.
 
+## Container Image
+
+`Dockerfile` membangun static SPA SvelteKit lalu menyajikannya melalui Caddy internal pada port `8080`.
+
+`PUBLIC_API_URL` dan `PUBLIC_APP_URL` adalah konfigurasi publik yang dibundel saat build, bukan secret runtime. Deployment harus mengirim keduanya sebagai build argument sesuai environment target.
+
+```bash
+docker build \
+  --build-arg PUBLIC_API_URL=http://api.sakala.localhost:8000 \
+  --build-arg PUBLIC_APP_URL=http://app.sakala.localhost:5173 \
+  -t sakala-console:local .
+docker run --rm -p 8080:8080 sakala-console:local
+```
+
+Domain, TLS, reverse proxy host, dan environment deployment dikelola oleh repository deployment terpisah. Image ini tidak menyimpan credential atau origin production.
+
 ## Commands
 
 ```bash
