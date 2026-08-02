@@ -14,3 +14,12 @@ export interface Project {
 	thumbnail_url: string | null;
 	created_at: string;
 }
+
+export type Repository = {
+	id: string;
+	name: string;
+	full_name: string;
+	default_branch: string;
+	pushed_at: string;
+	private: boolean;
+};

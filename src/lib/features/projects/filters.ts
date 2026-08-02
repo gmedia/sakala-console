@@ -1,4 +1,4 @@
-import type { Project } from './type';
+import type { Project, Repository } from './type';
 
 export type DateFilterValue = '7d' | '30d' | 'all';
 
@@ -25,4 +25,9 @@ export function filterProjects(
 		}
 		return true;
 	});
+}
+
+export function searchRepositories(repositories: Repository[], search: string): Repository[] {
+	const searchLower = search.toLowerCase();
+	return repositories.filter((repo) => repo.full_name.toLowerCase().includes(searchLower));
 }
