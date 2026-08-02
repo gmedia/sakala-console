@@ -1,15 +1,15 @@
 <script lang="ts">
+	import type { HTMLButtonAttributes } from 'svelte/elements';
 	import type { Snippet } from 'svelte';
 	import type { ResolvedPathname } from '$app/types';
 	import { cn } from '$lib/utils/cn';
 
-	type Props = {
+	type Props = HTMLButtonAttributes & {
 		children: Snippet;
 		href?: ResolvedPathname;
 		externalHref?: string;
 		variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
 		type?: 'button' | 'submit' | 'reset';
-		disabled?: boolean;
 		class?: string;
 	};
 
@@ -18,23 +18,21 @@
 		href,
 		externalHref,
 		variant = 'primary',
-		type = 'button',
-		disabled = false,
-		class: className = ''
+		class: className = '',
+		...restProps
 	}: Props = $props();
 
 	const variants = {
 		primary: 'border-primary bg-primary text-white hover:border-primary-dark hover:bg-primary-dark',
 		secondary:
 			'border-border-strong bg-surface text-foreground hover:border-primary hover:text-primary',
-		ghost:
-			'border-transparent bg-transparent text-muted hover:bg-background-soft hover:text-foreground',
+		ghost: 'border-transparent bg-transparent text-muted hover:text-foreground',
 		outline: 'border border-black bg-transparent text-foreground'
 	};
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-muted disabled:border-none',
 			variants[variant],
 			className
 		)
@@ -50,7 +48,7 @@
 		{@render children()}
 	</a>
 {:else}
-	<button {type} {disabled} class={classes}>
+	<button {...restProps} class={classes}>
 		{@render children()}
 	</button>
 {/if}
