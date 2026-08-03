@@ -6,6 +6,14 @@ export type runtime_status =
 	| 'failed'
 	| 'crashed';
 
+export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed';
+
+export type DeploymentStep = {
+	key: string;
+	title: string;
+	status: StatusDeployment;
+};
+
 export interface Project {
 	id: string;
 	project_name: string;
