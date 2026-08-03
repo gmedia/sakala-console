@@ -12,7 +12,7 @@
 		type="text"
 		bind:value
 		placeholder="https : // github.com/username/nama-repo.git"
-		class="w-full rounded-md border border-muted/30 bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+		class="w-full rounded-md border border-muted/30 bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-muted/10"
 	/>
 	<p class="text-sm font-montserrat">
 		Dipakai untuk repository publik yang belum terhubung ke akun GitHubmu. Repo harus bisa diakses

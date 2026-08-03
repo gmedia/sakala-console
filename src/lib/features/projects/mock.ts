@@ -169,6 +169,7 @@ export const mockRepositories: Repository[] = [
 		id: 'c28a2a5d-4f10-4f51-a9f4-12f5a6b7d001',
 		name: 'sakala-console',
 		full_name: 'sakala/sakala-console',
+		clone_url: 'https://github.com/sakala/sakala-console.git',
 		default_branch: 'main',
 		pushed_at: '2026-08-01T09:30:00Z',
 		private: true
@@ -177,6 +178,7 @@ export const mockRepositories: Repository[] = [
 		id: 'f87a3e12-32b4-4e9c-859a-243e8d7a1002',
 		name: 'sakala-api',
 		full_name: 'sakala/sakala-api',
+		clone_url: 'https://github.com/sakala/sakala-api.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-31T14:15:00Z',
 		private: true
@@ -185,6 +187,7 @@ export const mockRepositories: Repository[] = [
 		id: '1e5b8a92-7f30-4e11-bc6d-354a9b8c1003',
 		name: 'personal-portfolio',
 		full_name: 'winter/personal-portfolio',
+		clone_url: 'https://github.com/winter/personal-portfolio.git',
 		default_branch: 'master',
 		pushed_at: '2026-07-30T20:45:00Z',
 		private: false
@@ -193,6 +196,7 @@ export const mockRepositories: Repository[] = [
 		id: '7b9c1d2e-8a03-4f52-9d1a-465b7c8d1004',
 		name: 'bookverse',
 		full_name: 'winter/bookverse',
+		clone_url: 'https://github.com/winter/bookverse.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-28T08:10:00Z',
 		private: false
@@ -201,6 +205,7 @@ export const mockRepositories: Repository[] = [
 		id: '3d4e5f6a-9b12-4c34-8e5f-576a8b9c1005',
 		name: 'ppdb-client',
 		full_name: 'winter/ppdb-client',
+		clone_url: 'https://github.com/winter/ppdb-client.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-25T11:22:00Z',
 		private: true
@@ -209,6 +214,7 @@ export const mockRepositories: Repository[] = [
 		id: '9a8b7c6d-5e4f-4a3b-2c1d-0e1f2a3b4c06',
 		name: 'auth-service',
 		full_name: 'sakala/auth-service',
+		clone_url: 'https://github.com/sakala/auth-service.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-24T16:05:00Z',
 		private: true
@@ -217,6 +223,7 @@ export const mockRepositories: Repository[] = [
 		id: '4f3e2d1c-0b9a-4f8e-7d6c-5b4a3f2e1d07',
 		name: 'design-system',
 		full_name: 'sakala/design-system',
+		clone_url: 'https://github.com/sakala/design-system.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-22T10:40:00Z',
 		private: false
@@ -225,6 +232,7 @@ export const mockRepositories: Repository[] = [
 		id: '2b3c4d5e-6f7a-489b-9c0d-1e2f3a4b5c08',
 		name: 'kost-management',
 		full_name: 'winter/kost-management',
+		clone_url: 'https://github.com/winter/kost-management.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-20T18:50:00Z',
 		private: true
@@ -233,6 +241,7 @@ export const mockRepositories: Repository[] = [
 		id: '8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c09',
 		name: 'task-tracker',
 		full_name: 'winter/task-tracker',
+		clone_url: 'https://github.com/winter/task-tracker.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-19T07:15:00Z',
 		private: false
@@ -241,6 +250,7 @@ export const mockRepositories: Repository[] = [
 		id: '5c6d7e8f-9a0b-1c2d-3e4f-5a6b7c8d9e10',
 		name: 'ui-components',
 		full_name: 'open-source/ui-components',
+		clone_url: 'https://github.com/open-source/ui-components.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-15T13:00:00Z',
 		private: false
@@ -249,6 +259,7 @@ export const mockRepositories: Repository[] = [
 		id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c11',
 		name: 'notification-worker',
 		full_name: 'sakala/notification-worker',
+		clone_url: 'https://github.com/sakala/notification-worker.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-12T09:00:00Z',
 		private: true
@@ -257,6 +268,7 @@ export const mockRepositories: Repository[] = [
 		id: '6f5e4d3c-2b1a-0f9e-8d7c-6b5a4f3e2d12',
 		name: 'recipe-finder',
 		full_name: 'winter/recipe-finder',
+		clone_url: 'https://github.com/winter/recipe-finder.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-10T21:30:00Z',
 		private: false
@@ -265,6 +277,7 @@ export const mockRepositories: Repository[] = [
 		id: '0e9f8a7b-6c5d-4e3f-2a1b-0c9d8e7f6a13',
 		name: 'payment-gateway',
 		full_name: 'dev-team/payment-gateway',
+		clone_url: 'https://github.com/dev-team/payment-gateway.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-08T15:45:00Z',
 		private: true
@@ -273,6 +286,7 @@ export const mockRepositories: Repository[] = [
 		id: '3b2a1c0d-9e8f-7a6b-5c4d-3e2f1a0b9c14',
 		name: 'blog-cms',
 		full_name: 'winter/blog-cms',
+		clone_url: 'https://github.com/winter/blog-cms.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-05T12:10:00Z',
 		private: false
@@ -281,6 +295,7 @@ export const mockRepositories: Repository[] = [
 		id: '7e6f5d4c-3b2a-1f0e-9d8c-7b6a5f4e3d15',
 		name: 'infrastructure',
 		full_name: 'sakala/infrastructure',
+		clone_url: 'https://github.com/sakala/infrastructure.git',
 		default_branch: 'main',
 		pushed_at: '2026-07-01T08:20:00Z',
 		private: true

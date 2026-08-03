@@ -19,6 +19,7 @@ export type Repository = {
 	id: string;
 	name: string;
 	full_name: string;
+	clone_url: string;
 	default_branch: string;
 	pushed_at: string;
 	private: boolean;

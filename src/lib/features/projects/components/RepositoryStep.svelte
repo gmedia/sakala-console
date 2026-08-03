@@ -44,6 +44,11 @@
 	});
 
 	$effect(() => {
+		if (repositorySource === 'github') {
+			gitUrl = '';
+		} else {
+			selectedRepositoryId = null;
+		}
 		currentPage = 1;
 	});
 </script>
@@ -60,8 +65,11 @@
 		<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
 		<RepositoryList
 			repositories={filteredRepositories}
+			loading={false}
 			selectedId={selectedRepositoryId}
-			onSelect={(id) => (selectedRepositoryId = id)}
+			onSelect={(id) => {
+				selectedRepositoryId = id;
+			}}
 			{currentPage}
 			{perPage}
 			onPageChange={(page) => (currentPage = page)}

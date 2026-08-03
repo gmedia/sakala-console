@@ -5,6 +5,8 @@
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import { mockRepositories } from '$lib/features/projects/mock';
 	import RepositoryStep from '$lib/features/projects/components/RepositoryStep.svelte';
+	import AutoDetectStep from '$lib/features/projects/components/AutoDetectStep.svelte';
+	import DeployStep from '$lib/features/projects/components/DeployStep.svelte';
 
 	let repositorySource = $state<'github' | 'git-url'>('github');
 	let selectedRepositoryId = $state<string | null>(null);
@@ -17,6 +19,10 @@
 		{ label: 'Projects', href: '/projects' },
 		{ label: 'New Project', current: true }
 	];
+
+	const selectedRepository = $derived(
+		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
+	);
 </script>
 
 <svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
@@ -29,11 +35,7 @@
 		</Button>
 	</div>
 	<div class="max-w-2xl w-full">
-		<CreateProjectStepper
-			{currentStep}
-			allowClickUpComing={true}
-			onStepClick={(step) => (currentStep = step)}
-		/>
+		<CreateProjectStepper {currentStep} />
 		<div class="flex flex-col gap-2 mt-4 mx-2">
 			{#if currentStep === 1}
 				<RepositoryStep
@@ -46,11 +48,9 @@
 					onNext={() => (currentStep = 2)}
 				/>
 			{:else if currentStep === 2}
-				<h1>Auto Detect</h1>
-				<p>Setup project secara otomatis dengan auto detect.</p>
+				<AutoDetectStep repository={selectedRepository} onNext={() => (currentStep = 3)} />
 			{:else if currentStep === 3}
-				<h1>Deploy</h1>
-				<p>Deploy project ke Sakala.</p>
+				<DeployStep repository={selectedRepository} />
 			{/if}
 		</div>
 	</div>
