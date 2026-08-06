@@ -4,13 +4,22 @@
 	import OnboardingStep1 from '$lib/features/onboarding/components/OnboardingStep1.svelte';
 	import OnboardingStep2 from '$lib/features/onboarding/components/OnboardingStep2.svelte';
 	import OnboardingStep3 from '$lib/features/onboarding/components/OnboardingStep3.svelte';
-	import type { OnboardingData, OnboardingSource } from '$lib/features/onboarding/types';
+	import type {
+		DeveloperRole,
+		OnboardingData,
+		OnboardingSource
+	} from '$lib/features/onboarding/types';
 
 	let currentStep = $state(1);
 	let data = $state<OnboardingData>({});
 
 	function handleSourceSelect(source: OnboardingSource) {
 		data.source = source;
+	}
+
+	function handleProfileUpdate(update: { displayName?: string; role?: DeveloperRole | 'other' }) {
+		if (update.displayName !== undefined) data.displayName = update.displayName;
+		if (update.role !== undefined && update.role !== 'other') data.role = update.role;
 	}
 
 	function nextStep() {
@@ -44,7 +53,14 @@
 			onBack={prevStep}
 		/>
 	{:else if currentStep === 2}
-		<OnboardingStep2 onNext={nextStep} onSkip={nextStep} onBack={prevStep} />
+		<OnboardingStep2
+			displayName={data.displayName}
+			selectedRole={data.role}
+			onUpdate={handleProfileUpdate}
+			onNext={nextStep}
+			onSkip={nextStep}
+			onBack={prevStep}
+		/>
 	{:else if currentStep === 3}
 		<OnboardingStep3 onFinish={finishOnboarding} onBack={prevStep} />
 	{/if}

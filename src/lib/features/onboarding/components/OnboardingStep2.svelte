@@ -20,13 +20,20 @@
 		onBack
 	}: Props = $props();
 
+	let localRole = $state<string | undefined>(undefined);
+	let localName = $state<string | undefined>(undefined);
+
+	let currentRole = $derived(localRole ?? selectedRole);
+	let currentName = $derived(localName ?? displayName);
+
 	function selectRole(role: string) {
-		onUpdate?.({ displayName, role: role as DeveloperRole });
+		localRole = role;
+		onUpdate?.({ displayName: currentName, role: role as DeveloperRole });
 	}
 
 	function handleInput(e: Event) {
-		const val = (e.target as HTMLInputElement).value;
-		onUpdate?.({ displayName: val, role: selectedRole as DeveloperRole });
+		localName = (e.target as HTMLInputElement).value;
+		onUpdate?.({ displayName: localName, role: currentRole as DeveloperRole });
 	}
 
 	const roles = [
@@ -68,7 +75,7 @@
 				id="display-name"
 				type="text"
 				placeholder="Misal: sakala_programmer"
-				value={displayName}
+				value={currentName}
 				oninput={handleInput}
 				class="mt-2 h-14 w-full rounded-lg border border-border/60 bg-surface pl-10 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:outline-none"
 			/>
@@ -81,7 +88,7 @@
 			<!-- 4 Cards -->
 			<div class="mt-2 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
 				{#each roles as role (role.id)}
-					{@const isSelected = selectedRole === role.id}
+					{@const isSelected = currentRole === role.id}
 					<button
 						type="button"
 						onclick={() => selectRole(role.id)}
