@@ -40,10 +40,11 @@
 			selectedSource={data.source}
 			onSelect={handleSourceSelect}
 			onNext={nextStep}
+			onSkip={nextStep}
 			onBack={prevStep}
 		/>
 	{:else if currentStep === 2}
-		<OnboardingStep2 onNext={nextStep} onBack={prevStep} />
+		<OnboardingStep2 onNext={nextStep} onSkip={nextStep} onBack={prevStep} />
 	{:else if currentStep === 3}
 		<OnboardingStep3 onFinish={finishOnboarding} onBack={prevStep} />
 	{/if}

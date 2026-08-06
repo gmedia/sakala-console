@@ -1,14 +1,14 @@
 <script lang="ts">
 	import {
 		GraduationCap,
-		Share2,
-		Users,
-		Megaphone,
-		GitFork,
-		FileText,
-		MoreHorizontal,
-		ArrowLeft
-	} from '@lucide/svelte';
+		ShareNetwork,
+		UsersThree,
+		GoogleLogo,
+		SpeakerHigh,
+		GithubLogo,
+		Files,
+		DotsThree
+	} from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import type { OnboardingSource } from '../types';
 
@@ -16,20 +16,21 @@
 		selectedSource?: OnboardingSource;
 		onSelect: (source: OnboardingSource) => void;
 		onNext: () => void;
+		onSkip?: () => void;
 		onBack?: () => void;
 	};
 
-	let { selectedSource, onSelect, onNext, onBack }: Props = $props();
+	let { selectedSource, onSelect, onNext, onSkip, onBack }: Props = $props();
 
 	const sources: { id: OnboardingSource; label: string; icon: typeof GraduationCap }[] = [
 		{ id: 'campus', label: 'Kampus', icon: GraduationCap },
-		{ id: 'social_media', label: 'Media Sosial', icon: Share2 },
-		{ id: 'friend', label: 'Teman', icon: Users },
-		{ id: 'gmedia', label: 'Gmedia', icon: Share2 },
-		{ id: 'community', label: 'Komunitas', icon: Megaphone },
-		{ id: 'github', label: 'GitHub', icon: GitFork },
-		{ id: 'workshop', label: 'Workshop', icon: FileText },
-		{ id: 'other', label: 'Lainnya', icon: MoreHorizontal }
+		{ id: 'social_media', label: 'Media Sosial', icon: ShareNetwork },
+		{ id: 'friend', label: 'Teman', icon: UsersThree },
+		{ id: 'gmedia', label: 'Gmedia', icon: GoogleLogo },
+		{ id: 'community', label: 'Komunitas', icon: SpeakerHigh },
+		{ id: 'github', label: 'GitHub', icon: GithubLogo },
+		{ id: 'workshop', label: 'Workshop', icon: Files },
+		{ id: 'other', label: 'Lainnya', icon: DotsThree }
 	];
 </script>
 
@@ -49,34 +50,32 @@
 	</h1>
 	<p class="mt-2 text-sm text-black">Bantu kami memahami bagaimana Anda menemukan platform kami.</p>
 
-	<!-- 2-Column Options Grid -->
-	<div class="mt-10 flex justify-center">
-		<div class="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-14.5">
-			{#each sources as source (source.id)}
-				{@const Icon = source.icon}
-				{@const isSelected = selectedSource === source.id}
-				<button
-					type="button"
-					onclick={() => onSelect(source.id)}
+	<!-- Column Options Grid -->
+	<div class="mt-10 grid w-full grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-2">
+		{#each sources as source (source.id)}
+			{@const Icon = source.icon}
+			{@const isSelected = selectedSource === source.id}
+			<button
+				type="button"
+				onclick={() => onSelect(source.id)}
+				class={cn(
+					'flex h-16.5 w-full items-center gap-3.5 rounded-lg border px-4 text-left transition-all',
+					isSelected
+						? 'border-primary bg-primary-50/40 text-black ring-1 ring-primary'
+						: 'border-border-strong bg-surface text-black hover:border-primary/40 hover:bg-background/50'
+				)}
+			>
+				<div
 					class={cn(
-						'flex h-16.5 w-full items-center gap-3.5 rounded-lg border px-4 text-left transition-all sm:w-52',
-						isSelected
-							? 'border-primary bg-primary-50/40 text-black ring-1 ring-primary'
-							: 'border-border bg-surface text-black hover:border-primary/40 hover:bg-background/50'
+						'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+						isSelected ? 'bg-primary text-white' : 'bg-primary-50 text-primary'
 					)}
 				>
-					<div
-						class={cn(
-							'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-							isSelected ? 'bg-primary text-white' : 'bg-primary-50 text-primary'
-						)}
-					>
-						<Icon size={18} />
-					</div>
-					<span class="text-sm font-normal text-black">{source.label}</span>
-				</button>
-			{/each}
-		</div>
+					<Icon size={18} weight="regular" />
+				</div>
+				<span class="text-sm font-normal text-black">{source.label}</span>
+			</button>
+		{/each}
 	</div>
 
 	<!-- Footer Navigation Controls -->
@@ -85,18 +84,27 @@
 			type="button"
 			onclick={onBack}
 			disabled={!onBack}
-			class="inline-flex items-center gap-2 text-[22px] font-normal text-black hover:text-primary disabled:opacity-30"
+			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 		>
-			<ArrowLeft size={16} />
 			Kembali
 		</button>
 
-		<button
-			type="button"
-			onclick={onNext}
-			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary-200 text-[22px] font-normal text-white transition-colors hover:bg-primary hover:text-white"
-		>
-			Lanjutkan
-		</button>
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				onclick={onSkip ?? onNext}
+				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background"
+			>
+				Lewati
+			</button>
+
+			<button
+				type="button"
+				onclick={onNext}
+				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white"
+			>
+				Lanjutkan
+			</button>
+		</div>
 	</div>
 </div>
