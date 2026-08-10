@@ -11,15 +11,15 @@
 	} from '$lib/features/onboarding/types';
 
 	let currentStep = $state(1);
-	let data = $state<OnboardingData>({});
+	let data = $state<OnboardingData>({ role: 'developer' });
 
 	function handleSourceSelect(source: OnboardingSource) {
 		data.source = source;
 	}
 
-	function handleProfileUpdate(update: { displayName?: string; role?: DeveloperRole | 'other' }) {
+	function handleProfileUpdate(update: { displayName?: string; role?: DeveloperRole }) {
 		if (update.displayName !== undefined) data.displayName = update.displayName;
-		if (update.role !== undefined && update.role !== 'other') data.role = update.role;
+		if (update.role !== undefined) data.role = update.role;
 	}
 
 	function nextStep() {

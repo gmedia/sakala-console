@@ -8,7 +8,7 @@ export type OnboardingSource =
 	| 'github'
 	| 'other';
 
-export type DeveloperRole = 'developer' | 'devops' | 'architect';
+export type DeveloperRole = 'developer' | 'devops' | 'architect' | 'other';
 
 export type MainInterest =
 	| 'automation'

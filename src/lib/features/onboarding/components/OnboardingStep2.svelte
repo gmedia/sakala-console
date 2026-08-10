@@ -4,8 +4,8 @@
 
 	type Props = {
 		displayName?: string;
-		selectedRole?: DeveloperRole | 'other';
-		onUpdate?: (data: { displayName?: string; role?: DeveloperRole | 'other' }) => void;
+		selectedRole?: DeveloperRole;
+		onUpdate?: (data: { displayName?: string; role?: DeveloperRole }) => void;
 		onNext: () => void;
 		onSkip?: () => void;
 		onBack?: () => void;
@@ -20,23 +20,23 @@
 		onBack
 	}: Props = $props();
 
-	let localRole = $state<string | undefined>(undefined);
+	let localRole = $state<DeveloperRole | undefined>(undefined);
 	let localName = $state<string | undefined>(undefined);
 
 	let currentRole = $derived(localRole ?? selectedRole);
 	let currentName = $derived(localName ?? displayName);
 
-	function selectRole(role: string) {
+	function selectRole(role: DeveloperRole) {
 		localRole = role;
-		onUpdate?.({ displayName: currentName, role: role as DeveloperRole });
+		onUpdate?.({ displayName: currentName, role });
 	}
 
 	function handleInput(e: Event) {
 		localName = (e.target as HTMLInputElement).value;
-		onUpdate?.({ displayName: localName, role: currentRole as DeveloperRole });
+		onUpdate?.({ displayName: localName, role: currentRole });
 	}
 
-	const roles = [
+	const roles: { id: DeveloperRole; label: string }[] = [
 		{ id: 'developer', label: 'Developer' },
 		{ id: 'devops', label: 'DevOps' },
 		{ id: 'architect', label: 'Architech' },
