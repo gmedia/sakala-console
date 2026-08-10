@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import { ChevronDown, Plus, X } from '@lucide/svelte';
-	import type { Repository } from '../type';
+	import type { Repository } from '../../type';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 

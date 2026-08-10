@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { CircleOff } from '@lucide/svelte';
-	import type { Repository } from '../type';
+	import type { Repository } from '../../type';
 	import RepositoryListItem from './RepositoryListItem.svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import RepositoryListSkeleton from './RepositoryListSkeleton.svelte';

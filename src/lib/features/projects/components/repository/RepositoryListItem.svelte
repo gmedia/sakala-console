@@ -2,7 +2,7 @@
 	import { cn } from '$lib/utils/cn';
 	import { formatDate } from '$lib/utils/date';
 	import { Dot } from '@lucide/svelte';
-	import type { Repository } from '../type';
+	import type { Repository } from '../../type';
 
 	type Props = {
 		repository: Repository;

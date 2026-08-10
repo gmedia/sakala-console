@@ -1,13 +1,13 @@
 <script lang="ts">
-	import CreateProjectStepper from '$lib/features/projects/components/CreateProjectStepper.svelte';
+	import CreateProjectStepper from '$lib/features/projects/components/create/CreateProjectStepper.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import { mockRepositories } from '$lib/features/projects/mock';
-	import RepositoryStep from '$lib/features/projects/components/RepositoryStep.svelte';
-	import AutoDetectStep from '$lib/features/projects/components/AutoDetectStep.svelte';
-	import DeployStep from '$lib/features/projects/components/DeployStep.svelte';
-	import DeploymentPreStep from '$lib/features/projects/components/DeploymentPreStep.svelte';
+	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
+	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
+	import DeployStep from '$lib/features/projects/components/create/DeployStep.svelte';
+	import DeploymentPreStep from '$lib/features/projects/components/create/DeploymentPreStep.svelte';
 
 	let repositorySource = $state<'github' | 'git-url'>('github');
 	let selectedRepositoryId = $state<string | null>(null);

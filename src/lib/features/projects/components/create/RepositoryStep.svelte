@@ -1,13 +1,13 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
-	import RepositoryList from './RepositoryList.svelte';
-	import RepositorySourceTab from './RepositorySourceTab.svelte';
-	import GitUrlForm from './GitUrlForm.svelte';
-	import { searchRepositories } from '../filters';
+	import RepositoryList from '../repository/RepositoryList.svelte';
+	import RepositorySourceTab from '../repository/RepositorySourceTab.svelte';
+	import GitUrlForm from '../repository/GitUrlForm.svelte';
+	import { searchRepositories } from '../../filters';
 	import { ArrowRight } from '@lucide/svelte';
-	import type { Repository } from '../type';
-	import { validateRepositoryUrl } from '../utils/repository-url';
+	import type { Repository } from '../../type';
+	import { validateRepositoryUrl } from '../../utils/repository-url';
 
 	type Props = {
 		repositorySource: 'github' | 'git-url';
