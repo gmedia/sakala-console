@@ -161,6 +161,86 @@ export const mockProjects: Project[] = [
 		runtime_status: 'failed',
 		thumbnail_url: null,
 		created_at: '2026-07-22T12:00:40Z'
+	},
+	{
+		id: '45e6f7a8-b9c0-1d2e-3f4a-5b6c7d8e9f0a',
+		project_name: 'IoT Sensor Collector',
+		repository_full_name: 'Gmedia/iot-collector',
+		runtime_status: 'running',
+		thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
+		created_at: '2026-06-15T08:12:00Z'
+	},
+	{
+		id: '56f7a8b9-c0d1-2e3f-4a5b-6c7d8e9f0a1b',
+		project_name: 'Internal Knowledge Base',
+		repository_full_name: 'Gmedia/internal-wiki',
+		runtime_status: 'not_deployed',
+		thumbnail_url: null,
+		created_at: '2026-03-22T11:45:00Z'
+	},
+	{
+		id: '67a8b9c0-d1e2-3f4a-5b6c-7d8e9f0a1b2c',
+		project_name: 'Audit Trail Microservice',
+		repository_full_name: 'Gmedia/audit-service',
+		runtime_status: 'deploying',
+		thumbnail_url: null,
+		created_at: '2026-08-01T14:10:00Z'
+	},
+	{
+		id: '78b9c0d1-e2f3-4a5b-6c7d-8e9f0a1b2c3d',
+		project_name: 'HR & Payroll Portal',
+		repository_full_name: 'Gmedia/hr-payroll',
+		runtime_status: 'stopped',
+		thumbnail_url: null,
+		created_at: '2026-02-14T09:20:00Z'
+	},
+	{
+		id: '89c0d1e2-f3a4-5b6c-7d8e-9f0a1b2c3d4e',
+		project_name: 'SEO Optimization Worker',
+		repository_full_name: 'Gmedia/seo-worker',
+		runtime_status: 'failed',
+		thumbnail_url: null,
+		created_at: '2026-07-18T16:05:00Z'
+	},
+	{
+		id: '90d1e2f3-a4b5-6c7d-8e9f-0a1b2c3d4e5f',
+		project_name: 'Identity & SSO Provider',
+		repository_full_name: 'Gmedia/sso-identity',
+		runtime_status: 'running',
+		thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
+		created_at: '2026-01-10T10:00:00Z'
+	},
+	{
+		id: '01e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6a',
+		project_name: 'Realtime Stream Processor',
+		repository_full_name: 'Gmedia/stream-processor',
+		runtime_status: 'crashed',
+		thumbnail_url: null,
+		created_at: '2026-07-29T21:15:30Z'
+	},
+	{
+		id: '12f3a4b5-c6d7-8e9f-0a1b-2c3d4e5f6a7b',
+		project_name: 'Helpdesk Ticketing UI',
+		repository_full_name: 'Gmedia/helpdesk-ui',
+		runtime_status: 'running',
+		thumbnail_url: 'https://placehold.co/600x400/EEE/31343C?text=Thumbnail+preview+hasil+deploy',
+		created_at: '2026-05-12T13:40:00Z'
+	},
+	{
+		id: '23a4b5c6-d7e8-9f0a-1b2c-3d4e5f6a7b8c',
+		project_name: 'S3 File Manager Service',
+		repository_full_name: 'Gmedia/storage-service',
+		runtime_status: 'not_deployed',
+		thumbnail_url: null,
+		created_at: '2026-04-05T06:50:00Z'
+	},
+	{
+		id: '34b5c6d7-e8f9-0a1b-2c3d-4e5f6a7b8c9d',
+		project_name: 'Webhook Event Dispatcher',
+		repository_full_name: 'Gmedia/webhook-engine',
+		runtime_status: 'deploying',
+		thumbnail_url: null,
+		created_at: '2026-08-05T17:30:10Z'
 	}
 ];
 

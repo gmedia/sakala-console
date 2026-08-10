@@ -15,6 +15,23 @@
 			'cursor-pointer font-montserrat-semibold rounded-lg w-10 h-8 border'
 		)
 	);
+
+	const DOTS = 'dots' as const;
+
+	const pages = $derived.by(() => {
+		if (totalPages <= 5) {
+			return Array.from({ length: totalPages }, (_, i) => i + 1);
+		}
+
+		if (currentPage <= 3) {
+			return [1, 2, 3, DOTS, totalPages];
+		}
+
+		if (currentPage >= totalPages - 2) {
+			return [1, DOTS, totalPages - 2, totalPages - 1, totalPages];
+		}
+		return [1, DOTS, currentPage, DOTS, totalPages];
+	});
 </script>
 
 {#if totalPages > 1}
@@ -27,16 +44,23 @@
 		>
 			<ChevronLeft class="w-6 h-6" />
 		</button>
-		{#each Array.from({ length: totalPages }, (_, i) => i + 1) as page (page)}
-			<button
-				aria-label={`Page ${page}`}
-				onclick={() => onPageChange(page)}
-				class="{baseButton} {page === currentPage
-					? 'bg-primary text-white border-primary'
-					: 'bg-surface-elevated text-muted border-muted/30'}"
-			>
-				{page}
-			</button>
+		{#each pages as page, i (page === DOTS ? `dots-${i}` : page)}
+			{#if page === DOTS}
+				<span class="flex items-center justify-center w-10 h-8 text-sm text-muted select-none">
+					...
+				</span>
+			{:else}
+				<button
+					aria-label={`Page ${page}`}
+					aria-current={page === currentPage ? 'page' : undefined}
+					onclick={() => onPageChange(page)}
+					class="{baseButton} {page === currentPage
+						? 'bg-primary text-white border-primary'
+						: 'bg-surface-elevated text-muted border-muted/30'}"
+				>
+					{page}
+				</button>
+			{/if}
 		{/each}
 		<button
 			disabled={currentPage === totalPages}

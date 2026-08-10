@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import { resolve } from '$app/paths';
 	import { Link, Zap, Check } from '@lucide/svelte';
 	import { cn } from '$lib/utils/cn';
 	import type { Repository } from '../../type';
@@ -60,6 +61,7 @@
 	Deploy sekarang
 </Button>
 <Button
+	href={resolve('/projects')}
 	variant="outline"
 	class={cn(
 		'mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-primary cursor-pointer'

@@ -62,7 +62,7 @@
 			<span class="font-montserrat-semibold">{repositories.length}</span> repository
 		</p>
 		{#if totalPages > 1}
-			<Pagination {currentPage} {totalPages} {onPageChange} class="" />
+			<Pagination {currentPage} {totalPages} {onPageChange} />
 		{/if}
 	</div>
 {/if}
