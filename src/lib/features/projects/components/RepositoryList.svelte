@@ -47,10 +47,6 @@
 		class="col-span-full bg-transparent border-none shadow-none"
 	/>
 {:else}
-	<p class="text-sm">
-		Menampilkan <span class="font-montserrat-semibold">{visibleRepositories.length}</span> dari
-		<span class="font-montserrat-semibold">{repositories.length}</span> repository
-	</p>
 	<div
 		role="radiogroup"
 		aria-label="Pilih repository"
@@ -60,7 +56,13 @@
 			<RepositoryListItem {repository} selected={repository.id === selectedId} {onSelect} />
 		{/each}
 	</div>
-	{#if totalPages > 1}
-		<Pagination {currentPage} {totalPages} {onPageChange} />
-	{/if}
+	<div class="flex w-full justify-between items-center">
+		<p class="text-sm">
+			Menampilkan <span class="font-montserrat-semibold">{visibleRepositories.length}</span> dari
+			<span class="font-montserrat-semibold">{repositories.length}</span> repository
+		</p>
+		{#if totalPages > 1}
+			<Pagination {currentPage} {totalPages} {onPageChange} class="" />
+		{/if}
+	</div>
 {/if}

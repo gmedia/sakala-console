@@ -7,12 +7,17 @@
 	import RepositoryStep from '$lib/features/projects/components/RepositoryStep.svelte';
 	import AutoDetectStep from '$lib/features/projects/components/AutoDetectStep.svelte';
 	import DeployStep from '$lib/features/projects/components/DeployStep.svelte';
+	import DeploymentPreStep from '$lib/features/projects/components/DeploymentPreStep.svelte';
 
 	let repositorySource = $state<'github' | 'git-url'>('github');
 	let selectedRepositoryId = $state<string | null>(null);
 	let gitUrl = $state('');
+	let selectedBranch = $state<string>('');
+	let selectedPort = $state<string>('3000');
+	let projectName = $state<string>('');
 	let currentPage = $state(1);
-	let currentStep = $state(1);
+	let currentStep = $state<1 | 2 | 3>(1);
+	let repositorySubstep = $state<'select-repository' | 'prepare-deployment'>('select-repository');
 	const perPage = 5;
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
@@ -23,6 +28,12 @@
 	const selectedRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
 	);
+
+	$effect(() => {
+		if (selectedRepository) {
+			selectedBranch = selectedRepository?.default_branch ?? '';
+		}
+	});
 </script>
 
 <svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
@@ -38,17 +49,34 @@
 		<CreateProjectStepper {currentStep} />
 		<div class="flex flex-col gap-2 mt-4 mx-2">
 			{#if currentStep === 1}
-				<RepositoryStep
-					bind:repositorySource
-					bind:selectedRepositoryId
-					bind:currentPage
-					bind:gitUrl
-					repositories={mockRepositories}
-					{perPage}
-					onNext={() => (currentStep = 2)}
-				/>
+				{#if repositorySubstep === 'select-repository'}
+					<RepositoryStep
+						bind:repositorySource
+						bind:selectedRepositoryId
+						bind:currentPage
+						bind:gitUrl
+						repositories={mockRepositories}
+						{perPage}
+						onNext={() => (repositorySubstep = 'prepare-deployment')}
+					/>
+				{:else}
+					<DeploymentPreStep
+						repository={selectedRepository}
+						bind:branch={selectedBranch}
+						bind:port={selectedPort}
+						bind:projectName
+						onNext={() => (currentStep = 2)}
+						onRepositoryChange={() => (repositorySubstep = 'select-repository')}
+					/>
+				{/if}
 			{:else if currentStep === 2}
-				<AutoDetectStep repository={selectedRepository} onNext={() => (currentStep = 3)} />
+				<AutoDetectStep
+					repository={selectedRepository}
+					branch={selectedBranch}
+					port={selectedPort}
+					{projectName}
+					onNext={() => (currentStep = 3)}
+				/>
 			{:else if currentStep === 3}
 				<DeployStep repository={selectedRepository} />
 			{/if}

@@ -7,13 +7,14 @@
 
 	type Props = {
 		repository: Repository | null;
+		branch: string;
+		port: string;
+		projectName: string;
 		onNext: () => void;
 	};
 
-	let { repository = $bindable(), onNext }: Props = $props();
+	let { repository, branch, port, projectName, onNext }: Props = $props();
 	let isOpen = $state(false);
-
-	const fullDomain = `${repository?.full_name.split('/')[1]}.run.sakala.dev`;
 </script>
 
 <div class="flex flex-col">
@@ -32,7 +33,7 @@
 	</div>
 	<div class="flex justify-between items-center w-full py-3 border-b border-muted/20">
 		<p>Branch</p>
-		<p class="font-jetbrains-mono-semibold">{repository?.default_branch}</p>
+		<p class="font-jetbrains-mono-semibold">{branch}</p>
 	</div>
 	<div class="flex justify-between items-center w-full py-3 border-b border-muted/20">
 		<p>Builder</p>
@@ -42,13 +43,13 @@
 	</div>
 	<div class="flex justify-between items-center w-full py-3">
 		<p>Port</p>
-		<p class="font-jetbrains-mono-semibold">3000</p>
+		<p class="font-jetbrains-mono-semibold">{port}</p>
 	</div>
 </Card>
 
 <div class="flex text-primary bg-primary/8 p-4 rounded-lg gap-2 my-4">
 	<Link />
-	<p class="font-jetbrains-mono-regular">{fullDomain}</p>
+	<p class="font-jetbrains-mono-regular">{projectName}.run.sakala.dev</p>
 </div>
 
 <div class="flex flex-col gap-2 mt-4">

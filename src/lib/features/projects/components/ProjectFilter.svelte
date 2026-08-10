@@ -19,9 +19,12 @@
 <Select
 	options={dateOptions}
 	bind:value
+	iconPosition="start"
 	variant="primary"
-	class="w-40 xs:w-40 sm:w-46 px-3 xs:px-4 py-2 cursor-pointer text-sm sm:text-base"
+	class="w-40 xs:w-40 sm:w-46 px-3 xs:px-4 py-2 text-sm sm:text-base font-montserrat-semibold"
 	placeholder="Filter berdasarkan tanggal"
+	labelClass="font-montserrat-semibold"
+	selectedLabelClass="font-montserrat-semibold"
 >
 	{#snippet icon()}
 		<Menu class="h-5 w-5" />

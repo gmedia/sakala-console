@@ -36,6 +36,7 @@
 	--color-terminal-text: #e2e8f0;
 	--font-sans: 'Montserrat', 'Inter', 'Segoe UI', system-ui, sans-serif;
 	--font-montserrat: 'Montserrat', sans-serif;
+	--font-montserrat-medium: 'Montserrat-Medium', sans-serif;
 	--font-montserrat-semibold: 'Montserrat-semiBold', sans-serif;
 	--font-montserrat-light: 'Montserrat-Light', sans-serif;
 	--font-jetbrains-mono-regular: 'JetBrains-Mono-regular', monospace;
@@ -47,6 +48,13 @@
 	font-family: 'Montserrat-semiBold';
 	src: url('/fonts/Montserrat-SemiBold.woff2') format('woff2');
 	font-weight: 600;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Montserrat-Medium';
+	src: url('/fonts/Montserrat-Medium.woff2') format('woff2');
+	font-weight: 500;
 	font-style: normal;
 }
 

@@ -3,6 +3,7 @@
 	import { cn } from '$lib/utils/cn';
 
 	type Variants = 'primary' | 'secondary' | 'ghost' | 'outline';
+	type IconPosition = 'start' | 'end';
 
 	type Options<T> = {
 		label: string;
@@ -15,9 +16,12 @@
 		value?: T;
 		placeholder?: string;
 		icon?: Snippet;
+		iconPosition?: IconPosition;
 		variant?: Variants;
 		class?: string;
 		contentClass?: string;
+		labelClass?: string;
+		selectedLabelClass?: string;
 		renderOption?: Snippet<[Options<T>]>;
 	};
 
@@ -26,9 +30,12 @@
 		value = $bindable(),
 		placeholder,
 		icon,
+		iconPosition = 'start',
 		variant = 'primary',
 		class: className = '',
 		contentClass,
+		labelClass,
+		selectedLabelClass,
 		renderOption
 	}: Props<T> = $props();
 
@@ -45,7 +52,7 @@
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-8 items-center justify-center font-montserrat-semibold gap-2 rounded-xl px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+			'inline-flex min-h-8 items-center justify-center cursor-pointer gap-2 rounded-xl px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 			variants[variant],
 			className
 		)
@@ -72,7 +79,7 @@
 		aria-expanded={open}
 		onclick={toogle}
 	>
-		{#if icon}
+		{#if icon && iconPosition === 'start'}
 			{@render icon()}
 		{/if}
 
@@ -83,6 +90,10 @@
 				<span class="text-muted">{placeholder}</span>
 			{/if}
 		</span>
+
+		{#if icon && iconPosition === 'end'}
+			{@render icon()}
+		{/if}
 	</button>
 
 	{#if open}
@@ -99,8 +110,9 @@
 						type="button"
 						disabled={opt.disabled}
 						class={cn(
-							'w-full font-montserrat-semibold cursor-pointer px-3 py-2 text-left text-sm hover:bg-background-soft',
-							opt.value === value && 'font-semibold text-primary',
+							'w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-background-soft',
+							labelClass,
+							opt.value === value && selectedLabelClass,
 							opt.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent'
 						)}
 						onclick={() => selectOption(opt)}
