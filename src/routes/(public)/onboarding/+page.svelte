@@ -50,7 +50,6 @@
 			onSelect={handleSourceSelect}
 			onNext={nextStep}
 			onSkip={nextStep}
-			onBack={prevStep}
 		/>
 	{:else if currentStep === 2}
 		<OnboardingStep2
