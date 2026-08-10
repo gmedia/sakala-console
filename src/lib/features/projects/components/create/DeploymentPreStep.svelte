@@ -1,6 +1,7 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
 	import { ChevronDown, Plus, X } from '@lucide/svelte';
+	import { cn } from '$lib/utils/cn';
+	import Button from '$lib/components/ui/Button.svelte';
 	import type { Repository } from '../../type';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
@@ -91,12 +92,14 @@
 					bind:value={branch}
 					variant="outline"
 					iconPosition="end"
-					class="w-full rounded-lg bg-primary-50/40 font-montserrat-medium border border-muted/20 focus:ring-muted/20 px-3 xs:px-4 py-2"
+					class="w-full rounded-lg bg-primary-50/40 font-montserrat-medium border border-muted/20 focus:ring focus:ring-primary px-3 xs:px-4 py-2"
 					labelClass="font-montserrat-medium"
-					selectedLabelClass="font-montserrat-semibold"
+					selectedLabelClass="font-montserrat-semibold bg-primary text-white"
 				>
-					{#snippet icon()}
-						<ChevronDown class="h-5 w-5" />
+					{#snippet icon(open)}
+						<ChevronDown
+							class={cn('h-5 w-5 transition-transform duration-200', open && 'rotate-180')}
+						/>
 					{/snippet}
 				</Select>
 			</div>

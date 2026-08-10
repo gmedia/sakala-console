@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
-	import type { Snippet } from 'svelte';
+	import type { Snippet, Component } from 'svelte';
+	import { onMount } from 'svelte';
 	import { cn } from '$lib/utils/cn';
 
 	type Variants = 'primary' | 'secondary' | 'ghost' | 'outline';
@@ -15,12 +16,14 @@
 		options: Options<T>[];
 		value?: T;
 		placeholder?: string;
-		icon?: Snippet;
+		subtitle?: string;
+		icon?: Snippet<[boolean]>;
 		iconPosition?: IconPosition;
 		variant?: Variants;
 		class?: string;
 		contentClass?: string;
 		labelClass?: string;
+		selectedIcon?: Component;
 		selectedLabelClass?: string;
 		renderOption?: Snippet<[Options<T>]>;
 	};
@@ -29,20 +32,23 @@
 		options,
 		value = $bindable(),
 		placeholder,
+		subtitle,
 		icon,
 		iconPosition = 'start',
 		variant = 'primary',
 		class: className = '',
 		contentClass,
 		labelClass,
+		selectedIcon,
 		selectedLabelClass,
 		renderOption
 	}: Props<T> = $props();
 
 	let open = $state(false);
+	let dropdownContainer: HTMLDivElement | null = null;
 
 	const variants: Record<Variants, string> = {
-		primary: 'bg-primary/10 text-primary',
+		primary: 'bg-primary-50 text-primary border border-primar-100 rounded-full',
 		secondary:
 			'border-border-strong bg-surface text-foreground hover:border-primary hover:text-primary',
 		ghost:
@@ -69,9 +75,23 @@
 		value = option.value;
 		open = false;
 	}
+
+	function handleClickOutside(event: MouseEvent) {
+		if (open && dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
+			open = false;
+		}
+	}
+
+	onMount(() => {
+		document.addEventListener('click', handleClickOutside);
+
+		return () => {
+			document.removeEventListener('click', handleClickOutside);
+		};
+	});
 </script>
 
-<div class="relative w-auto min-w-0">
+<div bind:this={dropdownContainer} class="relative w-auto min-w-0">
 	<button
 		type="button"
 		class={classes}
@@ -80,7 +100,7 @@
 		onclick={toogle}
 	>
 		{#if icon && iconPosition === 'start'}
-			{@render icon()}
+			{@render icon(open)}
 		{/if}
 
 		<span class="flex-1 text-left truncate">
@@ -92,7 +112,7 @@
 		</span>
 
 		{#if icon && iconPosition === 'end'}
-			{@render icon()}
+			{@render icon(open)}
 		{/if}
 	</button>
 
@@ -104,23 +124,35 @@
 				contentClass
 			)}
 		>
+			{#if subtitle}
+				<li class=" py-2 text-sm font-medium text-muted" aria-hidden="true">
+					{subtitle}
+				</li>
+			{/if}
 			{#each options as opt (opt.value)}
 				<li role="option" aria-selected={opt.value === value}>
 					<button
 						type="button"
 						disabled={opt.disabled}
 						class={cn(
-							'w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-background-soft',
+							'w-full flex justify-between items-end cursor-pointer px-3 py-2 text-left text-sm',
 							labelClass,
 							opt.value === value && selectedLabelClass,
 							opt.disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent'
 						)}
 						onclick={() => selectOption(opt)}
 					>
-						{#if renderOption}
-							{@render renderOption(opt)}
-						{:else}
-							{opt.label}
+						<span class="truncate">
+							{#if renderOption}
+								{@render renderOption(opt)}
+							{:else}
+								{opt.label}
+							{/if}
+						</span>
+
+						{#if opt.value === value && selectedIcon}
+							{@const Icon = selectedIcon}
+							<Icon class="h-4 w-4 shrink-0 text-primary" />
 						{/if}
 					</button>
 				</li>
