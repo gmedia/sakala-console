@@ -8,32 +8,15 @@
 	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
 	import DeployStep from '$lib/features/projects/components/create/DeployStep.svelte';
 	import DeploymentPreStep from '$lib/features/projects/components/create/DeploymentPreStep.svelte';
+	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
-	let repositorySource = $state<'github' | 'git-url'>('github');
-	let selectedRepositoryId = $state<string | null>(null);
-	let gitUrl = $state('');
-	let selectedBranch = $state<string>('');
-	let selectedPort = $state<string>('3000');
-	let projectName = $state<string>('');
-	let currentPage = $state(1);
-	let currentStep = $state<1 | 2 | 3>(1);
-	let repositorySubstep = $state<'select-repository' | 'prepare-deployment'>('select-repository');
+	const wizard = initCreateProjectContext();
 	const perPage = 5;
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
 		{ label: 'Projects', href: '/projects' },
 		{ label: 'New Project', current: true }
 	];
-
-	const selectedRepository = $derived(
-		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
-	);
-
-	$effect(() => {
-		if (selectedRepository) {
-			selectedBranch = selectedRepository?.default_branch ?? '';
-		}
-	});
 </script>
 
 <svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
@@ -46,39 +29,39 @@
 		</Button>
 	</div>
 	<div class="max-w-2xl w-full">
-		<CreateProjectStepper {currentStep} />
+		<CreateProjectStepper currentStep={wizard.currentStep} />
 		<div class="flex flex-col gap-2 mt-4 mx-2">
-			{#if currentStep === 1}
-				{#if repositorySubstep === 'select-repository'}
+			{#if wizard.currentStep === 1}
+				{#if wizard.repositorySubstep === 'select-repository'}
 					<RepositoryStep
-						bind:repositorySource
-						bind:selectedRepositoryId
-						bind:currentPage
-						bind:gitUrl
+						bind:repositorySource={wizard.repositorySource}
+						bind:selectedRepositoryId={wizard.selectedRepositoryId}
+						bind:currentPage={wizard.currentPage}
+						bind:gitUrl={wizard.gitUrl}
 						repositories={mockRepositories}
 						{perPage}
-						onNext={() => (repositorySubstep = 'prepare-deployment')}
+						onNext={wizard.goToPrepareDeployment}
 					/>
 				{:else}
 					<DeploymentPreStep
-						repository={selectedRepository}
-						bind:branch={selectedBranch}
-						bind:port={selectedPort}
-						bind:projectName
-						onNext={() => (currentStep = 2)}
-						onRepositoryChange={() => (repositorySubstep = 'select-repository')}
+						repository={wizard.selectedRepository}
+						bind:branch={wizard.selectedBranch}
+						bind:port={wizard.selectedPort}
+						bind:projectName={wizard.projectName}
+						onNext={wizard.goToAutoDetect}
+						onRepositoryChange={wizard.backToSelectRepository}
 					/>
 				{/if}
-			{:else if currentStep === 2}
+			{:else if wizard.currentStep === 2}
 				<AutoDetectStep
-					repository={selectedRepository}
-					branch={selectedBranch}
-					port={selectedPort}
-					{projectName}
-					onNext={() => (currentStep = 3)}
+					repository={wizard.selectedRepository}
+					branch={wizard.selectedBranch}
+					port={wizard.selectedPort}
+					projectName={wizard.projectName}
+					onNext={wizard.goToDeploy}
 				/>
-			{:else if currentStep === 3}
-				<DeployStep repository={selectedRepository} />
+			{:else if wizard.currentStep === 3}
+				<DeployStep projectName={wizard.projectName} />
 			{/if}
 		</div>
 	</div>

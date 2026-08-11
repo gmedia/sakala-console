@@ -26,8 +26,8 @@
 
 	const colorMap: Record<Status, string> = {
 		pending: 'bg-muted ring-1 ring-inset ring-muted/50',
-		running: 'bg-muted text-white',
-		success: 'bg-primary text-white',
+		running: 'bg-primary text-white',
+		success: 'bg-success-dark text-white',
 		failed: 'bg-error text-white'
 	};
 

@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { RefreshCw, Check, X } from '@lucide/svelte';
+	import { RefreshCw, RotateCcw, Check, X, ArrowRight, Copy } from '@lucide/svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import type { Repository } from '../../type';
-	import DeploymentTimeline from '../deployment/DeploymentTimeline.svelte';
-	import DeploymentLogConsole from '../deployment/DeploymentLogConsole.svelte';
+	import DeploymentTimeline from '../../../deployments/components/DeploymentTimeline.svelte';
+	import DeploymentLogConsole from '../../../deployments/components/DeploymentLogConsole.svelte';
 	import type { DeploymentStep } from '../../type';
+	import Card from '$lib/components/ui/Card.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	type Props = {
-		repository: Repository | null;
+		projectName: string;
 	};
 
 	type EmptyStateConfig = {
@@ -17,9 +18,26 @@
 		description: string;
 	};
 
-	let { repository = $bindable() }: Props = $props();
+	let { projectName }: Props = $props();
 
-	const repositoryName = $derived(repository?.full_name.split('/')[1] ?? 'repository');
+	let copied = $state(false);
+	let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+	const url = $derived(`http://${projectName}.run.sakala.dev`);
+
+	async function copyToClipboard() {
+		try {
+			await navigator.clipboard.writeText(url);
+			copied = true;
+
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(() => {
+				copied = false;
+			}, 2000);
+		} catch (err) {
+			console.error('Gagal copy ke clipboard:', err);
+		}
+	}
 
 	const steps: DeploymentStep[] = [
 		{ key: 'clone', title: 'Cloning repository', status: 'success' },
@@ -48,23 +66,23 @@
 				return {
 					icon: Check,
 					tones: 'neutral',
-					title: 'Deployment berhasil',
-					description: 'Proyekmu berhasil dideploy ke Sakala.'
+					title: 'Proyekmu sudah live',
+					description: `${projectName ?? 'Project'} berhasil dibuat dan bisa diakses publik sekarang.`
 				};
 
 			case 'failed':
 				return {
 					icon: X,
 					tones: 'failed',
-					title: 'Deployment gagal',
-					description: 'Terjadi kesalahan saat mendeploy proyekmu ke Sakala.'
+					title: 'Deploy gagal',
+					description: `${projectName ?? 'Project'} belum berhasil dideploy. Belum ada URL publik yang aktif untuk proyek ini.`
 				};
 
 			default:
 				return {
 					icon: RefreshCw,
 					tones: 'neutral',
-					title: `Mendeploy ${repositoryName ?? 'repository'}...`,
+					title: `Mendeploy ${projectName ?? 'repository'}...`,
 					description: 'Proses deployment sedang berjalan, harap tunggu sebentar.'
 				};
 		}
@@ -74,7 +92,7 @@
 <EmptyState
 	icon={emptyStateConfig?.icon}
 	tone={emptyStateConfig?.tones}
-	class="bg-transparent border-none shadow-none"
+	class="bg-transparent border-none shadow-none sm:py-0"
 	title={emptyStateConfig?.title}
 	description={emptyStateConfig?.description}
 />
@@ -83,6 +101,58 @@
 	<div class="flex flex-col rounded-lg p-4">
 		<DeploymentTimeline {steps} />
 	</div>
-
 	<DeploymentLogConsole lines={deployLogs} />
+{:else if overallStatus === 'success'}
+	<div class="flex flex-col rounded-lg">
+		<Card>
+			<div class="flex justify-between items-center gap-2 w-full border-muted/20">
+				<p class="text-primary font-jetbrains-mono-semibold">{url}</p>
+				<Button
+					class="p-3 bg-background border border-muted"
+					variant="outline"
+					onclick={copyToClipboard}
+					aria-label={copied ? 'Tersalin' : 'Salin URL'}
+				>
+					{#if copied}
+						<Check class="w-5 h-5 text-primary" />
+					{:else}
+						<Copy class="w-5 h-5 text-muted" />
+					{/if}
+				</Button>
+			</div>
+		</Card>
+	</div>
+	<div class="flex gap-2 w-full">
+		<Button variant="outline" class="mt-4 w-full justify-center gap-2 border-black py-3">
+			Lihat Detail Proyek
+		</Button>
+		<Button
+			variant="primary"
+			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
+		>
+			Buka situs
+			<ArrowRight class="w-5 h-5" />
+		</Button>
+	</div>
+{:else if overallStatus === 'failed'}
+	<div class="flex flex-col rounded-lg p-4">
+		<Card class="bg-error/10 border border-error rounded-lg">
+			<p class="font-montserrat-semibold text-error">BUILD ERROR</p>
+			<p class="font-jetbrains-mono-regular text-error">
+				Cannot find module 'package.json' Build failed with exit code 1
+			</p>
+		</Card>
+	</div>
+	<div class="flex gap-2 w-full">
+		<Button variant="outline" class="mt-4 w-full justify-center gap-2 border-black py-3">
+			Lihat log lengkap
+		</Button>
+		<Button
+			variant="primary"
+			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
+		>
+			<RotateCcw class="w-5 h-5" />
+			Coba lagi
+		</Button>
+	</div>
 {/if}

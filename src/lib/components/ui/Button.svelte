@@ -23,11 +23,12 @@
 	}: Props = $props();
 
 	const variants = {
-		primary: 'border-primary bg-primary text-white hover:border-primary-dark hover:bg-primary-dark',
+		primary:
+			'border-primary bg-primary text-white hover:border-primary-dark hover:bg-primary-dark cursor-pointer',
 		secondary:
 			'border-border-strong bg-surface text-foreground hover:border-primary hover:text-primary',
 		ghost: 'border-transparent bg-transparent text-muted hover:text-foreground',
-		outline: 'border border-black bg-transparent text-foreground'
+		outline: 'border border-black bg-transparent text-foreground cursor-pointer'
 	};
 
 	const classes = $derived(

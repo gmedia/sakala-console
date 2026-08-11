@@ -1,6 +1,6 @@
 <script lang="ts">
 	import DeploymentTimelineItem from './DeploymentTimelineItem.svelte';
-	import type { DeploymentStep } from '../../type';
+	import type { DeploymentStep } from '../../projects/type';
 
 	type Props = {
 		steps: DeploymentStep[];

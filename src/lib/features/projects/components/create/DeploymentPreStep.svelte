@@ -76,7 +76,7 @@
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
 			<p class="font-montserrat-medium">Nama Proyek</p>
 			<input
-				class="font-montserrat w-full px-4 rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-muted/20"
+				class="font-montserrat w-full px-4 rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
 				bind:value={projectName}
 			/>
 			<p class="text-sm text-muted">
@@ -108,14 +108,14 @@
 				<input
 					type="text"
 					bind:value={port}
-					class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-muted/20"
+					class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
 				/>
 			</div>
 		</div>
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
 			<p class="font-montserrat-medium">Build Command</p>
 			<input
-				class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-muted/20"
+				class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
 				value="npm run build"
 			/>
 		</div>
@@ -126,18 +126,18 @@
 				{#each envVars as env, i (i)}
 					<div class="flex w-full gap-1 bg-primary-50 p-2">
 						<input
-							class="font-montserrat w-full rounded-lg border border-muted/20"
+							class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
 							placeholder="NAMA_VARIABEL"
 							bind:value={env.key}
 						/>
 						<input
-							class="font-montserrat w-full rounded-lg border border-muted/20"
+							class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
 							placeholder="Isi value"
 							bind:value={env.value}
 						/>
 
 						{#if i === 0}
-							<Button onclick={addEnvVar}>
+							<Button variant="primary" onclick={addEnvVar}>
 								<Plus class="h-5 w-5" />
 							</Button>
 						{:else}
