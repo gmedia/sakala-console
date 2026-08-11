@@ -2,6 +2,7 @@
 	import { cn } from '$lib/utils/cn';
 	import { formatDate } from '$lib/utils/date';
 	import { Dot } from '@lucide/svelte';
+	import { GlobeIcon, LockSimpleIcon } from 'phosphor-svelte';
 	import type { Repository } from '../../type';
 
 	type Props = {
@@ -45,9 +46,16 @@
 	/>
 
 	<div class="min-w-0 flex-1">
-		<p class="truncate text-left font-montserrat-semibold font-medium">
-			{repository.full_name}
-		</p>
+		<div class="flex gap-2">
+			<p class="truncate text-left font-montserrat-semibold font-medium">
+				{repository.full_name}
+			</p>
+			{#if repository.private}
+				<LockSimpleIcon class="h-5 w-5 text-muted-foreground" />
+			{:else}
+				<GlobeIcon class="h-5 w-5 text-muted-foreground" />
+			{/if}
+		</div>
 		<div class="mt-1 flex items-center gap-2 text-sm text-muted">
 			<span>Diperbarui {formatDate(repository.pushed_at)}</span>
 			<Dot class="h-6 w-6 fill-current text-muted-foreground" />
