@@ -4,7 +4,7 @@
 
 	type Props = {
 		children: Snippet;
-		tone?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'muted';
+		tone?: 'neutral' | 'success' | 'success1' | 'warning' | 'error' | 'info' | 'muted';
 		class?: string;
 	};
 
@@ -13,6 +13,7 @@
 	const tones = {
 		neutral: 'border-border bg-background-soft text-muted',
 		success: 'border-success/20 bg-success/10 text-success',
+		success1: 'border-[#0F766E] bg-[#E7F1F1] text-[#0F766E]',
 		warning: 'border-warning/20 bg-accent-soft text-warning',
 		error: 'border-error/20 bg-error/10 text-error',
 		info: 'border-info/20 bg-info/10 text-info',
