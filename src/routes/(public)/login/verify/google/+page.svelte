@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import EmailIcon from '$lib/assets/email.svg';
 </script>
 
 <svelte:head><title>Overview | Sakala Console</title></svelte:head>
@@ -14,7 +13,6 @@
 		</p>
 	</div>
 	<div class="flex gap-4 max-w-lg border-1 border-[#0e6b64] rounded-lg p-4 mt-8">
-		<img src={EmailIcon} alt="Email" class="w-10 h-10 flex-shrink-0" />
 		<div class="">
 			<b class="">Cek Email</b>
 			<p>Periksa kotak masuk email Anda untuk tautan konfirmasi.</p>
