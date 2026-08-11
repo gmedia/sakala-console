@@ -2,6 +2,7 @@ import { mockRepositories } from '$lib/features/projects/mock';
 
 type WizardStep = 1 | 2 | 3;
 type RepositorySubstep = 'select-repository' | 'prepare-deployment';
+type DeployStatus = 'idle' | 'deploying' | 'cancelling' | 'cancelled' | 'success' | 'failed';
 
 export function createProjectWizardState() {
 	let repositorySource = $state<'github' | 'git-url'>('github');
@@ -13,6 +14,7 @@ export function createProjectWizardState() {
 	let currentPage = $state(1);
 	let currentStep = $state<WizardStep>(1);
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
+	let deployStatus = $state<DeployStatus>('idle');
 
 	const selectedRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -74,6 +76,13 @@ export function createProjectWizardState() {
 			currentPage = v;
 		},
 
+		get deployStatus() {
+			return deployStatus;
+		},
+		set deployStatus(v) {
+			deployStatus = v;
+		},
+
 		get currentStep() {
 			return currentStep;
 		},
@@ -95,10 +104,22 @@ export function createProjectWizardState() {
 		},
 		goToDeploy() {
 			currentStep = 3;
+			deployStatus = 'deploying';
 		},
 
 		isDeploymentInProgress() {
-			return currentStep === 3;
+			return currentStep === 3 && deployStatus === 'deploying';
+		},
+
+		async cancelDeployment() {
+			deployStatus = 'cancelling';
+			try {
+				deployStatus = 'cancelled';
+			} catch (error) {
+				console.error('Error cancelling deployment:', error);
+				deployStatus = 'deploying';
+				throw error;
+			}
 		}
 	};
 }

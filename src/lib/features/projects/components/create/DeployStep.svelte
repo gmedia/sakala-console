@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { RefreshCw, RotateCcw, Check, X, ArrowRight, Copy } from '@lucide/svelte';
+	import { resolve } from '$app/paths';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import DeploymentTimeline from '../../../deployments/components/DeploymentTimeline.svelte';
 	import DeploymentLogConsole from '../../../deployments/components/DeploymentLogConsole.svelte';
 	import type { DeploymentStep } from '../../type';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
 		projectName: string;
@@ -19,6 +21,8 @@
 	};
 
 	let { projectName }: Props = $props();
+
+	const wizard = getCreateProjectContext();
 
 	let copied = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -55,6 +59,8 @@
 	] as const;
 
 	let overallStatus = $derived.by(() => {
+		if (wizard.deployStatus === 'cancelled') return 'cancelled';
+		if (wizard.deployStatus === 'cancelling') return 'cancelling';
 		if (steps.some((step) => step.status === 'failed')) return 'failed';
 		if (steps.every((step) => step.status === 'success')) return 'success';
 		return 'running';
@@ -78,6 +84,23 @@
 					description: `${projectName ?? 'Project'} belum berhasil dideploy. Belum ada URL publik yang aktif untuk proyek ini.`
 				};
 
+			case 'cancelling':
+				return {
+					icon: RefreshCw,
+					tones: 'muted',
+					title: 'Membatalkan deployment...',
+					description: 'Sedang menghentikan proses deployment, harap tunggu sebentar.'
+				};
+
+			case 'cancelled':
+				return {
+					icon: X,
+					tones: 'muted',
+					title: 'Deployment dibatalkan',
+					description:
+						'Proses deploy dihentikan sebelum selesai. Repository dan pengaturan yang sudah dipilih tidak hilang, kamu bisa coba lagi kapan saja.'
+				};
+
 			default:
 				return {
 					icon: RefreshCw,
@@ -87,6 +110,10 @@
 				};
 		}
 	});
+
+	function handleRetryDeploy() {
+		wizard.goToDeploy();
+	}
 </script>
 
 <EmptyState
@@ -153,6 +180,24 @@
 		>
 			<RotateCcw class="w-5 h-5" />
 			Coba lagi
+		</Button>
+	</div>
+{:else if overallStatus === 'cancelled'}
+	<div class="flex gap-2 w-full">
+		<Button
+			href={resolve('/projects')}
+			variant="outline"
+			class="mt-4 w-full justify-center gap-2 border-black py-3"
+		>
+			Kembali ke project
+		</Button>
+		<Button
+			variant="primary"
+			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
+			onclick={handleRetryDeploy}
+		>
+			<RotateCcw class="w-5 h-5" />
+			Coba deploy lagi
 		</Button>
 	</div>
 {/if}

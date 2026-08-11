@@ -1,6 +1,5 @@
 <script lang="ts">
 	import CreateProjectStepper from '$lib/features/projects/components/create/CreateProjectStepper.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import { mockRepositories } from '$lib/features/projects/mock';
@@ -9,6 +8,7 @@
 	import DeployStep from '$lib/features/projects/components/create/DeployStep.svelte';
 	import DeploymentPreStep from '$lib/features/projects/components/create/DeploymentPreStep.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
 
 	const wizard = initCreateProjectContext();
 	const perPage = 5;
@@ -24,9 +24,7 @@
 <div class="flex flex-col items-center justify-center">
 	<div class="flex w-full justify-between items-center">
 		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-montserrat-semibold" />
-		<Button variant="outline" href="/projects" class="mb-4 px-3 border-2 border-muted text-muted">
-			Batal
-		</Button>
+		<CancelCreatePorjectAction />
 	</div>
 	<div class="max-w-2xl w-full">
 		<CreateProjectStepper currentStep={wizard.currentStep} />
