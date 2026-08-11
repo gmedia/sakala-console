@@ -1,4 +1,7 @@
 import { mockRepositories } from '$lib/features/projects/mock';
+import type { Repository } from '../type';
+import { parseGitUrl } from './parseGitUrl';
+import { SvelteDate } from 'svelte/reactivity';
 
 type WizardStep = 1 | 2 | 3;
 type RepositorySubstep = 'select-repository' | 'prepare-deployment';
@@ -16,12 +19,34 @@ export function createProjectWizardState() {
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
 	let deployStatus = $state<DeployStatus>('idle');
 
-	const selectedRepository = $derived(
+	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
 	);
 
+	const gitUrlRepository = $derived.by<Repository | null>(() => {
+		if (repositorySource !== 'git-url' || !gitUrl) return null;
+
+		const parsed = parseGitUrl(gitUrl);
+		console.log('Parsed Git URL:', parsed, 'from input:', gitUrl);
+		if (!parsed) return null;
+
+		return {
+			id: gitUrl,
+			name: parsed.name,
+			full_name: parsed.fullName,
+			clone_url: gitUrl,
+			default_branch: 'main',
+			pushed_at: new SvelteDate().toISOString(),
+			private: false
+		};
+	});
+
+	const selectedRepository = $derived(
+		repositorySource === 'github' ? githubRepository : gitUrlRepository
+	);
+
 	$effect(() => {
-		if (selectedRepository) {
+		if (selectedRepository && !selectedBranch) {
 			selectedBranch = selectedRepository.default_branch ?? '';
 		}
 	});
