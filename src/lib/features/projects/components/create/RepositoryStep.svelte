@@ -7,7 +7,6 @@
 	import { searchRepositories } from '../../filters';
 	import { ArrowRight } from '@lucide/svelte';
 	import type { Repository } from '../../type';
-	import { validateRepositoryUrl } from '../../utils/repository-url';
 
 	type Props = {
 		repositorySource: 'github' | 'git-url';
@@ -30,18 +29,22 @@
 	}: Props = $props();
 
 	let searchQuery = $state('');
-
 	const filteredRepositories = $derived(searchRepositories(repositories, searchQuery));
 
-	const gitUrlError = $derived(validateRepositoryUrl(gitUrl));
+	let isGitUrlValid = $state(false);
+	let gitUrlTouched = $state(false);
 
-	const canProceed = $derived.by(() => {
-		if (repositorySource === 'github') {
-			return selectedRepositoryId !== null;
+	const isDisabled = $derived(
+		repositorySource === 'github' ? selectedRepositoryId === null : false
+	);
+
+	function handleNext() {
+		if (repositorySource === 'git-url' && !isGitUrlValid) {
+			gitUrlTouched = true;
+			return;
 		}
-
-		return gitUrlError === null;
-	});
+		onNext();
+	}
 
 	$effect(() => {
 		if (repositorySource === 'github') {
@@ -50,6 +53,7 @@
 			selectedRepositoryId = null;
 		}
 		currentPage = 1;
+		gitUrlTouched = false;
 	});
 </script>
 
@@ -75,14 +79,18 @@
 			onPageChange={(page) => (currentPage = page)}
 		/>
 	{:else}
-		<GitUrlForm bind:value={gitUrl} />
+		<GitUrlForm
+			bind:value={gitUrl}
+			bind:touched={gitUrlTouched}
+			onValidityChange={(isValid) => (isGitUrlValid = isValid)}
+		/>
 	{/if}
 
 	<Button
 		variant="primary"
 		class="w-full py-3 cursor-pointer"
-		disabled={!canProceed}
-		onclick={onNext}
+		disabled={isDisabled}
+		onclick={handleNext}
 	>
 		Lanjut
 		<ArrowRight class="h-5 w-5" />
