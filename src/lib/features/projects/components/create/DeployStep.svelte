@@ -8,10 +8,11 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
-
-	type Props = {
-		projectName: string;
-	};
+	import {
+		streamDeploymentProgress,
+		type DeployScenario,
+		type DeployLogLine
+	} from '$lib/features/projects/create/mockDeployment';
 
 	type EmptyStateConfig = {
 		icon: typeof RefreshCw | typeof Check | typeof X;
@@ -20,10 +21,16 @@
 		description: string;
 	};
 
+	type Props = {
+		projectName: string;
+	};
 	let { projectName }: Props = $props();
 
 	const wizard = getCreateProjectContext();
 
+	let steps = $state<DeploymentStep[]>([]);
+	let deployLogs = $state<DeployLogLine[]>([]);
+	let buildError = $state<string | null>(null);
 	let copied = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -43,31 +50,47 @@
 		}
 	}
 
-	const steps: DeploymentStep[] = [
-		{ key: 'clone', title: 'Cloning repository', status: 'success' },
-		{ key: 'analyze', title: 'Menganalisis proyek', status: 'success' },
-		{ key: 'build', title: 'Building image', status: 'running' },
-		{ key: 'deploy', title: 'Deploy container', status: 'pending' },
-		{ key: 'health', title: 'Health check - live', status: 'pending' }
-	] as const;
+	async function runDeployment(scenario: DeployScenario = 'success') {
+		buildError = null;
+		try {
+			for await (const progress of streamDeploymentProgress(scenario)) {
+				if (wizard.deployStatus !== 'deploying') return;
+				steps = progress.steps;
+				deployLogs = progress.logs;
+				if (progress.errorMessage) buildError = progress.errorMessage;
+			}
 
-	const deployLogs = [
-		{ timestamp: '08:41:02', message: 'Cloning GMedia/Sakala 2@main...' },
-		{ timestamp: '08:41:05', message: 'Dockerfile detected, using custom builder' },
-		{ timestamp: '08:41:08', message: 'Step 1/6 : FROM node:20-alpine', variant: 'highlight' },
-		{ timestamp: '08:41:11', message: 'Step 4/6 : RUN npm install', variant: 'highlight' }
-	] as const;
+			if (wizard.deployStatus !== 'deploying') return;
 
-	let overallStatus = $derived.by(() => {
-		if (wizard.deployStatus === 'cancelled') return 'cancelled';
-		if (wizard.deployStatus === 'cancelling') return 'cancelling';
-		if (steps.some((step) => step.status === 'failed')) return 'failed';
-		if (steps.every((step) => step.status === 'success')) return 'success';
-		return 'running';
+			if (scenario === 'failed') {
+				await new Promise((resolve) => setTimeout(resolve, 1200));
+				if (wizard.deployStatus !== 'deploying') return;
+			}
+
+			wizard.deployStatus = scenario === 'failed' ? 'failed' : 'success';
+		} catch (error) {
+			console.error('Error during deployment:', error);
+			if (wizard.deployStatus === 'deploying') {
+				wizard.deployStatus = 'failed';
+			}
+		}
+	}
+
+	function handleRetryDeploy() {
+		steps = [];
+		deployLogs = [];
+		buildError = null;
+		wizard.goToDeploy();
+	}
+
+	$effect(() => {
+		if (wizard.deployStatus === 'deploying') {
+			runDeployment('success');
+		}
 	});
 
 	const emptyStateConfig = $derived.by<EmptyStateConfig>(() => {
-		switch (overallStatus) {
+		switch (wizard.deployStatus) {
 			case 'success':
 				return {
 					icon: Check,
@@ -110,10 +133,6 @@
 				};
 		}
 	});
-
-	function handleRetryDeploy() {
-		wizard.goToDeploy();
-	}
 </script>
 
 <EmptyState
@@ -124,12 +143,12 @@
 	description={emptyStateConfig?.description}
 />
 
-{#if overallStatus === 'running'}
+{#if wizard.deployStatus === 'deploying' || wizard.deployStatus === 'cancelling'}
 	<div class="flex flex-col rounded-lg p-4">
 		<DeploymentTimeline {steps} />
 	</div>
 	<DeploymentLogConsole lines={deployLogs} />
-{:else if overallStatus === 'success'}
+{:else if wizard.deployStatus === 'success'}
 	<div class="flex flex-col rounded-lg">
 		<Card>
 			<div class="flex justify-between items-center gap-2 w-full border-muted/20">
@@ -161,12 +180,12 @@
 			<ArrowRight class="w-5 h-5" />
 		</Button>
 	</div>
-{:else if overallStatus === 'failed'}
+{:else if wizard.deployStatus === 'failed'}
 	<div class="flex flex-col rounded-lg p-4">
 		<Card class="bg-error/10 border border-error rounded-lg">
 			<p class="font-montserrat-semibold text-error">BUILD ERROR</p>
 			<p class="font-jetbrains-mono-regular text-error">
-				Cannot find module 'package.json' Build failed with exit code 1
+				{buildError ?? 'Terjadi kesalahan saat membangun proyek.'}
 			</p>
 		</Card>
 	</div>
@@ -176,13 +195,14 @@
 		</Button>
 		<Button
 			variant="primary"
+			onclick={handleRetryDeploy}
 			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
 		>
 			<RotateCcw class="w-5 h-5" />
 			Coba lagi
 		</Button>
 	</div>
-{:else if overallStatus === 'cancelled'}
+{:else if wizard.deployStatus === 'cancelled'}
 	<div class="flex gap-2 w-full">
 		<Button
 			href={resolve('/projects')}

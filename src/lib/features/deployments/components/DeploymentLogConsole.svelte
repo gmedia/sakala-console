@@ -1,5 +1,5 @@
 <script lang="ts">
-	type logVariant = 'default' | 'highlight';
+	type logVariant = 'default' | 'error';
 
 	type LogLine = {
 		timestamp: string;
@@ -18,12 +18,12 @@
 
 	const variantColorMap: Record<logVariant, string> = {
 		default: 'text-terminal-text',
-		highlight: 'text-warning'
+		error: 'text-warning'
 	};
 
 	const timestampColorMap: Record<logVariant, string> = {
 		default: 'text-muted',
-		highlight: 'text-warning'
+		error: 'text-warning'
 	};
 
 	$effect(() => {

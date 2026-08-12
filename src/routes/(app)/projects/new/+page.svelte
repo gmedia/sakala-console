@@ -32,7 +32,7 @@
 			const result = await detectProjectConfig(
 				wizard.selectedRepository,
 				wizard.selectedBranch,
-				'no-dockerfile'
+				'dockerfile'
 			);
 			builderDetected = result.hasDockerfile;
 			if (result.detectedPort) {
