@@ -31,12 +31,12 @@
 		onblur={handleBlur}
 		placeholder="https : // github.com/username/nama-repo.git"
 		class="w-full rounded-md border {displayError
-			? 'border-error'
-			: 'border-muted/30'} bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-muted/10"
+			? 'border-error-dark'
+			: 'border-muted/30'} bg-white p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-muted/10"
 		aria-invalid={displayError ? 'true' : 'false'}
 	/>
 	{#if displayError}
-		<p class="text-sm text-red-500 font-montserrat">{displayError}</p>
+		<p class="text-sm text-error-dark font-montserrat">{displayError}</p>
 	{:else}
 		<p class="text-sm font-montserrat">
 			Dipakai untuk repository publik yang belum terhubung ke akun GitHubmu. Repo harus bisa diakses

@@ -26,7 +26,7 @@
 		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-montserrat-semibold" />
 		<CancelCreatePorjectAction />
 	</div>
-	<div class="max-w-2xl w-full">
+	<div class="max-w-3xl w-full">
 		<CreateProjectStepper currentStep={wizard.currentStep} />
 		<div class="flex flex-col gap-2 mt-4 mx-2">
 			{#if wizard.currentStep === 1}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
@@ -10,6 +12,8 @@
 	function handleClick() {
 		if (wizard.isDeploymentInProgress()) {
 			showConfirm = true;
+		} else {
+			goto(resolve('/projects'));
 		}
 	}
 

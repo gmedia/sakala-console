@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { ChevronDown, Plus, X } from '@lucide/svelte';
+	import { ChevronDown, Plus } from '@lucide/svelte';
+	import { EyeIcon, EyeSlashIcon } from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { Repository } from '../../type';
@@ -24,12 +25,36 @@
 		onRepositoryChange
 	}: Props = $props();
 
-	type EnvVar = { key: string; value: string };
+	type EnvVar = { id: string; key: string; value: string; visible?: boolean };
 
-	let envVars = $state<EnvVar[]>([{ key: '', value: '' }]);
+	let envVars = $state<EnvVar[]>([]);
+
+	let newEnv = $state({
+		key: '',
+		value: ''
+	});
+
+	const isNewEnvValid = $derived(newEnv.key.trim() !== '' && newEnv.value.trim() !== '');
 
 	function addEnvVar() {
-		envVars.push({ key: '', value: '' });
+		const key = newEnv.key.trim();
+		const value = newEnv.value.trim();
+
+		if (!key || !value) return;
+
+		envVars.push({
+			id: crypto.randomUUID(),
+			key,
+			value,
+			visible: false
+		});
+
+		newEnv.key = '';
+		newEnv.value = '';
+	}
+
+	function toggleEnvVisibility(index: number) {
+		envVars[index].visible = !envVars[index].visible;
 	}
 
 	function removeEnvVar(index: number) {
@@ -123,30 +148,56 @@
 			<p class="font-montserrat-medium">Environment Variables (opsional)</p>
 
 			<div class="flex flex-col gap-2 mt-2">
-				{#each envVars as env, i (i)}
-					<div class="flex w-full gap-1 bg-primary-50 p-2">
-						<input
-							class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
-							placeholder="NAMA_VARIABEL"
-							bind:value={env.key}
-						/>
-						<input
-							class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
-							placeholder="Isi value"
-							bind:value={env.value}
-						/>
+				{#each envVars as env, i (env.id)}
+					<div class="flex w-full items-center gap-1 p-2">
+						<p class="font-jetbrains-mono-semibold w-1/3 rounded-lg">
+							{env.key}
+						</p>
 
-						{#if i === 0}
-							<Button variant="primary" onclick={addEnvVar}>
-								<Plus class="h-5 w-5" />
+						<div class="flex w-full items-center gap-2">
+							<p class="font-montserrat-medium text-md truncate text-muted w-full rounded-lg">
+								{env.visible ? env.value : '••••••••••••'}
+							</p>
+
+							<Button
+								variant="outline"
+								class="border-none p-1"
+								onclick={() => toggleEnvVisibility(i)}
+								aria-label={env.visible ? 'Sembunyikan value' : 'Tampilkan value'}
+							>
+								{#if env.visible}
+									<EyeSlashIcon class="h-4 w-4 text-muted" />
+								{:else}
+									<EyeIcon class="h-4 w-4 text-muted" />
+								{/if}
 							</Button>
-						{:else}
-							<Button variant="outline" onclick={() => removeEnvVar(i)}>
-								<X class="h-5 w-5" />
-							</Button>
-						{/if}
+						</div>
+
+						<Button variant="outline" class="border-none" onclick={() => removeEnvVar(i)}>
+							<span class="text-error">Hapus</span>
+						</Button>
 					</div>
 				{/each}
+
+				<div class="flex w-full gap-1 bg-primary-50 p-2">
+					<input
+						class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
+						placeholder="NAMA_VARIABEL"
+						bind:value={newEnv.key}
+						onkeydown={(e) => e.key === 'Enter' && addEnvVar()}
+					/>
+
+					<input
+						class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
+						placeholder="Isi value"
+						bind:value={newEnv.value}
+						onkeydown={(e) => e.key === 'Enter' && addEnvVar()}
+					/>
+
+					<Button variant="primary" onclick={addEnvVar} disabled={!isNewEnvValid}>
+						<Plus class="h-5 w-5" />
+					</Button>
+				</div>
 			</div>
 
 			<p class="text-sm text-muted mt-1">
