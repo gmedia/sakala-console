@@ -9,6 +9,7 @@
 	import DeploymentPreStep from '$lib/features/projects/components/create/DeploymentPreStep.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
+	import { detectProjectConfig } from '$lib/features/projects/create/mockDetectConfig';
 
 	const wizard = initCreateProjectContext();
 	const perPage = 5;
@@ -17,6 +18,39 @@
 		{ label: 'Projects', href: '/projects' },
 		{ label: 'New Project', current: true }
 	];
+
+	let scanning = $state(true);
+	let builderDetected = $state<boolean | null>(null);
+	let scanFailed = $state(false);
+
+	async function runScan() {
+		scanning = true;
+		scanFailed = false;
+		builderDetected = null;
+
+		try {
+			const result = await detectProjectConfig(
+				wizard.selectedRepository,
+				wizard.selectedBranch,
+				'no-dockerfile'
+			);
+			builderDetected = result.hasDockerfile;
+			if (result.detectedPort) {
+				wizard.selectedPort = result.detectedPort;
+			} else {
+				wizard.selectedPort = '';
+			}
+		} catch {
+			scanFailed = true;
+		} finally {
+			scanning = false;
+		}
+	}
+
+	$effect(() => {
+		if (wizard.currentStep !== 2) return;
+		runScan();
+	});
 </script>
 
 <svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
@@ -56,7 +90,11 @@
 					branch={wizard.selectedBranch}
 					port={wizard.selectedPort}
 					projectName={wizard.projectName}
+					{scanning}
+					{builderDetected}
+					{scanFailed}
 					onNext={wizard.goToDeploy}
+					onRetryScan={runScan}
 				/>
 			{:else if wizard.currentStep === 3}
 				<DeployStep projectName={wizard.projectName} />
