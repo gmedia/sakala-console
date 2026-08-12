@@ -1,7 +1,6 @@
 import { mockRepositories } from '$lib/features/projects/mock';
 import type { Repository } from '../type';
 import { parseGitUrl } from './parseGitUrl';
-import { SvelteDate } from 'svelte/reactivity';
 
 type WizardStep = 1 | 2 | 3;
 type RepositorySubstep = 'select-repository' | 'prepare-deployment';
@@ -37,7 +36,7 @@ export function createProjectWizardState() {
 			full_name: parsed.fullName,
 			clone_url: gitUrl,
 			default_branch: 'main',
-			pushed_at: new SvelteDate().toISOString(),
+			pushed_at: null,
 			private: false
 		};
 	});

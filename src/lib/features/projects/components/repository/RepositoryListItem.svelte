@@ -52,7 +52,11 @@
 			{/if}
 		</div>
 		<div class="mt-1 flex items-center gap-2 text-sm text-muted">
-			<span>Diperbarui {formatDate(repository.pushed_at)}</span>
+			<span
+				>{repository.pushed_at
+					? `Diperbarui ${formatDate(repository.pushed_at)}`
+					: 'Belum ada info update'}</span
+			>
 			<DotIcon class="h-6 w-6 fill-current text-muted-foreground" />
 			<span>{repository.default_branch}</span>
 		</div>

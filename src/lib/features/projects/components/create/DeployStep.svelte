@@ -92,7 +92,7 @@
 
 	$effect(() => {
 		if (wizard.deployStatus === 'deploying') {
-			runDeployment('failed');
+			runDeployment('success');
 		}
 	});
 
@@ -145,7 +145,7 @@
 <EmptyState
 	icon={emptyStateConfig?.icon}
 	tone={emptyStateConfig?.tones}
-	class="bg-transparent border-none shadow-none sm:py-0"
+	class="bg-transparent border-none shadow-none sm:py-6"
 	title={emptyStateConfig?.title}
 	description={emptyStateConfig?.description}
 />
