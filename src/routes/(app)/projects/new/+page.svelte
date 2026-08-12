@@ -4,11 +4,12 @@
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import { mockCreateProject, mockRepositories } from '$lib/features/projects/mock';
 	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
-	import AutoDetectStep from '$lib/features/projects/components/AutoDetectStep.svelte';
+	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
 	import type { CreateProjectPayload } from '$lib/features/projects/type';
+	import { detectProjectConfig } from '$lib/features/projects/create/mockDetectConfig';
 
 	const wizard = initCreateProjectContext();
 
@@ -33,6 +34,38 @@
 			isSubmitting = false;
 		}
 	}
+	let scanning = $state(true);
+	let builderDetected = $state<boolean | null>(null);
+	let scanFailed = $state(false);
+
+	async function runScan() {
+		scanning = true;
+		scanFailed = false;
+		builderDetected = null;
+
+		try {
+			const result = await detectProjectConfig(
+				wizard.selectedRepository,
+				wizard.selectedBranch,
+				'no-dockerfile'
+			);
+			builderDetected = result.hasDockerfile;
+			if (result.detectedPort) {
+				wizard.selectedPort = result.detectedPort;
+			} else {
+				wizard.selectedPort = '';
+			}
+		} catch {
+			scanFailed = true;
+		} finally {
+			scanning = false;
+		}
+	}
+
+	$effect(() => {
+		if (wizard.currentStep !== 2) return;
+		runScan();
+	});
 </script>
 
 <svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
@@ -62,7 +95,17 @@
 					/>
 				{/if}
 			{:else if wizard.currentStep === 2}
-				<AutoDetectStep repository={wizard.selectedRepository} onNext={wizard.goToDeploy} />
+				<AutoDetectStep
+					repository={wizard.selectedRepository}
+					branch={wizard.selectedBranch}
+					port={wizard.selectedPort}
+					projectName={wizard.projectName}
+					{scanning}
+					{builderDetected}
+					{scanFailed}
+					onNext={wizard.goToDeploy}
+					onRetryScan={runScan}
+				/>
 			{/if}
 		</div>
 	</div>
