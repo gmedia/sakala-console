@@ -6,6 +6,7 @@ type WizardStep = 1 | 2 | 3;
 type RepositorySubstep = 'select-repository' | 'prepare-deployment';
 type EnvVar = { id: number; key: string; value: string; visible?: boolean };
 type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
+type DeployStatus = 'idle' | 'deploying' | 'cancelling' | 'cancelled' | 'success' | 'failed';
 
 export function createProjectWizardState() {
 	let currentPage = $state(1);
@@ -32,6 +33,8 @@ export function createProjectWizardState() {
 	let scanStatus = $state<ScanStatus>('idle');
 	let builderDetected = $state<boolean | null>(null);
 	let scanAttempt = $state(0);
+
+	let deployStatus = $state<DeployStatus>('idle');
 
 	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -228,6 +231,9 @@ export function createProjectWizardState() {
 		get scanAttempt() {
 			return scanAttempt;
 		},
+		get deployStatus() {
+			return deployStatus;
+		},
 		startScan() {
 			scanStatus = 'scanning';
 			builderDetected = null;
@@ -240,6 +246,18 @@ export function createProjectWizardState() {
 		failScan() {
 			scanStatus = 'failed';
 			builderDetected = null;
+		},
+		startDeploy() {
+			deployStatus = 'deploying';
+		},
+		cancelDeploy() {
+			deployStatus = 'cancelling';
+		},
+		confirmCancelled() {
+			deployStatus = 'cancelled';
+		},
+		completeDeploy(success: boolean) {
+			deployStatus = success ? 'success' : 'failed';
 		},
 
 		checkGithubConnection,
@@ -266,6 +284,7 @@ export function createProjectWizardState() {
 		},
 		goToDeploy() {
 			currentStep = 3;
+			deployStatus = 'deploying';
 		}
 	};
 }

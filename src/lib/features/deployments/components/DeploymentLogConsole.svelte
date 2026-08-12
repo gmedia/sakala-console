@@ -1,5 +1,5 @@
 <script lang="ts">
-	type logVariant = 'default' | 'highlight';
+	type logVariant = 'default' | 'error';
 
 	type LogLine = {
 		timestamp: string;
@@ -16,14 +16,9 @@
 
 	let scrollContainer: HTMLDivElement;
 
-	const variantColorMap: Record<logVariant, string> = {
-		default: 'text-terminal-text',
-		highlight: 'text-warning'
-	};
-
 	const timestampColorMap: Record<logVariant, string> = {
 		default: 'text-muted',
-		highlight: 'text-warning'
+		error: 'text-warning'
 	};
 
 	$effect(() => {
@@ -40,7 +35,7 @@
 		{@const variant = line.variant ?? 'default'}
 		<div class="whitespace-pre-wrap">
 			<span class={timestampColorMap[variant]}>[{line.timestamp}]</span>
-			<span class={variantColorMap['default']}>{line.message}</span>
+			<span class="text-terminal-text">{line.message}</span>
 		</div>
 	{/each}
 </div>
