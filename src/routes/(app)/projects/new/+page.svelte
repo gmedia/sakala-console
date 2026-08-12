@@ -15,7 +15,7 @@
 	const perPage = 5;
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
-		{ label: 'Projects', href: '/projects' },
+		{ label: 'Projects' },
 		{ label: 'New Project', current: true }
 	];
 
@@ -32,7 +32,7 @@
 			const result = await detectProjectConfig(
 				wizard.selectedRepository,
 				wizard.selectedBranch,
-				'dockerfile'
+				'failed'
 			);
 			builderDetected = result.hasDockerfile;
 			if (result.detectedPort) {

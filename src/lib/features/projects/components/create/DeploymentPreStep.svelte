@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, Plus } from '@lucide/svelte';
-	import { EyeIcon, EyeSlashIcon } from 'phosphor-svelte';
+	import { EyeIcon, EyeSlashIcon, CaretDownIcon, PlusIcon } from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { Repository } from '../../type';
@@ -122,7 +121,7 @@
 					selectedLabelClass="font-montserrat-semibold bg-primary text-white"
 				>
 					{#snippet icon(open)}
-						<ChevronDown
+						<CaretDownIcon
 							class={cn('h-5 w-5 transition-transform duration-200', open && 'rotate-180')}
 						/>
 					{/snippet}
@@ -195,7 +194,7 @@
 					/>
 
 					<Button variant="primary" onclick={addEnvVar} disabled={!isNewEnvValid}>
-						<Plus class="h-5 w-5" />
+						<PlusIcon class="h-5 w-5" />
 					</Button>
 				</div>
 			</div>

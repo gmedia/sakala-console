@@ -2,7 +2,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { resolve } from '$app/paths';
-	import { Link, Zap, Check } from '@lucide/svelte';
+	import { LinkIcon, LightningIcon, CheckIcon } from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import type { Repository } from '../../type';
 	import { CircleNotchIcon, XIcon, ArrowCounterClockwiseIcon } from 'phosphor-svelte';
@@ -84,7 +84,7 @@
 			{@render skeletonRow()}
 		{:else if builderDetected}
 			<p class="font-montserrat-semibold flex gap-1">
-				<Check class="text-primary" /> Dockerfile terdeteksi
+				<CheckIcon class="text-primary" /> Dockerfile terdeteksi
 			</p>
 		{:else}
 			{@render notFoundRow('Tidak terdeteksi')}
@@ -103,7 +103,7 @@
 </Card>
 
 <div class="flex text-primary bg-primary/8 p-4 rounded-lg gap-2 my-4">
-	<Link />
+	<LinkIcon class="h-6 w-6" />
 	<p class="font-jetbrains-mono-regular">{projectName}.run.sakala.dev</p>
 </div>
 
@@ -123,7 +123,7 @@
 		disabled={scanning || !builderDetected}
 		onclick={onNext}
 	>
-		<Zap />
+		<LightningIcon class="h-5 w-5" />
 		Deploy sekarang
 	</Button>
 {/if}

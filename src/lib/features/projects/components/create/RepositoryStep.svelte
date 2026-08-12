@@ -5,10 +5,9 @@
 	import RepositorySourceTab from '../repository/RepositorySourceTab.svelte';
 	import GitUrlForm from '../repository/GitUrlForm.svelte';
 	import { searchRepositories } from '../../filters';
-	import { ArrowRight } from '@lucide/svelte';
 	import type { Repository } from '../../type';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import { GithubLogoIcon } from 'phosphor-svelte';
+	import { GithubLogoIcon, ArrowRightIcon } from 'phosphor-svelte';
 
 	type Props = {
 		repositorySource: 'github' | 'git-url';
@@ -119,6 +118,6 @@
 		onclick={handleNext}
 	>
 		Lanjut
-		<ArrowRight class="h-5 w-5" />
+		<ArrowRightIcon class="h-5 w-5" />
 	</Button>
 </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, X, RefreshCw } from '@lucide/svelte';
+	import { CheckIcon, XIcon, ArrowsClockwiseIcon } from 'phosphor-svelte';
 	type Status = 'pending' | 'running' | 'success' | 'failed';
 	type Size = 'sm' | 'md' | 'lg';
 
@@ -47,11 +47,11 @@
 <span class="inline-flex items-center gap-2.5">
 	<span class="inline-flex shrink-0 items-center justify-center rounded-full {dotSize} {dotColor}">
 		{#if status === 'running'}
-			<RefreshCw size={iconSizePx} strokeWidth={2.5} class="animate-spin" />
+			<ArrowsClockwiseIcon size={iconSizePx} class="animate-spin" />
 		{:else if status === 'success'}
-			<Check size={iconSizePx} strokeWidth={3} />
+			<CheckIcon size={iconSizePx} weight="bold" class="w-4 h-4" />
 		{:else if status === 'failed'}
-			<X size={iconSizePx} strokeWidth={3} />
+			<XIcon size={iconSizePx} weight="bold" class="w-4 h-4" />
 		{/if}
 	</span>
 

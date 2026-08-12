@@ -1,5 +1,12 @@
 <script lang="ts">
-	import { RefreshCw, RotateCcw, Check, X, ArrowRight, Copy } from '@lucide/svelte';
+	import {
+		ArrowCounterClockwiseIcon,
+		ArrowsCounterClockwiseIcon,
+		CheckIcon,
+		XIcon,
+		ArrowRightIcon,
+		CopyIcon
+	} from 'phosphor-svelte';
 	import { resolve } from '$app/paths';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import DeploymentTimeline from '../../../deployments/components/DeploymentTimeline.svelte';
@@ -15,7 +22,7 @@
 	} from '$lib/features/projects/create/mockDeployment';
 
 	type EmptyStateConfig = {
-		icon: typeof RefreshCw | typeof Check | typeof X;
+		icon: typeof ArrowsCounterClockwiseIcon | typeof CheckIcon | typeof XIcon;
 		tones: 'neutral' | 'failed' | 'warning' | 'muted';
 		title: string;
 		description: string;
@@ -85,7 +92,7 @@
 
 	$effect(() => {
 		if (wizard.deployStatus === 'deploying') {
-			runDeployment('success');
+			runDeployment('failed');
 		}
 	});
 
@@ -93,7 +100,7 @@
 		switch (wizard.deployStatus) {
 			case 'success':
 				return {
-					icon: Check,
+					icon: CheckIcon,
 					tones: 'neutral',
 					title: 'Proyekmu sudah live',
 					description: `${projectName ?? 'Project'} berhasil dibuat dan bisa diakses publik sekarang.`
@@ -101,7 +108,7 @@
 
 			case 'failed':
 				return {
-					icon: X,
+					icon: XIcon,
 					tones: 'failed',
 					title: 'Deploy gagal',
 					description: `${projectName ?? 'Project'} belum berhasil dideploy. Belum ada URL publik yang aktif untuk proyek ini.`
@@ -109,7 +116,7 @@
 
 			case 'cancelling':
 				return {
-					icon: RefreshCw,
+					icon: ArrowsCounterClockwiseIcon,
 					tones: 'muted',
 					title: 'Membatalkan deployment...',
 					description: 'Sedang menghentikan proses deployment, harap tunggu sebentar.'
@@ -117,7 +124,7 @@
 
 			case 'cancelled':
 				return {
-					icon: X,
+					icon: XIcon,
 					tones: 'muted',
 					title: 'Deployment dibatalkan',
 					description:
@@ -126,7 +133,7 @@
 
 			default:
 				return {
-					icon: RefreshCw,
+					icon: ArrowsCounterClockwiseIcon,
 					tones: 'neutral',
 					title: `Mendeploy ${projectName ?? 'repository'}...`,
 					description: 'Proses deployment sedang berjalan, harap tunggu sebentar.'
@@ -160,9 +167,9 @@
 					aria-label={copied ? 'Tersalin' : 'Salin URL'}
 				>
 					{#if copied}
-						<Check class="w-5 h-5 text-primary" />
+						<CheckIcon class="w-5 h-5 text-primary" />
 					{:else}
-						<Copy class="w-5 h-5 text-muted" />
+						<CopyIcon class="w-5 h-5 text-muted" />
 					{/if}
 				</Button>
 			</div>
@@ -177,7 +184,7 @@
 			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
 		>
 			Buka situs
-			<ArrowRight class="w-5 h-5" />
+			<ArrowRightIcon class="w-5 h-5" />
 		</Button>
 	</div>
 {:else if wizard.deployStatus === 'failed'}
@@ -198,7 +205,7 @@
 			onclick={handleRetryDeploy}
 			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
 		>
-			<RotateCcw class="w-5 h-5" />
+			<ArrowCounterClockwiseIcon class="w-5 h-5" />
 			Coba lagi
 		</Button>
 	</div>
@@ -216,7 +223,7 @@
 			class="mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-white cursor-pointer"
 			onclick={handleRetryDeploy}
 		>
-			<RotateCcw class="w-5 h-5" />
+			<ArrowCounterClockwiseIcon class="w-5 h-5" />
 			Coba deploy lagi
 		</Button>
 	</div>

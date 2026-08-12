@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
 	import { formatDate } from '$lib/utils/date';
-	import { Dot } from '@lucide/svelte';
-	import { GlobeIcon, LockSimpleIcon } from 'phosphor-svelte';
+	import { GlobeIcon, LockSimpleIcon, DotIcon, GithubLogoIcon } from 'phosphor-svelte';
 	import type { Repository } from '../../type';
 
 	type Props = {
@@ -39,11 +38,7 @@
 		disabled && 'cursor-not-allowed opacity-50'
 	)}
 >
-	<img
-		src="/icons/github-logo.svg"
-		alt="GitHub Logo"
-		class="h-12 w-12 shrink-0 rounded-lg bg-muted/20 p-2"
-	/>
+	<GithubLogoIcon class="h-12 w-12 shrink-0 rounded-lg bg-muted/20 p-2" />
 
 	<div class="min-w-0 flex-1">
 		<div class="flex gap-2">
@@ -58,7 +53,7 @@
 		</div>
 		<div class="mt-1 flex items-center gap-2 text-sm text-muted">
 			<span>Diperbarui {formatDate(repository.pushed_at)}</span>
-			<Dot class="h-6 w-6 fill-current text-muted-foreground" />
+			<DotIcon class="h-6 w-6 fill-current text-muted-foreground" />
 			<span>{repository.default_branch}</span>
 		</div>
 	</div>

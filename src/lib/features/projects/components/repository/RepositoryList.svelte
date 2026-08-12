@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CircleOff } from '@lucide/svelte';
+	import { EmptyIcon } from 'phosphor-svelte';
 	import type { Repository } from '../../type';
 	import RepositoryListItem from './RepositoryListItem.svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
@@ -40,7 +40,7 @@
 	</div>
 {:else if repositories.length === 0}
 	<EmptyState
-		icon={CircleOff}
+		icon={EmptyIcon}
 		tone="muted"
 		title="Tidak menemukan repository"
 		description="Kamu belum memiliki repository yang bisa ditambahkan ke project."
