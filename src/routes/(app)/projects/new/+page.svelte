@@ -71,6 +71,8 @@
 						bind:currentPage={wizard.currentPage}
 						bind:gitUrl={wizard.gitUrl}
 						repositories={mockRepositories}
+						onConnectGithub={wizard.connectGithub}
+						githubConnected={wizard.githubConnected}
 						{perPage}
 						onNext={wizard.goToPrepareDeployment}
 					/>

@@ -18,6 +18,8 @@ export function createProjectWizardState() {
 	let currentStep = $state<WizardStep>(1);
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
 	let deployStatus = $state<DeployStatus>('idle');
+	let githubConnected = $state(true);
+	let checkingGithubConnection = $state(true);
 
 	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -27,7 +29,6 @@ export function createProjectWizardState() {
 		if (repositorySource !== 'git-url' || !gitUrl) return null;
 
 		const parsed = parseGitUrl(gitUrl);
-		console.log('Parsed Git URL:', parsed, 'from input:', gitUrl);
 		if (!parsed) return null;
 
 		return {
@@ -50,6 +51,17 @@ export function createProjectWizardState() {
 			selectedBranch = selectedRepository.default_branch ?? '';
 		}
 	});
+
+	async function checkGithubConnection() {
+		checkingGithubConnection = true;
+		try {
+			githubConnected = true;
+		} catch {
+			githubConnected = false;
+		} finally {
+			checkingGithubConnection = false;
+		}
+	}
 
 	return {
 		get repositorySource() {
@@ -117,7 +129,18 @@ export function createProjectWizardState() {
 		get selectedRepository() {
 			return selectedRepository;
 		},
+		get githubConnected() {
+			return githubConnected;
+		},
+		get checkingGithubConnection() {
+			return checkingGithubConnection;
+		},
 
+		checkGithubConnection,
+
+		connectGithub() {
+			githubConnected = true;
+		},
 		goToPrepareDeployment() {
 			repositorySubstep = 'prepare-deployment';
 		},
