@@ -1,20 +1,18 @@
 <script lang="ts">
-	import CreateProjectStepper from '$lib/features/projects/components/CreateProjectStepper.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
+	import CreateProjectStepper from '$lib/features/projects/components/create/CreateProjectStepper.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import { mockRepositories } from '$lib/features/projects/mock';
-	import RepositoryStep from '$lib/features/projects/components/RepositoryStep.svelte';
+	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
+	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
+	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
 
-	let repositorySource = $state<'github' | 'git-url'>('github');
-	let selectedRepositoryId = $state<string | null>(null);
-	let gitUrl = $state('');
-	let currentPage = $state(1);
-	let currentStep = $state(1);
+	const wizard = initCreateProjectContext();
 	const perPage = 5;
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
-		{ label: 'Projects', href: '/projects' },
+		{ label: 'Projects' },
 		{ label: 'New Project', current: true }
 	];
 </script>
@@ -24,33 +22,34 @@
 <div class="flex flex-col items-center justify-center">
 	<div class="flex w-full justify-between items-center">
 		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-montserrat-semibold" />
-		<Button variant="outline" href="/projects" class="mb-4 px-3 border-2 border-muted text-muted">
-			Batal
-		</Button>
+		<CancelCreatePorjectAction />
 	</div>
 	<div class="max-w-2xl w-full">
-		<CreateProjectStepper
-			{currentStep}
-			allowClickUpComing={true}
-			onStepClick={(step) => (currentStep = step)}
-		/>
+		<CreateProjectStepper currentStep={wizard.currentStep} />
 		<div class="flex flex-col gap-2 mt-4 mx-2">
-			{#if currentStep === 1}
-				<RepositoryStep
-					bind:repositorySource
-					bind:selectedRepositoryId
-					bind:currentPage
-					bind:gitUrl
-					repositories={mockRepositories}
-					{perPage}
-					onNext={() => (currentStep = 2)}
-				/>
-			{:else if currentStep === 2}
-				<h1>Auto Detect</h1>
-				<p>Setup project secara otomatis dengan auto detect.</p>
-			{:else if currentStep === 3}
-				<h1>Deploy</h1>
-				<p>Deploy project ke Sakala.</p>
+			{#if wizard.currentStep === 1}
+				{#if wizard.repositorySubstep === 'select-repository'}
+					<RepositoryStep
+						bind:repositorySource={wizard.repositorySource}
+						bind:selectedRepositoryId={wizard.selectedRepositoryId}
+						bind:currentPage={wizard.currentPage}
+						bind:gitUrl={wizard.gitUrl}
+						repositories={mockRepositories}
+						onConnectGithub={wizard.connectGithub}
+						githubConnected={wizard.githubConnected}
+						{perPage}
+						onNext={wizard.goToPrepareDeployment}
+					/>
+				{:else}
+					<ConfigureProjectStep
+						repository={wizard.selectedRepository}
+						bind:branch={wizard.selectedBranch}
+						bind:port={wizard.selectedPort}
+						bind:projectName={wizard.projectName}
+						onNext={wizard.goToAutoDetect}
+						onRepositoryChange={wizard.backToSelectRepository}
+					/>
+				{/if}
 			{/if}
 		</div>
 	</div>

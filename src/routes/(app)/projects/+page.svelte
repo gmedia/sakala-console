@@ -1,10 +1,10 @@
 <script lang="ts">
-	import CreateProjectHeroCard from '$lib/features/projects/components/CreateProjectHeroCard.svelte';
+	import CreateProjectHeroCard from '$lib/features/projects/components/create/CreateProjectHeroCard.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import type { DateFilterValue } from '$lib/features/projects/filters';
 	import { mockProjects } from '$lib/features/projects/mock';
-	import ProjectList from '$lib/features/projects/components/ProjectList.svelte';
-	import ProjectFilter from '$lib/features/projects/components/ProjectFilter.svelte';
+	import ProjectList from '$lib/features/projects/components/project/ProjectList.svelte';
+	import ProjectFilter from '$lib/features/projects/components/project/ProjectFilter.svelte';
 
 	let search = $state('');
 	let dateFilter: DateFilterValue = $state('30d');

@@ -30,6 +30,10 @@
 					<a href={resolve(item.href)} class="text-muted">
 						{item.label}
 					</a>
+				{:else}
+					<span class="text-muted">
+						{item.label}
+					</span>
 				{/if}
 
 				{#if index < items.length - 1}
