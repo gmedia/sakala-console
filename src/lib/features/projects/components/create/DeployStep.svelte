@@ -69,10 +69,9 @@
 
 			if (wizard.deployStatus !== 'deploying') return;
 
-			if (scenario === 'failed') {
-				await new Promise((resolve) => setTimeout(resolve, 1200));
-				if (wizard.deployStatus !== 'deploying') return;
-			}
+			await new Promise((resolve) => setTimeout(resolve, 1200));
+
+			if (wizard.deployStatus !== 'deploying') return;
 
 			wizard.deployStatus = scenario === 'failed' ? 'failed' : 'success';
 		} catch (error) {
