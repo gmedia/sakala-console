@@ -53,7 +53,7 @@
 	function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (validateLogin()) {
-			console.log('Submit Login:', { email, password });
+			// handle submit
 		}
 	}
 </script>
