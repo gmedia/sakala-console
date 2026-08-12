@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { validateRepositoryUrl } from '../../validation/repository-url';
+	import { validateRepositoryUrl } from '../../validation/repositoryUrl';
 
 	let {
 		value = $bindable(),
