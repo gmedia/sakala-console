@@ -5,6 +5,7 @@
 	import type { Repository } from '../../type';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
+	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
 		repository: Repository | null;
@@ -24,40 +25,27 @@
 		onRepositoryChange
 	}: Props = $props();
 
-	type EnvVar = { id: string; key: string; value: string; visible?: boolean };
-
-	let envVars = $state<EnvVar[]>([]);
+	const wizard = getCreateProjectContext();
 
 	let newEnv = $state({
 		key: '',
 		value: ''
 	});
-
 	const isNewEnvValid = $derived(newEnv.key.trim() !== '' && newEnv.value.trim() !== '');
 
 	function addEnvVar() {
-		const key = newEnv.key.trim();
-		const value = newEnv.value.trim();
-
-		if (!key || !value) return;
-
-		envVars.push({
-			id: crypto.randomUUID(),
-			key,
-			value,
-			visible: false
-		});
+		wizard.addEnvVar(newEnv.key, newEnv.value);
 
 		newEnv.key = '';
 		newEnv.value = '';
 	}
 
 	function toggleEnvVisibility(index: number) {
-		envVars[index].visible = !envVars[index].visible;
+		wizard.toggleEnvVisible(index);
 	}
 
 	function removeEnvVar(index: number) {
-		envVars.splice(index, 1);
+		wizard.removeEnvVar(index);
 	}
 
 	const branchOptions = $derived.by(() => {
@@ -147,7 +135,7 @@
 			<p class="font-montserrat-medium">Environment Variables (opsional)</p>
 
 			<div class="flex flex-col gap-2 mt-2">
-				{#each envVars as env, i (env.id)}
+				{#each wizard.envVars as env (env.id)}
 					<div class="flex w-full items-center gap-1 p-2">
 						<p class="font-jetbrains-mono-semibold w-1/3 rounded-lg">
 							{env.key}
@@ -161,7 +149,7 @@
 							<Button
 								variant="outline"
 								class="border-none p-1"
-								onclick={() => toggleEnvVisibility(i)}
+								onclick={() => toggleEnvVisibility(env.id)}
 								aria-label={env.visible ? 'Sembunyikan value' : 'Tampilkan value'}
 							>
 								{#if env.visible}
@@ -172,7 +160,7 @@
 							</Button>
 						</div>
 
-						<Button variant="outline" class="border-none" onclick={() => removeEnvVar(i)}>
+						<Button variant="outline" class="border-none" onclick={() => removeEnvVar(env.id)}>
 							<span class="text-error">Hapus</span>
 						</Button>
 					</div>
