@@ -55,6 +55,13 @@ export function createProjectWizardState() {
 		}
 	});
 
+	function resolveRepository(id: string | null): Repository | null {
+		if (repositorySource === 'github') {
+			return mockRepositories.find((repo) => repo.id === id) ?? null;
+		}
+		return null;
+	}
+
 	async function checkGithubConnection() {
 		checkingGithubConnection = true;
 		try {
@@ -99,8 +106,10 @@ export function createProjectWizardState() {
 		get selectedRepositoryId() {
 			return selectedRepositoryId;
 		},
-		set selectedRepositoryId(v) {
+		set selectedRepositoryId(v: string | null) {
 			selectedRepositoryId = v;
+			const repo = resolveRepository(v);
+			selectedBranch = repo?.default_branch ?? '';
 		},
 
 		get gitUrl() {

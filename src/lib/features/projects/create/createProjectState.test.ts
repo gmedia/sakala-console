@@ -27,8 +27,8 @@ describe('createProjectWizardState', () => {
 		wizard.selectedRepositoryId = mockRepositories[0].id;
 		expect(wizard.selectedBranch).toBe(mockRepositories[0].default_branch);
 
-		wizard.selectedRepositoryId = mockRepositories[1].id;
-		expect(wizard.selectedBranch).toBe(mockRepositories[1].default_branch);
+		wizard.selectedRepositoryId = mockRepositories[2].id;
+		expect(wizard.selectedBranch).toBe(mockRepositories[2].default_branch);
 		expect(wizard.selectedBranch).not.toBe(mockRepositories[0].default_branch);
 	});
 });
