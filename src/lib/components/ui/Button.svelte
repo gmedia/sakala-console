@@ -18,6 +18,7 @@
 		href,
 		externalHref,
 		variant = 'primary',
+		type = 'button',
 		class: className = '',
 		...restProps
 	}: Props = $props();
@@ -49,7 +50,7 @@
 		{@render children()}
 	</a>
 {:else}
-	<button {...restProps} class={classes}>
+	<button {...restProps} {type} class={classes}>
 		{@render children()}
 	</button>
 {/if}
