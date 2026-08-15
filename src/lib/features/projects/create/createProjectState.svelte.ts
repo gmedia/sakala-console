@@ -4,10 +4,12 @@ import { parseGitUrl } from './parseGitUrl';
 
 type WizardStep = 1 | 2 | 3;
 type RepositorySubstep = 'select-repository' | 'prepare-deployment';
+type EnvVar = { id: number; key: string; value: string; visible?: boolean };
 
 export function createProjectWizardState() {
 	let repositorySource = $state<'github' | 'git-url'>('github');
 	let selectedRepositoryId = $state<string | null>(null);
+	let prevSelectedRepositoryId: string | null = null;
 	let gitUrl = $state('');
 	let selectedBranch = $state('');
 	let selectedPort = $state('3000');
@@ -17,6 +19,9 @@ export function createProjectWizardState() {
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
 	let githubConnected = $state(true);
 	let checkingGithubConnection = $state(true);
+	let envVars = $state<EnvVar[]>([]);
+	const envVisible = $state(false);
+	let nextEnvId = 1;
 
 	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -34,7 +39,7 @@ export function createProjectWizardState() {
 			full_name: parsed.fullName,
 			clone_url: gitUrl,
 			default_branch: 'main',
-			pushed_at: null,
+			pushed_at: '2024-01-01T00:00:00Z',
 			private: false
 		};
 	});
@@ -44,8 +49,9 @@ export function createProjectWizardState() {
 	);
 
 	$effect(() => {
-		if (selectedRepository && !selectedBranch) {
+		if (selectedRepository && selectedRepositoryId !== prevSelectedRepositoryId) {
 			selectedBranch = selectedRepository.default_branch ?? '';
+			prevSelectedRepositoryId = selectedRepositoryId;
 		}
 	});
 
@@ -58,6 +64,28 @@ export function createProjectWizardState() {
 		} finally {
 			checkingGithubConnection = false;
 		}
+	}
+
+	function addEnvVar(key: string, value: string) {
+		const trimmedKey = key.trim();
+		const trimmedValue = value.trim();
+		if (!trimmedKey || !trimmedValue) return;
+
+		envVars.push({
+			id: nextEnvId++,
+			key: trimmedKey,
+			value: trimmedValue,
+			visible: envVisible
+		});
+	}
+
+	function removeEnvVar(id: number) {
+		envVars = envVars.filter((env) => env.id !== id);
+	}
+
+	function toggleEnvVisible(id: number) {
+		const target = envVars.find((env) => env.id === id);
+		if (target) target.visible = !target.visible;
 	}
 
 	return {
@@ -125,8 +153,17 @@ export function createProjectWizardState() {
 		get checkingGithubConnection() {
 			return checkingGithubConnection;
 		},
+		get envVars() {
+			return envVars;
+		},
 
 		checkGithubConnection,
+
+		addEnvVar,
+
+		removeEnvVar,
+
+		toggleEnvVisible,
 
 		connectGithub() {
 			githubConnected = true;
