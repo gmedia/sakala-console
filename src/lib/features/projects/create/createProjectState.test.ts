@@ -18,6 +18,17 @@ describe('createProjectWizardState', () => {
 	it('selectedBranch should be set default_branch when selectedRepository is set', () => {
 		const wizard = createProjectWizardState();
 		wizard.selectedRepositoryId = mockRepositories[0].id;
-		expect(wizard.selectedRepository?.default_branch).toBe(mockRepositories[0].default_branch);
+		expect(wizard.selectedBranch).toBe(mockRepositories[0].default_branch);
+	});
+
+	it('selectedBranch should reset to new repository default_branch when repository changes', () => {
+		const wizard = createProjectWizardState();
+
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		expect(wizard.selectedBranch).toBe(mockRepositories[0].default_branch);
+
+		wizard.selectedRepositoryId = mockRepositories[1].id;
+		expect(wizard.selectedBranch).toBe(mockRepositories[1].default_branch);
+		expect(wizard.selectedBranch).not.toBe(mockRepositories[0].default_branch);
 	});
 });
