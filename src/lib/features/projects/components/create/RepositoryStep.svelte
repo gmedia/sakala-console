@@ -8,30 +8,18 @@
 	import type { Repository } from '../../type';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import { GithubLogoIcon, ArrowRightIcon } from 'phosphor-svelte';
+	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
-		repositorySource: 'github' | 'git-url';
-		selectedRepositoryId: string | null;
 		repositories: Repository[];
-		gitUrl: string;
-		currentPage: number;
-		perPage: number;
 		githubConnected: boolean;
 		onNext: () => void;
 		onConnectGithub: () => void;
 	};
 
-	let {
-		repositorySource = $bindable(),
-		selectedRepositoryId = $bindable(),
-		repositories,
-		gitUrl = $bindable(),
-		currentPage = $bindable(),
-		perPage,
-		githubConnected,
-		onNext,
-		onConnectGithub
-	}: Props = $props();
+	let { repositories, githubConnected, onNext, onConnectGithub }: Props = $props();
+
+	const wizard = getCreateProjectContext();
 
 	let searchQuery = $state('');
 	const filteredRepositories = $derived(searchRepositories(repositories, searchQuery));
@@ -40,30 +28,37 @@
 	let gitUrlTouched = $state(false);
 
 	const isDisabled = $derived(
-		repositorySource === 'github' ? (githubConnected ? selectedRepositoryId === null : true) : false
+		wizard.repositorySource === 'github'
+			? githubConnected
+				? wizard.selectedRepositoryId === null
+				: true
+			: false
 	);
 
 	function handleNext() {
-		if (repositorySource === 'git-url' && !isGitUrlValid) {
-			gitUrlTouched = true;
-			return;
+		if (wizard.repositorySource === 'git-url') {
+			if (!isGitUrlValid) {
+				gitUrlTouched = true;
+				return;
+			}
+			wizard.confirmGitUrl();
 		}
 		onNext();
 	}
 
 	$effect(() => {
-		if (repositorySource === 'github') {
-			gitUrl = '';
+		if (wizard.repositorySource === 'github') {
+			wizard.gitUrl = '';
 		} else {
-			selectedRepositoryId = null;
+			wizard.selectedRepositoryId = null;
 		}
-		currentPage = 1;
+		wizard.currentPage = 1;
 		gitUrlTouched = false;
 	});
 
 	$effect(() => {
 		void searchQuery;
-		currentPage = 1;
+		wizard.currentPage = 1;
 	});
 </script>
 
@@ -73,9 +68,9 @@
 		<p class="font-montserrat">Pilih repository yang ingin kamu deploy ke Sakala.</p>
 	</div>
 
-	<RepositorySourceTab bind:value={repositorySource} />
+	<RepositorySourceTab bind:value={wizard.repositorySource} />
 
-	{#if repositorySource === 'github'}
+	{#if wizard.repositorySource === 'github'}
 		<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
 		{#if !githubConnected}
 			<div class="flex flex-col items-center justify-center pb-6 border-b border-muted">
@@ -99,18 +94,18 @@
 			<RepositoryList
 				repositories={filteredRepositories}
 				loading={false}
-				selectedId={selectedRepositoryId}
+				selectedId={wizard.selectedRepositoryId}
 				onSelect={(id) => {
-					selectedRepositoryId = id;
+					wizard.selectedRepositoryId = id;
 				}}
-				{currentPage}
-				{perPage}
-				onPageChange={(page) => (currentPage = page)}
+				currentPage={wizard.currentPage}
+				perPage={wizard.perPage}
+				onPageChange={(page) => (wizard.currentPage = page)}
 			/>
 		{/if}
 	{:else}
 		<GitUrlForm
-			bind:value={gitUrl}
+			bind:value={wizard.gitUrl}
 			bind:touched={gitUrlTouched}
 			onValidityChange={(isValid) => (isGitUrlValid = isValid)}
 		/>

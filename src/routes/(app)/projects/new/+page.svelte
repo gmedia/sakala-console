@@ -9,7 +9,6 @@
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
 
 	const wizard = initCreateProjectContext();
-	const perPage = 5;
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
 		{ label: 'Projects' },
@@ -30,20 +29,15 @@
 			{#if wizard.currentStep === 1}
 				{#if wizard.repositorySubstep === 'select-repository'}
 					<RepositoryStep
-						bind:repositorySource={wizard.repositorySource}
-						bind:selectedRepositoryId={wizard.selectedRepositoryId}
-						bind:currentPage={wizard.currentPage}
-						bind:gitUrl={wizard.gitUrl}
 						repositories={mockRepositories}
-						onConnectGithub={wizard.connectGithub}
 						githubConnected={wizard.githubConnected}
-						{perPage}
 						onNext={wizard.goToPrepareDeployment}
+						onConnectGithub={wizard.connectGithub}
 					/>
 				{:else}
 					<ConfigureProjectStep
 						repository={wizard.selectedRepository}
-						bind:branch={wizard.selectedBranch}
+						branch={wizard.selectedBranch}
 						onNext={wizard.goToAutoDetect}
 						onRepositoryChange={wizard.backToSelectRepository}
 					/>

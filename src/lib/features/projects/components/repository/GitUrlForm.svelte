@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { validateRepositoryUrl } from '../../validation/repositoryUrl';
+	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	let {
 		value = $bindable(),
@@ -11,6 +12,8 @@
 		onValidityChange: (isValid: boolean) => void;
 	} = $props();
 
+	const wizard = getCreateProjectContext();
+
 	const validationError = $derived(validateRepositoryUrl(value));
 	const displayError = $derived(touched ? validationError : null);
 
@@ -20,6 +23,7 @@
 
 	function handleBlur() {
 		touched = true;
+		wizard.confirmGitUrl();
 	}
 </script>
 

@@ -9,7 +9,7 @@ type EnvVar = { id: number; key: string; value: string; visible?: boolean };
 export function createProjectWizardState() {
 	let repositorySource = $state<'github' | 'git-url'>('github');
 	let selectedRepositoryId = $state<string | null>(null);
-	let prevSelectedRepositoryId: string | null = null;
+	let lastAppliedRepoKey: string | null = null;
 	let gitUrl = $state('');
 	let projectName = $state('');
 	let projectNameTouched = false;
@@ -17,6 +17,7 @@ export function createProjectWizardState() {
 	let selectedPort = $state('3000');
 	let buildCommand = $state('');
 	let currentPage = $state(1);
+	let perPage = $state(5);
 	let currentStep = $state<WizardStep>(1);
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
 	let githubConnected = $state(true);
@@ -50,18 +51,31 @@ export function createProjectWizardState() {
 		repositorySource === 'github' ? githubRepository : gitUrlRepository
 	);
 
-	$effect(() => {
-		if (selectedRepository && selectedRepositoryId !== prevSelectedRepositoryId) {
-			selectedBranch = selectedRepository.default_branch ?? '';
-			prevSelectedRepositoryId = selectedRepositoryId;
-		}
-	});
+	function repoKey(repo: Repository | null): string | null {
+		return repo?.full_name ?? null;
+	}
 
 	function resolveRepository(id: string | null): Repository | null {
 		if (repositorySource === 'github') {
 			return mockRepositories.find((repo) => repo.id === id) ?? null;
 		}
 		return null;
+	}
+
+	function applyRepositoryDefaults(repo: Repository | null) {
+		const key = repoKey(repo);
+		if (key === null) return;
+
+		if (key === lastAppliedRepoKey) return;
+		lastAppliedRepoKey = key;
+
+		selectedBranch = repo?.default_branch ?? '';
+		if (!projectNameTouched) {
+			projectName = repo?.full_name.split('/')[1] ?? '';
+		}
+		if (buildCommand === '') {
+			buildCommand = 'npm run build';
+		}
 	}
 
 	async function checkGithubConnection() {
@@ -110,20 +124,13 @@ export function createProjectWizardState() {
 		},
 		set selectedRepositoryId(v: string | null) {
 			selectedRepositoryId = v;
-			const repo = resolveRepository(v);
-			selectedBranch = repo?.default_branch ?? '';
-			if (!projectNameTouched) {
-				projectName = repo?.full_name.split('/')[1] ?? '';
-			}
-			if (buildCommand === '') {
-				buildCommand = 'npm run build';
-			}
+			applyRepositoryDefaults(resolveRepository(v));
 		},
 
 		get gitUrl() {
 			return gitUrl;
 		},
-		set gitUrl(v) {
+		set gitUrl(v: string) {
 			gitUrl = v;
 		},
 
@@ -155,6 +162,14 @@ export function createProjectWizardState() {
 
 		set buildCommand(v) {
 			buildCommand = v;
+		},
+
+		get perPage() {
+			return perPage;
+		},
+
+		set perPage(v) {
+			perPage = v;
 		},
 
 		get currentPage() {
@@ -190,6 +205,10 @@ export function createProjectWizardState() {
 		removeEnvVar,
 
 		toggleEnvVisible,
+
+		confirmGitUrl() {
+			applyRepositoryDefaults(gitUrlRepository);
+		},
 
 		connectGithub() {
 			githubConnected = true;
