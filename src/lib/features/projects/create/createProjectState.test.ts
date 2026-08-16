@@ -31,4 +31,54 @@ describe('createProjectWizardState', () => {
 		expect(wizard.selectedBranch).toBe(mockRepositories[2].default_branch);
 		expect(wizard.selectedBranch).not.toBe(mockRepositories[0].default_branch);
 	});
+
+	it('sets selectedBranch and projectName when a valid git url is confirmed', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/foo/bar';
+
+		wizard.confirmGitUrl();
+
+		expect(wizard.selectedBranch).toBe('main');
+		expect(wizard.projectName).toBe('bar');
+	});
+
+	it('does not overwrite manually set selectedBranch when git url changes but the repo identity stays the same', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/foo/bar';
+		wizard.confirmGitUrl();
+
+		wizard.selectedBranch = 'develop';
+
+		wizard.gitUrl = 'https://github.com/foo/bar.git';
+		wizard.confirmGitUrl();
+
+		expect(wizard.selectedBranch).toBe('develop');
+	});
+
+	it('resets selectedBranch to the new repo default when the repo identity actually changes', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/foo/bar';
+		wizard.confirmGitUrl();
+		wizard.selectedBranch = 'develop';
+
+		wizard.gitUrl = 'https://github.com/foo/baz';
+		wizard.confirmGitUrl();
+
+		expect(wizard.selectedBranch).toBe('main');
+	});
+
+	it('github and git-url flows apply defaults consistently based on repo identity', () => {
+		const wizardA = createProjectWizardState();
+		wizardA.selectedRepositoryId = mockRepositories[0].id;
+		expect(wizardA.selectedBranch).toBe(mockRepositories[0].default_branch);
+
+		const wizardB = createProjectWizardState();
+		wizardB.repositorySource = 'git-url';
+		wizardB.gitUrl = 'https://github.com/foo/bar';
+		wizardB.confirmGitUrl();
+		expect(wizardB.selectedBranch).toBe('main');
+	});
 });
