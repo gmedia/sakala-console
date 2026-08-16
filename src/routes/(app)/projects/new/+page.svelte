@@ -44,8 +44,6 @@
 					<ConfigureProjectStep
 						repository={wizard.selectedRepository}
 						bind:branch={wizard.selectedBranch}
-						bind:port={wizard.selectedPort}
-						bind:projectName={wizard.projectName}
 						onNext={wizard.goToAutoDetect}
 						onRepositoryChange={wizard.backToSelectRepository}
 					/>

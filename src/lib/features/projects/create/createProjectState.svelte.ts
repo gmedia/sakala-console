@@ -11,9 +11,11 @@ export function createProjectWizardState() {
 	let selectedRepositoryId = $state<string | null>(null);
 	let prevSelectedRepositoryId: string | null = null;
 	let gitUrl = $state('');
+	let projectName = $state('');
+	let projectNameTouched = false;
 	let selectedBranch = $state('');
 	let selectedPort = $state('3000');
-	let projectName = $state('');
+	let buildCommand = $state('');
 	let currentPage = $state(1);
 	let currentStep = $state<WizardStep>(1);
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
@@ -110,6 +112,12 @@ export function createProjectWizardState() {
 			selectedRepositoryId = v;
 			const repo = resolveRepository(v);
 			selectedBranch = repo?.default_branch ?? '';
+			if (!projectNameTouched) {
+				projectName = repo?.full_name.split('/')[1] ?? '';
+			}
+			if (buildCommand === '') {
+				buildCommand = 'npm run build';
+			}
 		},
 
 		get gitUrl() {
@@ -138,6 +146,15 @@ export function createProjectWizardState() {
 		},
 		set projectName(v) {
 			projectName = v;
+			projectNameTouched = true;
+		},
+
+		get buildCommand() {
+			return buildCommand;
+		},
+
+		set buildCommand(v) {
+			buildCommand = v;
 		},
 
 		get currentPage() {

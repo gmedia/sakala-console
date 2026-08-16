@@ -10,8 +10,6 @@
 	type Props = {
 		repository: Repository | null;
 		branch: string;
-		port: string;
-		projectName?: string;
 		onNext: () => void;
 		onRepositoryChange: () => void;
 	};
@@ -19,8 +17,6 @@
 	let {
 		repository = $bindable(),
 		branch = $bindable(),
-		port = $bindable(),
-		projectName = $bindable(''),
 		onNext,
 		onRepositoryChange
 	}: Props = $props();
@@ -61,10 +57,6 @@
 
 		return base;
 	});
-
-	$effect(() => {
-		projectName = repository?.full_name.split('/')[1] ?? '';
-	});
 </script>
 
 <div class="flex flex-col mt-3 gap-4">
@@ -89,7 +81,7 @@
 			<p class="font-montserrat-medium">Nama Proyek</p>
 			<input
 				class="font-montserrat w-full px-4 rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
-				bind:value={projectName}
+				bind:value={wizard.projectName}
 			/>
 			<p class="text-sm text-muted">
 				Default diambil dari nama repository. Bisa diganti kapan saja lewat Settings setelah proyek
@@ -119,7 +111,7 @@
 				<p class="font-montserrat-medium">Port</p>
 				<input
 					type="text"
-					bind:value={port}
+					bind:value={wizard.selectedPort}
 					class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
 				/>
 			</div>
@@ -128,7 +120,7 @@
 			<p class="font-montserrat-medium">Build Command</p>
 			<input
 				class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
-				value="npm run build"
+				bind:value={wizard.buildCommand}
 			/>
 		</div>
 		<div class="flex flex-col w-full py-3">
