@@ -60,6 +60,11 @@
 		currentPage = 1;
 		gitUrlTouched = false;
 	});
+
+	$effect(() => {
+		void searchQuery;
+		currentPage = 1;
+	});
 </script>
 
 <div class="flex flex-col mt-3 gap-4">

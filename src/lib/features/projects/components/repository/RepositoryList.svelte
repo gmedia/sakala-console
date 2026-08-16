@@ -27,8 +27,9 @@
 	}: Props = $props();
 
 	const totalPages = $derived(Math.ceil(repositories.length / perPage));
+	const safeCurrentPage = $derived(Math.min(currentPage, Math.max(totalPages, 1)));
 	const visibleRepositories = $derived(
-		repositories.slice((currentPage - 1) * perPage, currentPage * perPage)
+		repositories.slice((safeCurrentPage - 1) * perPage, safeCurrentPage * perPage)
 	);
 </script>
 
@@ -62,7 +63,7 @@
 			<span class="font-montserrat-semibold">{repositories.length}</span> repository
 		</p>
 		{#if totalPages > 1}
-			<Pagination {currentPage} {totalPages} {onPageChange} />
+			<Pagination currentPage={safeCurrentPage} {totalPages} {onPageChange} />
 		{/if}
 	</div>
 {/if}
