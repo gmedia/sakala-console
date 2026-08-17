@@ -26,6 +26,7 @@
 		selectedIcon?: Component;
 		selectedLabelClass?: string;
 		renderOption?: Snippet<[Options<T>]>;
+		onblur?: () => void;
 	};
 
 	let {
@@ -41,7 +42,8 @@
 		labelClass,
 		selectedIcon,
 		selectedLabelClass,
-		renderOption
+		renderOption,
+		onblur
 	}: Props<T> = $props();
 
 	let open = $state(false);
@@ -82,6 +84,14 @@
 		}
 	}
 
+	function handleFocusOut(event: FocusEvent) {
+		const nextFocusTarget = event.relatedTarget as Node | null;
+		if (dropdownContainer && nextFocusTarget && dropdownContainer.contains(nextFocusTarget)) {
+			return;
+		}
+		onblur?.();
+	}
+
 	onMount(() => {
 		document.addEventListener('click', handleClickOutside);
 
@@ -91,7 +101,7 @@
 	});
 </script>
 
-<div bind:this={dropdownContainer} class="relative w-auto min-w-0">
+<div bind:this={dropdownContainer} class="relative w-auto min-w-0" onfocusout={handleFocusOut}>
 	<button
 		type="button"
 		class={classes}

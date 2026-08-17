@@ -82,3 +82,59 @@ describe('createProjectWizardState', () => {
 		expect(wizardB.selectedBranch).toBe('main');
 	});
 });
+
+describe('createProjectWizardState - createProjectPayload', () => {
+	it('should return null when no repository is selected', () => {
+		const wizard = createProjectWizardState();
+		const payload = wizard.createProjectPayload;
+		expect(payload).toEqual({
+			project_name: '',
+			repository_url: '',
+			branch: ''
+		});
+	});
+
+	it('should fill repository_url and branch when a repository is selected', () => {
+		const wizard = createProjectWizardState();
+		const repo = mockRepositories[0];
+
+		wizard.selectedRepositoryId = repo.id;
+
+		const payload = wizard.createProjectPayload;
+
+		expect(payload.repository_url).toBe(repo.clone_url);
+		expect(payload.branch).toBe(repo.default_branch);
+		expect(payload.project_name).toBe(repo.full_name.split('/')[1]);
+	});
+
+	it('it should not replace project_name if it was manually set when a repository is selected', () => {
+		const wizard = createProjectWizardState();
+		const repo = mockRepositories[0];
+
+		wizard.projectName = 'custom-project-name';
+		wizard.selectedRepositoryId = repo.id;
+
+		expect(wizard.createProjectPayload.project_name).toBe('custom-project-name');
+	});
+
+	it('repository_url change follows repository that is selected', () => {
+		const wizard = createProjectWizardState();
+		if (mockRepositories.length < 2) {
+			return;
+		}
+
+		const [firstRepo, secondRepo] = mockRepositories;
+
+		wizard.selectedRepositoryId = firstRepo.id;
+		expect(wizard.createProjectPayload.repository_url).toBe(firstRepo.clone_url);
+
+		wizard.selectedRepositoryId = secondRepo.id;
+		expect(wizard.createProjectPayload.repository_url).toBe(secondRepo.clone_url);
+	});
+
+	it('repository_url should empty when selectedRepositoryId is not found', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectedRepositoryId = 'non-existent-id';
+		expect(wizard.createProjectPayload.repository_url).toBe('');
+	});
+});
