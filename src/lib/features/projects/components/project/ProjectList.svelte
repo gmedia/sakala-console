@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { RotateCcw, CircleAlert, CircleOff } from '@lucide/svelte';
 	import type { Project } from '$lib/features/projects/type';
-	import ProjectCard from '$lib/features/projects/components/ProjectCard.svelte';
-	import ProjectCardSkeleton from '$lib/features/projects/components/ProjectCardSkeleton.svelte';
+	import ProjectCard from '$lib/features/projects/components/project/ProjectCard.svelte';
+	import ProjectCardSkeleton from '$lib/features/projects/components/project/ProjectCardSkeleton.svelte';
 	import { filterProjects, type DateFilterValue } from '$lib/features/projects/filters';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import Pagination from '$lib/components/ui/pagination.svelte';
+	import Pagination from '$lib/components/ui/Pagination.svelte';
 
 	type Props = {
 		projects: Project[];
@@ -43,7 +43,7 @@
 	);
 </script>
 
-<section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan Sakala">
+<section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="List Projects">
 	{#if isLoading}
 		{#each skeletons as i (i)}
 			<ProjectCardSkeleton />
