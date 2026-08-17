@@ -1,5 +1,5 @@
 import { mockRepositories } from '$lib/features/projects/mock';
-import type { Repository } from '../type';
+import type { Repository, CreateProjectPayload, CreateProjectResult } from '../type';
 import { parseGitUrl } from './parseGitUrl';
 
 type WizardStep = 1 | 2 | 3;
@@ -15,7 +15,7 @@ export function createProjectWizardState() {
 	let projectNameTouched = false;
 	let selectedBranch = $state('');
 	let selectedPort = $state('3000');
-	let buildCommand = $state('');
+	let buildCommand = $state('npm run build');
 	let currentPage = $state(1);
 	let perPage = $state(5);
 	let currentStep = $state<WizardStep>(1);
@@ -25,6 +25,7 @@ export function createProjectWizardState() {
 	let envVars = $state<EnvVar[]>([]);
 	const envVisible = $state(false);
 	let nextEnvId = 1;
+	let createdProject = $state<CreateProjectResult | null>(null);
 
 	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -72,9 +73,6 @@ export function createProjectWizardState() {
 		selectedBranch = repo?.default_branch ?? '';
 		if (!projectNameTouched) {
 			projectName = repo?.full_name.split('/')[1] ?? '';
-		}
-		if (buildCommand === '') {
-			buildCommand = 'npm run build';
 		}
 	}
 
@@ -198,12 +196,21 @@ export function createProjectWizardState() {
 			return envVars;
 		},
 
+		get createProjectPayload(): CreateProjectPayload {
+			return {
+				project_name: projectName,
+				repository_url: selectedRepository?.clone_url ?? '',
+				branch: selectedBranch
+			};
+		},
+
+		get createdProject() {
+			return createdProject;
+		},
+
 		checkGithubConnection,
-
 		addEnvVar,
-
 		removeEnvVar,
-
 		toggleEnvVisible,
 
 		confirmGitUrl() {
@@ -219,7 +226,8 @@ export function createProjectWizardState() {
 		backToSelectRepository() {
 			repositorySubstep = 'select-repository';
 		},
-		goToAutoDetect() {
+		goToAutoDetect(result: CreateProjectResult) {
+			createdProject = result;
 			currentStep = 2;
 		}
 	};

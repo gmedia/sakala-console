@@ -15,7 +15,7 @@ export interface Project {
 	created_at: string;
 }
 
-export type Repository = {
+export interface Repository {
 	id: string;
 	name: string;
 	full_name: string;
@@ -23,4 +23,15 @@ export type Repository = {
 	default_branch: string;
 	pushed_at: string;
 	private: boolean;
-};
+}
+
+export interface CreateProjectPayload {
+	project_name: string;
+	repository_url: string;
+	branch: string;
+}
+
+export interface CreateProjectResult {
+	id: string;
+	project_name: string;
+}

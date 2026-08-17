@@ -2,26 +2,42 @@
 	import { EyeIcon, EyeSlashIcon, CaretDownIcon, PlusIcon } from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import Button from '$lib/components/ui/Button.svelte';
-	import type { Repository } from '../../type';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import type { CreateProjectPayload } from '../../type';
+	import {
+		validateConfigureProjectStep,
+		isConfigureProjectStepValid,
+		sanitizePortInput
+	} from '../../validation/configurationProjectStep';
 
 	type Props = {
-		repository: Repository | null;
-		branch: string;
-		onNext: () => void;
+		onSubmit: (payload: CreateProjectPayload) => void;
 		onRepositoryChange: () => void;
+		isSubmitting?: boolean;
+		error?: string | null;
 	};
 
-	let {
-		repository = $bindable(),
-		branch = $bindable(),
-		onNext,
-		onRepositoryChange
-	}: Props = $props();
+	let { onSubmit, onRepositoryChange, isSubmitting = false, error }: Props = $props();
 
 	const wizard = getCreateProjectContext();
+
+	let touched = $state({
+		projectName: false,
+		branch: false,
+		port: false,
+		buildCommand: false
+	});
+
+	const errors = $derived(
+		validateConfigureProjectStep({
+			projectName: wizard.projectName,
+			branch: wizard.selectedBranch,
+			port: wizard.selectedPort,
+			buildCommand: wizard.buildCommand
+		})
+	);
 
 	let newEnv = $state({
 		key: '',
@@ -36,12 +52,31 @@
 		newEnv.value = '';
 	}
 
-	function toggleEnvVisibility(index: number) {
-		wizard.toggleEnvVisible(index);
+	function handlePortInput(e: Event) {
+		const target = e.currentTarget as HTMLInputElement;
+		wizard.selectedPort = sanitizePortInput(target.value);
 	}
 
-	function removeEnvVar(index: number) {
-		wizard.removeEnvVar(index);
+	function toggleEnvVisibility(id: number) {
+		wizard.toggleEnvVisible(id);
+	}
+
+	function removeEnvVar(id: number) {
+		wizard.removeEnvVar(id);
+	}
+
+	function handleSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		touched = {
+			projectName: true,
+			branch: true,
+			port: true,
+			buildCommand: true
+		};
+		if (!isConfigureProjectStepValid(errors)) {
+			return;
+		}
+		onSubmit(wizard.createProjectPayload);
 	}
 
 	const branchOptions = $derived.by(() => {
@@ -50,7 +85,7 @@
 			{ label: 'develop', value: 'develop' }
 		];
 
-		const defaultBranch = repository?.default_branch;
+		const defaultBranch = wizard.selectedRepository?.default_branch;
 		if (defaultBranch && !base.some((opt) => opt.value === defaultBranch)) {
 			base.unshift({ label: defaultBranch, value: defaultBranch });
 		}
@@ -59,7 +94,7 @@
 	});
 </script>
 
-<div class="flex flex-col mt-3 gap-4">
+<form class="flex flex-col mt-3 gap-4" onsubmit={handleSubmit}>
 	<div>
 		<p class="text-lg font-montserrat-semibold">Persiapan deployment</p>
 		<p class="font-montserrat">Atur konfigurasi proyek sebelum dibuat.</p>
@@ -69,7 +104,9 @@
 		<div
 			class="flex justify-between items-center w-full bg-background rounded-lg py-1 px-4 border border-muted/20"
 		>
-			<p class="font-jetbrains-mono-medium">{repository?.full_name || 'Repository'}</p>
+			<p class="font-jetbrains-mono-medium">
+				{wizard.selectedRepository?.full_name || 'Repository'}
+			</p>
 			<Button
 				onclick={onRepositoryChange}
 				variant="outline"
@@ -80,25 +117,37 @@
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
 			<p class="font-montserrat-medium">Nama Proyek</p>
 			<input
-				class="font-montserrat w-full px-4 rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
+				class={cn(
+					'font-montserrat w-full px-4 rounded-lg bg-primary-50/40 border focus:ring-primary',
+					touched.projectName && errors.projectName ? 'border-error' : 'border-muted/20'
+				)}
 				bind:value={wizard.projectName}
+				onblur={() => (touched.projectName = true)}
 			/>
-			<p class="text-sm text-muted">
-				Default diambil dari nama repository. Bisa diganti kapan saja lewat Settings setelah proyek
-				dibuat.
-			</p>
+			{#if touched.projectName && errors.projectName}
+				<p class="text-sm text-error">{errors.projectName}</p>
+			{:else}
+				<p class="text-sm text-muted">
+					Default diambil dari nama repository. Bisa diganti kapan saja lewat Settings setelah
+					proyek dibuat.
+				</p>
+			{/if}
 		</div>
 		<div class="flex justify-between items-center w-full py-3 gap-2 border-muted/20">
 			<div class="flex flex-col w-full gap-2">
 				<p class="font-montserrat-medium">Branch</p>
 				<Select
 					options={branchOptions}
-					bind:value={branch}
+					bind:value={wizard.selectedBranch}
 					variant="outline"
 					iconPosition="end"
-					class="w-full rounded-lg bg-primary-50/40 font-montserrat-medium border border-muted/20 focus:ring focus:ring-primary px-3 xs:px-4 py-2"
+					class={cn(
+						'w-full rounded-lg bg-primary-50/40 font-montserrat-medium border focus:ring focus:ring-primary px-3 xs:px-4 py-2',
+						touched.branch && errors.branch ? 'border-error' : 'border-muted/20'
+					)}
 					labelClass="font-montserrat-medium"
 					selectedLabelClass="font-montserrat-semibold bg-primary text-white"
+					onblur={() => (touched.branch = true)}
 				>
 					{#snippet icon(open)}
 						<CaretDownIcon
@@ -106,22 +155,42 @@
 						/>
 					{/snippet}
 				</Select>
+				{#if touched.branch && errors.branch}
+					<p class="text-sm text-error">{errors.branch}</p>
+				{/if}
 			</div>
 			<div class="flex flex-col w-full gap-2">
 				<p class="font-montserrat-medium">Port</p>
 				<input
 					type="text"
+					inputmode="numeric"
+					pattern="[0-9]*"
+					oninput={handlePortInput}
+					onblur={() => (touched.port = true)}
 					bind:value={wizard.selectedPort}
-					class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
+					class={cn(
+						'font-montserrat w-full rounded-lg bg-primary-50/40 border focus:ring-primary',
+						touched.port && errors.port ? 'border-error' : 'border-muted/20'
+					)}
 				/>
+				{#if touched.port && errors.port}
+					<p class="text-sm text-error">{errors.port}</p>
+				{/if}
 			</div>
 		</div>
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
 			<p class="font-montserrat-medium">Build Command</p>
 			<input
-				class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
+				class={cn(
+					'font-montserrat w-full rounded-lg bg-primary-50/40 border focus:ring-primary',
+					touched.buildCommand && errors.buildCommand ? 'border-error' : 'border-muted/20'
+				)}
 				bind:value={wizard.buildCommand}
+				onblur={() => (touched.buildCommand = true)}
 			/>
+			{#if touched.buildCommand && errors.buildCommand}
+				<p class="text-sm text-error">{errors.buildCommand}</p>
+			{/if}
 		</div>
 		<div class="flex flex-col w-full py-3">
 			<p class="font-montserrat-medium">Environment Variables (opsional)</p>
@@ -185,5 +254,15 @@
 		</div>
 	</Card>
 
-	<Button variant="primary" class="w-full py-3 cursor-pointer" onclick={onNext}>Buat Proyek</Button>
-</div>
+	<Button
+		type="submit"
+		variant="primary"
+		class="w-full py-3 cursor-pointer"
+		disabled={isSubmitting}
+	>
+		{isSubmitting ? 'Membuat Proyek...' : 'Buat Proyek'}
+	</Button>
+	{#if error}
+		<p class="text-sm text-red-500">{error}</p>
+	{/if}
+</form>
