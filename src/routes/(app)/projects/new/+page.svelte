@@ -4,6 +4,7 @@
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import { mockCreateProject, mockRepositories } from '$lib/features/projects/mock';
 	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
+	import AutoDetectStep from '$lib/features/projects/components/AutoDetectStep.svelte';
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
@@ -60,6 +61,8 @@
 						error={submitError}
 					/>
 				{/if}
+			{:else if wizard.currentStep === 2}
+				<AutoDetectStep repository={wizard.selectedRepository} onNext={wizard.goToDeploy} />
 			{/if}
 		</div>
 	</div>

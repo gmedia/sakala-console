@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { filterProjects } from './filters';
-import type { Project } from './type';
+import { filterProjects, searchRepositories } from './filters';
+import type { Project, Repository } from './type';
 
 const now = new Date();
 
@@ -93,6 +93,54 @@ const mockProjectsTest: Project[] = [
 	}
 ];
 
+const mockRepositoriesTest: Repository[] = [
+	{
+		id: 'c28a2a5d-4f10-4f51-a9f4-12f5a6b7d001',
+		name: 'sakala-console',
+		full_name: 'sakala/sakala-console',
+		clone_url: 'https://github.com/sakala/sakala-console.git',
+		default_branch: 'main',
+		pushed_at: '2026-08-01T09:30:00Z',
+		private: true
+	},
+	{
+		id: 'f87a3e12-32b4-4e9c-859a-243e8d7a1002',
+		name: 'sakala-api',
+		full_name: 'sakala/sakala-api',
+		clone_url: 'https://github.com/sakala/sakala-api.git',
+		default_branch: 'main',
+		pushed_at: '2026-07-31T14:15:00Z',
+		private: true
+	},
+	{
+		id: '1e5b8a92-7f30-4e11-bc6d-354a9b8c1003',
+		name: 'personal-portfolio',
+		full_name: 'winter/personal-portfolio',
+		clone_url: 'https://github.com/winter/personal-portfolio.git',
+		default_branch: 'master',
+		pushed_at: '2026-07-30T20:45:00Z',
+		private: false
+	},
+	{
+		id: '7b9c1d2e-8a03-4f52-9d1a-465b7c8d1004',
+		name: 'bookverse',
+		full_name: 'winter/bookverse',
+		clone_url: 'https://github.com/winter/bookverse.git',
+		default_branch: 'main',
+		pushed_at: '2026-07-28T08:10:00Z',
+		private: false
+	},
+	{
+		id: '3d4e5f6a-9b12-4c34-8e5f-576a8b9c1005',
+		name: 'ppdb-client',
+		full_name: 'winter/ppdb-client',
+		clone_url: 'https://github.com/winter/ppdb-client.git',
+		default_branch: 'main',
+		pushed_at: '2026-07-25T11:22:00Z',
+		private: true
+	}
+];
+
 describe('filterProjects', () => {
 	it('returns all projects', () => {
 		expect(filterProjects(mockProjectsTest, { search: '', date: 'all' })).toEqual(mockProjectsTest);
@@ -149,5 +197,37 @@ describe('filterProjects', () => {
 	it('search should ignore letter case', () => {
 		const result = filterProjects(mockProjectsTest, { search: 'PAYMENT', date: 'all' });
 		expect(result).toHaveLength(1);
+	});
+});
+
+describe('searchRepositories', () => {
+	it('returns all repositories', () => {
+		expect(searchRepositories(mockRepositoriesTest, '')).toEqual(mockRepositoriesTest);
+	});
+
+	it('should filter by repository full name when search (case-insensitive)', () => {
+		const result = searchRepositories(mockRepositoriesTest, 'sakala');
+		expect(result).toHaveLength(2);
+		expect(result.map((r) => r.full_name)).toEqual(['sakala/sakala-console', 'sakala/sakala-api']);
+	});
+
+	it('should filter by repository full name when search (case-insensitive)', () => {
+		const result = searchRepositories(mockRepositoriesTest, 'winter');
+		expect(result).toHaveLength(3);
+		expect(result.map((r) => r.full_name)).toEqual([
+			'winter/personal-portfolio',
+			'winter/bookverse',
+			'winter/ppdb-client'
+		]);
+	});
+
+	it('returns empty array when search does not match', () => {
+		const result = searchRepositories(mockRepositoriesTest, 'nonexistent');
+		expect(result).toEqual([]);
+	});
+
+	it('search should ignore letter case', () => {
+		const result = searchRepositories(mockRepositoriesTest, 'SAKALA');
+		expect(result).toHaveLength(2);
 	});
 });

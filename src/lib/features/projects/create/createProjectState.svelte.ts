@@ -229,6 +229,9 @@ export function createProjectWizardState() {
 		goToAutoDetect(result: CreateProjectResult) {
 			createdProject = result;
 			currentStep = 2;
+		},
+		goToDeploy() {
+			currentStep = 3;
 		}
 	};
 }
