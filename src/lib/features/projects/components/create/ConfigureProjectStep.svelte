@@ -232,17 +232,27 @@
 						class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
 						placeholder="NAMA_VARIABEL"
 						bind:value={newEnv.key}
-						onkeydown={(e) => e.key === 'Enter' && addEnvVar()}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								addEnvVar();
+							}
+						}}
 					/>
 
 					<input
 						class="font-montserrat w-full rounded-lg border border-muted/20 focus:ring-primary"
 						placeholder="Isi value"
 						bind:value={newEnv.value}
-						onkeydown={(e) => e.key === 'Enter' && addEnvVar()}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								addEnvVar();
+							}
+						}}
 					/>
 
-					<Button variant="primary" onclick={addEnvVar} disabled={!isNewEnvValid}>
+					<Button type="button" variant="primary" onclick={addEnvVar} disabled={!isNewEnvValid}>
 						<PlusIcon class="h-5 w-5" />
 					</Button>
 				</div>

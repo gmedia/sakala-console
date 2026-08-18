@@ -2,7 +2,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { resolve } from '$app/paths';
-	import { Link, Zap, Check } from '@lucide/svelte';
+	import { LinkIcon, LightningIcon, CheckIcon } from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import type { Repository } from '../../type';
 	import { CircleNotchIcon, XIcon, ArrowCounterClockwiseIcon } from 'phosphor-svelte';
@@ -32,10 +32,10 @@
 	}: Props = $props();
 </script>
 
-{#snippet skeletonRow()}
+{#snippet skeletonRow(label: string)}
 	<div class="h-4 max-w-max flex items-center gap-2 p-2">
 		<CircleNotchIcon class="animate-spin text-primary w-5 h-5" />
-		<p class="text-sm text-muted-foreground">Mendeteksi konfigurasi...</p>
+		<p class="text-sm text-muted-foreground">{label}</p>
 	</div>
 {/snippet}
 
@@ -61,7 +61,7 @@
 	<div class="flex justify-between items-center w-full py-3 border-b border-muted/20">
 		<p>Repository</p>
 		{#if scanning}
-			{@render skeletonRow()}
+			{@render skeletonRow('Mendeteksi konfigurasi...')}
 		{:else if repository}
 			<p class="font-jetbrains-mono-semibold">{repository?.full_name}</p>
 		{:else}
@@ -71,7 +71,7 @@
 	<div class="flex justify-between items-center w-full py-3 border-b border-muted/20">
 		<p>Branch</p>
 		{#if scanning}
-			{@render skeletonRow()}
+			{@render skeletonRow('Mendeteksi konfigurasi...')}
 		{:else if branch}
 			<p class="font-jetbrains-mono-semibold">{branch}</p>
 		{:else}
@@ -81,10 +81,10 @@
 	<div class="flex justify-between items-center w-full py-3 border-b border-muted/20">
 		<p>Builder</p>
 		{#if scanning}
-			{@render skeletonRow()}
+			{@render skeletonRow('Mendeteksi konfigurasi...')}
 		{:else if builderDetected}
 			<p class="font-montserrat-semibold flex gap-1">
-				<Check class="text-primary" /> Dockerfile terdeteksi
+				<CheckIcon class="text-primary" /> Dockerfile terdeteksi
 			</p>
 		{:else}
 			{@render notFoundRow('Tidak terdeteksi')}
@@ -93,7 +93,7 @@
 	<div class="flex justify-between items-center w-full py-3">
 		<p>Port</p>
 		{#if scanning}
-			{@render skeletonRow()}
+			{@render skeletonRow('Mendeteksi konfigurasi...')}
 		{:else if port}
 			<p class="font-jetbrains-mono-semibold">{port}</p>
 		{:else}
@@ -102,9 +102,13 @@
 	</div>
 </Card>
 
-<div class="flex text-primary bg-primary/8 p-4 rounded-lg gap-2 my-4">
-	<Link />
-	<p class="font-jetbrains-mono-regular">{projectName}.run.sakala.dev</p>
+<div class="flex text-primary items-center bg-primary/8 p-4 rounded-lg gap-2 my-4">
+	{#if scanning}
+		{@render skeletonRow('Mempersiapkan preview URL...')}
+	{:else}
+		<LinkIcon class="h-6 w-6" />
+		<p class="font-jetbrains-mono-regular">{projectName}.run.sakala.dev</p>
+	{/if}
 </div>
 
 {#if scanFailed}
@@ -123,7 +127,7 @@
 		disabled={scanning || !builderDetected}
 		onclick={onNext}
 	>
-		<Zap />
+		<LightningIcon class="h-5 w-5" />
 		Deploy sekarang
 	</Button>
 {/if}
