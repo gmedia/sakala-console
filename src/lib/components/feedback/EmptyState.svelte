@@ -13,7 +13,7 @@
 	};
 
 	const tones = {
-		neutral: 'bg-primary/15 text-primary',
+		neutral: 'bg-primary/10 text-primary',
 		failed: 'bg-error/20 text-error',
 		warning: 'bg-warning/10 text-warning',
 		muted: 'bg-muted/10 text-muted'

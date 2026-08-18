@@ -17,7 +17,7 @@
 					Sakala Console
 				</p>
 				<h1
-					class="mt-4 text-5xl leading-[1.02] font-semibold tracking-[-0.05em] text-balance sm:text-6xl"
+					class="mt-4 text-5xl leading-[1.02] font-semibold tracking-tighter text-balance sm:text-6xl"
 				>
 					Project-mu tidak harus berhenti di localhost.
 				</h1>

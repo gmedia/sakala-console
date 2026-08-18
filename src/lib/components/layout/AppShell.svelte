@@ -12,12 +12,12 @@
 	let isMobileOpen = $state(false);
 </script>
 
-<div class="flex h-screen overflow-hidden bg-background">
+<div class="flex h-screen overflow-hidden bg-background p-6">
 	<Sidebar {isMobileOpen} onCloseMobile={() => (isMobileOpen = false)} />
 
 	<div class="flex flex-1 flex-col overflow-hidden">
-		<Header onToggleMobile={() => (isMobileOpen = !isMobileOpen)} />
-		<main class="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+		<main class="flex-1 overflow-y-auto px-6 py-6">
+			<Header onToggleMobile={() => (isMobileOpen = !isMobileOpen)} />
 			<div class="mx-auto w-full max-w-7xl">
 				{@render children()}
 			</div>
