@@ -69,7 +69,7 @@
 			{@render skeletonRow('Mendeteksi konfigurasi...')}
 		{:else if wizard.builderDetected}
 			<p class="font-montserrat-semibold flex gap-1">
-				<CheckIcon class="text-primary" /> Dockerfile terdeteksi
+				<CheckIcon class="text-primary w-6 h-6" /> Dockerfile terdeteksi
 			</p>
 		{:else}
 			{@render notFoundRow('Tidak terdeteksi')}
