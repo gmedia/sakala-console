@@ -138,3 +138,66 @@ describe('createProjectWizardState - createProjectPayload', () => {
 		expect(wizard.createProjectPayload.repository_url).toBe('');
 	});
 });
+
+describe('scan state', () => {
+	it('starts as idle with no builder detected', () => {
+		const wizard = createProjectWizardState();
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.builderDetected).toBeNull();
+	});
+
+	it('sets scanning true and resets builderDetected on startScan', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		expect(wizard.scanning).toBe(true);
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.builderDetected).toBeNull();
+	});
+
+	it('sets scanning, scanFailed to false and builderDetected true on completeScan(true)', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.completeScan(true);
+
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.builderDetected).toBe(true);
+	});
+
+	it('sets scanning false and builderDetected false on completeScan(false)', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.completeScan(false);
+
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.builderDetected).toBe(false);
+	});
+
+	it('sets scanFailed true and scanning false on failScan', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.failScan();
+
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.scanFailed).toBe(true);
+		expect(wizard.builderDetected).toBeNull();
+	});
+
+	it('clears scanFailed when a retry scan starts', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.failScan();
+
+		wizard.startScan();
+
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.scanning).toBe(true);
+	});
+
+	it('goToDeploy sets currentStep to 3', () => {
+		const wizard = createProjectWizardState();
+		wizard.goToDeploy();
+		expect(wizard.currentStep).toBe(3);
+	});
+});
