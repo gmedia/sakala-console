@@ -28,44 +28,30 @@
 		try {
 			const result = await mockCreateProject(payload);
 			wizard.goToAutoDetect(result);
+			await runScan();
 		} catch (err) {
 			submitError = err instanceof Error ? err.message : 'Gagal membuat proyek';
 		} finally {
 			isSubmitting = false;
 		}
 	}
-	let scanning = $state(true);
-	let builderDetected = $state<boolean | null>(null);
-	let scanFailed = $state(false);
 
 	async function runScan() {
-		scanning = true;
-		scanFailed = false;
-		builderDetected = null;
+		wizard.startScan();
 
 		try {
 			const result = await detectProjectConfig(
 				wizard.selectedRepository,
 				wizard.selectedBranch,
-				'no-dockerfile'
+				wizard.selectedPort,
+				'dockerfile'
 			);
-			builderDetected = result.hasDockerfile;
-			if (result.detectedPort) {
-				wizard.selectedPort = result.detectedPort;
-			} else {
-				wizard.selectedPort = '';
-			}
+			wizard.selectedPort = result.detectedPort ?? '';
+			wizard.completeScan(result.hasDockerfile);
 		} catch {
-			scanFailed = true;
-		} finally {
-			scanning = false;
+			wizard.failScan();
 		}
 	}
-
-	$effect(() => {
-		if (wizard.currentStep !== 2) return;
-		runScan();
-	});
 </script>
 
 <svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
@@ -95,17 +81,7 @@
 					/>
 				{/if}
 			{:else if wizard.currentStep === 2}
-				<AutoDetectStep
-					repository={wizard.selectedRepository}
-					branch={wizard.selectedBranch}
-					port={wizard.selectedPort}
-					projectName={wizard.projectName}
-					{scanning}
-					{builderDetected}
-					{scanFailed}
-					onNext={wizard.goToDeploy}
-					onRetryScan={runScan}
-				/>
+				<AutoDetectStep onNext={wizard.goToDeploy} onRetryScan={runScan} />
 			{/if}
 		</div>
 	</div>

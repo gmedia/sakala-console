@@ -1,3 +1,5 @@
+import type { Repository } from '../type';
+
 export type DetectConfigResult = {
 	hasDockerfile: boolean;
 	detectedPort: string | null;
@@ -7,8 +9,9 @@ export type DetectConfigResult = {
 type DetectScenario = 'dockerfile' | 'no-dockerfile' | 'failed';
 
 export async function detectProjectConfig(
-	repository: { full_name: string } | null,
+	repository: Repository | null,
 	branch: string,
+	currentPort: string,
 	scenario?: DetectScenario
 ): Promise<DetectConfigResult> {
 	const delay = 3000 + Math.random() * 1000;
@@ -21,7 +24,7 @@ export async function detectProjectConfig(
 	if (scenario === 'no-dockerfile') {
 		return {
 			hasDockerfile: false,
-			detectedPort: '3000',
+			detectedPort: currentPort || '3000',
 			detectedBranch: branch
 		};
 	}

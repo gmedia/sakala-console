@@ -19,7 +19,7 @@
 		error?: string | null;
 	};
 
-	let { onSubmit, onRepositoryChange, isSubmitting = false, error }: Props = $props();
+	let { onSubmit, onRepositoryChange, isSubmitting = false, error = null }: Props = $props();
 
 	const wizard = getCreateProjectContext();
 
