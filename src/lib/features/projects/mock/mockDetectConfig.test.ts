@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { detectProjectConfig } from './mockDetectConfig';
+import { detectProjectConfig, pickRandomScenario } from './mockDetectConfig';
 import { mockRepositories } from './mock';
 
 describe('detectProjectConfig', () => {
@@ -63,25 +63,71 @@ describe('detectProjectConfig', () => {
 		});
 	});
 
-	describe('scenario: dockerfile / default (no scenario)', () => {
-		it('returns hasDockerfile true when scenario is dockerfile', async () => {
-			const result = await runScan(repository, branch, port, 'dockerfile');
+	describe('scenario: undefined (random flow use runScan)', () => {
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('resolves hasDockerfile true when random roll lands in the dockerfile range', async () => {
+			vi.spyOn(Math, 'random').mockReturnValueOnce(0.5).mockReturnValueOnce(0.9);
+
+			const result = await runScan(repository, branch, port, undefined, 1);
 			expect(result.hasDockerfile).toBe(true);
 		});
 
-		it('returns hasDockerfile true when no scenario is specified', async () => {
-			const result = await runScan(repository, branch, port);
+		it('rejects when random roll lands in the failed range for attempt 1', async () => {
+			vi.spyOn(Math, 'random').mockReturnValueOnce(0.5).mockReturnValueOnce(0.1);
+
+			await expect(runScan(repository, branch, port, undefined, 1)).rejects.toThrow(
+				`Gagal menganalisis repository ${repository.full_name ?? 'tidak diketahui'}. Coba scan ulang.`
+			);
+		});
+
+		it('resolves successfully on attempt 2 with a roll that would have failed on attempt 1', async () => {
+			vi.spyOn(Math, 'random').mockReturnValueOnce(0.5).mockReturnValueOnce(0.3);
+
+			const result = await runScan(repository, branch, port, undefined, 2);
 			expect(result.hasDockerfile).toBe(true);
 		});
 
-		it('returns detectedPort as 3000 regardless of currentPort', async () => {
-			const result = await runScan(repository, branch, '8080', 'dockerfile');
-			expect(result.detectedPort).toBe('3000');
+		it('defaults attempt to 1 when not provided', async () => {
+			vi.spyOn(Math, 'random').mockReturnValueOnce(0.5).mockReturnValueOnce(0.1);
+
+			await expect(runScan(repository, branch, port)).rejects.toThrow(
+				`Gagal menganalisis repository ${repository.full_name ?? 'tidak diketahui'}. Coba scan ulang.`
+			);
+		});
+	});
+
+	describe('pickRandomScenario', () => {
+		afterEach(() => {
+			vi.restoreAllMocks();
 		});
 
-		it('returns detectedBranch matching the branch argument', async () => {
-			const result = await runScan(repository, 'staging', port, 'dockerfile');
-			expect(result.detectedBranch).toBe('staging');
+		it('returns "failed" when roll is below failChance for attempt 1 (0.4)', () => {
+			vi.spyOn(Math, 'random').mockReturnValue(0.1);
+			expect(pickRandomScenario(1)).toBe('failed');
+		});
+
+		it('returns "no-dockerfile" when roll is between failChance and failChance + 0.15 for attempt 1', () => {
+			vi.spyOn(Math, 'random').mockReturnValue(0.45);
+			expect(pickRandomScenario(1)).toBe('no-dockerfile');
+		});
+
+		it('returns "dockerfile" when roll is above both ranges for attempt 1', () => {
+			vi.spyOn(Math, 'random').mockReturnValue(0.9);
+			expect(pickRandomScenario(1)).toBe('dockerfile');
+		});
+
+		it('returns "failed" only within the smaller range (0.1) for attempt > 1', () => {
+			vi.spyOn(Math, 'random').mockReturnValue(0.05);
+			expect(pickRandomScenario(2)).toBe('failed');
+		});
+
+		it('does not return "failed" for a roll that would fail on attempt 1 but not on attempt 2', () => {
+			vi.spyOn(Math, 'random').mockReturnValue(0.2);
+			expect(pickRandomScenario(1)).toBe('failed');
+			expect(pickRandomScenario(2)).not.toBe('failed');
 		});
 	});
 

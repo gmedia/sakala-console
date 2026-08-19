@@ -201,3 +201,32 @@ describe('scan state', () => {
 		expect(wizard.currentStep).toBe(3);
 	});
 });
+
+describe('createProjecctWizardState - scan attempt', () => {
+	it('increments scanAttempt on each startScan call', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		expect(wizard.scanAttempt).toBe(1);
+		wizard.startScan();
+		expect(wizard.scanAttempt).toBe(2);
+	});
+
+	it('resets scanAttempt when a different repository is selected', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		wizard.startScan();
+		wizard.startScan();
+		expect(wizard.scanAttempt).toBe(2);
+
+		wizard.selectedRepositoryId = mockRepositories[1].id;
+		expect(wizard.scanAttempt).toBe(0);
+	});
+
+	it('does not reset scanAttempt when the same repository is re-selected', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		wizard.startScan();
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		expect(wizard.scanAttempt).toBe(1);
+	});
+});

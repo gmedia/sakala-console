@@ -45,7 +45,8 @@
 				wizard.selectedRepository,
 				wizard.selectedBranch,
 				wizard.selectedPort,
-				'dockerfile'
+				undefined,
+				wizard.scanAttempt
 			);
 			wizard.selectedPort = result.detectedPort ?? '';
 			wizard.completeScan(result.hasDockerfile);

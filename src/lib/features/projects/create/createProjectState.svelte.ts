@@ -31,6 +31,7 @@ export function createProjectWizardState() {
 
 	let scanStatus = $state<ScanStatus>('idle');
 	let builderDetected = $state<boolean | null>(null);
+	let scanAttempt = $state(0);
 
 	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -79,6 +80,10 @@ export function createProjectWizardState() {
 		if (!projectNameTouched) {
 			projectName = repo?.full_name.split('/')[1] ?? '';
 		}
+
+		scanStatus = 'idle';
+		builderDetected = null;
+		scanAttempt = 0;
 	}
 
 	async function checkGithubConnection() {
@@ -140,6 +145,9 @@ export function createProjectWizardState() {
 		},
 		set selectedBranch(v) {
 			selectedBranch = v;
+			scanStatus = 'idle';
+			builderDetected = null;
+			scanAttempt = 0;
 		},
 
 		get selectedPort() {
@@ -217,9 +225,13 @@ export function createProjectWizardState() {
 		get builderDetected() {
 			return builderDetected;
 		},
+		get scanAttempt() {
+			return scanAttempt;
+		},
 		startScan() {
 			scanStatus = 'scanning';
 			builderDetected = null;
+			scanAttempt++;
 		},
 		completeScan(detected: boolean) {
 			scanStatus = 'completed';
