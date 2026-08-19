@@ -10,7 +10,7 @@
 		validateConfigureProjectStep,
 		isConfigureProjectStepValid,
 		sanitizePortInput
-	} from '../../validation/configurationProjectStep';
+	} from '../../validation/configureProjectStep';
 
 	type Props = {
 		onSubmit: (payload: CreateProjectPayload) => void;

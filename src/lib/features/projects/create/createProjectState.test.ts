@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createProjectWizardState } from './createProjectState.svelte';
-import { mockRepositories } from '../mock';
+import { mockRepositories } from '../mock/mock';
 
 describe('createProjectWizardState', () => {
 	it('start step 1 with substep select-repository', () => {

@@ -1,4 +1,4 @@
-import { mockRepositories } from '$lib/features/projects/mock';
+import { mockRepositories } from '$lib/features/projects/mock/mock';
 import type { Repository, CreateProjectPayload, CreateProjectResult } from '../type';
 import { parseGitUrl } from './parseGitUrl';
 

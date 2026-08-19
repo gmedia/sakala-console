@@ -2,14 +2,15 @@
 	import CreateProjectStepper from '$lib/features/projects/components/create/CreateProjectStepper.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
-	import { mockCreateProject, mockRepositories } from '$lib/features/projects/mock';
 	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
 	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
 	import type { CreateProjectPayload } from '$lib/features/projects/type';
-	import { detectProjectConfig } from '$lib/features/projects/create/mockDetectConfig';
+	import { detectProjectConfig } from '$lib/features/projects/mock/mockDetectConfig';
+	import { mockCreateProject } from '$lib/features/projects/mock/mockCreateProject';
+	import { mockRepositories } from '$lib/features/projects/mock/mock';
 
 	const wizard = initCreateProjectContext();
 

@@ -2,7 +2,7 @@
 	import CreateProjectHeroCard from '$lib/features/projects/components/create/CreateProjectHeroCard.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import type { DateFilterValue } from '$lib/features/projects/filters';
-	import { mockProjects } from '$lib/features/projects/mock';
+	import { mockProjects } from '$lib/features/projects/mock/mock';
 	import ProjectList from '$lib/features/projects/components/project/ProjectList.svelte';
 	import ProjectFilter from '$lib/features/projects/components/project/ProjectFilter.svelte';
 

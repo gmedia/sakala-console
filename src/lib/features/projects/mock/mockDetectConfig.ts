@@ -18,7 +18,9 @@ export async function detectProjectConfig(
 	await new Promise((resolve) => setTimeout(resolve, delay));
 
 	if (scenario === 'failed') {
-		throw new Error('Gagal menganalisis repository. Coba scan ulang.');
+		throw new Error(
+			`Gagal menganalisis repository ${repository?.full_name ?? 'tidak diketahui'}. Coba scan ulang.`
+		);
 	}
 
 	if (scenario === 'no-dockerfile') {
