@@ -20,7 +20,7 @@
 
 <svelte:head><title>Projects | Sakala Console</title></svelte:head>
 <main class="flex flex-col gap-8">
-	<CreateProjectHeroCard isEmpty={true} />
+	<CreateProjectHeroCard />
 
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
 		<div class="flex items-center justify-between sm:justify-normal gap-4 w-full sm:flex-1">
