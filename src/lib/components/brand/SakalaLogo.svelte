@@ -12,6 +12,12 @@
 		<img src="/favicon.svg" alt="" width="40" height="40" class="size-9 object-contain" />
 		<span class="ml-2 text-xl font-semibold tracking-[-0.03em]">Sakala</span>
 	{:else}
-		<img src="/logo.svg" alt="Sakala" width="218" height="54" class="h-12 w-auto max-w-full" />
+		<img
+			src="/logo.svg"
+			alt="Sakala"
+			width="162"
+			height="37"
+			class="h-full w-full object-contain"
+		/>
 	{/if}
 </a>

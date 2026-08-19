@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PlusIcon, RocketLaunchIcon } from 'phosphor-svelte';
+	import { Plus, RocketLaunch } from 'phosphor-svelte';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
@@ -13,13 +13,18 @@
 
 {#if isEmpty}
 	<EmptyState
-		icon={PlusIcon}
+		icon={Plus}
 		title="Buat Proyek Baru"
 		description="Proyek menyimpan deployment, domain, dan pengaturan timmu dalam satu tempat. Buat satu untuk mulai deploy."
+		class="shadow-none"
 	>
 		{#snippet action()}
-			<Button href={resolve('/projects/new')} variant="primary">
-				<RocketLaunchIcon size={18} />
+			<Button
+				href={resolve('/projects/new')}
+				variant="primary"
+				class="h-12 w-49 rounded-lg font-montserrat-semibold text-base"
+			>
+				<RocketLaunch size={18} />
 				Mulai Sekarang
 			</Button>
 		{/snippet}
@@ -38,7 +43,7 @@
 				variant="primary"
 				class="h-12 w-42.5 rounded-lg px-0 py-0 text-[16px] font-semibold text-white"
 			>
-				<PlusIcon size={18} />
+				<Plus size={18} />
 				Buat Proyek
 			</Button>
 		</div>
