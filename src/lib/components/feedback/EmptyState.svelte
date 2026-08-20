@@ -13,7 +13,7 @@
 	};
 
 	const tones = {
-		neutral: 'bg-primary/15 text-primary',
+		neutral: 'bg-primary/10 text-primary',
 		failed: 'bg-error/20 text-error',
 		warning: 'bg-warning/10 text-warning',
 		muted: 'bg-muted/10 text-muted'
@@ -34,7 +34,7 @@
 		<Icon size={24} aria-hidden="true" />
 	</div>
 	<h2 class="mt-5 text-xl font-montserrat-semibold tracking-tight">{title}</h2>
-	<p class="mx-auto mt-2 max-w-xl font-montserrat-light leading-tight text-muted">{description}</p>
+	<p class="mx-auto mt-2 max-w-xl font-montserrat leading-tight">{description}</p>
 	{#if action}
 		<div class="mt-6">{@render action()}</div>
 	{/if}

@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import { cn } from '$lib/utils/cn';
-	import { LayoutGrid, BookOpen, CircleUser, Settings } from '@lucide/svelte';
+	import { SquaresFour, BookOpenText, User as UserIcon, CaretDown } from 'phosphor-svelte';
 	import type { User } from '$lib/features/auth/types';
 
 	type Props = {
@@ -13,18 +13,22 @@
 		user?: Partial<User>;
 	};
 
-	let { isMobileOpen = false, onCloseMobile, user = { name: 'John Doe' } }: Props = $props();
+	let {
+		isMobileOpen = false,
+		onCloseMobile,
+		user = { name: 'John Doe', email: 'john@sakala.dev' }
+	}: Props = $props();
 
 	type NavItem = {
 		href: string;
 		label: string;
-		icon: typeof LayoutGrid;
+		icon: typeof SquaresFour;
 		isExternal?: boolean;
 	};
 
 	const navigation: readonly NavItem[] = [
-		{ href: '/projects', label: 'Projects', icon: LayoutGrid },
-		{ href: 'https://sakala.dev/docs', label: 'User Guide', icon: BookOpen, isExternal: true }
+		{ href: '/projects', label: 'Projects', icon: SquaresFour },
+		{ href: 'https://sakala.dev/docs', label: 'User Guide', icon: BookOpenText, isExternal: true }
 	];
 
 	function isActive(item: NavItem): boolean {
@@ -33,11 +37,14 @@
 	}
 </script>
 
-<aside class="relative hidden h-full w-64 flex-col border-r border-border bg-surface md:flex">
-	<div class="flex h-16 items-center px-6">
-		<SakalaLogo />
+<aside
+	class="relative hidden h-[calc(100vh-48px)] w-66 flex-col rounded-2xl border border-border bg-surface shadow-xs md:flex"
+>
+	<div class="mt-7 ml-3 mr-16.5 mb-12">
+		<SakalaLogo class="h-9.25 w-40.5" />
 	</div>
-	<nav class="flex-1 space-y-1 px-4 py-6 pb-20 overflow-y-auto" aria-label="Navigasi utama">
+
+	<nav class="flex-1 space-y-1 px-6" aria-label="Navigasi utama">
 		{#each navigation as item (item.href)}
 			{@const Icon = item.icon}
 			<a
@@ -46,38 +53,48 @@
 				rel={item.isExternal ? 'noreferrer noopener' : undefined}
 				aria-current={isActive(item) ? 'page' : undefined}
 				class={cn(
-					'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
+					'flex h-14 w-54 items-center gap-3 rounded-lg px-4 font-sans text-base font-medium transition-colors',
 					isActive(item)
 						? 'bg-primary-50 font-semibold text-primary-dark'
 						: 'text-muted hover:bg-background-soft hover:text-foreground'
 				)}
 			>
-				<Icon size={18} />
+				<Icon size={24} class="size-6 shrink-0" />
 				<span>{item.label}</span>
 			</a>
 		{/each}
 	</nav>
-	<div
-		class="absolute bottom-0 left-0 right-0 border-t border-border bg-surface px-4 py-4 flex items-center justify-between"
-	>
-		<div class="flex items-center gap-3 px-4">
+
+	<div class="mt-auto px-6 py-4 flex items-center justify-between">
+		<div class="flex items-center gap-3 min-w-0">
 			{#if user.avatar_url}
 				<img
 					src={user.avatar_url}
-					alt={user.name}
-					class="size-4.5 shrink-0 rounded-full object-cover ring-1 ring-border"
+					alt={user.name ?? 'User'}
+					class="size-8 shrink-0 rounded-full object-cover ring-1 ring-border"
 				/>
 			{:else}
-				<CircleUser size={18} class="text-primary-dark shrink-0" />
+				<div
+					class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-foreground"
+				>
+					<UserIcon size={18} class="size-4.5 text-black/70" />
+				</div>
 			{/if}
-			<span class="text-sm font-semibold text-foreground">{user.name}</span>
+			<div class="flex flex-col min-w-0">
+				<span class="truncate font-sans text-sm font-semibold text-foreground">
+					{user.name ?? 'User'}
+				</span>
+				{#if user.email}
+					<span class="truncate font-sans text-xs font-normal text-muted">{user.email}</span>
+				{/if}
+			</div>
 		</div>
 		<button
 			type="button"
-			class="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-background-soft hover:text-foreground transition-colors"
-			aria-label="Pengaturan"
+			class="flex items-center justify-center text-black/60 hover:text-foreground transition-colors shrink-0"
+			aria-label="Menu profil"
 		>
-			<Settings size={18} />
+			<CaretDown size={16} class="size-4" />
 		</button>
 	</div>
 </aside>
@@ -91,11 +108,11 @@
 	></button>
 
 	<nav
-		class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface p-6 shadow-xl md:hidden"
+		class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col rounded-2xl border border-border bg-surface p-6 shadow-xl md:hidden"
 		aria-label="Navigasi mobile"
 	>
 		<div class="mb-6 flex h-12 items-center">
-			<SakalaLogo />
+			<SakalaLogo class="h-9.25 w-40.5" />
 		</div>
 		<div class="flex flex-col gap-1 pb-20">
 			{#each navigation as item (item.href)}
@@ -106,39 +123,48 @@
 					rel={item.isExternal ? 'noreferrer noopener' : undefined}
 					onclick={onCloseMobile}
 					class={cn(
-						'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
+						'flex h-14 w-full items-center gap-3 rounded-lg px-4 font-sans text-base font-medium transition-colors',
 						isActive(item)
 							? 'bg-primary-50 font-semibold text-primary-dark'
 							: 'text-muted hover:bg-background-soft hover:text-foreground'
 					)}
 				>
-					<Icon size={18} />
+					<Icon size={24} class="size-6 shrink-0" />
 					<span>{item.label}</span>
 				</a>
 			{/each}
 		</div>
 
-		<div
-			class="absolute bottom-0 left-0 right-0 border-t border-border bg-surface px-4 py-4 flex items-center justify-between"
-		>
-			<div class="flex items-center gap-3 px-4">
+		<div class="mt-auto border-t border-border px-4 py-4 flex items-center justify-between">
+			<div class="flex items-center gap-3 min-w-0">
 				{#if user.avatar_url}
 					<img
 						src={user.avatar_url}
-						alt={user.name}
-						class="size-4.5 shrink-0 rounded-full object-cover ring-1 ring-border"
+						alt={user.name ?? 'User'}
+						class="size-8 shrink-0 rounded-full object-cover ring-1 ring-border"
 					/>
 				{:else}
-					<CircleUser size={18} class="text-primary-dark shrink-0" />
+					<div
+						class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/10 text-foreground"
+					>
+						<UserIcon size={18} class="size-4.5 text-black/70" />
+					</div>
 				{/if}
-				<span class="text-sm font-semibold text-foreground">{user.name}</span>
+				<div class="flex flex-col min-w-0">
+					<span class="truncate font-sans text-sm font-semibold text-foreground">
+						{user.name ?? 'User'}
+					</span>
+					{#if user.email}
+						<span class="truncate font-sans text-xs font-normal text-muted">{user.email}</span>
+					{/if}
+				</div>
 			</div>
 			<button
 				type="button"
-				class="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-background-soft hover:text-foreground transition-colors"
-				aria-label="Pengaturan"
+				class="flex items-center justify-center text-black/60 hover:text-foreground transition-colors shrink-0"
+				aria-label="Menu profil"
 			>
-				<Settings size={18} />
+				<CaretDown size={16} class="size-4" />
 			</button>
 		</div>
 	</nav>
