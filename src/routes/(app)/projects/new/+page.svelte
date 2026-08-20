@@ -4,6 +4,7 @@
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
 	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
+	import DeployStep from '$lib/features/projects/components/create/DeployStep.svelte';
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
@@ -84,6 +85,8 @@
 				{/if}
 			{:else if wizard.currentStep === 2}
 				<AutoDetectStep onNext={wizard.goToDeploy} onRetryScan={runScan} />
+			{:else if wizard.currentStep === 3}
+				<DeployStep repository={wizard.selectedRepository} />
 			{/if}
 		</div>
 	</div>

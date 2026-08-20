@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { RefreshCw, Check, X } from '@lucide/svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import type { Repository } from '../type';
-	import DeploymentTimeline from '../../deployments/components/DeploymentTimeline.svelte';
-	import DeploymentLogConsole from '../../deployments/components/DeploymentLogConsole.svelte';
-	import type { DeploymentStep } from '../type';
+	import type { Repository } from '../../type';
+	import DeploymentTimeline from '$lib/features/deployments/components/DeploymentTimeline.svelte';
+	import DeploymentLogConsole from '$lib/features/deployments/components/DeploymentLogConsole.svelte';
+	import type { DeploymentStep } from '../../type';
 
 	type Props = {
 		repository: Repository | null;
