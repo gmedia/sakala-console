@@ -20,6 +20,12 @@
 				(unreadCount ?? 0) > 0)
 	);
 
+	// Breadcrumb logic for project details
+	import { mockProjects } from '$lib/features/projects/mock';
+	const currentProject = $derived(
+		page.params.id ? mockProjects.find((p) => p.id === page.params.id) : null
+	);
+
 	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
 </script>
 
@@ -35,8 +41,14 @@
 				<List size={20} />
 			</button>
 
-			<h1 class="font-sans text-lg font-semibold tracking-tight text-foreground">
-				{pageTitle}
+			<h1 class="font-sans text-lg tracking-tight flex items-center gap-1.5">
+				{#if currentProject}
+					<span class="text-muted font-medium">Projects</span>
+					<span class="text-foreground font-medium">/</span>
+					<span class="font-semibold text-foreground">{currentProject.project_name}</span>
+				{:else}
+					<span class="font-semibold text-foreground">{pageTitle}</span>
+				{/if}
 			</h1>
 		</div>
 
