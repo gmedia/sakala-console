@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createProjectWizardState } from './createProjectState.svelte';
-import { mockRepositories } from '../mock';
+import { mockRepositories } from '../mock/mock';
 
 describe('createProjectWizardState', () => {
 	it('start step 1 with substep select-repository', () => {
@@ -136,5 +136,97 @@ describe('createProjectWizardState - createProjectPayload', () => {
 		const wizard = createProjectWizardState();
 		wizard.selectedRepositoryId = 'non-existent-id';
 		expect(wizard.createProjectPayload.repository_url).toBe('');
+	});
+});
+
+describe('scan state', () => {
+	it('starts as idle with no builder detected', () => {
+		const wizard = createProjectWizardState();
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.builderDetected).toBeNull();
+	});
+
+	it('sets scanning true and resets builderDetected on startScan', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		expect(wizard.scanning).toBe(true);
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.builderDetected).toBeNull();
+	});
+
+	it('sets scanning, scanFailed to false and builderDetected true on completeScan(true)', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.completeScan(true);
+
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.builderDetected).toBe(true);
+	});
+
+	it('sets scanning false and builderDetected false on completeScan(false)', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.completeScan(false);
+
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.builderDetected).toBe(false);
+	});
+
+	it('sets scanFailed true and scanning false on failScan', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.failScan();
+
+		expect(wizard.scanning).toBe(false);
+		expect(wizard.scanFailed).toBe(true);
+		expect(wizard.builderDetected).toBeNull();
+	});
+
+	it('clears scanFailed when a retry scan starts', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		wizard.failScan();
+
+		wizard.startScan();
+
+		expect(wizard.scanFailed).toBe(false);
+		expect(wizard.scanning).toBe(true);
+	});
+
+	it('goToDeploy sets currentStep to 3', () => {
+		const wizard = createProjectWizardState();
+		wizard.goToDeploy();
+		expect(wizard.currentStep).toBe(3);
+	});
+});
+
+describe('createProjecctWizardState - scan attempt', () => {
+	it('increments scanAttempt on each startScan call', () => {
+		const wizard = createProjectWizardState();
+		wizard.startScan();
+		expect(wizard.scanAttempt).toBe(1);
+		wizard.startScan();
+		expect(wizard.scanAttempt).toBe(2);
+	});
+
+	it('resets scanAttempt when a different repository is selected', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		wizard.startScan();
+		wizard.startScan();
+		expect(wizard.scanAttempt).toBe(2);
+
+		wizard.selectedRepositoryId = mockRepositories[1].id;
+		expect(wizard.scanAttempt).toBe(0);
+	});
+
+	it('does not reset scanAttempt when the same repository is re-selected', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		wizard.startScan();
+		wizard.selectedRepositoryId = mockRepositories[0].id;
+		expect(wizard.scanAttempt).toBe(1);
 	});
 });

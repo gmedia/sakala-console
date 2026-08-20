@@ -1,31 +1,37 @@
-import { mockRepositories } from '$lib/features/projects/mock';
+import { mockRepositories } from '$lib/features/projects/mock/mock';
 import type { Repository, CreateProjectPayload, CreateProjectResult } from '../type';
 import { parseGitUrl } from './parseGitUrl';
 
 type WizardStep = 1 | 2 | 3;
 type RepositorySubstep = 'select-repository' | 'prepare-deployment';
 type EnvVar = { id: number; key: string; value: string; visible?: boolean };
+type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
 
 export function createProjectWizardState() {
+	let currentPage = $state(1);
+	let perPage = $state(5);
+	let currentStep = $state<WizardStep>(1);
 	let repositorySource = $state<'github' | 'git-url'>('github');
+	let repositorySubstep = $state<RepositorySubstep>('select-repository');
 	let selectedRepositoryId = $state<string | null>(null);
 	let lastAppliedRepoKey: string | null = null;
+	let githubConnected = $state(true);
+	let checkingGithubConnection = $state(true);
 	let gitUrl = $state('');
 	let projectName = $state('');
 	let projectNameTouched = false;
 	let selectedBranch = $state('');
 	let selectedPort = $state('3000');
 	let buildCommand = $state('npm run build');
-	let currentPage = $state(1);
-	let perPage = $state(5);
-	let currentStep = $state<WizardStep>(1);
-	let repositorySubstep = $state<RepositorySubstep>('select-repository');
-	let githubConnected = $state(true);
-	let checkingGithubConnection = $state(true);
 	let envVars = $state<EnvVar[]>([]);
 	const envVisible = $state(false);
 	let nextEnvId = 1;
+
 	let createdProject = $state<CreateProjectResult | null>(null);
+
+	let scanStatus = $state<ScanStatus>('idle');
+	let builderDetected = $state<boolean | null>(null);
+	let scanAttempt = $state(0);
 
 	const githubRepository = $derived(
 		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
@@ -74,6 +80,10 @@ export function createProjectWizardState() {
 		if (!projectNameTouched) {
 			projectName = repo?.full_name.split('/')[1] ?? '';
 		}
+
+		scanStatus = 'idle';
+		builderDetected = null;
+		scanAttempt = 0;
 	}
 
 	async function checkGithubConnection() {
@@ -116,7 +126,6 @@ export function createProjectWizardState() {
 		set repositorySource(v) {
 			repositorySource = v;
 		},
-
 		get selectedRepositoryId() {
 			return selectedRepositoryId;
 		},
@@ -124,7 +133,6 @@ export function createProjectWizardState() {
 			selectedRepositoryId = v;
 			applyRepositoryDefaults(resolveRepository(v));
 		},
-
 		get gitUrl() {
 			return gitUrl;
 		},
@@ -137,6 +145,9 @@ export function createProjectWizardState() {
 		},
 		set selectedBranch(v) {
 			selectedBranch = v;
+			scanStatus = 'idle';
+			builderDetected = null;
+			scanAttempt = 0;
 		},
 
 		get selectedPort() {
@@ -195,7 +206,6 @@ export function createProjectWizardState() {
 		get envVars() {
 			return envVars;
 		},
-
 		get createProjectPayload(): CreateProjectPayload {
 			return {
 				project_name: projectName,
@@ -203,9 +213,33 @@ export function createProjectWizardState() {
 				branch: selectedBranch
 			};
 		},
-
 		get createdProject() {
 			return createdProject;
+		},
+		get scanning() {
+			return scanStatus === 'scanning';
+		},
+		get scanFailed() {
+			return scanStatus === 'failed';
+		},
+		get builderDetected() {
+			return builderDetected;
+		},
+		get scanAttempt() {
+			return scanAttempt;
+		},
+		startScan() {
+			scanStatus = 'scanning';
+			builderDetected = null;
+			scanAttempt++;
+		},
+		completeScan(detected: boolean) {
+			scanStatus = 'completed';
+			builderDetected = detected;
+		},
+		failScan() {
+			scanStatus = 'failed';
+			builderDetected = null;
 		},
 
 		checkGithubConnection,
@@ -229,6 +263,9 @@ export function createProjectWizardState() {
 		goToAutoDetect(result: CreateProjectResult) {
 			createdProject = result;
 			currentStep = 2;
+		},
+		goToDeploy() {
+			currentStep = 3;
 		}
 	};
 }

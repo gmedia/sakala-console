@@ -8,7 +8,7 @@ import {
 	validateConfigureProjectStep,
 	isConfigureProjectStepValid,
 	type ConfigureProjectStepErrors
-} from './configurationProjectStep';
+} from './configureProjectStep';
 
 describe('validateProjectName', () => {
 	it('should return error message for empty project name', () => {

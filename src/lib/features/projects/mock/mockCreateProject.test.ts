@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { mockCreateProject } from './mock';
-import type { CreateProjectPayload } from './type';
+import type { CreateProjectPayload } from '../type';
+import { mockCreateProject } from './mockCreateProject';
 
 describe('mockCreateProject', () => {
 	beforeEach(() => {
