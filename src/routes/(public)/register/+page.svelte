@@ -75,10 +75,8 @@
 	<title>Daftar | Sakala Console</title>
 </svelte:head>
 
-<main class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-	<AuthBranding mode="register" />
-
-	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-1">
+<main class="min-h-screen grid grid-cols-1 lg:grid-cols-10">
+	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-4">
 		<div class="w-full max-w-lg space-y-8">
 			<div class="space-y-2">
 				<h2 class="text-4xl font-semibold text-zinc-950 tracking-tight">Daftar</h2>
@@ -106,7 +104,9 @@
 								type="email"
 								placeholder="example@gmail.com"
 								bind:value={email}
-								class="w-full rounded-lg border border-[#0F766E] bg-white px-4 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors"
+								class="w-full rounded-lg border border-[#0F766E] bg-white px-4 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors {errors.email
+									? 'border-red-400 bg-red-50/20 text-red-500 placeholder-red-300 focus:border-red-500'
+									: 'border-[#0F766E] bg-white text-zinc-800 placeholder-zinc-400 focus:border-[#0e6b64]'}"
 								required
 							/>
 							{#if errors.email}
@@ -122,8 +122,9 @@
 									type={showPassword ? 'text' : 'password'}
 									placeholder="Buat Kata Sandi Anda"
 									bind:value={password}
-									class="w-full rounded-lg border border-[#0F766E] bg-white pl-4 pr-11 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors
-                  "
+									class="w-full rounded-lg border border-[#0F766E] bg-white pl-4 pr-11 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors {errors.password
+										? 'border-red-400 bg-red-50/20 text-red-500 placeholder-red-300 focus:border-red-500'
+										: 'border-[#0F766E] bg-white text-zinc-800 placeholder-zinc-400 focus:border-[#0e6b64]'}"
 									required
 								/>
 								<button
@@ -153,7 +154,9 @@
 									type={showConfirmPass ? 'text' : 'password'}
 									placeholder="Masukkan Ulang Kata Sandi Anda"
 									bind:value={confirmPass}
-									class="w-full rounded-lg border border-[#0F766E] bg-white pl-4 pr-11 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors"
+									class="w-full rounded-lg border border-[#0F766E] bg-white pl-4 pr-11 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors {errors.confirmPass
+										? 'border-red-400 bg-red-50/20 text-red-500 placeholder-red-300 focus:border-red-500'
+										: 'border-[#0F766E] bg-white text-zinc-800 placeholder-zinc-400 focus:border-[#0e6b64]'}"
 									required
 								/>
 								<button
@@ -201,4 +204,5 @@
 			</div>
 		</div>
 	</div>
+	<AuthBranding mode="register" />
 </main>

@@ -62,10 +62,8 @@
 	<title>Masuk | Sakala Console</title>
 </svelte:head>
 
-<main class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-	<AuthBranding mode="login" />
-
-	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-1">
+<main class="min-h-screen grid grid-cols-1 lg:grid-cols-10">
+	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-4">
 		<div class="w-full max-w-lg space-y-8">
 			<div class="space-y-2">
 				<h2 class="text-4xl font-semibold text-zinc-950 tracking-tight">Selamat Datang</h2>
@@ -164,4 +162,5 @@
 			</div>
 		</div>
 	</div>
+	<AuthBranding mode="login" />
 </main>
