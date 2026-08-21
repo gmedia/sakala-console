@@ -11,7 +11,8 @@
 	import {
 		streamDeploymentProgress,
 		type DeployScenario,
-		type DeployLogLine
+		type DeployLogLine,
+		resolveDeployScenario
 	} from '$lib/features/projects/mock/mockDeployment';
 
 	type EmptyStateConfig = {
@@ -59,7 +60,7 @@
 			if (destroyed || wizard.deployStatus !== 'deploying') return;
 
 			if (scenario === 'failed') {
-				await new Promise((resolve) => setTimeout(resolve, 1200));
+				await new Promise((resolve) => setTimeout(resolve, 800));
 				if (destroyed || wizard.deployStatus !== 'deploying') return;
 			}
 
@@ -81,7 +82,7 @@
 
 	$effect(() => {
 		if (wizard.deployStatus === 'deploying') {
-			runDeployment('failed');
+			runDeployment(resolveDeployScenario());
 		}
 	});
 
@@ -99,7 +100,7 @@
 					icon: Check,
 					tones: 'neutral',
 					title: 'Proyekmu sudah live',
-					description: `${wizard.selectedRepository?.name ?? 'Repository'} berhasil dibuat dan bias diakses public sekarang`
+					description: `${wizard.selectedRepository?.name ?? 'Repository'} berhasil dibuat dan bisa diakses publik sekarang`
 				};
 
 			case 'failed':
@@ -108,6 +109,23 @@
 					tones: 'failed',
 					title: 'Deployment gagal',
 					description: 'Terjadi kesalahan saat mendeploy proyekmu ke Sakala.'
+				};
+
+			case 'cancelling':
+				return {
+					icon: RefreshCw,
+					tones: 'muted',
+					title: 'Membatalkan deployment...',
+					description: 'Sedang menghentikan proses deployment, harap tunggu sebentar.'
+				};
+
+			case 'cancelled':
+				return {
+					icon: X,
+					tones: 'muted',
+					title: 'Deployment dibatalkan',
+					description:
+						'Proses deploy dihentikan sebelum selesai. Repository dan pengaturan yang sudah dipilih tidak hilang, kamu bisa coba lagi kapan saja.'
 				};
 
 			default:

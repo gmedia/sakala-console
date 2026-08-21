@@ -43,7 +43,7 @@ const failedScenario: DeploymentProgress = {
 		{ key: 'analyze', title: 'Menganalisis proyek', status: 'success' },
 		{ key: 'build', title: 'Building image', status: 'success' },
 		{ key: 'deploy', title: 'Deploy container', status: 'failed' },
-		{ key: 'health', title: 'Health check - live', status: 'failed' }
+		{ key: 'health', title: 'Health check - live', status: 'pending' }
 	],
 	logs: [
 		...baseLogsBeforeBuild,
@@ -62,6 +62,10 @@ const scenarios: Record<DeployScenario, DeploymentProgress> = {
 	failed: failedScenario
 };
 
+export function resolveDeployScenario(successRate = 0.8): DeployScenario {
+	return Math.random() < successRate ? 'success' : 'failed';
+}
+
 export async function* streamDeploymentProgress(
 	scenario: DeployScenario = 'success'
 ): AsyncGenerator<DeploymentProgress> {
@@ -70,6 +74,7 @@ export async function* streamDeploymentProgress(
 
 	for (let i = 0; i < target.steps.length; i++) {
 		const currentStep = target.steps[i];
+		const isFailingStep = currentStep.status === 'failed';
 
 		await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -105,10 +110,9 @@ export async function* streamDeploymentProgress(
 		yield {
 			steps: finalizedSteps,
 			logs: target.logs.slice(0, shownLogCount),
-			errorMessage:
-				scenario === 'failed' && i === target.steps.length - 1 ? target.errorMessage : undefined
+			errorMessage: isFailingStep ? target.errorMessage : undefined
 		};
 
-		if (currentStep.status === 'failed') break;
+		if (isFailingStep) break;
 	}
 }
