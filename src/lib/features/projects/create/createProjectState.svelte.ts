@@ -14,6 +14,7 @@ export function createProjectWizardState() {
 	let currentStep = $state<WizardStep>(1);
 	let repositorySource = $state<'github' | 'git-url'>('github');
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
+	let hasEnteredConfig = $state(false);
 	let selectedRepositoryId = $state<string | null>(null);
 	let lastAppliedRepoKey: string | null = null;
 	let githubConnected = $state(true);
@@ -120,6 +121,19 @@ export function createProjectWizardState() {
 	function toggleEnvVisible(id: number) {
 		const target = envVars.find((env) => env.id === id);
 		if (target) target.visible = !target.visible;
+	}
+
+	async function cancelDeployment() {
+		if (deployStatus !== 'deploying') return;
+
+		deployStatus = 'cancelling';
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 800));
+			deployStatus = 'cancelled';
+		} catch {
+			deployStatus = 'deploying';
+			throw new Error('Gagal membatalkan deployment');
+		}
 	}
 
 	return {
@@ -234,6 +248,32 @@ export function createProjectWizardState() {
 		get deployStatus() {
 			return deployStatus;
 		},
+		get hasUnsavedProgress() {
+			if (currentStep === 1) {
+				return hasEnteredConfig;
+			}
+			return true;
+		},
+		get exitDialogContent() {
+			if (currentStep === 1 && hasEnteredConfig) {
+				return {
+					title: 'Batalkan Pembuatan Proyek?',
+					description:
+						'Konfigurasi yang sudah kamu isi belum disimpan. Kalau dibatalkan sekarang, semua isian ini akan hilang.'
+				};
+			}
+			if (currentStep === 2) {
+				return {
+					title: 'Batalkan Proses ini?',
+					description:
+						'Sakala sedang menganalisis konfigurasi repositorymu. Kalau dibatalkan sekarang, proses deteksi akan dihentikan dan project ini belum akan dibuat.'
+				};
+			}
+			return {
+				title: 'Batalkan Pembuatan Proyek?',
+				description: 'Semua isian akan hilang.'
+			};
+		},
 		startScan() {
 			scanStatus = 'scanning';
 			builderDetected = null;
@@ -250,14 +290,15 @@ export function createProjectWizardState() {
 		startDeploy() {
 			deployStatus = 'deploying';
 		},
-		cancelDeploy() {
-			deployStatus = 'cancelling';
-		},
 		confirmCancelled() {
 			deployStatus = 'cancelled';
 		},
 		completeDeploy(success: boolean) {
 			deployStatus = success ? 'success' : 'failed';
+		},
+		cancelDeployment,
+		isDeploymentInProgress() {
+			return deployStatus === 'deploying';
 		},
 
 		checkGithubConnection,
@@ -274,6 +315,7 @@ export function createProjectWizardState() {
 		},
 		goToPrepareDeployment() {
 			repositorySubstep = 'prepare-deployment';
+			hasEnteredConfig = true;
 		},
 		backToSelectRepository() {
 			repositorySubstep = 'select-repository';

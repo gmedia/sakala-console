@@ -29,7 +29,7 @@
 
 <div
 	bind:this={scrollContainer}
-	class="max-h-80 overflow-y-auto rounded-lg bg-terminal p-4 font-mono text-sm leading-relaxed"
+	class="h-36 overflow-y-auto rounded-lg bg-terminal p-4 font-mono text-sm leading-relaxed"
 >
 	{#each lines as line, i (i)}
 		{@const variant = line.variant ?? 'default'}

@@ -86,7 +86,7 @@
 			{:else if wizard.currentStep === 2}
 				<AutoDetectStep onNext={wizard.goToDeploy} onRetryScan={runScan} />
 			{:else if wizard.currentStep === 3}
-				<DeployStep repository={wizard.selectedRepository} />
+				<DeployStep />
 			{/if}
 		</div>
 	</div>
