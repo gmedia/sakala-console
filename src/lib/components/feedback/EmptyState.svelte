@@ -13,7 +13,7 @@
 	};
 
 	const tones = {
-		neutral: 'bg-primary/10 text-primary',
+		neutral: 'bg-primary-50 text-primary',
 		failed: 'bg-error/20 text-error',
 		warning: 'bg-warning/10 text-warning',
 		muted: 'bg-muted/10 text-muted'
@@ -30,8 +30,8 @@
 </script>
 
 <Card class={`py-12 text-center sm:py-16 ${cardClass || ''}`}>
-	<div class={cn('mx-auto flex size-12 items-center justify-center rounded-xl', tones[tone])}>
-		<Icon size={24} aria-hidden="true" />
+	<div class={cn('mx-auto flex size-12 items-center justify-center rounded-xl p-2', tones[tone])}>
+		<Icon size={42} aria-hidden="true" />
 	</div>
 	<h2 class="mt-5 text-xl font-montserrat-semibold tracking-tight">{title}</h2>
 	<p class="mx-auto mt-2 max-w-xl font-montserrat leading-tight">{description}</p>
