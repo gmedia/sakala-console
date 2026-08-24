@@ -18,10 +18,11 @@
 
 	const timestampColorMap: Record<logVariant, string> = {
 		default: 'text-muted',
-		error: 'text-warning'
+		error: 'text-error-base'
 	};
 
 	$effect(() => {
+		void lines.length;
 		if (!autoScroll || !scrollContainer) return;
 		scrollContainer.scrollTop = scrollContainer.scrollHeight;
 	});
