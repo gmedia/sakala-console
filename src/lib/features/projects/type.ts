@@ -42,4 +42,5 @@ export interface CreateProjectPayload {
 export interface CreateProjectResult {
 	id: string;
 	project_name: string;
+	domain: string;
 }

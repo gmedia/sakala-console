@@ -21,6 +21,7 @@ export function createProjectWizardState() {
 	let checkingGithubConnection = $state(true);
 	let gitUrl = $state('');
 	let projectName = $state('');
+	let projectDomain = $state('');
 	let projectNameTouched = false;
 	let selectedBranch = $state('');
 	let selectedPort = $state('3000');
@@ -181,6 +182,9 @@ export function createProjectWizardState() {
 			projectName = v;
 			projectNameTouched = true;
 		},
+		get projectDomain() {
+			return projectDomain;
+		},
 
 		get buildCommand() {
 			return buildCommand;
@@ -322,6 +326,7 @@ export function createProjectWizardState() {
 		},
 		goToAutoDetect(result: CreateProjectResult) {
 			createdProject = result;
+			projectDomain = result.domain;
 			currentStep = 2;
 		},
 		goToDeploy() {

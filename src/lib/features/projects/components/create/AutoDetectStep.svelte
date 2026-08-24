@@ -106,7 +106,7 @@
 		{@render skeletonRow('Mempersiapkan preview URL...')}
 	{:else}
 		<LinkIcon class="h-6 w-6" />
-		<p class="font-jetbrains-mono-regular">{wizard.projectName}.run.sakala.dev</p>
+		<p class="font-jetbrains-mono-regular">{wizard.projectDomain}</p>
 	{/if}
 </div>
 

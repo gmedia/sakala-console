@@ -31,7 +31,7 @@
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 	let destroyed = false;
 
-	const url = $derived(`http://${wizard.projectName}.run.sakala.dev`);
+	const url = $derived(`http://${wizard.projectDomain}`);
 
 	async function copyToClipboard() {
 		try {
