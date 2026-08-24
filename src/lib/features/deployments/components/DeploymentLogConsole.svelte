@@ -1,0 +1,42 @@
+<script lang="ts">
+	type logVariant = 'default' | 'error';
+
+	type LogLine = {
+		timestamp: string;
+		message: string;
+		variant?: logVariant;
+	};
+
+	type Props = {
+		lines: readonly LogLine[];
+		autoScroll?: boolean;
+	};
+
+	let { lines, autoScroll = true }: Props = $props();
+
+	let scrollContainer: HTMLDivElement;
+
+	const timestampColorMap: Record<logVariant, string> = {
+		default: 'text-muted',
+		error: 'text-error-base'
+	};
+
+	$effect(() => {
+		void lines.length;
+		if (!autoScroll || !scrollContainer) return;
+		scrollContainer.scrollTop = scrollContainer.scrollHeight;
+	});
+</script>
+
+<div
+	bind:this={scrollContainer}
+	class="h-36 overflow-y-auto rounded-lg bg-terminal p-4 font-mono text-sm leading-relaxed"
+>
+	{#each lines as line, i (i)}
+		{@const variant = line.variant ?? 'default'}
+		<div class="whitespace-pre-wrap">
+			<span class={timestampColorMap[variant]}>[{line.timestamp}]</span>
+			<span class="text-terminal-text">{line.message}</span>
+		</div>
+	{/each}
+</div>

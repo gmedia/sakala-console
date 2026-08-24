@@ -1,11 +1,13 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
-	import { resolve } from '$app/paths';
 	import { LinkIcon, LightningIcon, CheckIcon } from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import { CircleNotchIcon, XIcon, ArrowCounterClockwiseIcon } from 'phosphor-svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
 
 	type Props = {
 		onNext: () => void;
@@ -15,6 +17,18 @@
 	let { onNext, onRetryScan }: Props = $props();
 
 	const wizard = getCreateProjectContext();
+
+	let showSkipConfirm = $state(false);
+	let skipping = $state(false);
+
+	function handleSkipClick() {
+		showSkipConfirm = true;
+	}
+
+	async function handleConfirmSkip() {
+		showSkipConfirm = false;
+		goto(resolve('/projects'));
+	}
 </script>
 
 {#snippet skeletonRow(label: string)}
@@ -92,7 +106,7 @@
 		{@render skeletonRow('Mempersiapkan preview URL...')}
 	{:else}
 		<LinkIcon class="h-6 w-6" />
-		<p class="font-jetbrains-mono-regular">{wizard.projectName}.run.sakala.dev</p>
+		<p class="font-jetbrains-mono-regular">{wizard.projectDomain}</p>
 	{/if}
 </div>
 
@@ -117,13 +131,25 @@
 	</Button>
 {/if}
 <Button
-	href={resolve('/projects')}
 	variant="outline"
 	class={cn(
 		'mt-4 w-full justify-center gap-2 border-2 py-3 border-none text-primary cursor-pointer'
 	)}
 	disabled={wizard.scanning}
-	onclick={onNext}
+	onclick={handleSkipClick}
 >
 	Lewati
 </Button>
+
+<Dialog
+	bind:open={showSkipConfirm}
+	class="text-center"
+	title="Lewati proses deploy?"
+	description="Konfigurasi proyekmu masih dalam proses deteksi. Kalau dilewati, proyek akan tetap dibuat tapi belum di-deploy. Kamu bisa mengaturnya nanti dari dashboard."
+	confirmLabel="Ya, Lewati"
+	cancelLabel="Lanjutkan proses"
+	variant="default"
+	emphasis="cancel"
+	loading={skipping}
+	onConfirm={handleConfirmSkip}
+/>

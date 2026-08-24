@@ -1,5 +1,16 @@
 import type { CreateProjectPayload, CreateProjectResult } from '../type';
 
+function generateBackendSlug(text: string) {
+	return text
+		.toString()
+		.toLowerCase()
+		.replace(/\s+/g, '-')
+		.replace(/[^\w-]+/g, '')
+		.replace(/--+/g, '-')
+		.replace(/^-+/, '')
+		.replace(/-+$/, '');
+}
+
 export async function mockCreateProject(
 	payload: CreateProjectPayload
 ): Promise<CreateProjectResult> {
@@ -15,8 +26,12 @@ export async function mockCreateProject(
 		throw new Error('Branch is required.');
 	}
 
+	const slug = generateBackendSlug(payload.project_name);
+	const generatedDomain = `${slug}.run.sakala.dev`;
+
 	return {
 		id: crypto.randomUUID(),
-		project_name: payload.project_name
+		project_name: payload.project_name,
+		domain: generatedDomain
 	};
 }
