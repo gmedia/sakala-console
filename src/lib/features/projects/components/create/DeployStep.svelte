@@ -30,6 +30,7 @@
 	let copied = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 	let destroyed = false;
+	let lastRunId = 0;
 
 	const url = $derived(`http://${wizard.projectDomain}`);
 
@@ -49,25 +50,28 @@
 
 	async function runDeployment(scenario: DeployScenario = 'success') {
 		buildError = null;
+		lastRunId++;
+		const myRunId = lastRunId;
+
 		try {
 			for await (const progress of streamDeploymentProgress(scenario)) {
-				if (destroyed || wizard.deployStatus !== 'deploying') return;
+				if (destroyed || wizard.deployStatus !== 'deploying' || myRunId !== lastRunId) return;
 				steps = progress.steps;
 				deployLogs = progress.logs;
 				if (progress.errorMessage) buildError = progress.errorMessage;
 			}
 
-			if (destroyed || wizard.deployStatus !== 'deploying') return;
+			if (destroyed || wizard.deployStatus !== 'deploying' || myRunId !== lastRunId) return;
 
 			if (scenario === 'failed') {
 				await new Promise((resolve) => setTimeout(resolve, 800));
-				if (destroyed || wizard.deployStatus !== 'deploying') return;
+				if (destroyed || wizard.deployStatus !== 'deploying' || myRunId !== lastRunId) return;
 			}
 
 			wizard.completeDeploy(scenario !== 'failed');
 		} catch (error) {
 			console.error('Error during deployment:', error);
-			if (!destroyed && wizard.deployStatus === 'deploying') {
+			if (!destroyed && wizard.deployStatus === 'deploying' && myRunId === lastRunId) {
 				wizard.completeDeploy(false);
 			}
 		}
@@ -84,6 +88,9 @@
 		if (wizard.deployStatus === 'deploying') {
 			runDeployment(resolveDeployScenario());
 		}
+		return () => {
+			lastRunId++;
+		};
 	});
 
 	$effect(() => {
