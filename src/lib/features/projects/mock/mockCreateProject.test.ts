@@ -24,8 +24,21 @@ describe('mockCreateProject', () => {
 		const result = await resultPromise;
 
 		expect(result.project_name).toBe('My Project');
+		expect(result.domain).toBe('my-project.run.sakala.dev');
 		expect(typeof result.id).toBe('string');
 		expect(result.id.length).toBeGreaterThan(0);
+	});
+
+	it('generates correct domain slug for project_name with special characters', async () => {
+		const complexPayload: CreateProjectPayload = {
+			...validPayload,
+			project_name: ' Proyek Kerenku 123! @Sakala '
+		};
+		const resultPromise = mockCreateProject(complexPayload);
+		vi.runAllTimers();
+
+		const result = await resultPromise;
+		expect(result.domain).toBe('proyek-kerenku-123-sakala.run.sakala.dev');
 	});
 
 	it('rejects when project_name is empty', async () => {

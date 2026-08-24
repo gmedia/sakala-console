@@ -139,6 +139,33 @@ describe('createProjectWizardState - createProjectPayload', () => {
 	});
 });
 
+describe('createProjectWizardState - autoDetect / domain handling', () => {
+	it('projectDomain should start empty string', () => {
+		const wizard = createProjectWizardState();
+		expect(wizard.projectDomain).toBe('');
+	});
+
+	it('goToAutoDetect should save result data, set domain, and change step to 2', () => {
+		const wizard = createProjectWizardState();
+		const mockResult = {
+			id: 'mock-uuid-123',
+			project_name: 'My Cool App',
+			domain: 'my-cool-app.run.sakala.dev'
+		};
+
+		wizard.goToAutoDetect(mockResult);
+		expect(wizard.createdProject).toEqual(mockResult);
+		expect(wizard.currentStep).toBe(2);
+		expect(wizard.projectDomain).toBe('my-cool-app.run.sakala.dev');
+	});
+
+	it('changing projectName should not alter projectDomain before gotoAutoDetect', () => {
+		const wizard = createProjectWizardState();
+		wizard.projectName = 'Manual Project Name';
+		expect(wizard.projectDomain).toBe('');
+	});
+});
+
 describe('scan state', () => {
 	it('starts as idle with no builder detected', () => {
 		const wizard = createProjectWizardState();
