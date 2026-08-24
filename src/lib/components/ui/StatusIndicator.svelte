@@ -45,7 +45,10 @@
 </script>
 
 <span class="inline-flex items-center gap-2.5">
-	<span class="inline-flex shrink-0 items-center justify-center rounded-full {dotSize} {dotColor}">
+	<span
+		class="inline-flex shrink-0 items-center justify-center rounded-full {dotSize} {dotColor}"
+		aria-hidden="true"
+	>
 		{#if status === 'running'}
 			<RefreshCw size={iconSizePx} strokeWidth={2.5} class="animate-spin" />
 		{:else if status === 'success'}
@@ -55,8 +58,8 @@
 		{/if}
 	</span>
 
-	{#if showLabel && displayLabel}
-		<span class="text-sm">
+	{#if displayLabel}
+		<span class={showLabel ? 'text-sm' : 'sr-only'}>
 			{displayLabel}
 		</span>
 	{/if}

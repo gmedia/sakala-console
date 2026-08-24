@@ -32,7 +32,7 @@
 	let destroyed = false;
 	let lastRunId = 0;
 
-	const url = $derived(`http://${wizard.projectDomain}`);
+	const url = $derived(`https://${wizard.projectDomain}`);
 
 	async function copyToClipboard() {
 		try {
