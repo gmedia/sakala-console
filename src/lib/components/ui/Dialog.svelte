@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import { cn } from '$lib/utils/cn';
-	import { fade, scale } from 'svelte/transition';
 	import type { Snippet } from 'svelte';
 
 	type Variants = 'default' | 'destructive';
@@ -41,14 +41,15 @@
 		destructive: 'bg-error-base hover:bg-error-dark/90'
 	};
 
-	let dialogEl: HTMLDivElement | null = $state(null);
 	let confirmButtonEl: HTMLButtonElement | null = $state(null);
 	let cancelButtonEl: HTMLButtonElement | null = $state(null);
 
-	function close() {
-		if (loading) return;
-		open = false;
-		onCancel?.();
+	function handleOpenChange(next: boolean) {
+		if (loading && !next) return;
+		open = next;
+		if (!next) {
+			onCancel?.();
+		}
 	}
 
 	function handleConfirm() {
@@ -56,80 +57,32 @@
 		onConfirm();
 	}
 
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			close();
-		}
-
-		if (event.key === 'Tab' && dialogEl) {
-			const focusable = dialogEl.querySelectorAll<HTMLElement>(
-				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-			);
-			if (focusable.length === 0) return;
-
-			const first = focusable[0];
-			const last = focusable[focusable.length - 1];
-
-			if (event.shiftKey && document.activeElement === first) {
-				event.preventDefault();
-				last.focus();
-			} else if (!event.shiftKey && document.activeElement === last) {
-				event.preventDefault();
-				first.focus();
-			}
-		}
+	function handleAutoFocus(event: Event) {
+		event.preventDefault();
+		const target = emphasis === 'cancel' ? cancelButtonEl : confirmButtonEl;
+		target?.focus();
 	}
-
-	$effect(() => {
-		if (open) {
-			document.body.style.overflow = 'hidden';
-			queueMicrotask(() => {
-				const target = emphasis === 'cancel' ? cancelButtonEl : confirmButtonEl;
-				target?.focus();
-			});
-		} else {
-			document.body.style.overflow = '';
-		}
-
-		return () => {
-			document.body.style.overflow = '';
-		};
-	});
 </script>
 
-<svelte:window onkeydown={open ? handleKeydown : undefined} />
-
-{#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-		<button
-			type="button"
-			class="absolute inset-0 h-full w-full cursor-default bg-black/50"
-			aria-label="Tutup dialog"
-			tabindex="-1"
-			onclick={close}
-			transition:fade={{ duration: 150 }}
-		></button>
-
-		<div
-			bind:this={dialogEl}
-			role="alertdialog"
-			aria-modal="true"
-			aria-labelledby="dialog-title"
-			aria-describedby={description ? 'dialog-description' : undefined}
+<DialogPrimitive.Root {open} onOpenChange={handleOpenChange}>
+	<DialogPrimitive.Portal>
+		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/50" />
+		<DialogPrimitive.Content
+			onOpenAutoFocus={handleAutoFocus}
 			class={cn(
-				'relative w-full max-w-md rounded-xl border border-border-strong bg-surface p-6 shadow-lg',
+				'fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2',
+				'rounded-xl border border-border-strong bg-surface p-6 shadow-lg',
 				className
 			)}
-			transition:scale={{ duration: 150, start: 0.95 }}
 		>
-			<h2 id="dialog-title" class="text-lg font-montserrat-semibold text-foreground">
+			<DialogPrimitive.Title class="text-lg font-montserrat-semibold text-foreground">
 				{title}
-			</h2>
+			</DialogPrimitive.Title>
 
 			{#if description}
-				<p id="dialog-description" class="mt-2 text-sm font-montserrat">
+				<DialogPrimitive.Description class="mt-2 text-sm font-montserrat">
 					{description}
-				</p>
+				</DialogPrimitive.Description>
 			{/if}
 
 			{#if children}
@@ -139,9 +92,8 @@
 			{/if}
 
 			<div class="mt-6 flex justify-center w-full gap-2">
-				<button
-					type="button"
-					onclick={close}
+				<DialogPrimitive.Close
+					bind:ref={cancelButtonEl}
 					disabled={loading}
 					class={cn(
 						'inline-flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-montserrat-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
@@ -151,7 +103,7 @@
 					)}
 				>
 					{cancelLabel}
-				</button>
+				</DialogPrimitive.Close>
 
 				<button
 					bind:this={confirmButtonEl}
@@ -173,6 +125,6 @@
 					{confirmLabel}
 				</button>
 			</div>
-		</div>
-	</div>
-{/if}
+		</DialogPrimitive.Content>
+	</DialogPrimitive.Portal>
+</DialogPrimitive.Root>
