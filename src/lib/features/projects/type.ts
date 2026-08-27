@@ -16,6 +16,9 @@ export interface Project {
 	thumbnail_url: string | null;
 	repository_url: string;
 	repository_full_name: string | null;
+	repository_source: 'public_url' | 'github_installation';
+	github_installation_id: string | null;
+	github_repository_id: number | null;
 	branch: string;
 	default_domain: string;
 	status: project_status;
@@ -33,12 +36,31 @@ export interface ProjectEnvironmentVariable {
 	created_at: string;
 }
 
-export interface ProjectDeployment {
+export interface Deployment {
 	id: string;
-	status: 'deploying' | 'success' | 'failed' | 'cancelled';
-	commit_hash: string;
-	log: string;
+	project_id: string;
+	sequence: number;
+	branch: string;
+	status: 'queued' | 'building' | 'running' | 'success' | 'failed' | 'cancelled';
+	trigger: 'manual' | 'github_webhook';
+	commit_sha: string | null;
+	commit_message: string | null;
+	image_reference: string | null;
+	requested_resources: Record<string, unknown> | null;
+	effective_resources: Record<string, unknown> | null;
+	started_at: string | null;
+	finished_at: string | null;
+	cancelled_at: string | null;
+	failure_code: string | null;
+	failure_summary: string | null;
 	created_at: string;
+	updated_at: string;
+}
+
+export interface UpdateProjectPayload {
+	name?: string;
+	thumbnail_url?: string | null;
+	branch?: string;
 }
 
 export interface Repository {
