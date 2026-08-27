@@ -20,10 +20,9 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	// Breadcrumb logic for project details
 	import { mockProjects } from '$lib/features/projects/mock';
 	const currentProject = $derived(
-		page.params.id ? mockProjects.find((p) => p.id === page.params.id) : null
+		page.params.id ? mockProjects.find((p) => p.id === page.params.id) || mockProjects[0] : null
 	);
 
 	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
