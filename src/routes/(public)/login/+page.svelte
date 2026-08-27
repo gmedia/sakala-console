@@ -27,6 +27,8 @@
 	function handleProviderClick(id: ProviderId) {
 		if (id === 'email') {
 			goto(resolve('/login?method=email'), { keepFocus: true });
+		} else if (id === 'github') {
+			window.location.href = 'https://api.staging.sakala.dev/auth/github/redirect';
 		} else {
 			console.log(`Login dengan ${id}`);
 		}
@@ -50,7 +52,7 @@
 		return isValid;
 	}
 
-	function handleSubmit(e: SubmitEvent) {
+	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (validateLogin()) {
 			// handle submit
