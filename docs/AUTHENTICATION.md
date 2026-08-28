@@ -28,3 +28,28 @@ API creates session -> redirect to Console -> Console fetches current user
 ```
 
 Auth guard console hanya mengelola loading dan navigation. Seluruh resource tetap dilindungi middleware dan Policy API.
+
+## Current User Query Cache
+
+Console menyimpan hasil dari `api/v1/auth/user` melalui TanStack Query dengan query key `['auth', 'currentUser']` di (`src/lib/api/query-keys.ts`), gunakan `useCurrentUser()` pada (`src/lib/features/auth/queries.ts`) untuk mengakses data user saat ini. Tidak boleh mendefinisikan key baru untuk data yang sama.
+
+### Stale time
+
+Data dianggap fresh selama 5 menit, identitas user jarang berubah dalam satu sesi aktif, sehingga navigasi antar halaman tidak perlu refetch ulang.
+
+### Retry Policy
+
+- `401`: tidak di retry karena hasilnya tidak akan berubah oleh percobaan ulang.
+- `403` / `network` / `5xx` : bisa di retry karena berpotensi kondisi sementara, bisa di retry sampai 3 kali.
+
+### Auth Guard
+
+Auth guard (`src/lib/features/auth/AuthGuard.ts`) akan membaca status saat ini untuk menentukan apa yang akan dirender.
+
+- `401` -> redirect ke `/login?returnTo=<path aman>`.
+- `403` / `network` / `5xx` -> tetap di halaman dan menampilkan pesan error dengan option untuk retry.
+- `pending` -> menampilkan skeleton loading, tidak merender tidak merender konten protected dan tidak melakukan redirect apa pun sampai status final.
+
+### Logout
+
+`useLogout()` (`src/lib/features/auth/mutations.ts`) memanggil `queryClient.clear()` setelah logout success, ini menghapus seluruh cache TanStack Query.
