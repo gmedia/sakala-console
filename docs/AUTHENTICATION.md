@@ -44,11 +44,12 @@ Data dianggap fresh selama 5 menit, identitas user jarang berubah dalam satu ses
 
 ### Auth Guard
 
-Auth guard (`src/lib/features/auth/AuthGuard.ts`) akan membaca status saat ini untuk menentukan apa yang akan dirender.
+Auth guard (`src/lib/features/auth/components/AuthGuard.svelte`) akan membaca status saat ini untuk menentukan apa yang akan dirender.
 
 - `401` -> redirect ke `/login?returnTo=<path aman>`.
+- `419` -> tetap di halaman dan menampilkan pesan error sesi kedaluwarsa (CSRF expired) dengan aksi untuk muat ulang halaman
 - `403` / `network` / `5xx` -> tetap di halaman dan menampilkan pesan error dengan option untuk retry.
-- `pending` -> menampilkan skeleton loading, tidak merender tidak merender konten protected dan tidak melakukan redirect apa pun sampai status final.
+- `pending` -> menampilkan skeleton loading, tidak merender konten protected dan tidak melakukan redirect apa pun sampai status final.
 
 ### Logout
 
