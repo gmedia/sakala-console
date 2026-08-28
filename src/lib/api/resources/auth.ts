@@ -13,9 +13,9 @@ const currentUserSchema = z.object({
 	email: z.string().email(),
 	avatar_url: z.string().url().nullable(),
 	role: z.string(),
-	onboarding_source: z.string(),
-	onboarding_completed_at: z.string(),
-	last_login_at: z.string()
+	onboarding_source: z.string().nullable(),
+	onboarding_completed_at: z.string().nullable(),
+	last_login_at: z.string().nullable()
 }) satisfies z.ZodType<CurrentUser>;
 
 const currentUserResponseSchema = z.object({
