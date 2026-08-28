@@ -50,7 +50,7 @@
 		return isValid;
 	}
 
-	async function handleSubmit(e: SubmitEvent) {
+	function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (validateLogin()) {
 			// handle submit
