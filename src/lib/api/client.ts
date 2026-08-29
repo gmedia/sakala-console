@@ -1,5 +1,5 @@
 import { ensureCsrfCookie, readXsrfToken } from './csrf';
-import { ApiError, NetworkError, type ValidationErrors } from './errors';
+import { ApiError, apiErrorFromResponse, NetworkError, type ValidationErrors } from './errors';
 import { publicConfig } from '$lib/config/public';
 
 const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -69,12 +69,10 @@ async function createApiError(response: Response): Promise<ApiError> {
 		// A non-JSON upstream response still becomes a predictable API error.
 	}
 
-	return new ApiError(
-		typeof payload.message === 'string'
-			? payload.message
-			: `Request gagal dengan status ${response.status}.`,
+	return apiErrorFromResponse(
 		response.status,
-		normalizeValidationErrors(payload.errors)
+		normalizeValidationErrors(payload.errors),
+		payload.message
 	);
 }
 

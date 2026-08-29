@@ -4,6 +4,356 @@
  */
 
 export interface paths {
+	'/agent/v1/agents': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display a listing of the resource */
+		get: operations['agent.index'];
+		put?: never;
+		/** Store a newly created resource in storage */
+		post: operations['agent.store'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/agents/{agent}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display the specified resource */
+		get: operations['agent.show'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/agents/{agent}/rotate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Rotate the agent's token */
+		post: operations['agent.rotate'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/agents/{agent}/revoke': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Revoke the specified resource */
+		post: operations['agent.revoke'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/heartbeat': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['agent.heartbeat'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/user': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.auth.user'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/deployments': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display a listing of the resource */
+		get: operations['projects.deployments.index'];
+		put?: never;
+		/** Store a newly created resource in storage */
+		post: operations['projects.deployments.store'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/deployments/{deployment}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display the specified resource */
+		get: operations['projects.deployments.show'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/deployments/{deployment}/events': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['deployment.events'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/deployments/{deployment}/logs': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['deployment.logs'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/feedback': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Submit pilot feedback */
+		post: operations['v1.app.feedback.store'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/github/installations': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.github.installations.index'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/github/installations/{installation}/repositories': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.github.installations.repositories.index'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/github/installations/{installation}/repositories/{repositoryId}/branches': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.github.installations.repositories.branches.index'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/github/repositories/validate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.app.github.repositories.validate'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/github/repositories/branches': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.github.repositories.branches'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/webhooks/github': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.webhooks.github'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/logout': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.logout'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/pilot-limits': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.pilot-limits.show'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display a listing of the resource */
+		get: operations['projects.index'];
+		put?: never;
+		/** Store a newly created resource in storage */
+		post: operations['projects.store'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display the specified resource */
+		get: operations['projects.show'];
+		/** Update the specified resource in storage */
+		put: operations['projects.update'];
+		post?: never;
+		/** Remove the specified resource from storage */
+		delete: operations['projects.destroy'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1': {
 		parameters: {
 			query?: never;
@@ -24,18 +374,349 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/onboarding/source': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.onboarding.source'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
+		/** AgentHeartbeatResource */
+		AgentHeartbeatResource: {
+			id: string;
+			agent_id: string;
+			name: string | null;
+			status: string;
+			hostname: string | null;
+			runtime_network: string;
+			capabilities: unknown[] | null;
+			metadata: unknown[] | null;
+			/** Format: date-time */
+			registered_at: string | null;
+			/** Format: date-time */
+			last_seen_at: string | null;
+		};
+		/** AgentResource */
+		AgentResource: {
+			id: string;
+			agent_id: string;
+			name: string | null;
+			description: string;
+			token_prefix: string | null;
+			auth_status: string;
+			status: string;
+			created_at: string;
+			updated_at: string;
+		};
+		/** CreateProjectResource */
+		CreateProjectResource: {
+			id: string;
+			name: string;
+			repository_full_name: string;
+			/** @enum {string} */
+			repository_source: 'public_url' | 'github_installation';
+			github_installation_id: string;
+			github_repository_id: string;
+			branch: string;
+			runtime_status: string;
+			created_at: string;
+		};
+		/**
+		 * DeploymentEventLevel
+		 * @enum {string}
+		 */
+		DeploymentEventLevel: 'info' | 'warning' | 'error';
+		/** DeploymentEventResource */
+		DeploymentEventResource: {
+			sequence: number;
+			level: components['schemas']['DeploymentEventLevel'];
+			type: string | null;
+			message: string;
+			metadata: unknown[] | null;
+			occurred_at: string;
+		};
+		/** DeploymentLogResource */
+		DeploymentLogResource: {
+			sequence: number;
+			stream: components['schemas']['LogStream'];
+			message: string;
+			recorded_at: string;
+		};
+		/** DeploymentResource */
+		DeploymentResource: {
+			id: string;
+			project_id: string;
+			sequence: number;
+			branch: string;
+			status: string;
+			trigger: string;
+			commit_sha: string | null;
+			commit_message: string | null;
+			image_reference: string | null;
+			requested_resources: unknown[] | null;
+			effective_resources: unknown[] | null;
+			started_at: string;
+			finished_at: string;
+			cancelled_at: string;
+			failure_code: string | null;
+			failure_summary: string | null;
+			created_at: string;
+			updated_at: string;
+		};
+		/**
+		 * FeedbackCategory
+		 * @enum {string}
+		 */
+		FeedbackCategory: 'general' | 'bug' | 'feature_request' | 'experience' | 'performance';
+		/** GetCollectionProjectResource */
+		GetCollectionProjectResource: {
+			id: string;
+			name: string;
+			repository_full_name: string;
+			/** @enum {string} */
+			repository_source: 'public_url' | 'github_installation';
+			github_installation_id: string;
+			github_repository_id: string;
+			branch: string;
+			thumbnail_url: string;
+			runtime_status: string;
+			last_deployed_at: string;
+			created_at: string;
+		};
+		/** GithubBranchResource */
+		GithubBranchResource: {
+			name: string;
+		};
+		/** GithubInstallationResource */
+		GithubInstallationResource: {
+			id: string;
+			account_login: string;
+			account_type: string;
+			repository_selection: string;
+			status: string;
+			created_at: string;
+			updated_at: string;
+		};
+		/** GithubResource */
+		GithubResource: {
+			id: string;
+			name: string;
+			full_name: string;
+			clone_url: string;
+			default_branch: string;
+			pushed_at: string;
+			private: boolean;
+		};
+		/**
+		 * LogStream
+		 * @enum {string}
+		 */
+		LogStream: 'stdout' | 'stderr' | 'system';
+		/**
+		 * OnboardingSource
+		 * @enum {string}
+		 */
+		OnboardingSource:
+			| 'campus'
+			| 'friend'
+			| 'community'
+			| 'workshop'
+			| 'social_media'
+			| 'gmedia'
+			| 'github'
+			| 'other';
+		/** PilotLimitsResource */
+		PilotLimitsResource: {
+			quotas: {
+				max_projects_per_user: number;
+				max_active_deployments_per_user: number;
+				max_active_deployments_per_project: number;
+				current_projects_count: number;
+				current_active_deployments_count: number;
+			};
+			runtime_defaults: {
+				memory_mb: number;
+				cpu_millis: number;
+				pids_limit: number;
+			};
+			runtime_maximums: {
+				memory_mb: number;
+				cpu_millis: number;
+				pids_limit: number;
+			};
+			timeouts: {
+				build_timeout_seconds: number;
+				start_timeout_seconds: number;
+				command_timeout_seconds: number;
+			};
+			log_bounds: {
+				max_line_length: number;
+				max_batch_lines: number;
+				max_total_bytes: number;
+			};
+		};
+		/** ProjectResource */
+		ProjectResource: {
+			id: string;
+			name: string;
+			slug: string;
+			repository_provider: string;
+			thumbnail_url: string | null;
+			repository_url: string;
+			repository_full_name: string | null;
+			/** @enum {string} */
+			repository_source: 'public_url' | 'github_installation';
+			github_installation_id: string | null;
+			github_repository_id: number | null;
+			branch: string;
+			default_domain: string;
+			status: string;
+			runtime_status: string;
+			detected_port: number | null;
+			last_deployed_at: string;
+			created_at: string;
+			updated_at: string;
+		};
 		/** ServiceStatusResource */
 		ServiceStatusResource: {
 			service: string;
 			status: string;
 			api_version: string;
 		};
+		/** StoreAgentRequest */
+		StoreAgentRequest: {
+			name: string;
+			description?: string | null;
+		};
+		/** StoreDeploymentRequest */
+		StoreDeploymentRequest: {
+			branch: string;
+			resources?: {
+				memory_mb?: number | null;
+				cpu_millis?: number | null;
+				pids_limit?: number | null;
+			};
+		};
+		/** StoreFeedbackRequest */
+		StoreFeedbackRequest: {
+			category: components['schemas']['FeedbackCategory'];
+			message: string;
+			/** Format: uuid */
+			project_id?: string | null;
+			/** Format: uuid */
+			deployment_id?: string | null;
+			consent: boolean;
+		};
+		/** StoreOnboardingSourceRequest */
+		StoreOnboardingSourceRequest: {
+			source?: components['schemas']['OnboardingSource'];
+			skip?: string;
+		};
+		/** StoreProjectRequest */
+		StoreProjectRequest: {
+			name: string;
+			branch: string;
+			repository: {
+				/** @enum {string} */
+				type: 'public_url' | 'github_installation';
+				/** Format: uri */
+				url?: string;
+				/** Format: uuid */
+				installation_id?: string;
+				repository_id?: number;
+			};
+		};
+		/** UpdateProjectRequest */
+		UpdateProjectRequest: {
+			name?: string;
+			/** Format: uri */
+			thumbnail_url?: string | null;
+			branch?: string;
+		};
+		/** UserResource */
+		UserResource: {
+			id: number;
+			name: string;
+			email: string;
+			avatar_url: string | null;
+			role: string;
+			onboarding_source: string | null;
+			onboarding_completed_at: string | null;
+			last_login_at: string | null;
+		};
+		/** ValidateUrlRequest */
+		ValidateUrlRequest: {
+			/** Format: uri */
+			repository_url: string;
+		};
 	};
-	responses: never;
+	responses: {
+		/** @description Unauthenticated */
+		AuthenticationException: {
+			headers: {
+				[name: string]: unknown;
+			};
+			content: {
+				'application/json': {
+					/** @description Error overview. */
+					message: string;
+				};
+			};
+		};
+		/** @description Validation error */
+		ValidationException: {
+			headers: {
+				[name: string]: unknown;
+			};
+			content: {
+				'application/json': {
+					/** @description Errors overview. */
+					message: string;
+					/** @description A detailed description of each field that failed validation. */
+					errors: {
+						[key: string]: string[];
+					};
+				};
+			};
+		};
+		/** @description Authorization error */
+		AuthorizationException: {
+			headers: {
+				[name: string]: unknown;
+			};
+			content: {
+				'application/json': {
+					/** @description Error overview. */
+					message: string;
+				};
+			};
+		};
+		/** @description Not found */
+		ModelNotFoundException: {
+			headers: {
+				[name: string]: unknown;
+			};
+			content: {
+				'application/json': {
+					/** @description Error overview. */
+					message: string;
+				};
+			};
+		};
+	};
 	parameters: never;
 	requestBodies: never;
 	headers: never;
@@ -43,6 +724,890 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+	'agent.index': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Array of `AgentResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentResource'][];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+		};
+	};
+	'agent.store': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['StoreAgentRequest'];
+			};
+		};
+		responses: {
+			/** @description `AgentResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.show': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The agent ID */
+				agent: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AgentResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
+	'agent.rotate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The agent ID */
+				agent: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AgentResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.revoke': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The agent ID */
+				agent: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.heartbeat': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AgentHeartbeatResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentHeartbeatResource'];
+					};
+				};
+			};
+			403: components['responses']['AuthorizationException'];
+		};
+	};
+	'v1.auth.user': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'projects.deployments.index': {
+		parameters: {
+			query?: {
+				page?: number;
+				per_page?: number;
+				search?: string;
+				filter?: '7_days' | '30_days' | 'all';
+			};
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Paginated set of `DeploymentResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['DeploymentResource'][];
+						links: {
+							first: string | null;
+							last: string | null;
+							prev: string | null;
+							next: string | null;
+						};
+						meta: {
+							current_page: number;
+							from: number | null;
+							last_page: number;
+							/** @description Generated paginator links. */
+							links: {
+								url: string | null;
+								label: string;
+								active: boolean;
+							}[];
+							/** @description Base path for paginator generated URLs. */
+							path: string | null;
+							/** @description Number of items shown per page. */
+							per_page: number;
+							/** @description Number of the last item in the slice. */
+							to: number | null;
+							/** @description Total number of items being paginated. */
+							total: number;
+						};
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projects.deployments.store': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry a deployment request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['StoreDeploymentRequest'];
+			};
+		};
+		responses: {
+			/** @description `DeploymentResource` */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['DeploymentResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projects.deployments.show': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The deployment ID */
+				deployment: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `DeploymentResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['DeploymentResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
+	'deployment.events': {
+		parameters: {
+			query?: {
+				cursor?: string;
+				per_page?: number;
+			};
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The deployment ID */
+				deployment: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Paginated set of `DeploymentEventResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['DeploymentEventResource'][];
+						links: {
+							first: string | null;
+							last: string | null;
+							prev: string | null;
+							next: string | null;
+						};
+						meta: {
+							/** @description Base path for paginator generated URLs. */
+							path: string | null;
+							/** @description Number of items shown per page. */
+							per_page: number;
+							/** @description The "cursor" that points to the next set of items. */
+							next_cursor: string | null;
+							/** @description The "cursor" that points to the previous set of items. */
+							prev_cursor: string | null;
+						};
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'deployment.logs': {
+		parameters: {
+			query?: {
+				cursor?: string;
+				per_page?: number;
+			};
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The deployment ID */
+				deployment: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Paginated set of `DeploymentLogResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['DeploymentLogResource'][];
+						links: {
+							first: string | null;
+							last: string | null;
+							prev: string | null;
+							next: string | null;
+						};
+						meta: {
+							/** @description Base path for paginator generated URLs. */
+							path: string | null;
+							/** @description Number of items shown per page. */
+							per_page: number;
+							/** @description The "cursor" that points to the next set of items. */
+							next_cursor: string | null;
+							/** @description The "cursor" that points to the previous set of items. */
+							prev_cursor: string | null;
+						};
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.feedback.store': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['StoreFeedbackRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 201;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.github.installations.index': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Array of `GithubInstallationResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['GithubInstallationResource'][];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.github.installations.repositories.index': {
+		parameters: {
+			query?: {
+				page?: number;
+				per_page?: number;
+			};
+			header?: never;
+			path: {
+				/** @description The installation ID */
+				installation: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Paginated set of `GithubResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['GithubResource'][];
+						links: {
+							first: string | null;
+							last: string | null;
+							prev: string | null;
+							next: string | null;
+						};
+						meta: {
+							current_page: number;
+							from: number | null;
+							last_page: number;
+							/** @description Generated paginator links. */
+							links: {
+								url: string | null;
+								label: string;
+								active: boolean;
+							}[];
+							/** @description Base path for paginator generated URLs. */
+							path: string | null;
+							/** @description Number of items shown per page. */
+							per_page: number;
+							/** @description Number of the last item in the slice. */
+							to: number | null;
+							/** @description Total number of items being paginated. */
+							total: number;
+						};
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			/** @description An error */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						/**
+						 * @description Error overview.
+						 * @example
+						 */
+						message: string;
+					};
+				};
+			};
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.github.installations.repositories.branches.index': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The installation ID */
+				installation: string;
+				repositoryId: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Array of `GithubBranchResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['GithubBranchResource'][];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			/** @description An error */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						/**
+						 * @description Error overview.
+						 * @example
+						 */
+						message: string;
+					};
+				};
+			};
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.github.repositories.validate': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ValidateUrlRequest'];
+			};
+		};
+		responses: {
+			/** @description `GithubResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['GithubResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.github.repositories.branches': {
+		parameters: {
+			query: {
+				repository_url: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Array of `GithubBranchResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['GithubBranchResource'][];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.webhooks.github': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						received: boolean;
+						duplicate: boolean;
+					};
+				};
+			};
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						/** @constant */
+						message: 'Invalid GitHub webhook signature.';
+					};
+				};
+			};
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						/** @constant */
+						message: 'Invalid GitHub webhook delivery.';
+					};
+				};
+			};
+		};
+	};
+	'v1.auth.logout': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.pilot-limits.show': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `PilotLimitsResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['PilotLimitsResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'projects.index': {
+		parameters: {
+			query?: {
+				page?: number;
+				per_page?: number;
+				search?: string;
+				filter?: '7_days' | '30_days' | 'all';
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Paginated set of `GetCollectionProjectResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['GetCollectionProjectResource'][];
+						links: {
+							first: string | null;
+							last: string | null;
+							prev: string | null;
+							next: string | null;
+						};
+						meta: {
+							current_page: number;
+							from: number | null;
+							last_page: number;
+							/** @description Generated paginator links. */
+							links: {
+								url: string | null;
+								label: string;
+								active: boolean;
+							}[];
+							/** @description Base path for paginator generated URLs. */
+							path: string | null;
+							/** @description Number of items shown per page. */
+							per_page: number;
+							/** @description Number of the last item in the slice. */
+							to: number | null;
+							/** @description Total number of items being paginated. */
+							total: number;
+						};
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projects.store': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['StoreProjectRequest'];
+			};
+		};
+		responses: {
+			/** @description `CreateProjectResource` */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['CreateProjectResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projects.show': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `ProjectResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['ProjectResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
+	'projects.update': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['UpdateProjectRequest'];
+			};
+		};
+		responses: {
+			/** @description `ProjectResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['ProjectResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projects.destroy': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
 	'v1.status': {
 		parameters: {
 			query?: never;
@@ -63,6 +1628,35 @@ export interface operations {
 					};
 				};
 			};
+		};
+	};
+	'v1.onboarding.source': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['StoreOnboardingSourceRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
 		};
 	};
 }
