@@ -3,7 +3,7 @@ export const queryKeys = {
 		status: ['system', 'status'] as const
 	},
 	auth: {
-		user: ['auth', 'user'] as const
+		currentUser: ['auth', 'currentUser'] as const
 	},
 	projects: {
 		all: ['projects'] as const,
