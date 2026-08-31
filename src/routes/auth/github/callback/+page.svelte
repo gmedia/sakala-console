@@ -1,29 +1,32 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { createQuery } from '@tanstack/svelte-query';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import { resolve } from '$app/paths';
+	import { currentUserQuery } from '$lib/features/auth/queries';
 
+	const hasError = $derived(Boolean(page.url.searchParams.get('error')));
 	const errorParam = $derived(page.url.searchParams.get('error'));
-
-	const userQuery = createQuery(() => ({
-		queryKey: ['currentUser'],
-		queryFn: async () => {
-			const res = await fetch(`${PUBLIC_API_URL}/auth/github/callback`, {
-				headers: { Accept: 'application/json' },
-				credentials: 'include'
-			});
-			if (!res.ok) throw new Error('Unauthenticated');
-			return res.json();
-		},
-		enabled: !errorParam,
-		retry: false
-	}));
+	const userQuery = currentUserQuery(() => !hasError);
 
 	$effect(() => {
-		if (userQuery.isSuccess) {
-			goto(resolve('/projects'), { replaceState: true });
+		if (userQuery.isSuccess && userQuery.data?.data) {
+			const user = userQuery.data.data;
+			const returnUrl = localStorage.getItem('return_url');
+
+			if (returnUrl) {
+				localStorage.removeItem('return_url');
+			}
+
+			if (returnUrl && returnUrl.startsWith('/')) {
+				goto(resolve(returnUrl as '/'), { replaceState: true });
+				return;
+			}
+
+			if (user.onboarding_completed_at) {
+				goto(resolve('/projects'), { replaceState: true });
+			} else {
+				goto(resolve('/onboarding'), { replaceState: true });
+			}
 		}
 	});
 </script>
@@ -35,7 +38,7 @@
 		>
 			<h3 class="font-semibold text-lg">Gagal Masuk</h3>
 			<p class="text-sm">
-				{#if errorParam === 'access denied'}
+				{#if errorParam === 'access_denied'}
 					Anda membatalkan izin masuk dengan GitHub.
 				{:else}
 					Terjadi kesalahan koneksi atau sesi telah kadaluwarsa.

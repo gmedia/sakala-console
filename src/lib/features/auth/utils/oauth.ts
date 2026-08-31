@@ -5,6 +5,9 @@ export function redirectToGithubAuth(returnUrl?: string) {
 
 	if (returnUrl && returnUrl.startsWith('/')) {
 		url.searchParams.append('return_url', returnUrl);
+		localStorage.setItem('return_url', returnUrl);
+	} else {
+		localStorage.removeItem('return_url');
 	}
 
 	window.location.href = url.toString();
