@@ -1,7 +1,9 @@
-import { PUBLIC_API_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
+
+const apiUrl = env.PUBLIC_API_URL;
 
 export function redirectToGithubAuth(returnUrl?: string) {
-	const url = new URL(`${PUBLIC_API_URL}/auth/github/redirect`);
+	const url = new URL(`${apiUrl}/auth/github/redirect`);
 
 	if (returnUrl && returnUrl.startsWith('/')) {
 		url.searchParams.append('return_url', returnUrl);
