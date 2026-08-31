@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { redirectToGithubAuth } from '$lib/features/auth/utils/oauth';
 	import AuthBranding from '$lib/features/auth/components/AuthBranding.svelte';
 	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
 	import { Eye, EyeClosed } from 'phosphor-svelte';
@@ -25,6 +26,10 @@
 	function handleProviderClick(id: ProviderId) {
 		if (id === 'email') {
 			goto(resolve('/register?method=email'), { keepFocus: true });
+		} else if (id === 'github') {
+			redirectToGithubAuth();
+		} else if (id === 'google') {
+			// blm ada
 		} else {
 			console.log(`Daftar dengan ${id}`);
 		}
