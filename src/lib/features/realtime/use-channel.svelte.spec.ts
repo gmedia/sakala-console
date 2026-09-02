@@ -29,8 +29,8 @@ describe('usePrivateChannel', () => {
 		mockedGetEcho.mockReset();
 	});
 
-	it('subscribes to channel and listens when echo is available', async () => {
-		const { echo, privateFn } = createMockEcho();
+	it('subscribes to channel, listens for events, and leaves on dispose', async () => {
+		const { echo, privateFn, leaveFn } = createMockEcho();
 		mockedGetEcho.mockResolvedValue(echo);
 
 		const handler = vi.fn();
@@ -40,6 +40,7 @@ describe('usePrivateChannel', () => {
 
 		await vi.waitFor(() => expect(privateFn).toHaveBeenCalledWith('deployment.1'));
 		dispose();
+		expect(leaveFn).toHaveBeenCalledWith('deployment.1');
 	});
 
 	it('never subscribes when effect is disposed before echo is available', async () => {
