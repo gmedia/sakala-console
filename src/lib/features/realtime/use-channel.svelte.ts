@@ -25,7 +25,9 @@ export function usePrivateChannel(
 			subscribedEcho = echo;
 		}
 
-		subscribe();
+		subscribe().catch((error) => {
+			console.warn('Gagal subscribe ke channel', validName, error);
+		});
 
 		return () => {
 			cancelled = true;
