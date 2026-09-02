@@ -11,9 +11,17 @@ export async function getEcho(): Promise<EchoType<'reverb'> | null> {
 	if (!browser) return null;
 	if (echoInstance) return echoInstance;
 	if (!initPromise) {
-		initPromise = initEcho();
+		initPromise = initEcho().finally(() => {
+			if (!echoInstance) initPromise = null;
+		});
 	}
-	echoInstance = await initPromise;
+	try {
+		echoInstance = await initPromise;
+	} catch {
+		initPromise = null;
+		echoInstance = null;
+		return null;
+	}
 	return echoInstance;
 }
 
@@ -56,7 +64,6 @@ async function initEcho(): Promise<EchoType<'reverb'> | null> {
 		return instance;
 	} catch (error) {
 		console.warn('Gagal inisialisasi Echo: ', error);
-		initPromise = null;
 		return null;
 	}
 }

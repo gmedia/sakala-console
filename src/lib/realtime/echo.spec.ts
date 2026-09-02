@@ -28,12 +28,18 @@ async function importEchoModule(
 	options: {
 		browser?: boolean;
 		env?: typeof validEnv | null;
+		envError?: Error;
 	} = {}
 ) {
-	const { browser = true, env = validEnv } = options;
+	const { browser = true, env = validEnv, envError } = options;
 
 	vi.doMock('$app/environment', () => ({ browser }));
-	vi.doMock('./env', () => ({ getRealtimeEnv: vi.fn(() => env) }));
+	vi.doMock('./env', () => ({
+		getRealtimeEnv: vi.fn(() => {
+			if (envError) throw envError;
+			return env;
+		})
+	}));
 	vi.doMock('./connection-state.svelte', () => ({
 		bindConnectionState: vi.fn(),
 		resetConnectionState: vi.fn()
@@ -117,6 +123,34 @@ describe('getEcho - browser-only & lazy', () => {
 	});
 });
 
+describe('getEcho - error thrown before try block', () => {
+	beforeEach(() => {
+		vi.resetModules();
+		EchoMock.mockReset();
+		vi.stubGlobal('window', {});
+	});
+
+	it('resolves to null (not an unhandled rejection) when getRealtimeEnv() throws synchronously', async () => {
+		const { getEcho } = await importEchoModule({
+			envError: new Error('error sebelum try')
+		});
+
+		await expect(getEcho()).resolves.toBeNull();
+	});
+
+	it('resets initPromise so the next call retries instead of re-awaiting the same rejected promise', async () => {
+		const { getEcho } = await importEchoModule({
+			envError: new Error('error sebelum try')
+		});
+
+		const first = await getEcho();
+		expect(first).toBeNull();
+
+		const second = await getEcho();
+		expect(second).toBeNull();
+	});
+});
+
 describe('authorizeChannel integration', () => {
 	beforeEach(() => {
 		vi.resetModules();
@@ -125,7 +159,7 @@ describe('authorizeChannel integration', () => {
 	});
 
 	it('callback(null, data) when authorizeChannel success', async () => {
-		EchoMock.mockImplementation(() => createEchoInstanceStub());
+		EchoMock.mockImplementation(echoConstructorStub);
 		const { getEcho } = await importEchoModule();
 		const broadcasting = await import('$lib/api/resources/broadcasting');
 
@@ -144,7 +178,7 @@ describe('authorizeChannel integration', () => {
 	});
 
 	it('callback(Error, null) when authorizeChannel fails', async () => {
-		EchoMock.mockImplementation(() => createEchoInstanceStub());
+		EchoMock.mockImplementation(echoConstructorStub);
 		const { getEcho } = await importEchoModule();
 		const broadcasting = await import('$lib/api/resources/broadcasting');
 
