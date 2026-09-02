@@ -19,6 +19,11 @@ function createMockEcho(
 	};
 }
 
+function renderEffect(setup: () => void) {
+	const dispose = $effect.root(setup);
+	return dispose;
+}
+
 describe('usePrivateChannel', () => {
 	beforeEach(() => {
 		mockedGetEcho.mockReset();
@@ -29,7 +34,7 @@ describe('usePrivateChannel', () => {
 		mockedGetEcho.mockResolvedValue(echo);
 
 		const handler = vi.fn();
-		const dispose = $effect.root(() => {
+		const dispose = renderEffect(() => {
 			usePrivateChannel('deployment.1', { '.DeploymentUpdated': handler });
 		});
 
@@ -45,7 +50,7 @@ describe('usePrivateChannel', () => {
 			})
 		);
 
-		const dispose = $effect.root(() => {
+		const dispose = renderEffect(() => {
 			usePrivateChannel('deployment.1', {});
 		});
 
@@ -53,15 +58,14 @@ describe('usePrivateChannel', () => {
 
 		const { echo, privateFn, leaveFn } = createMockEcho();
 		resolveEcho(echo);
-		await Promise.resolve();
-		await Promise.resolve();
+		await new Promise((r) => setTimeout(r, 0));
 
 		expect(privateFn).not.toHaveBeenCalled();
 		expect(leaveFn).not.toHaveBeenCalled();
 	});
 
 	it('does not call getEcho when channelName resolves to null', () => {
-		const dispose = $effect.root(() => {
+		const dispose = renderEffect(() => {
 			usePrivateChannel(() => null, {});
 		});
 
@@ -77,7 +81,7 @@ describe('usePrivateChannel', () => {
 
 		mockedGetEcho.mockImplementation(() => Promise.resolve(currentId === 'a' ? echoA : echoB));
 
-		const dispose = $effect.root(() => {
+		const dispose = renderEffect(() => {
 			usePrivateChannel(() => `deployment.${currentId}`, {});
 		});
 
@@ -100,7 +104,7 @@ describe('usePrivateChannel', () => {
 		const onUpdated = vi.fn();
 		const onLogCreated = vi.fn();
 
-		const dispose = $effect.root(() => {
+		const dispose = renderEffect(() => {
 			usePrivateChannel('deployment.1', {
 				'.DeploymentUpdated': onUpdated,
 				'.DeploymentLogCreated': onLogCreated
@@ -113,5 +117,31 @@ describe('usePrivateChannel', () => {
 		expect(privateFn).toHaveBeenCalledWith('deployment.1');
 
 		dispose();
+	});
+
+	it('catches errors when subscribing to a private channel', async () => {
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const { echo } = createMockEcho({
+			private: vi.fn(() => {
+				throw new Error('gagal subscribe channel');
+			})
+		});
+		mockedGetEcho.mockResolvedValue(echo);
+
+		const dispose = renderEffect(() => {
+			usePrivateChannel('deployment.1', {});
+		});
+
+		await vi.waitFor(() =>
+			expect(warnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Gagal subscribe ke channel'),
+				'deployment.1',
+				expect.any(Error)
+			)
+		);
+
+		dispose();
+		warnSpy.mockRestore();
 	});
 });
