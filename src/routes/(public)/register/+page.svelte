@@ -24,10 +24,15 @@
 	];
 
 	function handleProviderClick(id: ProviderId) {
+		const returnTo = page.url.searchParams.get('returnTo');
+
 		if (id === 'email') {
-			goto(resolve('/register?method=email'), { keepFocus: true });
+			const query = returnTo
+				? `?method=email&returnTo=${encodeURIComponent(returnTo)}`
+				: '?method=email';
+			goto(resolve(`/register${query}` as '/register'), { keepFocus: true });
 		} else if (id === 'github') {
-			redirectToGithubAuth();
+			redirectToGithubAuth(returnTo);
 		} else if (id === 'google') {
 			// blm ada
 		} else {
