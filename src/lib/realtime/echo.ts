@@ -11,28 +11,25 @@ export async function getEcho(): Promise<EchoType<'reverb'> | null> {
 	if (!browser) return null;
 	if (echoInstance) return echoInstance;
 	if (!initPromise) {
-		initPromise = initEcho().finally(() => {
-			if (!echoInstance) initPromise = null;
+		initPromise = initEcho().then((instance) => {
+			if (!instance) {
+				initPromise = null;
+			}
+			return instance;
 		});
 	}
-	try {
-		echoInstance = await initPromise;
-	} catch {
-		initPromise = null;
-		echoInstance = null;
-		return null;
-	}
+	echoInstance = await initPromise;
 	return echoInstance;
 }
 
 async function initEcho(): Promise<EchoType<'reverb'> | null> {
-	const env = getRealtimeEnv();
-	if (!env) {
-		console.warn('Env reverb tidak lengkap. Realtime dinonaktifkan.');
-		return null;
-	}
-
 	try {
+		const env = getRealtimeEnv();
+		if (!env) {
+			console.warn('Env reverb tidak lengkap. Realtime dinonaktifkan.');
+			return null;
+		}
+
 		const [{ default: Echo }, { default: Pusher }] = await Promise.all([
 			import('laravel-echo'),
 			import('pusher-js')
