@@ -13,7 +13,7 @@ describe('mapPusherState', () => {
 		['connecting', 'connecting'],
 		['connected', 'connected'],
 		['unavailable', 'unavailable'],
-		['failed', 'unavailable'],
+		['failed', 'failed'],
 		['disconnected', 'disconnected'],
 		['state-tak-dikenal', 'unavailable']
 	] as const)('mapPusherState("%s") should return "%s"', (input, expected) => {
@@ -56,7 +56,7 @@ describe('bindConnectionState & resetConnectionState', () => {
 		expect(realtimeState.status).toBe('connected');
 
 		emit('failed');
-		expect(realtimeState.status).toBe('unavailable');
+		expect(realtimeState.status).toBe('failed');
 	});
 
 	it('resetConnectionState resets status to "idle"', () => {

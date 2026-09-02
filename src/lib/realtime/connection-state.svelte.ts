@@ -1,5 +1,11 @@
 import type EchoType from 'laravel-echo';
-export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'unavailable';
+export type ConnectionStatus =
+	| 'idle'
+	| 'connecting'
+	| 'connected'
+	| 'disconnected'
+	| 'unavailable'
+	| 'failed';
 export const realtimeState = $state<{ status: ConnectionStatus }>({ status: 'idle' });
 
 const PUSHER_STATE_MAP: Record<string, ConnectionStatus> = {
@@ -7,7 +13,7 @@ const PUSHER_STATE_MAP: Record<string, ConnectionStatus> = {
 	connecting: 'connecting',
 	connected: 'connected',
 	unavailable: 'unavailable',
-	failed: 'unavailable',
+	failed: 'failed',
 	disconnected: 'disconnected'
 };
 
