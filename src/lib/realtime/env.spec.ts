@@ -60,7 +60,19 @@ describe('getRealtimeEnv', () => {
 		});
 	});
 
-	it('accepts all four valid schemes: http, https', () => {
+	it('rejects ws/wss schemes (no longer supported after the enum was narrowed)', () => {
+		for (const scheme of ['ws', 'wss']) {
+			Object.assign(mockEnv, {
+				PUBLIC_REVERB_HOST: 'api.staging.sakala.dev',
+				PUBLIC_REVERB_KEY: 'abc123',
+				PUBLIC_REVERB_PORT: '443',
+				PUBLIC_REVERB_SCHEME: scheme
+			});
+			expect(getRealtimeEnv()).toBeNull();
+		}
+	});
+
+	it('accepts both valid schemes: http, https', () => {
 		for (const scheme of ['http', 'https']) {
 			Object.assign(mockEnv, {
 				PUBLIC_REVERB_HOST: 'api.staging.sakala.dev',
