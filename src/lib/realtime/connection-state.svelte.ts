@@ -6,6 +6,7 @@ export type ConnectionStatus =
 	| 'disconnected'
 	| 'unavailable'
 	| 'failed';
+
 export const realtimeState = $state<{ status: ConnectionStatus }>({ status: 'idle' });
 
 const PUSHER_STATE_MAP: Record<string, ConnectionStatus> = {

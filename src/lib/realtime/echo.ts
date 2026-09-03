@@ -1,24 +1,44 @@
 import { browser } from '$app/environment';
 import { getRealtimeEnv } from './env';
-import { bindConnectionState, resetConnectionState } from './connection-state.svelte';
+import {
+	bindConnectionState,
+	resetConnectionState,
+	realtimeState
+} from './connection-state.svelte';
 import { authorizeChannel, type ChannelAuthorization } from '$lib/api/resources/broadcasting';
 import type EchoType from 'laravel-echo';
 
 let echoInstance: EchoType<'reverb'> | null = null;
 let initPromise: Promise<EchoType<'reverb'> | null> | null = null;
+let initGeneration = 0;
 
 export async function getEcho(): Promise<EchoType<'reverb'> | null> {
 	if (!browser) return null;
 	if (echoInstance) return echoInstance;
 	if (!initPromise) {
+		const generation = initGeneration;
 		initPromise = initEcho().then((instance) => {
+			if (generation !== initGeneration) {
+				instance?.disconnect();
+				return null;
+			}
+
 			if (!instance) {
 				initPromise = null;
 			}
 			return instance;
 		});
 	}
-	echoInstance = await initPromise;
+	const promise = initPromise;
+	const generation = initGeneration;
+
+	const instance = await promise;
+
+	if (generation !== initGeneration) {
+		return null;
+	}
+
+	echoInstance = instance;
 	return echoInstance;
 }
 
@@ -27,6 +47,7 @@ async function initEcho(): Promise<EchoType<'reverb'> | null> {
 		const env = getRealtimeEnv();
 		if (!env) {
 			console.warn('Env reverb tidak lengkap. Realtime dinonaktifkan.');
+			realtimeState.status = 'unavailable';
 			return null;
 		}
 
@@ -61,15 +82,20 @@ async function initEcho(): Promise<EchoType<'reverb'> | null> {
 		return instance;
 	} catch (error) {
 		console.warn('Gagal inisialisasi Echo: ', error);
+		realtimeState.status = 'failed';
 		return null;
 	}
 }
 
 export async function disconnectEcho(): Promise<void> {
-	if (echoInstance) {
-		echoInstance.disconnect();
-		echoInstance = null;
-		initPromise = null;
-		resetConnectionState();
+	initGeneration++;
+	const instance = echoInstance;
+
+	echoInstance = null;
+	initPromise = null;
+
+	if (instance) {
+		instance.disconnect();
 	}
+	resetConnectionState();
 }

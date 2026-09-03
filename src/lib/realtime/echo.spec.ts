@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 const validEnv = {
 	host: 'api.staging.sakala.dev',
 	key: 'abc123',
-	port: '443',
+	port: 443,
 	scheme: 'https' as const
 };
 
@@ -18,6 +18,10 @@ function createEchoInstanceStub() {
 		private: vi.fn(),
 		leave: vi.fn()
 	};
+}
+
+function createMockConnectionState() {
+	return { status: 'idle' };
 }
 
 function echoConstructorStub() {
@@ -40,15 +44,19 @@ async function importEchoModule(
 			return env;
 		})
 	}));
+
+	const mockRealTimeState = createMockConnectionState();
 	vi.doMock('./connection-state.svelte', () => ({
 		bindConnectionState: vi.fn(),
-		resetConnectionState: vi.fn()
+		resetConnectionState: vi.fn(),
+		realtimeState: mockRealTimeState
 	}));
 	vi.doMock('$lib/api/resources/broadcasting', () => ({
 		authorizeChannel: vi.fn()
 	}));
 
-	return import('./echo');
+	const echoModule = await import('./echo');
+	return { ...echoModule, realtimeState: mockRealTimeState };
 }
 
 describe('getEcho - browser-only & lazy', () => {
@@ -72,11 +80,12 @@ describe('getEcho - browser-only & lazy', () => {
 	});
 
 	it('resolves to null when env is invalid', async () => {
-		const { getEcho } = await importEchoModule({ env: null });
+		const { getEcho, realtimeState } = await importEchoModule({ env: null });
 
 		const result = await getEcho();
 
 		expect(result).toBeNull();
+		expect(realtimeState.status).toBe('unavailable');
 		expect(EchoMock).not.toHaveBeenCalled();
 	});
 
@@ -92,16 +101,17 @@ describe('getEcho - browser-only & lazy', () => {
 	});
 
 	it('retries creating echo instance on failure', async () => {
-		EchoMock.mockImplementationOnce(() => {
+		EchoMock.mockImplementationOnce(function () {
 			throw new Error('gagal koneksi sesaat');
 		}).mockImplementation(function () {
 			return createEchoInstanceStub();
 		});
 
-		const { getEcho } = await importEchoModule();
+		const { getEcho, realtimeState } = await importEchoModule();
 
 		const first = await getEcho();
 		expect(first).toBeNull();
+		expect(realtimeState.status).toBe('failed');
 
 		const second = await getEcho();
 		expect(second).not.toBeNull();
@@ -131,11 +141,12 @@ describe('getEcho - error thrown before try block', () => {
 	});
 
 	it('resolves to null (not an unhandled rejection) when getRealtimeEnv() throws synchronously', async () => {
-		const { getEcho } = await importEchoModule({
+		const { getEcho, realtimeState } = await importEchoModule({
 			envError: new Error('error sebelum try')
 		});
 
 		await expect(getEcho()).resolves.toBeNull();
+		expect(realtimeState.status).toBe('failed');
 	});
 
 	it('resets initPromise so the next call retries instead of re-awaiting the same rejected promise', async () => {
@@ -226,5 +237,45 @@ describe('disconnectEcho', () => {
 		const second = await getEcho();
 		expect(second).toBe(secondInstance);
 		expect(second).not.toBe(first);
+	});
+
+	it('invalidates pending initialization when disconnectEcho is called before init completes', async () => {
+		let allowImport!: () => void;
+		let importStarted = false;
+
+		const importBlocker = new Promise<void>((resolve) => {
+			allowImport = resolve;
+		});
+
+		const staleInstance = createEchoInstanceStub();
+
+		vi.doMock('laravel-echo', async () => {
+			importStarted = true;
+			await importBlocker;
+			return { default: EchoMock };
+		});
+		vi.doMock('pusher-js', () => ({ default: vi.fn() }));
+
+		const { getEcho, disconnectEcho } = await importEchoModule();
+
+		EchoMock.mockImplementationOnce(function () {
+			return staleInstance;
+		});
+
+		const pendingGetEcho = getEcho();
+
+		await vi.waitFor(() => {
+			expect(importStarted).toBe(true);
+		});
+
+		await disconnectEcho();
+
+		allowImport();
+
+		const result = await pendingGetEcho;
+		expect(result).toBeNull();
+		expect(EchoMock).toHaveBeenCalledTimes(1);
+		expect(EchoMock.mock.results[0]?.value).toBe(staleInstance);
+		expect(staleInstance.disconnect).toHaveBeenCalledTimes(1);
 	});
 });
