@@ -1,4 +1,8 @@
 import { getEcho } from '$lib/realtime/echo';
+import { retainChannel, releaseChannel } from './channel-registry';
+
+type EchoInstance = Awaited<ReturnType<typeof getEcho>>;
+type PrivateChannel = ReturnType<NonNullable<EchoInstance>['private']>;
 
 export function usePrivateChannel(
 	channelName: string | (() => string | null),
@@ -9,20 +13,43 @@ export function usePrivateChannel(
 		if (!rawName) return;
 
 		const validName: string = rawName;
-		let subscribedEcho: Awaited<ReturnType<typeof getEcho>> = null;
+		const boundEvents = Object.entries(events);
 		let cancelled = false;
+		let retained = false;
+		let subscribedEcho: Awaited<ReturnType<typeof getEcho>> = null;
+		let subscribedChannel: PrivateChannel | null = null;
 
 		async function subscribe() {
 			const echo = await getEcho();
 			if (!echo || cancelled) return;
 
 			const channel = echo.private(validName);
+			const registeredEvents: [string, (payload: unknown) => void][] = [];
 
-			Object.entries(events).forEach(([eventName, callback]) => {
-				channel.listen(eventName, callback);
-			});
+			try {
+				for (const [eventName, callback] of boundEvents) {
+					channel.listen(eventName, callback);
+					registeredEvents.push([eventName, callback]);
+				}
 
-			subscribedEcho = echo;
+				if (cancelled) {
+					for (const [eventName, callback] of boundEvents) {
+						channel.stopListening(eventName, callback);
+					}
+					return;
+				}
+
+				subscribedEcho = echo;
+				subscribedChannel = channel;
+
+				retainChannel(validName);
+				retained = true;
+			} catch (error) {
+				for (const [eventName, callback] of registeredEvents) {
+					channel.stopListening(eventName, callback);
+				}
+				throw error;
+			}
 		}
 
 		subscribe().catch((error) => {
@@ -31,7 +58,18 @@ export function usePrivateChannel(
 
 		return () => {
 			cancelled = true;
-			subscribedEcho?.leave(validName);
+			if (!retained) return;
+
+			if (subscribedChannel) {
+				for (const [eventName, callback] of boundEvents) {
+					subscribedChannel.stopListening(eventName, callback);
+				}
+			}
+
+			const isLastSubscriber = releaseChannel(validName);
+			if (isLastSubscriber) {
+				subscribedEcho?.leave(validName);
+			}
 		};
 	});
 }
