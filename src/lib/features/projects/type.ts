@@ -31,8 +31,10 @@ export interface Project {
 
 export interface ProjectEnvironmentVariable {
 	id: string;
+	project_id: string;
 	key: string;
 	value: string;
+	is_secret: boolean;
 	created_at: string;
 }
 

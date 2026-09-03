@@ -1,5 +1,11 @@
 import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { updateProject, deleteProject, triggerRedeploy } from './api';
+import {
+	updateProject,
+	deleteProject,
+	triggerRedeploy,
+	addEnvironmentVariable,
+	deleteEnvironmentVariable
+} from './api';
 import { projectKeys } from './queries';
 import type { UpdateProjectPayload, Project, Deployment } from './type';
 
@@ -36,6 +42,36 @@ export function createRedeployMutation() {
 		onSuccess: (_: Deployment, variables) => {
 			queryClient.invalidateQueries({ queryKey: projectKeys.deployments(variables.projectId) });
 			queryClient.invalidateQueries({ queryKey: projectKeys.detail(variables.projectId) });
+		}
+	}));
+}
+
+export function createAddEnvironmentVariableMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (variables: {
+			projectId: string;
+			data: { key: string; value: string; is_secret: boolean };
+		}) => addEnvironmentVariable(variables.projectId, variables.data),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: projectKeys.environmentVariables(variables.projectId)
+			});
+		}
+	}));
+}
+
+export function createDeleteEnvironmentVariableMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (variables: { projectId: string; id: string }) =>
+			deleteEnvironmentVariable(variables.projectId, variables.id),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: projectKeys.environmentVariables(variables.projectId)
+			});
 		}
 	}));
 }

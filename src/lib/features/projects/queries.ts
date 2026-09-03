@@ -1,18 +1,27 @@
 import { createQuery } from '@tanstack/svelte-query';
-import { getProject, getDeployments } from './api';
+import { getProject, getDeployments, getEnvironmentVariables } from './api';
 import type { Deployment } from './type';
 
 export const projectKeys = {
 	all: ['projects'] as const,
 	detail: (id: string) => [...projectKeys.all, id] as const,
-	deployments: (id: string) => [...projectKeys.detail(id), 'deployments'] as const
+	deployments: (id: string) => [...projectKeys.detail(id), 'deployments'] as const,
+	environmentVariables: (id: string) => [...projectKeys.detail(id), 'environmentVariables'] as const
 };
 
-export function createProjectQuery(id: string) {
+export function createEnvironmentVariablesQuery(projectId: () => string) {
 	return createQuery(() => ({
-		queryKey: projectKeys.detail(id),
-		queryFn: () => getProject(id),
-		enabled: !!id
+		queryKey: projectKeys.environmentVariables(projectId()),
+		queryFn: () => getEnvironmentVariables(projectId()),
+		enabled: !!projectId()
+	}));
+}
+
+export function createProjectQuery(projectId: () => string) {
+	return createQuery(() => ({
+		queryKey: projectKeys.detail(projectId()),
+		queryFn: () => getProject(projectId()),
+		enabled: !!projectId()
 	}));
 }
 

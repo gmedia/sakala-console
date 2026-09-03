@@ -1,5 +1,5 @@
-import { mockDeployments, mockProjects } from './mock';
-import type { Deployment, Project, UpdateProjectPayload } from './type';
+import { mockDeployments, mockProjects, mockEnvironmentVariables } from './mock';
+import type { Deployment, Project, UpdateProjectPayload, ProjectEnvironmentVariable } from './type';
 
 /**
  * Mock delay to simulate network latency
@@ -70,4 +70,47 @@ export async function triggerRedeploy(
 	}
 
 	return mockDeployments[0];
+}
+
+/**
+ * Get project environment variables
+ */
+export async function getEnvironmentVariables(
+	projectId: string
+): Promise<ProjectEnvironmentVariable[]> {
+	await delay(500);
+	return mockEnvironmentVariables.filter((e) => e.project_id === projectId);
+}
+
+/**
+ * Add project environment variable
+ */
+export async function addEnvironmentVariable(
+	projectId: string,
+	data: { key: string; value: string; is_secret: boolean }
+): Promise<ProjectEnvironmentVariable> {
+	await delay(600);
+	const newVar: ProjectEnvironmentVariable = {
+		id: 'env_' + Math.random().toString(36).substring(7),
+		project_id: projectId,
+		key: data.key,
+		value: data.value,
+		is_secret: data.is_secret,
+		created_at: new Date().toISOString()
+	};
+	mockEnvironmentVariables.push(newVar);
+	return newVar;
+}
+
+/**
+ * Delete project environment variable
+ */
+export async function deleteEnvironmentVariable(projectId: string, id: string): Promise<void> {
+	await delay(600);
+	const index = mockEnvironmentVariables.findIndex(
+		(e) => e.id === id && e.project_id === projectId
+	);
+	if (index !== -1) {
+		mockEnvironmentVariables.splice(index, 1);
+	}
 }
