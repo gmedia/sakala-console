@@ -3,7 +3,8 @@ import type {
 	CreateProjectResult,
 	Project,
 	Deployment,
-	Repository
+	Repository,
+	ProjectEnvironmentVariable
 } from '$lib/features/projects/type';
 
 export const mockProjects: Project[] = [
@@ -1100,5 +1101,32 @@ export const mockDeployments: Deployment[] = [
 		failure_summary: null,
 		created_at: '2026-08-26T09:00:00Z',
 		updated_at: '2026-08-26T09:15:00Z'
+	}
+];
+
+export const mockEnvironmentVariables: ProjectEnvironmentVariable[] = [
+	{
+		id: 'env_1',
+		project_id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d', // E-Commerce
+		key: 'DATABASE_URL',
+		value: 'postgres://user:pass@db.sakala.dev:5432/tugas_akhir',
+		is_secret: true,
+		created_at: '2026-08-27T00:00:00Z'
+	},
+	{
+		id: 'env_2',
+		project_id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
+		key: 'NEXT_PUBLIC_API_URL',
+		value: 'https://api.sakala.dev/v1',
+		is_secret: true,
+		created_at: '2026-08-27T00:00:00Z'
+	},
+	{
+		id: 'env_3',
+		project_id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
+		key: 'NODE_ENV',
+		value: 'production',
+		is_secret: true,
+		created_at: '2026-08-27T00:00:00Z'
 	}
 ];

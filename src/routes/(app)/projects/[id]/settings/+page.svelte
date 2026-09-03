@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { page } from '$app/stores';
+	import ProjectSettingsTab from '$lib/features/projects/components/detail/ProjectSettingsTab.svelte';
+
+	let projectId = $derived($page.params.id as string);
 </script>
 
 <svelte:head><title>Settings | Sakala Console</title></svelte:head>
-<div>
-	<p class="text-sm text-muted">Lorem Ipsum</p>
-</div>
+
+<ProjectSettingsTab {projectId} />
