@@ -1,5 +1,6 @@
 import { vi, describe, it, expect } from 'vitest';
 
+const realtimeState = { status: 'idle' };
 describe('realtime failure does not break the fetch API', () => {
 	it('getEcho() fails completely without throwing an exception, while other unrelated operations still resolve.', async () => {
 		vi.resetModules();
@@ -11,7 +12,8 @@ describe('realtime failure does not break the fetch API', () => {
 		}));
 		vi.doMock('./connection-state.svelte', () => ({
 			bindConnectionState: vi.fn(),
-			resetConnectionState: vi.fn()
+			resetConnectionState: vi.fn(),
+			realtimeState
 		}));
 		vi.doMock('$lib/api/resources/broadcasting', () => ({
 			authorizeChannel: vi.fn()
@@ -32,7 +34,8 @@ describe('realtime failure does not break the fetch API', () => {
 		vi.doMock('./env', () => ({ getRealtimeEnv: () => null }));
 		vi.doMock('./connection-state.svelte', () => ({
 			bindConnectionState: vi.fn(),
-			resetConnectionState: vi.fn()
+			resetConnectionState: vi.fn(),
+			realtimeState
 		}));
 		vi.doMock('$lib/api/csrf', () => ({
 			ensureCsrfCookie: vi.fn().mockResolvedValue(undefined),
