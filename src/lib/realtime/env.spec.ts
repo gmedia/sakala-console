@@ -1,14 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockEnv = vi.hoisted(() => ({}) as Record<string, string | undefined>);
+const mockEnv = vi.hoisted(() => ({
+	PUBLIC_REVERB_HOST: undefined as string | undefined,
+	PUBLIC_REVERB_KEY: undefined as string | undefined,
+	PUBLIC_REVERB_PORT: undefined as string | undefined,
+	PUBLIC_REVERB_SCHEME: undefined as string | undefined
+}));
 
-vi.mock('$env/dynamic/public', () => ({ env: mockEnv }));
+vi.mock('$env/static/public', () => ({
+	get PUBLIC_REVERB_HOST() {
+		return mockEnv.PUBLIC_REVERB_HOST;
+	},
+	get PUBLIC_REVERB_KEY() {
+		return mockEnv.PUBLIC_REVERB_KEY;
+	},
+	get PUBLIC_REVERB_PORT() {
+		return mockEnv.PUBLIC_REVERB_PORT;
+	},
+	get PUBLIC_REVERB_SCHEME() {
+		return mockEnv.PUBLIC_REVERB_SCHEME;
+	}
+}));
 
 import { getRealtimeEnv } from './env';
 
 describe('getRealtimeEnv', () => {
 	beforeEach(() => {
-		for (const key of Object.keys(mockEnv)) delete mockEnv[key];
+		mockEnv.PUBLIC_REVERB_HOST = undefined;
+		mockEnv.PUBLIC_REVERB_KEY = undefined;
+		mockEnv.PUBLIC_REVERB_PORT = undefined;
+		mockEnv.PUBLIC_REVERB_SCHEME = undefined;
 	});
 
 	it('returns null when all environment variables are missing', () => {
@@ -60,7 +81,7 @@ describe('getRealtimeEnv', () => {
 		});
 	});
 
-	it('rejects ws/wss schemes (no longer supported after the enum was narrowed)', () => {
+	it('returns null when PUBLIC_REVERB_SCHEME is ws or wss', () => {
 		for (const scheme of ['ws', 'wss']) {
 			Object.assign(mockEnv, {
 				PUBLIC_REVERB_HOST: 'api.staging.sakala.dev',
