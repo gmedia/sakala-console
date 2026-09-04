@@ -239,15 +239,13 @@ describe('disconnectEcho', () => {
 		expect(second).not.toBe(first);
 	});
 
-	it('invalidates pending initialization when disconnectEcho is called before init completes', async () => {
+	it('does not create Echo when disconnectEcho is called during initialization', async () => {
 		let allowImport!: () => void;
 		let importStarted = false;
 
 		const importBlocker = new Promise<void>((resolve) => {
 			allowImport = resolve;
 		});
-
-		const staleInstance = createEchoInstanceStub();
 
 		vi.doMock('laravel-echo', async () => {
 			importStarted = true;
@@ -256,11 +254,7 @@ describe('disconnectEcho', () => {
 		});
 		vi.doMock('pusher-js', () => ({ default: vi.fn() }));
 
-		const { getEcho, disconnectEcho } = await importEchoModule();
-
-		EchoMock.mockImplementationOnce(function () {
-			return staleInstance;
-		});
+		const { getEcho, disconnectEcho, realtimeState } = await importEchoModule();
 
 		const pendingGetEcho = getEcho();
 
@@ -269,13 +263,13 @@ describe('disconnectEcho', () => {
 		});
 
 		await disconnectEcho();
+		const statusAfterDisconnect = realtimeState.status;
 
 		allowImport();
 
 		const result = await pendingGetEcho;
 		expect(result).toBeNull();
-		expect(EchoMock).toHaveBeenCalledTimes(1);
-		expect(EchoMock.mock.results[0]?.value).toBe(staleInstance);
-		expect(staleInstance.disconnect).toHaveBeenCalledTimes(1);
+		expect(EchoMock).not.toHaveBeenCalled();
+		expect(realtimeState.status).toBe(statusAfterDisconnect);
 	});
 });

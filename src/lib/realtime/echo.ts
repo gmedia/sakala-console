@@ -17,7 +17,7 @@ export async function getEcho(): Promise<EchoType<'reverb'> | null> {
 	if (echoInstance) return echoInstance;
 	if (!initPromise) {
 		const generation = initGeneration;
-		initPromise = initEcho().then((instance) => {
+		initPromise = initEcho(generation).then((instance) => {
 			if (generation !== initGeneration) {
 				instance?.disconnect();
 				return null;
@@ -42,12 +42,14 @@ export async function getEcho(): Promise<EchoType<'reverb'> | null> {
 	return echoInstance;
 }
 
-async function initEcho(): Promise<EchoType<'reverb'> | null> {
+async function initEcho(generation: number): Promise<EchoType<'reverb'> | null> {
 	try {
 		const env = getRealtimeEnv();
 		if (!env) {
-			console.warn('Env reverb tidak lengkap. Realtime dinonaktifkan.');
-			realtimeState.status = 'unavailable';
+			if (generation === initGeneration) {
+				console.warn('Env reverb tidak lengkap. Realtime dinonaktifkan.');
+				realtimeState.status = 'unavailable';
+			}
 			return null;
 		}
 
@@ -55,6 +57,10 @@ async function initEcho(): Promise<EchoType<'reverb'> | null> {
 			import('laravel-echo'),
 			import('pusher-js')
 		]);
+
+		if (generation !== initGeneration) {
+			return null;
+		}
 
 		(window as unknown as { Pusher: typeof Pusher }).Pusher = Pusher;
 
@@ -81,8 +87,10 @@ async function initEcho(): Promise<EchoType<'reverb'> | null> {
 		bindConnectionState(instance);
 		return instance;
 	} catch (error) {
-		console.warn('Gagal inisialisasi Echo: ', error);
-		realtimeState.status = 'failed';
+		if (generation === initGeneration) {
+			console.warn('Gagal inisialisasi Echo: ', error);
+			realtimeState.status = 'failed';
+		}
 		return null;
 	}
 }
