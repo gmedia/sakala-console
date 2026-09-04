@@ -2,7 +2,7 @@
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { ApiError, NetworkError } from '$lib/api/errors';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import LoadingSkeleton from '$lib/components/feedback/LoadingSkeleton.svelte';
@@ -17,8 +17,19 @@
 		if (currentUser.isError) {
 			const err = currentUser.error;
 			if (err instanceof ApiError && err.isUnauthenticated) {
-				const returnTo = encodeURIComponent($page.url.pathname + $page.url.search);
-				goto(resolve(`/login?returnTo=${returnTo}`), { replaceState: true });
+				const returnTo = encodeURIComponent(page.url.pathname + page.url.search);
+				goto(resolve(`/login?returnTo=${returnTo}` as '/login'), { replaceState: true });
+			}
+		}
+		if (currentUser.isSuccess && currentUser.data) {
+			const user = currentUser.data;
+			const currentPath = page.url.pathname;
+			if (!user.onboarding_completed_at) {
+				if (currentPath !== '/onboarding') {
+					goto(resolve('/onboarding'), { replaceState: true });
+				}
+			} else if (currentPath === '/onboarding') {
+				goto(resolve('/projects'), { replaceState: true });
 			}
 		}
 	});
