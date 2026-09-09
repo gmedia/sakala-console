@@ -9,7 +9,7 @@ export function useLogout() {
 
 	return createMutation(() => ({
 		mutationFn: logout,
-		onSuccess: () => {
+		onSettled: () => {
 			queryClient.clear();
 			disconnectEcho();
 			goto(resolve('/login'));
