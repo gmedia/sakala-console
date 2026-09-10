@@ -6,15 +6,19 @@
 	import OnboardingStep3 from '$lib/features/onboarding/components/OnboardingStep3.svelte';
 	import type {
 		DeveloperRole,
-		OnboardingData,
-		OnboardingSource
+		OnboardingData
+		// OnboardingSource
 	} from '$lib/features/onboarding/types';
+	// import { useSubmitOnboarding } from '$lib/features/onboarding/mutations';
+	import type { OnboardingSource } from '$lib/api/resources/onboarding';
 
 	let currentStep = $state(1);
 	let data = $state<OnboardingData>({ role: 'developer' });
+	let selectedSource = $state<OnboardingSource | undefined>(undefined);
+	// const submitOnboarding = useSubmitOnboarding();
 
 	function handleSourceSelect(source: OnboardingSource) {
-		data.source = source;
+		selectedSource = source;
 	}
 
 	function handleProfileUpdate(update: { displayName?: string; role?: DeveloperRole }) {
@@ -46,7 +50,8 @@
 <div class="flex min-h-screen w-full items-center justify-center bg-background text-black">
 	{#if currentStep === 1}
 		<OnboardingStep1
-			selectedSource={data.source}
+			isPending={false}
+			{selectedSource}
 			onSelect={handleSourceSelect}
 			onNext={nextStep}
 			onSkip={nextStep}

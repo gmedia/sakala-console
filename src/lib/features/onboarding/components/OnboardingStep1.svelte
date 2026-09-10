@@ -10,28 +10,42 @@
 		DotsThree
 	} from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
-	import type { OnboardingSource } from '../types';
+	// import type { OnboardingSource } from '../types';
+	import { ONBOARDING_SOURCE_VALUES, ONBOARDING_OPTIONS_MAP } from '../constants';
+	import type { OnboardingSource } from '$lib/api/resources/onboarding';
+	import type { Component } from 'svelte';
 
 	type Props = {
 		selectedSource?: OnboardingSource;
+		isPending: boolean;
 		onSelect: (source: OnboardingSource) => void;
 		onNext: () => void;
 		onSkip?: () => void;
 		onBack?: () => void;
 	};
 
-	let { selectedSource, onSelect, onNext, onSkip, onBack }: Props = $props();
+	let { selectedSource, isPending, onSelect, onNext, onSkip, onBack }: Props = $props();
 
-	const sources: { id: OnboardingSource; label: string; icon: typeof GraduationCap }[] = [
-		{ id: 'campus', label: 'Kampus', icon: GraduationCap },
-		{ id: 'social_media', label: 'Media Sosial', icon: ShareNetwork },
-		{ id: 'friend', label: 'Teman', icon: UsersThree },
-		{ id: 'gmedia', label: 'Gmedia', icon: GoogleLogo },
-		{ id: 'community', label: 'Komunitas', icon: SpeakerHigh },
-		{ id: 'github', label: 'GitHub', icon: GithubLogo },
-		{ id: 'workshop', label: 'Workshop', icon: Files },
-		{ id: 'other', label: 'Lainnya', icon: DotsThree }
-	];
+	// const sources: { id: OnboardingSource; label: string; icon: typeof GraduationCap }[] = [
+	// 	{ id: 'campus', label: 'Kampus', icon: GraduationCap },
+	// 	{ id: 'social_media', label: 'Media Sosial', icon: ShareNetwork },
+	// 	{ id: 'friend', label: 'Teman', icon: UsersThree },
+	// 	{ id: 'gmedia', label: 'Gmedia', icon: GoogleLogo },
+	// 	{ id: 'community', label: 'Komunitas', icon: SpeakerHigh },
+	// 	{ id: 'github', label: 'GitHub', icon: GithubLogo },
+	// 	{ id: 'workshop', label: 'Workshop', icon: Files },
+	// 	{ id: 'other', label: 'Lainnya', icon: DotsThree }
+	// ];
+	const ICONS: Record<OnboardingSource, Component> = {
+		campus: GraduationCap,
+		social_media: ShareNetwork,
+		friend: UsersThree,
+		gmedia: GoogleLogo,
+		community: SpeakerHigh,
+		github: GithubLogo,
+		workshop: Files,
+		other: DotsThree
+	};
 </script>
 
 <div class="mx-auto w-full py-12 px-6 md:px-27">
@@ -52,12 +66,13 @@
 
 	<!-- Column Options Grid -->
 	<div class="mt-10 grid w-full grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-2">
-		{#each sources as source (source.id)}
-			{@const Icon = source.icon}
-			{@const isSelected = selectedSource === source.id}
+		{#each ONBOARDING_SOURCE_VALUES as source (source)}
+			{@const Icon = ICONS[source]}
+			{@const isSelected = selectedSource === source}
 			<button
 				type="button"
-				onclick={() => onSelect(source.id)}
+				disabled={isPending}
+				onclick={() => onSelect(source)}
 				class={cn(
 					'flex h-16.5 w-full items-center gap-3.5 rounded-lg border px-4 text-left transition-all',
 					isSelected
@@ -73,7 +88,7 @@
 				>
 					<Icon size={18} weight="regular" />
 				</div>
-				<span class="text-sm font-normal text-black">{source.label}</span>
+				<span class="text-sm font-normal text-black">{ONBOARDING_OPTIONS_MAP[source]}</span>
 			</button>
 		{/each}
 	</div>
