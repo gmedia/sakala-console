@@ -11,6 +11,7 @@ export type project_status = 'creating' | 'ready' | 'deleting' | 'failed';
 export interface Project {
 	id: string;
 	project_name: string;
+	name?: string;
 	slug: string;
 	repository_provider: string;
 	thumbnail_url: string | null;
@@ -29,13 +30,28 @@ export interface Project {
 	updated_at: string;
 }
 
-export interface ProjectEnvironmentVariable {
+export interface EnvironmentVariable {
 	id: string;
-	project_id: string;
+	key: string;
+	is_secret: boolean;
+	created_at: string;
+}
+
+export interface CreateEnvVarPayload {
 	key: string;
 	value: string;
 	is_secret: boolean;
-	created_at: string;
+}
+
+export interface EnvVarValueResponse {
+	data: {
+		value: string;
+	};
+}
+
+export interface ProjectEnvironmentVariable extends EnvironmentVariable {
+	project_id?: string;
+	value?: string;
 }
 
 export interface Deployment {

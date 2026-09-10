@@ -83,7 +83,7 @@
 		<div class="flex flex-col gap-1.5">
 			<div class="flex items-center gap-3">
 				<h1 class="text-[22px] font-sans font-semibold tracking-tight text-foreground leading-none">
-					{project.project_name}
+					{project.name ?? project.project_name ?? 'Project'}
 				</h1>
 				<Badge tone={badgeTone} class="capitalize px-2 py-0.5">{displayStatus}</Badge>
 			</div>
@@ -149,7 +149,7 @@
 			<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
 				<div class="flex items-center gap-1.5">
 					<span>Framework</span>
-					<!-- still hardcode, currently there's no 'framework' data in sakala-api -->
+					<!-- still hardcode, currently there's no 'framework' data field in sakala-api -->
 					<span class="text-foreground font-semibold">Node.js</span>
 				</div>
 				<div class="flex items-center gap-1.5">

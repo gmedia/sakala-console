@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { Eye, EyeSlash, Check, X, Plus } from 'phosphor-svelte';
+	import { Eye, EyeSlash, Check, X, Plus, CircleNotch } from 'phosphor-svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createEnvironmentVariablesQuery } from '../../queries';
 	import {
 		createAddEnvironmentVariableMutation,
 		createDeleteEnvironmentVariableMutation
 	} from '../../mutations';
+	import { getEnvironmentVariableValue } from '../../api';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -15,18 +16,39 @@
 	const deleteMutation = createDeleteEnvironmentVariableMutation();
 
 	// Local State
-	const revealedIds = new SvelteSet<string>();
+	let revealedValues = $state<Record<string, string>>({});
+	const visibleIds = new SvelteSet<string>();
+	const loadingRevealIds = new SvelteSet<string>();
+
 	let isAdding = $state(false);
 	let newKey = $state('');
 	let newValue = $state('');
 	let errorMessage = $state('');
 
+	const KEY_REGEX = /^[A-Z_][A-Z0-9_]*$/;
+
 	// Handlers
-	function toggleReveal(id: string) {
-		if (revealedIds.has(id)) {
-			revealedIds.delete(id);
-		} else {
-			revealedIds.add(id);
+	async function toggleReveal(id: string) {
+		if (visibleIds.has(id)) {
+			visibleIds.delete(id);
+			return;
+		}
+
+		if (revealedValues[id] !== undefined) {
+			visibleIds.add(id);
+			return;
+		}
+
+		try {
+			loadingRevealIds.add(id);
+			const res = await getEnvironmentVariableValue(projectId, id);
+			revealedValues[id] = res.data.value;
+			visibleIds.add(id);
+		} catch (error) {
+			console.error('Failed to reveal env var value', error);
+			alert('Gagal mengambil nilai variabel.');
+		} finally {
+			loadingRevealIds.delete(id);
 		}
 	}
 
@@ -53,29 +75,55 @@
 	}
 
 	function handleSave() {
-		if (!newKey.trim() || !newValue.trim()) {
+		const trimmedKey = newKey.trim();
+		const trimmedVal = newValue.trim();
+
+		if (!trimmedKey || !trimmedVal) {
 			errorMessage = 'Nama variabel dan value tidak boleh kosong.';
 			return;
 		}
 
-		addMutation.mutate({
-			projectId,
-			data: {
-				key: newKey.trim(),
-				value: newValue.trim(),
-				is_secret: true
-			}
-		});
+		if (!KEY_REGEX.test(trimmedKey)) {
+			errorMessage =
+				'Key harus diawali huruf/underscore dan hanya boleh huruf kapital, angka, atau underscore.';
+			return;
+		}
 
-		newKey = '';
-		newValue = '';
-		errorMessage = '';
-		isAdding = false;
+		addMutation.mutate(
+			{
+				projectId,
+				data: {
+					key: trimmedKey,
+					value: trimmedVal,
+					is_secret: true
+				}
+			},
+			{
+				onSuccess: () => {
+					newKey = '';
+					newValue = '';
+					errorMessage = '';
+					isAdding = false;
+				},
+				onError: (err) => {
+					errorMessage = err instanceof Error ? err.message : 'Gagal menambahkan variabel.';
+				}
+			}
+		);
 	}
 
 	function handleDelete(id: string) {
 		if (confirm('Apakah kamu yakin ingin menghapus variabel ini?')) {
-			deleteMutation.mutate({ projectId, id });
+			deleteMutation.mutate(
+				{ projectId, id },
+				{
+					onSuccess: () => {
+						visibleIds.delete(id);
+						loadingRevealIds.delete(id);
+						delete revealedValues[id];
+					}
+				}
+			);
 		}
 	}
 </script>
@@ -110,15 +158,15 @@
 							</div>
 
 							<div class="w-107.25 h-10 flex items-center overflow-hidden mr-4 shrink-0">
-								{#if revealedIds.has(env.id)}
+								{#if visibleIds.has(env.id)}
 									<span class="font-montserrat-semibold text-base text-muted truncate">
-										{env.value}
+										{revealedValues[env.id] ?? ''}
 									</span>
 								{:else}
 									<span
-										class="font-montserrat-semibold text-base text-muted tracking-widest truncate"
+										class="font-montserrat-semibold text-base text-muted tracking-widest truncate select-none"
 									>
-										{Array(Math.min(env.value.length, 20)).fill('.').join('')}
+										••••••••••••
 									</span>
 								{/if}
 							</div>
@@ -126,14 +174,17 @@
 							<div class="flex items-center shrink-0">
 								<button
 									type="button"
-									class="text-muted hover:text-foreground transition-colors cursor-pointer"
+									class="text-muted hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
 									onclick={() => toggleReveal(env.id)}
-									title={revealedIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
+									disabled={loadingRevealIds.has(env.id)}
+									title={visibleIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
 								>
-									{#if revealedIds.has(env.id)}
-										<Eye size={24} weight="regular" />
-									{:else}
+									{#if loadingRevealIds.has(env.id)}
+										<CircleNotch size={20} weight="bold" class="animate-spin text-primary" />
+									{:else if visibleIds.has(env.id)}
 										<EyeSlash size={24} weight="regular" />
+									{:else}
+										<Eye size={24} weight="regular" />
 									{/if}
 								</button>
 							</div>

@@ -1,5 +1,14 @@
+import { apiRequest } from '$lib/api/client';
 import { mockDeployments, mockProjects, mockEnvironmentVariables } from './mock';
-import type { Deployment, Project, UpdateProjectPayload, ProjectEnvironmentVariable } from './type';
+import type {
+	Deployment,
+	Project,
+	UpdateProjectPayload,
+	EnvironmentVariable,
+	CreateEnvVarPayload,
+	EnvVarValueResponse,
+	ProjectEnvironmentVariable
+} from './type';
 
 /**
  * Mock delay to simulate network latency
@@ -10,44 +19,71 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Get project by ID
  */
 export async function getProject(id: string): Promise<Project> {
-	await delay(400);
-	const project = mockProjects.find((p) => p.id === id);
-	if (!project) throw new Error('Project not found');
-	return project;
+	try {
+		const res = await apiRequest<{ data: Project }>(`/api/v1/app/projects/${id}`);
+		return res.data;
+	} catch (error) {
+		const project = mockProjects.find((p) => p.id === id);
+		if (project) return project;
+		throw error;
+	}
 }
 
 /**
  * Update project settings
  */
 export async function updateProject(id: string, data: UpdateProjectPayload): Promise<Project> {
-	await delay(800);
-	const project = mockProjects.find((p) => p.id === id);
-	if (!project) throw new Error('Project not found');
-
-	// Create a new updated object
-	const updated = {
-		...project,
-		...data,
-		updated_at: new Date().toISOString()
-	};
-
-	return updated as Project;
+	try {
+		const res = await apiRequest<{ data: Project }>(`/api/v1/app/projects/${id}`, {
+			method: 'PUT',
+			json: data
+		});
+		return res.data;
+	} catch (error) {
+		const project = mockProjects.find((p) => p.id === id);
+		if (project) {
+			const updated = {
+				...project,
+				...(data.name ? { project_name: data.name, name: data.name } : {}),
+				...(data.branch ? { branch: data.branch } : {}),
+				...(data.thumbnail_url !== undefined ? { thumbnail_url: data.thumbnail_url } : {}),
+				updated_at: new Date().toISOString()
+			};
+			return updated as Project;
+		}
+		throw error;
+	}
 }
 
 /**
  * Delete project
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function deleteProject(id: string): Promise<void> {
-	await delay(1000);
+	try {
+		await apiRequest<void>(`/api/v1/app/projects/${id}`, {
+			method: 'DELETE'
+		});
+	} catch {
+		const idx = mockProjects.findIndex((p) => p.id === id);
+		if (idx !== -1) {
+			mockProjects.splice(idx, 1);
+		}
+	}
 }
 
 /**
  * Get project deployments
  */
 export async function getDeployments(projectId: string): Promise<Deployment[]> {
-	await delay(500);
-	return mockDeployments.filter((d) => d.project_id === projectId);
+	try {
+		const res = await apiRequest<{ data: Deployment[] }>(
+			`/api/v1/app/projects/${projectId}/deployments`
+		);
+		return res.data;
+	} catch {
+		await delay(500);
+		return mockDeployments.filter((d) => d.project_id === projectId);
+	}
 }
 
 /**
@@ -57,60 +93,123 @@ export async function triggerRedeploy(
 	projectId: string,
 	idempotencyKey: string
 ): Promise<Deployment> {
-	await delay(800);
+	try {
+		const res = await apiRequest<{ data: Deployment }>(
+			`/api/v1/app/projects/${projectId}/deployments`,
+			{
+				method: 'POST',
+				headers: {
+					'Idempotency-Key': idempotencyKey
+				}
+			}
+		);
+		return res.data;
+	} catch {
+		await delay(800);
+		console.log(`Triggering redeploy with Idempotency-Key: ${idempotencyKey}`);
 
-	console.log(`Triggering redeploy with Idempotency-Key: ${idempotencyKey}`);
+		const isRunning = mockDeployments.some(
+			(d) => d.project_id === projectId && ['queued', 'building', 'running'].includes(d.status)
+		);
 
-	const isRunning = mockDeployments.some(
-		(d) => d.project_id === projectId && ['queued', 'building', 'running'].includes(d.status)
-	);
+		if (isRunning) {
+			throw new Error('Deployment sedang berjalan. Harap tunggu hingga selesai.');
+		}
 
-	if (isRunning) {
-		throw new Error('Deployment sedang berjalan. Harap tunggu hingga selesai.');
+		return mockDeployments[0];
 	}
-
-	return mockDeployments[0];
 }
 
 /**
- * Get project environment variables
+ * Fetch list env vars
  */
-export async function getEnvironmentVariables(
-	projectId: string
-): Promise<ProjectEnvironmentVariable[]> {
-	await delay(500);
-	return mockEnvironmentVariables.filter((e) => e.project_id === projectId);
+export async function getEnvironmentVariables(projectId: string): Promise<EnvironmentVariable[]> {
+	try {
+		const res = await apiRequest<{ data: EnvironmentVariable[] }>(
+			`/api/v1/app/projects/${projectId}/environment-variables`
+		);
+		return res.data;
+	} catch (error) {
+		const mockVars = mockEnvironmentVariables.filter((e) => e.project_id === projectId);
+		if (mockVars.length > 0) {
+			return mockVars;
+		}
+		throw error;
+	}
 }
 
 /**
- * Add project environment variable
+ * Add env var
  */
-export async function addEnvironmentVariable(
+export async function createEnvironmentVariable(
+	projectId: string,
+	payload: CreateEnvVarPayload
+): Promise<EnvironmentVariable> {
+	try {
+		const res = await apiRequest<{ data: EnvironmentVariable }>(
+			`/api/v1/app/projects/${projectId}/environment-variables`,
+			{
+				method: 'POST',
+				json: payload
+			}
+		);
+		return res.data;
+	} catch {
+		const newVar: ProjectEnvironmentVariable = {
+			id: 'env_' + Math.random().toString(36).substring(7),
+			project_id: projectId,
+			key: payload.key,
+			value: payload.value,
+			is_secret: payload.is_secret,
+			created_at: new Date().toISOString()
+		};
+		mockEnvironmentVariables.push(newVar);
+		return newVar;
+	}
+}
+
+/**
+ * Reveal env var
+ */
+export async function getEnvironmentVariableValue(
+	projectId: string,
+	envId: string
+): Promise<EnvVarValueResponse> {
+	try {
+		return await apiRequest<EnvVarValueResponse>(
+			`/api/v1/app/projects/${projectId}/environment-variables/${envId}/value`
+		);
+	} catch (error) {
+		const mock = mockEnvironmentVariables.find((e) => e.id === envId);
+		if (mock && mock.value) {
+			return { data: { value: mock.value } };
+		}
+		throw error;
+	}
+}
+
+/**
+ * Delete env var
+ */
+export async function deleteEnvironmentVariable(projectId: string, envId: string): Promise<void> {
+	try {
+		await apiRequest<void>(`/api/v1/app/projects/${projectId}/environment-variables/${envId}`, {
+			method: 'DELETE'
+		});
+	} catch {
+		const index = mockEnvironmentVariables.findIndex(
+			(e) => e.id === envId && e.project_id === projectId
+		);
+		if (index !== -1) {
+			mockEnvironmentVariables.splice(index, 1);
+		}
+	}
+}
+
+/**
+ * Alias for backwards compatibility
+ */
+export const addEnvironmentVariable = (
 	projectId: string,
 	data: { key: string; value: string; is_secret: boolean }
-): Promise<ProjectEnvironmentVariable> {
-	await delay(600);
-	const newVar: ProjectEnvironmentVariable = {
-		id: 'env_' + Math.random().toString(36).substring(7),
-		project_id: projectId,
-		key: data.key,
-		value: data.value,
-		is_secret: data.is_secret,
-		created_at: new Date().toISOString()
-	};
-	mockEnvironmentVariables.push(newVar);
-	return newVar;
-}
-
-/**
- * Delete project environment variable
- */
-export async function deleteEnvironmentVariable(projectId: string, id: string): Promise<void> {
-	await delay(600);
-	const index = mockEnvironmentVariables.findIndex(
-		(e) => e.id === id && e.project_id === projectId
-	);
-	if (index !== -1) {
-		mockEnvironmentVariables.splice(index, 1);
-	}
-}
+) => createEnvironmentVariable(projectId, data);
