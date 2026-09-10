@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { PencilSimple, User as UserIcon } from 'phosphor-svelte';
-	import { useCurrentUser } from '$lib/features/auth/queries';
-
-	const currentUserQuery = useCurrentUser();
+	import { tick } from 'svelte';
 
 	let initialName = $state('Sasongko');
 	let initialUsername = $state('ssngk');
@@ -11,45 +9,106 @@
 	let name = $state('Sasongko');
 	let username = $state('ssngk');
 	let email = $state('sasongko@gmail.com');
-	let joinedDate = $state('Maret 2026');
+	let joinedDate = $state('-');
 	let avatarUrl = $state<string | null>(null);
 
 	let fileInputRef = $state<HTMLInputElement | null>(null);
-
-	$effect(() => {
-		if (currentUserQuery.data) {
-			const u = currentUserQuery.data;
-			if (u.name) {
-				initialName = u.name;
-				name = u.name;
-			}
-			if (u.email) {
-				email = u.email;
-				const extractedUsername = u.email.split('@')[0];
-				initialUsername = extractedUsername;
-				username = extractedUsername;
-			}
-			if (u.avatar_url) {
-				initialAvatarUrl = u.avatar_url;
-				avatarUrl = u.avatar_url;
-			}
-			if (u.onboarding_completed_at || u.last_login_at) {
-				const dateStr = u.onboarding_completed_at || u.last_login_at;
-				if (dateStr) {
-					const d = new Date(dateStr);
-					if (!isNaN(d.getTime())) {
-						joinedDate = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-					}
-				}
-			}
-		}
-	});
+	let lastTriggerElement = $state<HTMLElement | null>(null);
 
 	let isDirty = $derived(
 		name !== initialName || username !== initialUsername || avatarUrl !== initialAvatarUrl
 	);
 
 	let isEditPhotoModalOpen = $state(false);
+
+	const allowed_avatar_types = ['image/png', 'image/jpeg', 'image/webp'];
+	const max_avatar_size = 1 * 1024 * 1024;
+
+	let photoErrorMessage = $state<string | null>(null);
+
+	async function openPhotoModal(e: MouseEvent | KeyboardEvent) {
+		lastTriggerElement = e.currentTarget as HTMLElement;
+		photoErrorMessage = null;
+		isEditPhotoModalOpen = true;
+	}
+
+	async function closePhotoModal() {
+		isEditPhotoModalOpen = false;
+		photoErrorMessage = null;
+		await tick();
+		lastTriggerElement?.focus();
+	}
+
+	function modalTrap(node: HTMLElement) {
+		const focusableSelector =
+			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				closePhotoModal();
+				return;
+			}
+
+			if (e.key === 'Tab') {
+				const focusables = Array.from(node.querySelectorAll<HTMLElement>(focusableSelector));
+				if (focusables.length === 0) return;
+
+				const first = focusables[0];
+				const last = focusables[focusables.length - 1];
+
+				if (e.shiftKey && document.activeElement === first) {
+					e.preventDefault();
+					last.focus();
+				} else if (!e.shiftKey && document.activeElement === last) {
+					e.preventDefault();
+					first.focus();
+				}
+			}
+		}
+
+		tick().then(() => {
+			const firstFocusable = node.querySelector<HTMLElement>(focusableSelector);
+			firstFocusable?.focus();
+		});
+
+		node.addEventListener('keydown', handleKeyDown);
+		return {
+			destroy() {
+				node.removeEventListener('keydown', handleKeyDown);
+			}
+		};
+	}
+
+	function handleFileSelect(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+
+		photoErrorMessage = null;
+		if (!file) {
+			target.value = '';
+			return;
+		}
+
+		if (!allowed_avatar_types.includes(file.type)) {
+			photoErrorMessage = 'Format file tidak didukung. Gunakan PNG, JPG, atau WebP.';
+			target.value = '';
+			return;
+		}
+
+		if (file.size > max_avatar_size) {
+			photoErrorMessage = 'Ukuran file terlalu besar. Maksimal ukuran foto adalah 1 MB.';
+			target.value = '';
+			return;
+		}
+
+		if (avatarUrl && avatarUrl.startsWith('blob:')) {
+			URL.revokeObjectURL(avatarUrl);
+		}
+		avatarUrl = URL.createObjectURL(file);
+		closePhotoModal();
+		target.value = '';
+	}
 
 	function handleSave() {
 		if (!isDirty) return;
@@ -61,20 +120,10 @@
 	function handlePhotoAction(action: 'upload' | 'remove') {
 		if (action === 'remove') {
 			avatarUrl = null;
-			isEditPhotoModalOpen = false;
+			closePhotoModal();
 		} else if (action === 'upload') {
 			fileInputRef?.click();
 		}
-	}
-
-	function handleFileSelect(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const file = target.files?.[0];
-		if (file) {
-			avatarUrl = URL.createObjectURL(file);
-			isEditPhotoModalOpen = false;
-		}
-		target.value = '';
 	}
 </script>
 
@@ -92,8 +141,8 @@
 		<div class="flex items-center gap-6">
 			<button
 				type="button"
-				onclick={() => (isEditPhotoModalOpen = true)}
-				class="group relative flex size-20 items-center justify-center rounded-full bg-background-soft ring-1 ring-border/80 transition-all hover:opacity-90 cursor-pointer overflow-hidden"
+				onclick={openPhotoModal}
+				class="group relative flex size-20 items-center justify-center rounded-full bg-background-soft ring-1 ring-border/80 transition-all hover:opacity-90 cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark"
 				aria-label="Ubah foto profil"
 			>
 				{#if avatarUrl}
@@ -105,8 +154,8 @@
 
 			<button
 				type="button"
-				onclick={() => (isEditPhotoModalOpen = true)}
-				class="font-sans text-sm font-semibold text-primary-dark hover:underline cursor-pointer"
+				onclick={openPhotoModal}
+				class="font-sans text-sm font-semibold text-primary-dark hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark rounded-md px-1"
 			>
 				Edit Foto
 			</button>
@@ -156,7 +205,7 @@
 				onclick={handleSave}
 				disabled={!isDirty}
 				class={isDirty
-					? 'rounded-xl bg-primary-dark px-6 py-3 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer'
+					? 'rounded-xl bg-primary-dark px-6 py-3 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2'
 					: 'rounded-xl bg-[#E5E7EB] px-6 py-3 font-sans text-sm font-semibold text-[#9CA3AF] cursor-not-allowed'}
 			>
 				Simpan Perubahan
@@ -202,7 +251,7 @@
 
 <input
 	type="file"
-	accept="image/png,image/jpeg,image/webp,image/gif"
+	accept="image/png,image/jpeg,image/webp"
 	class="hidden"
 	bind:this={fileInputRef}
 	onchange={handleFileSelect}
@@ -214,6 +263,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="edit-photo-modal-title"
+		use:modalTrap
 	>
 		<div
 			class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl border border-border/80 text-center"
@@ -228,25 +278,33 @@
 				<button
 					type="button"
 					onclick={() => handlePhotoAction('upload')}
-					class="w-full py-3.5 font-sans text-sm font-medium text-foreground transition-colors hover:bg-background-soft cursor-pointer"
+					class="w-full py-3.5 font-sans text-sm font-medium text-foreground transition-colors hover:bg-background-soft cursor-pointer focus-visible:bg-background-soft focus-visible:outline-none"
 				>
 					Unggah Foto
 				</button>
 				<button
 					type="button"
 					onclick={() => handlePhotoAction('remove')}
-					class="w-full py-3.5 font-sans text-sm font-medium text-foreground transition-colors hover:bg-background-soft cursor-pointer"
+					class="w-full py-3.5 font-sans text-sm font-medium text-foreground transition-colors hover:bg-background-soft cursor-pointer focus-visible:bg-background-soft focus-visible:outline-none"
 				>
 					Hapus Foto Saat Ini
 				</button>
 				<button
 					type="button"
-					onclick={() => (isEditPhotoModalOpen = false)}
-					class="w-full py-3.5 font-sans text-sm font-medium text-error-base transition-colors hover:bg-error/10 cursor-pointer"
+					onclick={closePhotoModal}
+					class="w-full py-3.5 font-sans text-sm font-medium text-error-base transition-colors hover:bg-error/10 cursor-pointer focus-visible:bg-error/10 focus-visible:outline-none"
 				>
 					Batal
 				</button>
 			</div>
+
+			{#if photoErrorMessage}
+				<div class="border-t border-border/60 bg-red-50 p-3">
+					<p class="font-sans text-xs text-error-base" role="alert">
+						{photoErrorMessage}
+					</p>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}

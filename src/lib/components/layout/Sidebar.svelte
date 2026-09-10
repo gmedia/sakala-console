@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
@@ -68,6 +69,64 @@
 		}
 	}
 
+	let lastLogoutTrigger: HTMLElement | null = null;
+
+	function openLogoutModal(e?: MouseEvent | KeyboardEvent) {
+		lastLogoutTrigger =
+			(e?.currentTarget as HTMLElement) ?? (document.activeElement as HTMLElement);
+		isProfileMenuOpen = false;
+		isLogoutModalOpen = true;
+	}
+
+	async function closeLogoutModal() {
+		isLogoutModalOpen = false;
+		await tick();
+		lastLogoutTrigger?.focus();
+	}
+
+	function logoutModalTrap(node: HTMLElement) {
+		const focusableSelector =
+			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				closeLogoutModal();
+				return;
+			}
+
+			if (e.key === 'Tab') {
+				const focusables = Array.from(node.querySelectorAll<HTMLElement>(focusableSelector));
+				if (focusables.length === 0) return;
+
+				const first = focusables[0];
+				const last = focusables[focusables.length - 1];
+
+				if (e.shiftKey && document.activeElement === first) {
+					e.preventDefault();
+					last.focus();
+				} else if (!e.shiftKey && document.activeElement === last) {
+					e.preventDefault();
+					first.focus();
+				}
+			}
+		}
+
+		tick().then(() => {
+			node.focus();
+			const firstFocusable = node.querySelector<HTMLElement>(focusableSelector);
+			firstFocusable?.focus();
+		});
+
+		window.addEventListener('keydown', handleKeyDown);
+
+		return {
+			destroy() {
+				window.removeEventListener('keydown', handleKeyDown);
+			}
+		};
+	}
+
 	function handleConfirmLogout() {
 		isLogoutModalOpen = false;
 		logoutMutation.mutate();
@@ -131,11 +190,8 @@
 
 			<button
 				type="button"
-				onclick={() => {
-					isProfileMenuOpen = false;
-					isLogoutModalOpen = true;
-				}}
-				class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium text-error-base transition-colors hover:bg-error/10 cursor-pointer"
+				onclick={(e) => openLogoutModal(e)}
+				class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium text-error-base transition-colors hover:bg-error/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base"
 			>
 				<SignOut size={18} class="size-4.5 shrink-0" />
 				<span>Keluar</span>
@@ -272,14 +328,12 @@
 		aria-modal="true"
 		aria-labelledby="logout-dialog-title"
 		tabindex="-1"
-		onkeydown={(e) => {
-			if (e.key === 'Escape') isLogoutModalOpen = false;
-		}}
+		use:logoutModalTrap
 	>
 		<button
 			type="button"
 			class="absolute inset-0 h-full w-full cursor-default"
-			onclick={() => (isLogoutModalOpen = false)}
+			onclick={closeLogoutModal}
 			aria-label="Tutup modal konfirmasi"
 		></button>
 		<div
@@ -291,9 +345,9 @@
 			<div class="flex w-full items-center justify-center gap-3">
 				<button
 					type="button"
-					onclick={() => (isLogoutModalOpen = false)}
+					onclick={closeLogoutModal}
 					disabled={logoutMutation.isPending}
-					class="flex-1 rounded-lg bg-primary-dark py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90 cursor-pointer"
+					class="flex-1 rounded-lg bg-primary-dark py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
 				>
 					Tidak
 				</button>
@@ -301,7 +355,7 @@
 					type="button"
 					onclick={handleConfirmLogout}
 					disabled={logoutMutation.isPending}
-					class="flex-1 rounded-lg border border-border/80 py-2.5 font-sans text-sm font-semibold text-foreground transition-colors hover:bg-background-soft cursor-pointer disabled:opacity-50"
+					class="flex-1 rounded-lg border border-border/80 py-2.5 font-sans text-sm font-semibold text-foreground transition-colors hover:bg-background-soft cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
 				>
 					{logoutMutation.isPending ? 'Keluar...' : 'Iya'}
 				</button>

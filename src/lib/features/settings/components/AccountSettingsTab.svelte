@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { PencilSimple, Eye, EyeClosed } from 'phosphor-svelte';
-	import { useCurrentUser } from '$lib/features/auth/queries';
-
-	const currentUserQuery = useCurrentUser();
 
 	let initialEmail = $state('sasongko@gmail.com');
 	let email = $state('sasongko@gmail.com');
@@ -15,26 +12,31 @@
 	let showNewPassword = $state(false);
 	let showConfirmPassword = $state(false);
 
-	$effect(() => {
-		if (currentUserQuery.data?.email) {
-			initialEmail = currentUserQuery.data.email;
-			email = currentUserQuery.data.email;
-		}
-	});
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	const isEmailDirty = $derived(email.trim() !== initialEmail);
+	const isEmailFormatValid = $derived(emailRegex.test(email.trim()));
+	const isEmailValid = $derived(isEmailDirty && isEmailFormatValid);
 
-	let isEmailDirty = $derived(email.trim() !== initialEmail && email.trim().length > 0);
+	const hasMinLength = $derived(newPassword.length >= 8);
+	const hasLetter = $derived(/[a-zA-Z]/.test(newPassword));
+	const hasNumber = $derived(/[0-9]/.test(newPassword));
+	const hasSymbol = $derived(/[^a-zA-Z0-9]/.test(newPassword));
+	const isNewPasswordComplex = $derived(hasMinLength && hasLetter && hasNumber && hasSymbol);
 
-	const isPasswordValid = $derived(
-		currentPassword.trim().length > 0 && newPassword.length >= 8 && newPassword === confirmPassword
+	const isPasswordMismatch = $derived(
+		confirmPassword.length > 0 && newPassword !== confirmPassword
+	);
+	const isPasswordFormValid = $derived(
+		currentPassword.trim().length > 0 && isNewPasswordComplex && newPassword === confirmPassword
 	);
 
 	function handleUpdateEmail() {
-		if (!isEmailDirty) return;
-		initialEmail = email;
+		if (!isEmailValid) return;
+		initialEmail = email.trim();
 	}
 
 	function handleUpdatePassword() {
-		if (!isPasswordValid) return;
+		if (!isPasswordFormValid) return;
 		currentPassword = '';
 		newPassword = '';
 		confirmPassword = '';
@@ -50,7 +52,7 @@
 			</p>
 		</div>
 
-		<div class="space-y-4">
+		<div class="space-y-3">
 			<div class="relative">
 				<input
 					type="email"
@@ -63,11 +65,17 @@
 				/>
 			</div>
 
+			{#if isEmailDirty && !isEmailFormatValid}
+				<p class="font-sans text-xs text-error-base" role="alert">
+					Format alamat email tidak valid.
+				</p>
+			{/if}
+
 			<button
 				type="button"
 				onclick={handleUpdateEmail}
-				disabled={!isEmailDirty}
-				class={isEmailDirty
+				disabled={!isEmailValid}
+				class={isEmailValid
 					? 'rounded-xl bg-primary-dark px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer'
 					: 'rounded-xl bg-[#E5E7EB] px-5 py-2.5 font-sans text-sm font-semibold text-[#9CA3AF] cursor-not-allowed'}
 			>
@@ -141,9 +149,11 @@
 						{/if}
 					</button>
 				</div>
-				<p class="font-sans text-xs text-muted">
-					Minimal 8 karakter dengan kombinasi huruf, angka, dan simbol.
-				</p>
+				{#if newPassword.length > 0 && !isNewPasswordComplex}
+					<p class="font-sans text-xs text-amber-600 mt-1">
+						Kata sandi harus mengandung minimal 8 karakter, huruf, angka, dan simbol.
+					</p>
+				{/if}
 			</div>
 
 			<div class="space-y-2">
@@ -173,17 +183,20 @@
 						{/if}
 					</button>
 				</div>
-				<p class="font-sans text-xs text-muted">
-					Minimal 8 karakter dengan kombinasi huruf, angka, dan simbol.
-				</p>
+
+				{#if isPasswordMismatch}
+					<p class="font-sans text-xs text-error-base mt-1" role="alert">
+						Konfirmasi kata sandi tidak cocok.
+					</p>
+				{/if}
 			</div>
 
 			<div class="pt-2">
 				<button
 					type="button"
 					onclick={handleUpdatePassword}
-					disabled={!isPasswordValid}
-					class={isPasswordValid
+					disabled={!isPasswordFormValid}
+					class={isPasswordFormValid
 						? 'w-full rounded-xl bg-primary-dark py-3 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer'
 						: 'w-full rounded-xl bg-[#E5E7EB] py-3 font-sans text-sm font-semibold text-[#9CA3AF] cursor-not-allowed'}
 				>

@@ -4,7 +4,20 @@
 	import NotificationSectionCard from './NotificationSectionCard.svelte';
 	import NotificationToggleItem from './NotificationToggleItem.svelte';
 
-	const initialValues = {
+	interface NotificationSettings {
+		enableAll: boolean;
+		passwordChangeAlert: boolean;
+		newLoginAlert: boolean;
+		failedLoginAlert: boolean;
+		deploySuccessAlert: boolean;
+		deployPendingAlert: boolean;
+		deployFailedAlert: boolean;
+		featureUpdates: boolean;
+		specialOffers: boolean;
+		soundAlert: boolean;
+	}
+
+	const defaultValues: NotificationSettings = {
 		enableAll: true,
 		passwordChangeAlert: true,
 		newLoginAlert: true,
@@ -17,28 +30,29 @@
 		soundAlert: false
 	};
 
-	let enableAll = $state(initialValues.enableAll);
-	let passwordChangeAlert = $state(initialValues.passwordChangeAlert);
-	let newLoginAlert = $state(initialValues.newLoginAlert);
-	let failedLoginAlert = $state(initialValues.failedLoginAlert);
-	let deploySuccessAlert = $state(initialValues.deploySuccessAlert);
-	let deployPendingAlert = $state(initialValues.deployPendingAlert);
-	let deployFailedAlert = $state(initialValues.deployFailedAlert);
-	let featureUpdates = $state(initialValues.featureUpdates);
-	let specialOffers = $state(initialValues.specialOffers);
-	let soundAlert = $state(initialValues.soundAlert);
+	let savedBaseline = $state<NotificationSettings>({ ...defaultValues });
+	let enableAll = $state(defaultValues.enableAll);
+	let passwordChangeAlert = $state(defaultValues.passwordChangeAlert);
+	let newLoginAlert = $state(defaultValues.newLoginAlert);
+	let failedLoginAlert = $state(defaultValues.failedLoginAlert);
+	let deploySuccessAlert = $state(defaultValues.deploySuccessAlert);
+	let deployPendingAlert = $state(defaultValues.deployPendingAlert);
+	let deployFailedAlert = $state(defaultValues.deployFailedAlert);
+	let featureUpdates = $state(defaultValues.featureUpdates);
+	let specialOffers = $state(defaultValues.specialOffers);
+	let soundAlert = $state(defaultValues.soundAlert);
 
 	let isDirty = $derived(
-		enableAll !== initialValues.enableAll ||
-			passwordChangeAlert !== initialValues.passwordChangeAlert ||
-			newLoginAlert !== initialValues.newLoginAlert ||
-			failedLoginAlert !== initialValues.failedLoginAlert ||
-			deploySuccessAlert !== initialValues.deploySuccessAlert ||
-			deployPendingAlert !== initialValues.deployPendingAlert ||
-			deployFailedAlert !== initialValues.deployFailedAlert ||
-			featureUpdates !== initialValues.featureUpdates ||
-			specialOffers !== initialValues.specialOffers ||
-			soundAlert !== initialValues.soundAlert
+		enableAll !== savedBaseline.enableAll ||
+			passwordChangeAlert !== savedBaseline.passwordChangeAlert ||
+			newLoginAlert !== savedBaseline.newLoginAlert ||
+			failedLoginAlert !== savedBaseline.failedLoginAlert ||
+			deploySuccessAlert !== savedBaseline.deploySuccessAlert ||
+			deployPendingAlert !== savedBaseline.deployPendingAlert ||
+			deployFailedAlert !== savedBaseline.deployFailedAlert ||
+			featureUpdates !== savedBaseline.featureUpdates ||
+			specialOffers !== savedBaseline.specialOffers ||
+			soundAlert !== savedBaseline.soundAlert
 	);
 
 	function toggleMaster() {
@@ -57,16 +71,18 @@
 
 	function handleSave() {
 		if (!isDirty) return;
-		initialValues.enableAll = enableAll;
-		initialValues.passwordChangeAlert = passwordChangeAlert;
-		initialValues.newLoginAlert = newLoginAlert;
-		initialValues.failedLoginAlert = failedLoginAlert;
-		initialValues.deploySuccessAlert = deploySuccessAlert;
-		initialValues.deployPendingAlert = deployPendingAlert;
-		initialValues.deployFailedAlert = deployFailedAlert;
-		initialValues.featureUpdates = featureUpdates;
-		initialValues.specialOffers = specialOffers;
-		initialValues.soundAlert = soundAlert;
+		savedBaseline = {
+			enableAll,
+			passwordChangeAlert,
+			newLoginAlert,
+			failedLoginAlert,
+			deploySuccessAlert,
+			deployPendingAlert,
+			deployFailedAlert,
+			featureUpdates,
+			specialOffers,
+			soundAlert
+		};
 	}
 </script>
 
@@ -86,7 +102,7 @@
 			aria-checked={enableAll}
 			onclick={toggleMaster}
 			class={cn(
-				'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+				'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2',
 				enableAll ? 'bg-primary-dark' : 'bg-muted/30'
 			)}
 		>
@@ -171,7 +187,7 @@
 			onclick={handleSave}
 			disabled={!isDirty}
 			class={isDirty
-				? 'w-full md:w-auto min-w-48 rounded-xl bg-primary-dark px-6 py-3 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer'
+				? 'w-full md:w-auto min-w-48 rounded-xl bg-primary-dark px-6 py-3 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2'
 				: 'w-full md:w-auto min-w-48 rounded-xl bg-[#E5E7EB] px-6 py-3 font-sans text-sm font-semibold text-[#9CA3AF] cursor-not-allowed'}
 		>
 			Simpan Perubahan
