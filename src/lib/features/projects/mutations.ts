@@ -7,7 +7,7 @@ import {
 	deleteEnvironmentVariable
 } from './api';
 import { projectKeys } from './queries';
-import type { UpdateProjectPayload, Project, Deployment } from './type';
+import type { UpdateProjectPayload, Project, Deployment, CreateEnvVarPayload } from './type';
 
 export function createUpdateProjectMutation() {
 	const queryClient = useQueryClient();
@@ -50,10 +50,8 @@ export function createAddEnvironmentVariableMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: (variables: {
-			projectId: string;
-			data: { key: string; value: string; is_secret: boolean };
-		}) => addEnvironmentVariable(variables.projectId, variables.data),
+		mutationFn: (variables: { projectId: string; data: CreateEnvVarPayload }) =>
+			addEnvironmentVariable(variables.projectId, variables.data),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: projectKeys.environmentVariables(variables.projectId)
