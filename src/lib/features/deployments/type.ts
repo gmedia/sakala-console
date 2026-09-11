@@ -31,10 +31,20 @@ export type DeploymentStep = {
 
 export type DeploymentEventLevel = 'info' | 'warning' | 'error';
 
+export type DeploymentEventType =
+	| 'deployment.cloning'
+	| 'deployment.analyzing'
+	| 'deployment.building'
+	| 'deployment.deploying'
+	| 'deployment.routing'
+	| 'deployment.health_checking'
+	| 'deployment.succeeded'
+	| 'deployment.failed';
+
 export type DeploymentEvent = {
 	sequence: number;
 	level: DeploymentEventLevel;
-	type: string;
+	type: DeploymentEventType;
 	message: string;
 	metadata: Record<string, unknown> | null;
 	occurred_at: string;

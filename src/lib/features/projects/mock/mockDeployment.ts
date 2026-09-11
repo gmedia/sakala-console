@@ -2,6 +2,7 @@ import type {
 	BackendLogLine,
 	DeployLogLine,
 	DeploymentEvent,
+	DeploymentEventType,
 	DeploymentProgress,
 	DeploymentStage,
 	DeploymentStep
@@ -21,11 +22,18 @@ function toDeployLogLine(raw: BackendLogLine): DeployLogLine {
 	};
 }
 
-const STEP_ORDER: { key: string; title: string; eventType: string }[] = [
+type DeploymentStepConfig = {
+	key: string;
+	title: string;
+	eventType: DeploymentEventType;
+};
+
+const STEP_ORDER: DeploymentStepConfig[] = [
 	{ key: 'clone', title: 'Cloning repository', eventType: 'deployment.cloning' },
 	{ key: 'analyze', title: 'Menganalisis proyek', eventType: 'deployment.analyzing' },
 	{ key: 'build', title: 'Building image', eventType: 'deployment.building' },
 	{ key: 'deploy', title: 'Deploy container', eventType: 'deployment.deploying' },
+	{ key: 'routing', title: 'Menyiapkan routing', eventType: 'deployment.routing' },
 	{ key: 'health', title: 'Health check - live', eventType: 'deployment.health_checking' }
 ];
 
