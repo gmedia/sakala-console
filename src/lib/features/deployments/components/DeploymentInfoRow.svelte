@@ -20,7 +20,10 @@
 	let timeLabel = $derived(getTimeLabel(status));
 </script>
 
-<div class="w-full bg-white px-3 py-5 rounded-lg flex items-center justify-around gap-6 mt-6">
+<div
+	data-testid="deployment-info"
+	class="w-full bg-white px-3 py-5 rounded-lg flex items-center justify-around gap-6 mt-6"
+>
 	<InfoItem label="Commit" value={shortHash} />
 	<InfoItem label="Branch" value={branch} />
 	<InfoItem label="Trigger" value={trigger} />

@@ -54,7 +54,19 @@
 	});
 
 	let bannerInput = $derived(
-		isLive ? liveBannerInput : { status: staticStatus, ...staticDeployment }
+		isLive
+			? liveBannerInput
+			: {
+					status: staticStatus,
+					currentStepLabel: staticDeployment.current_step_label,
+					durationLabel: staticDeployment.duration_label,
+					failedStepLabel: staticDeployment.failed_step_label
+				}
+	);
+	let infoTimestamp = $derived(
+		bannerInput.status === 'running'
+			? staticDeployment.started_at
+			: (staticDeployment.finished_at ?? '-')
 	);
 	let steps = $derived(isLive ? liveSteps : mockTimelineEvents[staticStatus]);
 	let lines = $derived(isLive ? liveLines : mockLogs[staticStatus]);
@@ -64,11 +76,11 @@
 	<DeploymentStatusBanner {...bannerInput} />
 
 	<DeploymentInfoRow
-		commitHash={staticDeployment.commitHash}
+		commitHash={staticDeployment.commit_hash}
 		branch={staticDeployment.branch}
 		trigger={staticDeployment.trigger}
 		status={bannerInput.status}
-		timestamp={staticDeployment.timestamp}
+		timestamp={infoTimestamp}
 	/>
 
 	<p class="font-montserrat-semibold py-2">Timeline</p>
