@@ -1,6 +1,40 @@
-import type { DeploymentProgress, StatusDeployment } from './type';
+import type { DeploymentProgress, DeploymentStage, StatusDeployment } from './type';
 
 export type BannerStatus = Exclude<StatusDeployment, 'pending'>;
+
+const bannerStatusMap: Record<DeploymentStage, BannerStatus> = {
+	Queued: 'running',
+	Cloning: 'running',
+	Analyzing: 'running',
+	Building: 'running',
+	Deploying: 'running',
+	Routing: 'running',
+	HealthChecking: 'running',
+	Succeeded: 'success',
+	Failed: 'failed',
+	Cancelled: 'failed'
+};
+
+export function getBannerStatus(stage: DeploymentStage): BannerStatus {
+	return bannerStatusMap[stage];
+}
+
+const deploymentStageLabel: Record<DeploymentStage, string> = {
+	Queued: 'Menunggu antrean',
+	Cloning: 'Menyalin repository',
+	Analyzing: 'Menganalisis project',
+	Building: 'Build project',
+	Deploying: 'Deploy project',
+	Routing: 'Menyiapkan routing',
+	HealthChecking: 'Memeriksa kesehatan aplikasi',
+	Succeeded: 'Selesai',
+	Failed: 'Gagal',
+	Cancelled: 'Dibatalkan'
+};
+
+export function getDeploymentStageLabel(stage: DeploymentStage): string {
+	return deploymentStageLabel[stage];
+}
 
 export interface StatusDisplayInput {
 	status: BannerStatus;
@@ -97,22 +131,25 @@ export function deriveBannerState(
 	progress: DeploymentProgress,
 	elapsedSeconds: number
 ): StatusDisplayInput {
-	if (progress.errorMessage) {
-		return {
-			status: 'failed',
-			failedStepLabel: progress.steps.find((s) => s.status === 'failed')?.title
-		};
-	}
+	const status = getBannerStatus(progress.stage);
 
-	if (progress.steps.every((s) => s.status === 'success')) {
-		return {
-			status: 'success',
-			durationLabel: `${elapsedSeconds} detik`
-		};
-	}
+	switch (status) {
+		case 'failed':
+			return {
+				status,
+				failedStepLabel: progress.steps.find((step) => step.status === 'failed')?.title
+			};
 
-	return {
-		status: 'running',
-		currentStepLabel: progress.steps.find((s) => s.status === 'running')?.title
-	};
+		case 'success':
+			return {
+				status,
+				durationLabel: `${elapsedSeconds} detik`
+			};
+
+		case 'running':
+			return {
+				status,
+				currentStepLabel: getDeploymentStageLabel(progress.stage)
+			};
+	}
 }

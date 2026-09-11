@@ -1,5 +1,27 @@
 export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed';
 
+export type DeploymentStage =
+	| 'Queued'
+	| 'Cloning'
+	| 'Analyzing'
+	| 'Building'
+	| 'Deploying'
+	| 'Routing'
+	| 'HealthChecking'
+	| 'Succeeded'
+	| 'Failed'
+	| 'Cancelled';
+
+export const DEPLOYMENT_PIPELINE_STAGES = [
+	'Queued',
+	'Cloning',
+	'Analyzing',
+	'Building',
+	'Deploying',
+	'Routing',
+	'HealthChecking'
+] as const satisfies readonly DeploymentStage[];
+
 export type DeploymentStep = {
 	key: string;
 	title: string;
@@ -34,6 +56,7 @@ export type DeployLogLine = {
 };
 
 export type DeploymentProgress = {
+	stage: DeploymentStage;
 	steps: DeploymentStep[];
 	logs: DeployLogLine[];
 	errorMessage?: string;

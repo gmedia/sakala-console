@@ -140,8 +140,9 @@ describe('getTimeLabel', () => {
 });
 
 describe('deriveBannerState', () => {
-	it('failed when errorMessage exists', () => {
+	it('returns failed when stage is Failed', () => {
 		const progress: DeploymentProgress = {
+			stage: 'Failed',
 			steps: [
 				{ key: 'clone', title: 'Cloning repository', status: 'success' },
 				{ key: 'build', title: 'Building image', status: 'failed', timestamp: '08:41:15' }
@@ -156,8 +157,9 @@ describe('deriveBannerState', () => {
 		expect(result.failedStepLabel).toBe('Building image');
 	});
 
-	it('success when all steps success', () => {
+	it('returns success when stage is Succeeded', () => {
 		const progress: DeploymentProgress = {
+			stage: 'Succeeded',
 			steps: [
 				{ key: 'clone', title: 'Cloning repository', status: 'success' },
 				{ key: 'build', title: 'Building image', status: 'success' }
@@ -171,11 +173,33 @@ describe('deriveBannerState', () => {
 		expect(result.durationLabel).toBe('28 detik');
 	});
 
-	it('running when a step is currently running', () => {
+	it.each([
+		['Queued', 'Menunggu antrean'],
+		['Cloning', 'Menyalin repository'],
+		['Analyzing', 'Menganalisis project'],
+		['Building', 'Build project'],
+		['Deploying', 'Deploy project'],
+		['Routing', 'Menyiapkan routing'],
+		['HealthChecking', 'Memeriksa kesehatan aplikasi']
+	] as const)('returns running for stage %s', (stage, expectedLabel) => {
 		const progress: DeploymentProgress = {
+			stage,
+			steps: [],
+			logs: []
+		};
+
+		const result = deriveBannerState(progress, 10);
+
+		expect(result.status).toBe('running');
+		expect(result.currentStepLabel).toBe(expectedLabel);
+	});
+
+	it('uses failed step label when stage is Failed', () => {
+		const progress: DeploymentProgress = {
+			stage: 'Failed',
 			steps: [
 				{ key: 'clone', title: 'Cloning repository', status: 'success' },
-				{ key: 'build', title: 'Building image', status: 'running' },
+				{ key: 'build', title: 'Building image', status: 'failed' },
 				{ key: 'deploy', title: 'Deploy container', status: 'pending' }
 			],
 			logs: []
@@ -183,22 +207,39 @@ describe('deriveBannerState', () => {
 
 		const result = deriveBannerState(progress, 10);
 
-		expect(result.status).toBe('running');
-		expect(result.currentStepLabel).toBe('Building image');
+		expect(result.status).toBe('failed');
+		expect(result.failedStepLabel).toBe('Building image');
 	});
 
-	it('edge case: all steps still pending, status stays running without currentStepLabel', () => {
+	it('returns failed without failedStepLabel when no step is marked failed', () => {
 		const progress: DeploymentProgress = {
+			stage: 'Failed',
 			steps: [
-				{ key: 'clone', title: 'Cloning repository', status: 'pending' },
-				{ key: 'build', title: 'Building image', status: 'pending' }
+				{ key: 'clone', title: 'Cloning repository', status: 'success' },
+				{ key: 'build', title: 'Building image', status: 'running' }
 			],
 			logs: []
 		};
 
-		const result = deriveBannerState(progress, 0);
+		const result = deriveBannerState(progress, 10);
+
+		expect(result.status).toBe('failed');
+		expect(result.failedStepLabel).toBeUndefined();
+	});
+
+	it('uses stage as the source of truth instead of step statuses', () => {
+		const progress: DeploymentProgress = {
+			stage: 'Building',
+			steps: [
+				{ key: 'clone', title: 'Cloning repository', status: 'success' },
+				{ key: 'build', title: 'Building image', status: 'success' }
+			],
+			logs: []
+		};
+
+		const result = deriveBannerState(progress, 10);
 
 		expect(result.status).toBe('running');
-		expect(result.currentStepLabel).toBeUndefined();
+		expect(result.currentStepLabel).toBe('Build project');
 	});
 });

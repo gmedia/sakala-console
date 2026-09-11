@@ -1,12 +1,5 @@
 import type { BannerStatus } from '../status-config';
-import type { DeploymentStep, StatusDeployment } from '../type';
-
-export interface MockTimelineStep {
-	id: string;
-	title: string;
-	status: StatusDeployment;
-	timestamp?: string;
-}
+import type { DeploymentStep } from '../type';
 
 export const mockTimelineEvents: Record<BannerStatus, DeploymentStep[]> = {
 	running: [
@@ -14,29 +7,28 @@ export const mockTimelineEvents: Record<BannerStatus, DeploymentStep[]> = {
 		{ key: 'analyze', title: 'Menganalisis proyek', status: 'success', timestamp: '08:41:15' },
 		{ key: 'build', title: 'Building image', status: 'running' },
 		{ key: 'deploy', title: 'Deploy container', status: 'pending' },
+		{ key: 'routing', title: 'Menyiapkan routing', status: 'pending' },
 		{ key: 'health', title: 'Health check', status: 'pending' }
 	],
+
 	success: [
 		{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
 		{ key: 'analyze', title: 'Menganalisis proyek', status: 'success', timestamp: '08:41:15' },
 		{ key: 'build', title: 'Building image', status: 'success', timestamp: '08:41:38' },
 		{ key: 'deploy', title: 'Deploy container', status: 'success', timestamp: '08:41:45' },
+		{ key: 'routing', title: 'Menyiapkan routing', status: 'success', timestamp: '08:41:47' },
 		{ key: 'health', title: 'Health check', status: 'success', timestamp: '08:41:49' }
 	],
+
 	failed: [
 		{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:39:02' },
 		{ key: 'analyze', title: 'Menganalisis proyek', status: 'success', timestamp: '08:39:08' },
 		{ key: 'build', title: 'Building image', status: 'failed', timestamp: '08:39:12' },
 		{ key: 'deploy', title: 'Deploy container', status: 'pending' },
+		{ key: 'routing', title: 'Menyiapkan routing', status: 'pending' },
 		{ key: 'health', title: 'Health check', status: 'pending' }
 	]
 };
-
-export interface MockLogLine {
-	timestamp: string;
-	level: 'info' | 'success' | 'warn' | 'error';
-	message: string;
-}
 
 type LogVariant = 'default' | 'error';
 type LogLine = { timestamp: string; message: string; variant?: LogVariant };
@@ -56,6 +48,7 @@ export const mockLogs: Record<BannerStatus, LogLine[]> = {
 		{ timestamp: '08:41:15', message: 'Analyzing project structure...' },
 		{ timestamp: '08:41:38', message: 'Image built successfully' },
 		{ timestamp: '08:41:45', message: 'Container deployed' },
+		{ timestamp: '08:41:47', message: 'Routing configured successfully' },
 		{ timestamp: '08:41:48', message: 'Running health check on /health...' },
 		{ timestamp: '08:41:49', message: 'Deployment is live' }
 	],

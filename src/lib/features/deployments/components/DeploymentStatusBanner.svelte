@@ -32,7 +32,7 @@
 		size="lg"
 		showLabel={false}
 		colorClassOverride={display.iconColorClass}
-		animateIcon={false}
+		animateIcon
 	/>
 	<div>
 		<h2 class="font-semibold">{display.title}</h2>

@@ -3,6 +3,7 @@ import type {
 	DeployLogLine,
 	DeploymentEvent,
 	DeploymentProgress,
+	DeploymentStage,
 	DeploymentStep
 } from '$lib/features/deployments/type';
 
@@ -108,13 +109,21 @@ const successEvents: DeploymentEvent[] = [
 	{
 		sequence: 5,
 		level: 'info',
+		type: 'deployment.routing',
+		message: 'Menyiapkan routing',
+		metadata: null,
+		occurred_at: '2026-08-21T08:41:25Z'
+	},
+	{
+		sequence: 6,
+		level: 'info',
 		type: 'deployment.health_checking',
 		message: 'Menjalankan health check',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:27Z'
 	},
 	{
-		sequence: 6,
+		sequence: 7,
 		level: 'info',
 		type: 'deployment.succeeded',
 		message: 'Deployment berhasil, container live',
@@ -252,6 +261,29 @@ const scenarioLogs: Record<DeployScenario, BackendLogLine[]> = {
 	failed: failedLogs
 };
 
+function getStageFromEvent(event: DeploymentEvent): DeploymentStage {
+	switch (event.type) {
+		case 'deployment.cloning':
+			return 'Cloning';
+		case 'deployment.analyzing':
+			return 'Analyzing';
+		case 'deployment.building':
+			return 'Building';
+		case 'deployment.deploying':
+			return 'Deploying';
+		case 'deployment.routing':
+			return 'Routing';
+		case 'deployment.health_checking':
+			return 'HealthChecking';
+		case 'deployment.succeeded':
+			return 'Succeeded';
+		case 'deployment.failed':
+			return 'Failed';
+		default:
+			throw new Error(`Unknown deployment event type: ${event.type}`);
+	}
+}
+
 export function resolveDeployScenario(successRate = 0.8): DeployScenario {
 	return Math.random() < successRate ? 'success' : 'failed';
 }
@@ -267,12 +299,14 @@ export async function* streamDeploymentProgress(
 
 	for (let i = 0; i < events.length; i++) {
 		await new Promise((resolve) => setTimeout(resolve, 500));
+		const currentStage = getStageFromEvent(events[i]);
 
 		receivedEvents.push(events[i]);
 
 		shownLogCount = Math.max(shownLogCount, Math.floor(((i + 1) / events.length) * logs.length));
 
 		yield {
+			stage: currentStage,
 			steps: deriveStepsFromEvents(receivedEvents),
 			logs: logs.slice(0, shownLogCount).map(toDeployLogLine),
 			errorMessage: deriveErrorMessage(receivedEvents)
