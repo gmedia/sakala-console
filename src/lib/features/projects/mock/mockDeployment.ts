@@ -1,38 +1,12 @@
-import type { DeploymentStep } from '../type';
-
-export type DeploymentEventLevel = 'info' | 'warning' | 'error';
-
-export type DeploymentEvent = {
-	sequence: number;
-	level: DeploymentEventLevel;
-	type: string;
-	message: string;
-	metadata: Record<string, unknown> | null;
-	occurred_at: string;
-};
-
-export type LogStream = 'stdout' | 'stderr' | 'system';
-
-export type BackendLogLine = {
-	sequence: number;
-	stream: LogStream;
-	message: string;
-	recorded_at: string;
-};
-
-export type DeployLogLine = {
-	timestamp: string;
-	message: string;
-	variant?: 'error';
-};
+import type {
+	BackendLogLine,
+	DeployLogLine,
+	DeploymentEvent,
+	DeploymentProgress,
+	DeploymentStep
+} from '$lib/features/deployments/type';
 
 export type DeployScenario = 'success' | 'failed';
-
-export type DeploymentProgress = {
-	steps: DeploymentStep[];
-	logs: DeployLogLine[];
-	errorMessage?: string;
-};
 
 function formatTime(isoString: string): string {
 	return new Date(isoString).toLocaleTimeString('id-ID', { hour12: false });
@@ -57,15 +31,18 @@ const STEP_ORDER: { key: string; title: string; eventType: string }[] = [
 export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep[] {
 	let currentStepIndex = -1;
 	let finalStatus: 'success' | 'failed' | null = null;
+	const stepTimestamps: (string | undefined)[] = new Array(STEP_ORDER.length).fill(undefined);
 
 	for (const event of events) {
 		const stepIdx = STEP_ORDER.findIndex((s) => s.eventType === event.type);
 		if (stepIdx !== -1) {
 			currentStepIndex = stepIdx;
+			stepTimestamps[stepIdx] = formatTime(event.occurred_at);
 		} else if (event.type === 'deployment.succeeded') {
 			finalStatus = 'success';
 		} else if (event.type === 'deployment.failed') {
 			finalStatus = 'failed';
+			if (currentStepIndex !== -1) stepTimestamps[currentStepIndex] = formatTime(event.occurred_at);
 		}
 	}
 
@@ -80,7 +57,8 @@ export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep
 			return {
 				key: step.key,
 				title: step.title,
-				status: finalStatus === 'failed' ? ('failed' as const) : ('running' as const)
+				status: finalStatus === 'failed' ? ('failed' as const) : ('running' as const),
+				timestamp: finalStatus === 'failed' ? stepTimestamps[idx] : undefined
 			};
 		}
 		return { key: step.key, title: step.title, status: 'pending' as const };

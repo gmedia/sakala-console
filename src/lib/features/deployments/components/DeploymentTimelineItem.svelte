@@ -1,7 +1,7 @@
 <script lang="ts">
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
-	import type { StatusDeployment } from '../../projects/type';
 	import { getTimelineItemDisplay } from '../status-config';
+	import type { StatusDeployment } from '../type';
 
 	type Props = {
 		status: StatusDeployment;

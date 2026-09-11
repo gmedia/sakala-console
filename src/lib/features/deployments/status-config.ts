@@ -1,20 +1,21 @@
-import type { StatusDeployment } from '../projects/type';
+import type { DeploymentProgress, StatusDeployment } from './type';
+
 export type BannerStatus = Exclude<StatusDeployment, 'pending'>;
 
-interface StatusDisplayInput {
+export interface StatusDisplayInput {
 	status: BannerStatus;
 	currentStepLabel?: string;
 	durationLabel?: string;
 	failedStepLabel?: string;
 }
 
-interface TimelineItemDisplayInput {
+export interface TimelineItemDisplayInput {
 	status: StatusDeployment;
 	title: string;
 	timestamp?: string;
 }
 
-interface TimelineItemDisplay {
+export interface TimelineItemDisplay {
 	title: string;
 	subtitle?: string;
 }
@@ -42,7 +43,7 @@ const bannerIconColorMap: Partial<Record<BannerStatus, string>> = {
 
 const bannerBgMap: Record<BannerStatus, string> = {
 	running: 'bg-warning/10',
-	success: 'bg-primary/10',
+	success: 'bg-success-soft',
 	failed: 'bg-error/10'
 };
 
@@ -82,4 +83,28 @@ export function getStatusDisplay({
 
 export function getTimeLabel(status: BannerStatus): string {
 	return timeLabelMap[status];
+}
+
+export function deriveBannerState(
+	progress: DeploymentProgress,
+	elapsedSeconds: number
+): StatusDisplayInput {
+	if (progress.errorMessage) {
+		return {
+			status: 'failed',
+			failedStepLabel: progress.steps.find((s) => s.status === 'failed')?.title
+		};
+	}
+
+	if (progress.steps.every((s) => s.status === 'success')) {
+		return {
+			status: 'success',
+			durationLabel: `${elapsedSeconds} detik`
+		};
+	}
+
+	return {
+		status: 'running',
+		currentStepLabel: progress.steps.find((s) => s.status === 'running')?.title
+	};
 }

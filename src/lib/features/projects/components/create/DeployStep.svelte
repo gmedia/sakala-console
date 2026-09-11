@@ -4,16 +4,15 @@
 	import { resolve } from '$app/paths';
 	import DeploymentTimeline from '$lib/features/deployments/components/DeploymentTimeline.svelte';
 	import DeploymentLogConsole from '$lib/features/deployments/components/DeploymentLogConsole.svelte';
-	import type { DeploymentStep } from '../../type';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import {
 		streamDeploymentProgress,
-		type DeployScenario,
-		type DeployLogLine,
-		resolveDeployScenario
+		resolveDeployScenario,
+		type DeployScenario
 	} from '$lib/features/projects/mock/mockDeployment';
+	import type { DeployLogLine, DeploymentStep } from '$lib/features/deployments/type';
 
 	type EmptyStateConfig = {
 		icon: typeof RefreshCw | typeof Check | typeof X;

@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-	resolveDeployScenario,
-	streamDeploymentProgress,
-	type DeploymentProgress
-} from './mockDeployment';
+import { resolveDeployScenario, streamDeploymentProgress } from './mockDeployment';
+import type { DeploymentProgress } from '$lib/features/deployments/type';
 
 describe('resolveDeployScenario', () => {
 	it('should return success when successRate is 1', () => {

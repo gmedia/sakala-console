@@ -1,5 +1,5 @@
-import type { DeploymentStep, StatusDeployment } from '../../projects/type';
 import type { BannerStatus } from '../status-config';
+import type { DeploymentStep, StatusDeployment } from '../type';
 
 export interface MockTimelineStep {
 	id: string;

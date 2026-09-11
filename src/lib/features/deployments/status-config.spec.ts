@@ -22,7 +22,7 @@ describe('getStatusDisplay', () => {
 
 		expect(result.title).toBe('Deployment berhasil');
 		expect(result.desc).toBe('Selesai dalam 48 detik, perubahan sudah live');
-		expect(result.bannerBgClass).toBe('bg-primary/10');
+		expect(result.bannerBgClass).toBe('bg-success-soft');
 		expect(result.iconColorClass).toBeUndefined();
 	});
 
