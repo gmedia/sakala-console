@@ -48,7 +48,7 @@
 		}
 	}
 
-	async function runDeployment(scenario: DeployScenario = 'success') {
+	async function runDeployment(scenario: DeployScenario = 'failed') {
 		buildError = null;
 		lastRunId++;
 		const myRunId = lastRunId;

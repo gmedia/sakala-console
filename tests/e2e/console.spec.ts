@@ -99,3 +99,26 @@ test('does NOT render protected content while current user is still pending', as
 
 	await expect(page.getByRole('heading', { name: 'Projects' }).first()).toBeVisible();
 });
+
+test.describe('Deployment detail page', () => {
+	test('shows running state', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await page.goto('/projects/sakala-console/deployments/12?status=running');
+
+		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
+	});
+
+	test('shows success state', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await page.goto('/projects/sakala-console/deployments/12?status=success');
+
+		await expect(page.getByText('Deployment berhasil')).toBeVisible();
+	});
+
+	test('shows failed state', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await page.goto('/projects/sakala-console/deployments/12?status=failed');
+
+		await expect(page.getByText('Deployment gagal')).toBeVisible();
+	});
+});
