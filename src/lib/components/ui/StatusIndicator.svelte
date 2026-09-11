@@ -8,20 +8,29 @@
 		size?: Size;
 		label?: string;
 		showLabel?: boolean;
+		colorClassOverride?: string;
+		animateIcon?: boolean;
 	};
 
-	let { status, size = 'md', label, showLabel = true }: Props = $props();
+	let {
+		status,
+		size = 'md',
+		label,
+		showLabel = true,
+		colorClassOverride,
+		animateIcon = true
+	}: Props = $props();
 
 	const dotSizeMap: Record<Size, string> = {
 		sm: 'size-5',
-		md: 'size-6',
-		lg: 'size-7'
+		md: 'size-9',
+		lg: 'size-14'
 	};
 
 	const iconSizePxMap: Record<Size, number> = {
 		sm: 11,
 		md: 13,
-		lg: 15
+		lg: 18
 	};
 
 	const colorMap: Record<Status, string> = {
@@ -40,7 +49,7 @@
 
 	let dotSize = $derived(dotSizeMap[size]);
 	let iconSizePx = $derived(iconSizePxMap[size]);
-	let dotColor = $derived(colorMap[status]);
+	let dotColor = $derived(colorClassOverride ?? colorMap[status]);
 	let displayLabel = $derived(label ?? defaultLabelMap[status]);
 </script>
 
@@ -50,7 +59,7 @@
 		aria-hidden="true"
 	>
 		{#if status === 'running'}
-			<RefreshCw size={iconSizePx} strokeWidth={2.5} class="animate-spin" />
+			<RefreshCw size={iconSizePx} strokeWidth={2.5} class={animateIcon ? 'animate-spin' : ''} />
 		{:else if status === 'success'}
 			<Check size={iconSizePx} strokeWidth={3} />
 		{:else if status === 'failed'}

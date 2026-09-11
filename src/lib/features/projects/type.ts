@@ -12,6 +12,7 @@ export type DeploymentStep = {
 	key: string;
 	title: string;
 	status: StatusDeployment;
+	timestamp?: string;
 };
 
 export interface Project {
