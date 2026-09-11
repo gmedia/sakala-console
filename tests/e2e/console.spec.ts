@@ -106,6 +106,15 @@ test.describe('Deployment detail page', () => {
 		await page.goto('/projects/sakala-console/deployments/12?status=running');
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
+		await expect(page.getByText(/Tahap: Building image/)).toBeVisible();
+
+		await expect(page.getByText('Dimulai pada')).toBeVisible();
+		await expect(page.getByText('main', { exact: true })).toBeVisible();
+
+		await expect(page.getByText('Cloning repository', { exact: true })).toBeVisible();
+		await expect(page.getByText('Sedang berjalan...')).toBeVisible();
+
+		await expect(page.getByText('Cloning repository from main...')).toBeVisible();
 	});
 
 	test('shows success state', async ({ page }) => {
@@ -113,6 +122,9 @@ test.describe('Deployment detail page', () => {
 		await page.goto('/projects/sakala-console/deployments/12?status=success');
 
 		await expect(page.getByText('Deployment berhasil')).toBeVisible();
+		await expect(page.getByText('Selesai pada')).toBeVisible();
+		await expect(page.getByText('Health check', { exact: true })).toBeVisible();
+		await expect(page.getByText('Deployment is live')).toBeVisible();
 	});
 
 	test('shows failed state', async ({ page }) => {
@@ -120,5 +132,9 @@ test.describe('Deployment detail page', () => {
 		await page.goto('/projects/sakala-console/deployments/12?status=failed');
 
 		await expect(page.getByText('Deployment gagal')).toBeVisible();
+		await expect(page.getByText('Deployment gagal')).toBeVisible();
+		await expect(page.getByText('Gagal pada')).toBeVisible();
+		await expect(page.getByText('Building image - gagal')).toBeVisible();
+		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
 	});
 });
