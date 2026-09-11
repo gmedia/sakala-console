@@ -13,6 +13,7 @@ export interface TimelineItemDisplayInput {
 	status: StatusDeployment;
 	title: string;
 	timestamp?: string;
+	showSubtitle?: boolean;
 }
 
 export interface TimelineItemDisplay {
@@ -23,17 +24,24 @@ export interface TimelineItemDisplay {
 export function getTimelineItemDisplay({
 	status,
 	title,
-	timestamp
+	timestamp,
+	showSubtitle = true
 }: TimelineItemDisplayInput): TimelineItemDisplay {
+	const displayTitle = status === 'failed' ? `${title} - gagal` : title;
+
+	if (!showSubtitle) {
+		return { title: displayTitle };
+	}
+
 	switch (status) {
 		case 'pending':
-			return { title };
+			return { title: displayTitle };
 		case 'running':
-			return { title, subtitle: 'Sedang berjalan...' };
+			return { title: displayTitle, subtitle: 'Sedang berjalan...' };
 		case 'success':
-			return { title, subtitle: timestamp };
+			return { title: displayTitle, subtitle: timestamp };
 		case 'failed':
-			return { title: `${title} - gagal`, subtitle: timestamp };
+			return { title: displayTitle, subtitle: timestamp };
 	}
 }
 

@@ -10,6 +10,7 @@
 		showLabel?: boolean;
 		colorClassOverride?: string;
 		animateIcon?: boolean;
+		showIcon?: boolean;
 	};
 
 	let {
@@ -18,7 +19,8 @@
 		label,
 		showLabel = true,
 		colorClassOverride,
-		animateIcon = true
+		animateIcon = true,
+		showIcon = true
 	}: Props = $props();
 
 	const dotSizeMap: Record<Size, string> = {
@@ -35,7 +37,7 @@
 
 	const colorMap: Record<Status, string> = {
 		pending: 'bg-muted ring-1 ring-inset ring-muted/50',
-		running: 'bg-muted text-white',
+		running: 'bg-primary text-white',
 		success: 'bg-success-dark text-white',
 		failed: 'bg-error-dark text-white'
 	};
@@ -58,7 +60,7 @@
 		class="inline-flex shrink-0 items-center justify-center rounded-full {dotSize} {dotColor}"
 		aria-hidden="true"
 	>
-		{#if status === 'running'}
+		{#if status === 'running' && showIcon}
 			<RefreshCw size={iconSizePx} strokeWidth={2.5} class={animateIcon ? 'animate-spin' : ''} />
 		{:else if status === 'success'}
 			<Check size={iconSizePx} strokeWidth={3} />

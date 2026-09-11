@@ -28,6 +28,16 @@ const STEP_ORDER: { key: string; title: string; eventType: string }[] = [
 	{ key: 'health', title: 'Health check - live', eventType: 'deployment.health_checking' }
 ];
 
+function buildStep(
+	step: { key: string; title: string },
+	status: DeploymentStep['status'],
+	idx: number,
+	stepTimestamps: (string | undefined)[]
+): DeploymentStep {
+	const timestamp = status === 'success' || status === 'failed' ? stepTimestamps[idx] : undefined;
+	return { key: step.key, title: step.title, status, timestamp };
+}
+
 export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep[] {
 	let currentStepIndex = -1;
 	let finalStatus: 'success' | 'failed' | null = null;
@@ -47,21 +57,13 @@ export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep
 	}
 
 	return STEP_ORDER.map((step, idx) => {
-		if (finalStatus === 'success') {
-			return { key: step.key, title: step.title, status: 'success' as const };
-		}
-		if (idx < currentStepIndex) {
-			return { key: step.key, title: step.title, status: 'success' as const };
+		if (finalStatus === 'success' || idx < currentStepIndex) {
+			return buildStep(step, 'success', idx, stepTimestamps);
 		}
 		if (idx === currentStepIndex) {
-			return {
-				key: step.key,
-				title: step.title,
-				status: finalStatus === 'failed' ? ('failed' as const) : ('running' as const),
-				timestamp: finalStatus === 'failed' ? stepTimestamps[idx] : undefined
-			};
+			return buildStep(step, finalStatus === 'failed' ? 'failed' : 'running', idx, stepTimestamps);
 		}
-		return { key: step.key, title: step.title, status: 'pending' as const };
+		return buildStep(step, 'pending', idx, stepTimestamps);
 	});
 }
 

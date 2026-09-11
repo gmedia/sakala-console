@@ -47,7 +47,7 @@
 		}
 	}
 
-	async function runDeployment(scenario: DeployScenario = 'failed') {
+	async function runDeployment(scenario: DeployScenario = 'success') {
 		buildError = null;
 		lastRunId++;
 		const myRunId = lastRunId;
@@ -154,8 +154,8 @@
 />
 
 {#if wizard.deployStatus === 'deploying' || wizard.deployStatus === 'cancelling'}
-	<div class="flex flex-col rounded-lg p-4">
-		<DeploymentTimeline {steps} />
+	<div class="flex flex-col rounded-lg px-4">
+		<DeploymentTimeline {steps} showSubtitle={false} />
 	</div>
 
 	<DeploymentLogConsole lines={deployLogs} />
