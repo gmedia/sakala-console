@@ -7,6 +7,7 @@
 	} from '$lib/features/projects/mock/mockDeployment';
 	import {
 		deriveBannerState,
+		deriveLiveInfoTimestamp,
 		parseBannerStatus,
 		type StatusDisplayInput
 	} from '$lib/features/deployments/status-config';
@@ -27,6 +28,7 @@
 	let liveSteps = $state<DeploymentStep[]>([]);
 	let liveLines = $state<DeployLogLine[]>([]);
 	let liveBannerInput = $state<StatusDisplayInput>({ status: 'running' });
+	let liveStartedAtLabel = $state('');
 
 	$effect(() => {
 		if (!isLive) return;
@@ -38,6 +40,7 @@
 					? 'success'
 					: resolveDeployScenario();
 		const startedAt = Date.now();
+		liveStartedAtLabel = new Date(startedAt).toLocaleTimeString('id-ID', { hour12: false });
 		let cancelled = false;
 
 		(async () => {
@@ -64,10 +67,19 @@
 					failedStepLabel: staticDeployment.failed_step_label
 				}
 	);
+	let liveInfoTimestamp = $derived(
+		deriveLiveInfoTimestamp({
+			status: liveBannerInput.status,
+			steps: liveSteps,
+			startedAtLabel: liveStartedAtLabel
+		})
+	);
 	let infoTimestamp = $derived(
-		bannerInput.status === 'running'
-			? staticDeployment.started_at
-			: (staticDeployment.finished_at ?? '-')
+		isLive
+			? liveInfoTimestamp
+			: bannerInput.status === 'running'
+				? staticDeployment.started_at
+				: (staticDeployment.finished_at ?? '-')
 	);
 	let steps = $derived(isLive ? liveSteps : mockTimelineEvents[staticStatus]);
 	let lines = $derived(isLive ? liveLines : mockLogs[staticStatus]);
@@ -77,7 +89,7 @@
 	<DeploymentStatusBanner {...bannerInput} />
 
 	<DeploymentInfoRow
-		commitHash={staticDeployment.commit_hash}
+		commitSha={staticDeployment.commit_sha}
 		branch={staticDeployment.branch}
 		trigger={staticDeployment.trigger}
 		status={bannerInput.status}

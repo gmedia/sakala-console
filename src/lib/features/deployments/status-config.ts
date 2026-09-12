@@ -1,4 +1,4 @@
-import type { DeploymentProgress, DeploymentStage, StatusDeployment } from './type';
+import type { DeploymentProgress, DeploymentStage, DeploymentStep, StatusDeployment } from './type';
 
 export type BannerStatus = Exclude<StatusDeployment, 'pending'>;
 
@@ -107,6 +107,30 @@ const timeLabelMap: Record<BannerStatus, string> = {
 	success: 'Selesai pada',
 	failed: 'Gagal pada'
 };
+
+export interface LiveInfoTimestampInput {
+	status: BannerStatus;
+	steps: DeploymentStep[];
+	startedAtLabel: string;
+}
+
+export function deriveLiveInfoTimestamp({
+	status,
+	steps,
+	startedAtLabel
+}: LiveInfoTimestampInput): string {
+	if (status === 'running') {
+		return startedAtLabel;
+	}
+
+	if (status === 'failed') {
+		const failedStep = steps.find((s) => s.status === 'failed');
+		return failedStep?.timestamp ?? '-';
+	}
+
+	const lastTimestamped = [...steps].reverse().find((s) => s.timestamp);
+	return lastTimestamped?.timestamp ?? '-';
+}
 
 export function getStatusDisplay({
 	status,

@@ -4,9 +4,10 @@ import {
 	getTimelineItemDisplay,
 	getTimeLabel,
 	deriveBannerState,
-	parseBannerStatus
+	parseBannerStatus,
+	deriveLiveInfoTimestamp
 } from './status-config';
-import type { DeploymentProgress } from './type';
+import type { DeploymentProgress, DeploymentStep } from './type';
 
 describe('getStatusDisplay', () => {
 	it('show running status message with currentStepLabel', () => {
@@ -260,5 +261,41 @@ describe('parseBannerStatus', () => {
 
 	it('allows custom fallback', () => {
 		expect(parseBannerStatus('foo', 'failed')).toBe('failed');
+	});
+});
+
+describe('deriveLiveInfoTimestamp', () => {
+	it('running: pakai jam mulai simulasi', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'running',
+			steps: [],
+			startedAtLabel: '08:41:00'
+		});
+		expect(result).toBe('08:41:00');
+	});
+
+	it('success: pakai timestamp step terakhir, bukan "-"', () => {
+		const steps: DeploymentStep[] = [
+			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
+			{ key: 'health', title: 'Health check', status: 'success', timestamp: '08:41:30' }
+		];
+		const result = deriveLiveInfoTimestamp({
+			status: 'success',
+			steps,
+			startedAtLabel: '08:41:00'
+		});
+		expect(result).toBe('08:41:30');
+		expect(result).not.toBe('-');
+	});
+
+	it('failed: pakai timestamp step yang gagal, bukan "-"', () => {
+		const steps: DeploymentStep[] = [
+			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
+			{ key: 'build', title: 'Building image', status: 'failed', timestamp: '08:41:15' },
+			{ key: 'deploy', title: 'Deploy container', status: 'pending' }
+		];
+		const result = deriveLiveInfoTimestamp({ status: 'failed', steps, startedAtLabel: '08:41:00' });
+		expect(result).toBe('08:41:15');
+		expect(result).not.toBe('-');
 	});
 });
