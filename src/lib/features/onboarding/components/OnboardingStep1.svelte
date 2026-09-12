@@ -11,7 +11,7 @@
 	} from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	// import type { OnboardingSource } from '../types';
-	import { ONBOARDING_SOURCE_VALUES, ONBOARDING_OPTIONS_MAP } from '../constants';
+	import { ONBOARDING_SOURCE_VALUES, ONBOARDING_SOURCE_OPTIONS_MAP } from '../constants';
 	import type { OnboardingSource } from '$lib/api/resources/onboarding';
 	import type { Component } from 'svelte';
 
@@ -69,7 +69,7 @@
 		{#each ONBOARDING_SOURCE_VALUES as source (source)}
 			{@const Icon = ICONS[source]}
 			{@const isSelected = selectedSource === source}
-			<button
+			<!-- <button
 				type="button"
 				disabled={isPending}
 				onclick={() => onSelect(source)}
@@ -89,7 +89,34 @@
 					<Icon size={18} weight="regular" />
 				</div>
 				<span class="text-sm font-normal text-black">{ONBOARDING_OPTIONS_MAP[source]}</span>
-			</button>
+			</button> -->
+			<label
+				class={cn(
+					'flex h-16.5 w-full cursor-pointer items-center gap-3.5 rounded-lg border px-4 text-left transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2',
+					isSelected
+						? 'border-primary bg-primary-50/40 text-black ring-1 ring-primary'
+						: 'border-border-strong bg-surface text-black hover:border-primary/40 hover:bg-background/50'
+				)}
+			>
+				<input
+					type="radio"
+					name="onboarding-source"
+					value={source}
+					checked={isSelected}
+					disabled={isPending}
+					onchange={() => onSelect(source)}
+					class="sr-only"
+				/>
+				<div
+					class={cn(
+						'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+						isSelected ? 'bg-primary text-white' : 'bg-primary-50 text-primary'
+					)}
+				>
+					<Icon size={18} weight="regular" />
+				</div>
+				<span class="text-sm font-normal text-black">{ONBOARDING_SOURCE_OPTIONS_MAP[source]}</span>
+			</label>
 		{/each}
 	</div>
 
@@ -98,7 +125,7 @@
 		<button
 			type="button"
 			onclick={onBack}
-			disabled={!onBack}
+			disabled={!onBack || isPending}
 			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 		>
 			Kembali
@@ -107,7 +134,8 @@
 		<div class="flex items-center gap-2">
 			<button
 				type="button"
-				onclick={onSkip ?? onNext}
+				onclick={onSkip}
+				disabled={isPending}
 				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background"
 			>
 				Lewati
@@ -116,6 +144,7 @@
 			<button
 				type="button"
 				onclick={onNext}
+				disabled={!selectedSource || isPending}
 				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white"
 			>
 				Lanjutkan

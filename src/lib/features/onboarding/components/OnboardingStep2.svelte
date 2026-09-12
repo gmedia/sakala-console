@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import type { DeveloperRole } from '../types';
+	import type { OnboardingProfile } from '$lib/api/resources/onboarding';
+	import {
+		ONBOARDING_PROFILE_VALUES,
+		ONBOARDING_PROFILE_OPTIONS_MAP
+	} from '$lib/features/onboarding/constants';
 
 	type Props = {
 		displayName?: string;
-		selectedRole?: DeveloperRole;
-		onUpdate?: (data: { displayName?: string; role?: DeveloperRole }) => void;
+		selectedRole?: OnboardingProfile;
+		isPending?: boolean;
+		onUpdate?: (data: { name?: string; role?: OnboardingProfile }) => void;
 		onNext: () => void;
 		onSkip?: () => void;
 		onBack?: () => void;
@@ -14,34 +19,33 @@
 	let {
 		displayName = '',
 		selectedRole = 'developer',
+		isPending = false,
 		onUpdate,
 		onNext,
 		onSkip,
 		onBack
 	}: Props = $props();
 
-	let localRole = $state<DeveloperRole | undefined>(undefined);
+	let localRole = $state<OnboardingProfile | undefined>(undefined);
 	let localName = $state<string | undefined>(undefined);
 
 	let currentRole = $derived(localRole ?? selectedRole);
 	let currentName = $derived(localName ?? displayName);
 
-	function selectRole(role: DeveloperRole) {
+	function selectRole(role: OnboardingProfile) {
 		localRole = role;
-		onUpdate?.({ displayName: currentName, role });
+		onUpdate?.({ name: currentName, role });
 	}
 
 	function handleInput(e: Event) {
 		localName = (e.target as HTMLInputElement).value;
-		onUpdate?.({ displayName: localName, role: currentRole });
+		onUpdate?.({ name: localName, role: currentRole });
 	}
 
-	const roles: { id: DeveloperRole; label: string }[] = [
-		{ id: 'developer', label: 'Developer' },
-		{ id: 'devops', label: 'DevOps' },
-		{ id: 'architect', label: 'Architech' },
-		{ id: 'other', label: 'Other' }
-	];
+	const roles: { id: OnboardingProfile; label: string }[] = ONBOARDING_PROFILE_VALUES.map((id) => ({
+		id,
+		label: ONBOARDING_PROFILE_OPTIONS_MAP[id]
+	}));
 </script>
 
 <div class="mx-auto w-full py-12 px-6 md:px-60">
@@ -77,7 +81,8 @@
 				placeholder="Misal: sakala_programmer"
 				value={currentName}
 				oninput={handleInput}
-				class="mt-2 h-14 w-full rounded-lg border border-border/60 bg-surface pl-10 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:outline-none"
+				disabled={isPending}
+				class="mt-2 h-14 w-full rounded-lg border border-border/60 bg-surface pl-10 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:outline-none disabled:opacity-60"
 			/>
 		</div>
 
@@ -92,8 +97,9 @@
 					<button
 						type="button"
 						onclick={() => selectRole(role.id)}
+						disabled={isPending}
 						class={cn(
-							'flex h-30 w-full items-center justify-center rounded-lg border text-center transition-all sm:w-[220.5px]',
+							'flex h-30 w-full items-center justify-center rounded-lg border text-center transition-all sm:w-[220.5px] disabled:opacity-60',
 							isSelected
 								? 'border-primary bg-primary text-white'
 								: 'border-border-strong bg-surface text-black hover:border-primary/40'
@@ -111,7 +117,7 @@
 		<button
 			type="button"
 			onclick={onBack}
-			disabled={!onBack}
+			disabled={!onBack || isPending}
 			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 		>
 			Kembali
@@ -121,7 +127,8 @@
 			<button
 				type="button"
 				onclick={onSkip ?? onNext}
-				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background"
+				disabled={isPending}
+				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 			>
 				Lewati
 			</button>
@@ -129,7 +136,8 @@
 			<button
 				type="button"
 				onclick={onNext}
-				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white"
+				disabled={isPending}
+				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white disabled:opacity-60"
 			>
 				Lanjutkan
 			</button>

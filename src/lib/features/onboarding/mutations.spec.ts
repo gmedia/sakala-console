@@ -1,13 +1,25 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { useSubmitOnboarding } from './mutations';
-import { submitOnboardingSource } from '$lib/api/resources/onboarding';
+import {
+	useSubmitOnboardingSource,
+	useSubmitOnboardingProfile,
+	useCompleteOnboarding
+} from './mutations';
+import {
+	submitOnboardingSource,
+	submitOnboardingProfile,
+	submitOnboardingCompleted
+} from '$lib/api/resources/onboarding';
 import { queryKeys } from '$lib/api/query-keys';
 
-vi.mock('$lib/api/resources/onboarding', () => ({ submitOnboardingSource: vi.fn() }));
+vi.mock('$lib/api/resources/onboarding', () => ({
+	submitOnboardingSource: vi.fn(),
+	submitOnboardingProfile: vi.fn(),
+	submitOnboardingCompleted: vi.fn()
+}));
 
 const invalidateQueries = vi.fn();
 let capturedConfig: {
-	mutationFn: (selection: unknown) => Promise<unknown>;
+	mutationFn: (selection?: unknown) => Promise<unknown>;
 	onSuccess: () => void;
 } | null = null;
 
@@ -19,37 +31,85 @@ vi.mock('@tanstack/svelte-query', () => ({
 	useQueryClient: vi.fn(() => ({ invalidateQueries }))
 }));
 
-const mockedSubmit = vi.mocked(submitOnboardingSource);
+const mockedSubmitSource = vi.mocked(submitOnboardingSource);
+const mockedSubmitProfile = vi.mocked(submitOnboardingProfile);
+const mockedSubmitCompleted = vi.mocked(submitOnboardingCompleted);
+
+beforeEach(() => {
+	mockedSubmitSource.mockReset();
+	mockedSubmitProfile.mockReset();
+	mockedSubmitCompleted.mockReset();
+	invalidateQueries.mockReset();
+	capturedConfig = null;
+});
 
 describe('useSubmitOnboarding', () => {
-	beforeEach(() => {
-		mockedSubmit.mockReset();
-		invalidateQueries.mockReset();
-	});
-
-	it('memetakan { type: "source" } jadi payload { source } saja, tanpa skip', async () => {
-		mockedSubmit.mockResolvedValue({} as never);
-		useSubmitOnboarding();
-
+	it('map { type: "source" } to just the payload { source }, without skipping', async () => {
+		mockedSubmitSource.mockResolvedValue({} as never);
+		useSubmitOnboardingSource();
 		await capturedConfig!.mutationFn({ type: 'source', source: 'github' });
-
-		expect(mockedSubmit).toHaveBeenCalledWith({ source: 'github' });
+		expect(mockedSubmitSource).toHaveBeenCalledWith({ source: 'github' });
 	});
 
-	it('memetakan { type: "skip" } jadi payload { skip } saja, tanpa source', async () => {
-		mockedSubmit.mockResolvedValue({} as never);
-		mockedSubmit.mockResolvedValue({} as never);
-		useSubmitOnboarding();
-
+	it('map { type: "skip" } to just the payload { skip }, without source', async () => {
+		mockedSubmitSource.mockResolvedValue({} as never);
+		useSubmitOnboardingSource();
 		await capturedConfig!.mutationFn({ type: 'skip' });
-
-		const [payload] = mockedSubmit.mock.calls[0];
+		const [payload] = mockedSubmitSource.mock.calls[0];
 		expect(payload).toHaveProperty('skip');
 		expect(payload).not.toHaveProperty('source');
 	});
 
-	it('memanggil invalidateQueries untuk current-user setelah sukses', () => {
-		useSubmitOnboarding();
+	it('calls invalidateQueries for current-user after success', () => {
+		useSubmitOnboardingSource();
+		capturedConfig!.onSuccess();
+		expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
+	});
+});
+
+describe('useSubmitOnboardingProfile', () => {
+	it('foward the selection { name, role } to submitOnboardingProfile', async () => {
+		mockedSubmitProfile.mockResolvedValue({} as never);
+		useSubmitOnboardingProfile();
+
+		await capturedConfig!.mutationFn({ name: 'sakala_programmer', role: 'developer' });
+
+		expect(mockedSubmitProfile).toHaveBeenCalledWith({
+			name: 'sakala_programmer',
+			role: 'developer'
+		});
+	});
+
+	it('foward the selection { skip: true } as-is, without re-mapping', async () => {
+		mockedSubmitProfile.mockResolvedValue({} as never);
+		useSubmitOnboardingProfile();
+
+		await capturedConfig!.mutationFn({ skip: true });
+
+		expect(mockedSubmitProfile).toHaveBeenCalledWith({ skip: true });
+	});
+
+	it('calls invalidateQueries for current-user after success', () => {
+		useSubmitOnboardingProfile();
+
+		capturedConfig!.onSuccess();
+
+		expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
+	});
+});
+
+describe('useCompleteOnboarding', () => {
+	it('calls submitOnboardingCompleted without any arguments', async () => {
+		mockedSubmitCompleted.mockResolvedValue({} as never);
+		useCompleteOnboarding();
+
+		await capturedConfig!.mutationFn(undefined);
+
+		expect(mockedSubmitCompleted).toHaveBeenCalledWith();
+	});
+
+	it('calls invalidateQueries for current-user after success', () => {
+		useCompleteOnboarding();
 
 		capturedConfig!.onSuccess();
 

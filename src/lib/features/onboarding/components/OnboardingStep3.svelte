@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { ArrowLeft } from 'phosphor-svelte';
+	import { BookOpen, RocketLaunch, UsersThree } from 'phosphor-svelte';
 
 	type Props = {
+		isPending?: boolean;
 		onFinish: () => void;
 		onBack?: () => void;
 	};
 
-	let { onFinish, onBack }: Props = $props();
+	let { isPending = false, onFinish, onBack }: Props = $props();
 </script>
 
 <div class="mx-auto w-full py-12 px-6 md:px-25">
@@ -38,7 +39,7 @@
 				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-[407px]"
 			>
 				<div class="mb-4 flex items-center justify-between">
-					<ArrowLeft size={20} class="text-primary" />
+					<BookOpen size={20} class="text-primary" />
 					<span class="text-sm font-medium text-primary">Ready</span>
 				</div>
 				<div class="w-66.25 tracking-[0px]">
@@ -56,7 +57,7 @@
 				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-[407px]"
 			>
 				<div class="mb-4 flex items-center justify-between">
-					<ArrowLeft size={20} class="text-primary" />
+					<RocketLaunch size={20} class="text-primary" />
 					<span class="text-sm font-medium text-primary">Active</span>
 				</div>
 				<div class="w-[265px] tracking-[0px]">
@@ -74,7 +75,7 @@
 				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-[407px]"
 			>
 				<div class="mb-4 flex items-center justify-between">
-					<ArrowLeft size={20} class="text-primary" />
+					<UsersThree size={20} class="text-primary" />
 					<span class="text-sm font-medium text-primary">Linked</span>
 				</div>
 				<div class="w-[265px] tracking-[0px]">
@@ -111,7 +112,7 @@
 		<button
 			type="button"
 			onclick={onBack}
-			disabled={!onBack}
+			disabled={!onBack || isPending}
 			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 		>
 			Kembali
@@ -120,9 +121,10 @@
 		<button
 			type="button"
 			onclick={onFinish}
-			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white"
+			disabled={isPending}
+			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white disabled:opacity-60"
 		>
-			Lanjutkan
+			{isPending ? 'Memproses...' : 'Lanjutkan'}
 		</button>
 	</div>
 </div>

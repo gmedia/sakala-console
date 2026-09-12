@@ -1,46 +1,10 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import OnboardingStep1 from '$lib/features/onboarding/components/OnboardingStep1.svelte';
 	import OnboardingStep2 from '$lib/features/onboarding/components/OnboardingStep2.svelte';
 	import OnboardingStep3 from '$lib/features/onboarding/components/OnboardingStep3.svelte';
-	import type {
-		DeveloperRole,
-		OnboardingData
-		// OnboardingSource
-	} from '$lib/features/onboarding/types';
-	// import { useSubmitOnboarding } from '$lib/features/onboarding/mutations';
-	import type { OnboardingSource } from '$lib/api/resources/onboarding';
+	import { useOnboardingFlow } from '$lib/features/onboarding/use-onboarding-flow.svelte';
 
-	let currentStep = $state(1);
-	let data = $state<OnboardingData>({ role: 'developer' });
-	let selectedSource = $state<OnboardingSource | undefined>(undefined);
-	// const submitOnboarding = useSubmitOnboarding();
-
-	function handleSourceSelect(source: OnboardingSource) {
-		selectedSource = source;
-	}
-
-	function handleProfileUpdate(update: { displayName?: string; role?: DeveloperRole }) {
-		if (update.displayName !== undefined) data.displayName = update.displayName;
-		if (update.role !== undefined) data.role = update.role;
-	}
-
-	function nextStep() {
-		if (currentStep < 3) {
-			currentStep += 1;
-		}
-	}
-
-	function prevStep() {
-		if (currentStep > 1) {
-			currentStep -= 1;
-		}
-	}
-
-	function finishOnboarding() {
-		goto(resolve('/projects'));
-	}
+	const flow = useOnboardingFlow();
 </script>
 
 <svelte:head>
@@ -48,24 +12,29 @@
 </svelte:head>
 
 <div class="flex min-h-screen w-full items-center justify-center bg-background text-black">
-	{#if currentStep === 1}
+	{#if flow.step === 1}
 		<OnboardingStep1
-			isPending={false}
-			{selectedSource}
-			onSelect={handleSourceSelect}
-			onNext={nextStep}
-			onSkip={nextStep}
+			isPending={flow.sourceMutation.isPending}
+			selectedSource={flow.selectedSource}
+			onSelect={flow.selectSource}
+			onNext={flow.submitSource}
+			onSkip={flow.skipSource}
 		/>
-	{:else if currentStep === 2}
+	{:else if flow.step === 2}
 		<OnboardingStep2
-			displayName={data.displayName}
-			selectedRole={data.role}
-			onUpdate={handleProfileUpdate}
-			onNext={nextStep}
-			onSkip={nextStep}
-			onBack={prevStep}
+			displayName={flow.profileName}
+			selectedRole={flow.profileRole}
+			isPending={flow.profileMutation.isPending}
+			onUpdate={flow.updateProfile}
+			onNext={flow.submitProfile}
+			onSkip={flow.skipProfile}
+			onBack={flow.back}
 		/>
-	{:else if currentStep === 3}
-		<OnboardingStep3 onFinish={finishOnboarding} onBack={prevStep} />
+	{:else if flow.step === 3}
+		<OnboardingStep3
+			onFinish={flow.finish}
+			onBack={flow.back}
+			isPending={flow.completeMutation.isPending}
+		/>
 	{/if}
 </div>
