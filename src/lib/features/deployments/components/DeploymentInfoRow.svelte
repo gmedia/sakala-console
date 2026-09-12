@@ -3,20 +3,20 @@
 	import { getTimeLabel, type BannerStatus } from '../status-config';
 
 	let {
-		commitHash,
+		commitSha,
 		branch,
 		trigger,
 		status,
 		timestamp
 	}: {
-		commitHash: string;
+		commitSha: string;
 		branch: string;
 		trigger: string;
 		status: BannerStatus;
 		timestamp: string;
 	} = $props();
 
-	let shortHash = $derived(commitHash.slice(0, 7));
+	let shortHash = $derived(commitSha.slice(0, 7));
 	let timeLabel = $derived(getTimeLabel(status));
 </script>
 

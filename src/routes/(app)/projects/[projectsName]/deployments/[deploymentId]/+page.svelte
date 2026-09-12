@@ -11,6 +11,12 @@
 		parseBannerStatus,
 		type StatusDisplayInput
 	} from '$lib/features/deployments/status-config';
+	import {
+		getDeploymentTriggerLabel,
+		deriveCurrentStepLabel,
+		deriveFailedStepLabel,
+		deriveDurationLabel
+	} from '$lib/features/deployments/deployment-presentation';
 	import type { DeploymentStep, DeployLogLine } from '$lib/features/deployments/type';
 	import { mockDeploymentDetail } from '$lib/features/deployments/mock/deployment';
 	import { mockTimelineEvents, mockLogs } from '$lib/features/deployments/mock/events';
@@ -24,6 +30,13 @@
 
 	let staticStatus = $derived(parseBannerStatus(queryStatus, 'running'));
 	let staticDeployment = $derived(mockDeploymentDetail[staticStatus]);
+	let staticSteps = $derived(mockTimelineEvents[staticStatus]);
+	let staticBannerInput = $derived({
+		status: staticStatus,
+		currentStepLabel: deriveCurrentStepLabel(staticSteps),
+		durationLabel: deriveDurationLabel(staticDeployment.started_at, staticDeployment.finished_at),
+		failedStepLabel: deriveFailedStepLabel(staticSteps)
+	});
 
 	let liveSteps = $state<DeploymentStep[]>([]);
 	let liveLines = $state<DeployLogLine[]>([]);
@@ -57,16 +70,7 @@
 		};
 	});
 
-	let bannerInput = $derived(
-		isLive
-			? liveBannerInput
-			: {
-					status: staticStatus,
-					currentStepLabel: staticDeployment.current_step_label,
-					durationLabel: staticDeployment.duration_label,
-					failedStepLabel: staticDeployment.failed_step_label
-				}
-	);
+	let bannerInput = $derived(isLive ? liveBannerInput : staticBannerInput);
 	let liveInfoTimestamp = $derived(
 		deriveLiveInfoTimestamp({
 			status: liveBannerInput.status,
@@ -81,7 +85,7 @@
 				? staticDeployment.started_at
 				: (staticDeployment.finished_at ?? '-')
 	);
-	let steps = $derived(isLive ? liveSteps : mockTimelineEvents[staticStatus]);
+	let steps = $derived(isLive ? liveSteps : staticSteps);
 	let lines = $derived(isLive ? liveLines : mockLogs[staticStatus]);
 </script>
 
@@ -89,9 +93,9 @@
 	<DeploymentStatusBanner {...bannerInput} />
 
 	<DeploymentInfoRow
-		commitSha={staticDeployment.commit_sha}
+		commitSha={staticDeployment.commit_sha ?? '-'}
 		branch={staticDeployment.branch}
-		trigger={staticDeployment.trigger}
+		trigger={getDeploymentTriggerLabel(staticDeployment.trigger)}
 		status={bannerInput.status}
 		timestamp={infoTimestamp}
 	/>

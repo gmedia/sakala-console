@@ -106,7 +106,7 @@ test.describe('Deployment detail page', () => {
 		await page.goto('/projects/sakala-console/deployments/12?status=running');
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
-		await expect(page.getByText(/Tahap: Build project/)).toBeVisible();
+		await expect(page.getByText(/Tahap: Building image/)).toBeVisible();
 
 		const deploymentInfo = page.getByTestId('deployment-info');
 
