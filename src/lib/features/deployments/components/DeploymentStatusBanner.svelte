@@ -29,7 +29,7 @@
 <div class="rounded-lg p-4 mt-2 flex items-center gap-3 font-montserrat {display.bannerBgClass}">
 	<StatusIndicator
 		{status}
-		size="lg"
+		size="xl"
 		showLabel={false}
 		colorClassOverride={display.iconColorClass}
 		animateIcon

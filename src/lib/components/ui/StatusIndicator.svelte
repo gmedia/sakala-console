@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Check, X, RefreshCw } from '@lucide/svelte';
 	type Status = 'pending' | 'running' | 'success' | 'failed';
-	type Size = 'sm' | 'md' | 'lg';
+	type Size = 'sm' | 'md' | 'lg' | 'xl';
 
 	type Props = {
 		status: Status;
@@ -25,21 +25,23 @@
 
 	const dotSizeMap: Record<Size, string> = {
 		sm: 'size-5',
-		md: 'size-9',
-		lg: 'size-14'
+		md: 'size-6',
+		lg: 'size-7',
+		xl: 'size-12'
 	};
 
 	const iconSizePxMap: Record<Size, number> = {
 		sm: 11,
 		md: 13,
-		lg: 18
+		lg: 15,
+		xl: 20
 	};
 
 	const colorMap: Record<Status, string> = {
 		pending: 'bg-muted ring-1 ring-inset ring-muted/50',
-		running: 'bg-primary text-white',
+		running: 'bg-muted text-white',
 		success: 'bg-success-dark text-white',
-		failed: 'bg-error-dark text-white'
+		failed: 'bg-error text-white'
 	};
 
 	const defaultLabelMap: Record<Status, string> = {

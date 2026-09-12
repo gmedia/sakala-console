@@ -26,7 +26,7 @@
 <div class="flex items-center gap-1">
 	<StatusIndicator
 		{status}
-		size="md"
+		size="lg"
 		showLabel={false}
 		colorClassOverride={isRunningEmphasized ? 'bg-warning-dark text-white' : undefined}
 		showIcon={!isRunningEmphasized}
