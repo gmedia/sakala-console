@@ -2,6 +2,19 @@ import type { DeploymentProgress, DeploymentStage, StatusDeployment } from './ty
 
 export type BannerStatus = Exclude<StatusDeployment, 'pending'>;
 
+const SUPPORTED_BANNER_STATUSES = ['running', 'success', 'failed'] as const;
+
+export function isBannerStatus(value: string | null): value is BannerStatus {
+	return (SUPPORTED_BANNER_STATUSES as readonly string[]).includes(value ?? '');
+}
+
+export function parseBannerStatus(
+	value: string | null,
+	fallback: BannerStatus = 'running'
+): BannerStatus {
+	return isBannerStatus(value) ? value : fallback;
+}
+
 const bannerStatusMap: Record<DeploymentStage, BannerStatus> = {
 	Queued: 'running',
 	Cloning: 'running',

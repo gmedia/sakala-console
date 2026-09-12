@@ -3,7 +3,8 @@ import {
 	getStatusDisplay,
 	getTimelineItemDisplay,
 	getTimeLabel,
-	deriveBannerState
+	deriveBannerState,
+	parseBannerStatus
 } from './status-config';
 import type { DeploymentProgress } from './type';
 
@@ -241,5 +242,23 @@ describe('deriveBannerState', () => {
 
 		expect(result.status).toBe('running');
 		expect(result.currentStepLabel).toBe('Build project');
+	});
+});
+
+describe('parseBannerStatus', () => {
+	it('accepts valid banner statuses', () => {
+		expect(parseBannerStatus('running')).toBe('running');
+		expect(parseBannerStatus('success')).toBe('success');
+		expect(parseBannerStatus('failed')).toBe('failed');
+	});
+
+	it('fallbacks to running when given invalid status', () => {
+		expect(parseBannerStatus('foo')).toBe('running');
+		expect(parseBannerStatus('pending')).toBe('running');
+		expect(parseBannerStatus(null)).toBe('running');
+	});
+
+	it('allows custom fallback', () => {
+		expect(parseBannerStatus('foo', 'failed')).toBe('failed');
 	});
 });

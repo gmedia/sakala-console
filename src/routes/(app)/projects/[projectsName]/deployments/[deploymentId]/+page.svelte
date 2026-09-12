@@ -7,6 +7,7 @@
 	} from '$lib/features/projects/mock/mockDeployment';
 	import {
 		deriveBannerState,
+		parseBannerStatus,
 		type StatusDisplayInput
 	} from '$lib/features/deployments/status-config';
 	import type { DeploymentStep, DeployLogLine } from '$lib/features/deployments/type';
@@ -20,7 +21,7 @@
 	let queryStatus = $derived(page.url.searchParams.get('status'));
 	let isLive = $derived(page.url.searchParams.get('live') === '1');
 
-	let staticStatus = $derived((queryStatus as StatusDisplayInput['status']) ?? 'running');
+	let staticStatus = $derived(parseBannerStatus(queryStatus, 'running'));
 	let staticDeployment = $derived(mockDeploymentDetail[staticStatus]);
 
 	let liveSteps = $state<DeploymentStep[]>([]);
