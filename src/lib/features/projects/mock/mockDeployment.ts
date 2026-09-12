@@ -1,38 +1,14 @@
-import type { DeploymentStep } from '../type';
-
-export type DeploymentEventLevel = 'info' | 'warning' | 'error';
-
-export type DeploymentEvent = {
-	sequence: number;
-	level: DeploymentEventLevel;
-	type: string;
-	message: string;
-	metadata: Record<string, unknown> | null;
-	occurred_at: string;
-};
-
-export type LogStream = 'stdout' | 'stderr' | 'system';
-
-export type BackendLogLine = {
-	sequence: number;
-	stream: LogStream;
-	message: string;
-	recorded_at: string;
-};
-
-export type DeployLogLine = {
-	timestamp: string;
-	message: string;
-	variant?: 'error';
-};
+import type {
+	BackendLogLine,
+	DeployLogLine,
+	DeploymentEvent,
+	DeploymentEventType,
+	DeploymentProgress,
+	DeploymentStage,
+	DeploymentStep
+} from '$lib/features/deployments/type';
 
 export type DeployScenario = 'success' | 'failed';
-
-export type DeploymentProgress = {
-	steps: DeploymentStep[];
-	logs: DeployLogLine[];
-	errorMessage?: string;
-};
 
 function formatTime(isoString: string): string {
 	return new Date(isoString).toLocaleTimeString('id-ID', { hour12: false });
@@ -46,44 +22,57 @@ function toDeployLogLine(raw: BackendLogLine): DeployLogLine {
 	};
 }
 
-const STEP_ORDER: { key: string; title: string; eventType: string }[] = [
+type DeploymentStepConfig = {
+	key: string;
+	title: string;
+	eventType: DeploymentEventType;
+};
+
+const STEP_ORDER: DeploymentStepConfig[] = [
 	{ key: 'clone', title: 'Cloning repository', eventType: 'deployment.cloning' },
 	{ key: 'analyze', title: 'Menganalisis proyek', eventType: 'deployment.analyzing' },
 	{ key: 'build', title: 'Building image', eventType: 'deployment.building' },
 	{ key: 'deploy', title: 'Deploy container', eventType: 'deployment.deploying' },
+	{ key: 'routing', title: 'Menyiapkan routing', eventType: 'deployment.routing' },
 	{ key: 'health', title: 'Health check - live', eventType: 'deployment.health_checking' }
 ];
+
+function buildStep(
+	step: { key: string; title: string },
+	status: DeploymentStep['status'],
+	idx: number,
+	stepTimestamps: (string | undefined)[]
+): DeploymentStep {
+	const timestamp = status === 'success' || status === 'failed' ? stepTimestamps[idx] : undefined;
+	return { key: step.key, title: step.title, status, timestamp };
+}
 
 export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep[] {
 	let currentStepIndex = -1;
 	let finalStatus: 'success' | 'failed' | null = null;
+	const stepTimestamps: (string | undefined)[] = new Array(STEP_ORDER.length).fill(undefined);
 
 	for (const event of events) {
 		const stepIdx = STEP_ORDER.findIndex((s) => s.eventType === event.type);
 		if (stepIdx !== -1) {
 			currentStepIndex = stepIdx;
+			stepTimestamps[stepIdx] = formatTime(event.occurred_at);
 		} else if (event.type === 'deployment.succeeded') {
 			finalStatus = 'success';
 		} else if (event.type === 'deployment.failed') {
 			finalStatus = 'failed';
+			if (currentStepIndex !== -1) stepTimestamps[currentStepIndex] = formatTime(event.occurred_at);
 		}
 	}
 
 	return STEP_ORDER.map((step, idx) => {
-		if (finalStatus === 'success') {
-			return { key: step.key, title: step.title, status: 'success' as const };
-		}
-		if (idx < currentStepIndex) {
-			return { key: step.key, title: step.title, status: 'success' as const };
+		if (finalStatus === 'success' || idx < currentStepIndex) {
+			return buildStep(step, 'success', idx, stepTimestamps);
 		}
 		if (idx === currentStepIndex) {
-			return {
-				key: step.key,
-				title: step.title,
-				status: finalStatus === 'failed' ? ('failed' as const) : ('running' as const)
-			};
+			return buildStep(step, finalStatus === 'failed' ? 'failed' : 'running', idx, stepTimestamps);
 		}
-		return { key: step.key, title: step.title, status: 'pending' as const };
+		return buildStep(step, 'pending', idx, stepTimestamps);
 	});
 }
 
@@ -128,13 +117,21 @@ const successEvents: DeploymentEvent[] = [
 	{
 		sequence: 5,
 		level: 'info',
+		type: 'deployment.routing',
+		message: 'Menyiapkan routing',
+		metadata: null,
+		occurred_at: '2026-08-21T08:41:25Z'
+	},
+	{
+		sequence: 6,
+		level: 'info',
 		type: 'deployment.health_checking',
 		message: 'Menjalankan health check',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:27Z'
 	},
 	{
-		sequence: 6,
+		sequence: 7,
 		level: 'info',
 		type: 'deployment.succeeded',
 		message: 'Deployment berhasil, container live',
@@ -272,6 +269,29 @@ const scenarioLogs: Record<DeployScenario, BackendLogLine[]> = {
 	failed: failedLogs
 };
 
+function getStageFromEvent(event: DeploymentEvent): DeploymentStage {
+	switch (event.type) {
+		case 'deployment.cloning':
+			return 'Cloning';
+		case 'deployment.analyzing':
+			return 'Analyzing';
+		case 'deployment.building':
+			return 'Building';
+		case 'deployment.deploying':
+			return 'Deploying';
+		case 'deployment.routing':
+			return 'Routing';
+		case 'deployment.health_checking':
+			return 'HealthChecking';
+		case 'deployment.succeeded':
+			return 'Succeeded';
+		case 'deployment.failed':
+			return 'Failed';
+		default:
+			throw new Error(`Unknown deployment event type: ${event.type}`);
+	}
+}
+
 export function resolveDeployScenario(successRate = 0.8): DeployScenario {
 	return Math.random() < successRate ? 'success' : 'failed';
 }
@@ -287,12 +307,14 @@ export async function* streamDeploymentProgress(
 
 	for (let i = 0; i < events.length; i++) {
 		await new Promise((resolve) => setTimeout(resolve, 500));
+		const currentStage = getStageFromEvent(events[i]);
 
 		receivedEvents.push(events[i]);
 
 		shownLogCount = Math.max(shownLogCount, Math.floor(((i + 1) / events.length) * logs.length));
 
 		yield {
+			stage: currentStage,
 			steps: deriveStepsFromEvents(receivedEvents),
 			logs: logs.slice(0, shownLogCount).map(toDeployLogLine),
 			errorMessage: deriveErrorMessage(receivedEvents)

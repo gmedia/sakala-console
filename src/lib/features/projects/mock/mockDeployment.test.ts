@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-	resolveDeployScenario,
-	streamDeploymentProgress,
-	type DeploymentProgress
-} from './mockDeployment';
+import { resolveDeployScenario, streamDeploymentProgress } from './mockDeployment';
+import type { DeploymentProgress } from '$lib/features/deployments/type';
 
 describe('resolveDeployScenario', () => {
 	it('should return success when successRate is 1', () => {
@@ -59,9 +56,9 @@ describe('streamDeploymentProgress', () => {
 		expect(finalProgress.logs.length).toBeGreaterThan(0);
 	});
 
-	it('scenario success: yields exactly one progress per event (6 events)', async () => {
+	it('scenario success: yields exactly one progress per event (7 events)', async () => {
 		const progressList = await collectAllProgress('success');
-		expect(progressList.length).toBe(6);
+		expect(progressList.length).toBe(7);
 	});
 
 	it('scenario failed: build step fails, deploy and health remain pending', async () => {

@@ -24,7 +24,11 @@
 	$effect(() => {
 		void lines.length;
 		if (!autoScroll || !scrollContainer) return;
-		scrollContainer.scrollTop = scrollContainer.scrollHeight;
+		requestAnimationFrame(() => {
+			if (scrollContainer) {
+				scrollContainer.scrollTop = scrollContainer.scrollHeight;
+			}
+		});
 	});
 </script>
 

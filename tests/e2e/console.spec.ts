@@ -99,3 +99,56 @@ test('does NOT render protected content while current user is still pending', as
 
 	await expect(page.getByRole('heading', { name: 'Projects' }).first()).toBeVisible();
 });
+
+test.describe('Deployment detail page', () => {
+	test('shows running state', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await page.goto('/projects/sakala-console/deployments/12?status=running');
+
+		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
+		await expect(page.getByText(/Tahap: Building image/)).toBeVisible();
+
+		const deploymentInfo = page.getByTestId('deployment-info');
+
+		await expect(deploymentInfo.getByText('Dimulai pada')).toBeVisible();
+		await expect(deploymentInfo.getByText('08:41:02')).toBeVisible();
+		await expect(deploymentInfo.getByText('main', { exact: true })).toBeVisible();
+		await expect(deploymentInfo.getByText('Push', { exact: true })).toBeVisible();
+		await expect(deploymentInfo.getByText('a3f2c9d', { exact: true })).toBeVisible();
+
+		await expect(page.getByText('Cloning repository', { exact: true })).toBeVisible();
+		await expect(page.getByText('Sedang berjalan...')).toBeVisible();
+		await expect(page.getByText('Cloning repository from main...')).toBeVisible();
+	});
+
+	test('shows success state', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await page.goto('/projects/sakala-console/deployments/12?status=success');
+
+		await expect(page.getByText('Deployment berhasil')).toBeVisible();
+
+		const deploymentInfo = page.getByTestId('deployment-info');
+
+		await expect(deploymentInfo.getByText('Selesai pada')).toBeVisible();
+		await expect(deploymentInfo.getByText('08:41:49')).toBeVisible();
+		await expect(deploymentInfo.getByText('Manual redeploy', { exact: true })).toBeVisible();
+
+		await expect(page.getByText('Health check', { exact: true })).toBeVisible();
+		await expect(page.getByText('Deployment is live')).toBeVisible();
+	});
+
+	test('shows failed state', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await page.goto('/projects/sakala-console/deployments/12?status=failed');
+
+		await expect(page.getByText('Deployment gagal')).toBeVisible();
+
+		const deploymentInfo = page.getByTestId('deployment-info');
+
+		await expect(deploymentInfo.getByText('Gagal pada')).toBeVisible();
+		await expect(deploymentInfo.getByText('08:39:12')).toBeVisible();
+
+		await expect(page.getByText('Building image - gagal')).toBeVisible();
+		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
+	});
+});
