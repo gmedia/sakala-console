@@ -89,6 +89,108 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/agent/v1/commands': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Poll eligible pending commands for the authenticated agent node */
+		get: operations['agent.pollCommands'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/commands/{command}/claim': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Atomically claim a pending command for execution */
+		post: operations['agent.claimCommand'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/commands/{command}/events': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Append deployment events reported by the claiming agent */
+		post: operations['agent.reportEvents'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/commands/{command}/logs': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Append deployment logs reported by the claiming agent */
+		post: operations['agent.reportLogs'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/commands/{command}/complete': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Mark a claimed or running command as succeeded */
+		post: operations['agent.completeCommand'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/commands/{command}/fail': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Mark a claimed or running command as failed */
+		post: operations['agent.failCommand'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/auth/user': {
 		parameters: {
 			query?: never;
@@ -164,6 +266,57 @@ export interface paths {
 			cookie?: never;
 		};
 		get: operations['deployment.logs'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/environment-variables': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Display a listing of the resource */
+		get: operations['v1.app.projects.environment-variables.index'];
+		put?: never;
+		/** Store a newly created resource in storage */
+		post: operations['v1.app.projects.environment-variables.store'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/environment-variables/{environmentVariable}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/** Remove the specified resource from storage */
+		delete: operations['v1.app.projects.environment-variables.destroy'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/environment-variables/{environmentVariable}/value': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.projects.environment-variables.value'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -285,6 +438,22 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/auth/login': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.login'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/auth/logout': {
 		parameters: {
 			query?: never;
@@ -295,6 +464,54 @@ export interface paths {
 		get?: never;
 		put?: never;
 		post: operations['v1.auth.logout'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/onboarding/source': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.onboarding.source'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/onboarding/profile': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.onboarding.profile'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/onboarding/complete': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.onboarding.complete'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -315,6 +532,22 @@ export interface paths {
 		options?: never;
 		head?: never;
 		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/profile': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch: operations['v1.app.profile.update'];
 		trace?: never;
 	};
 	'/v1/app/projects': {
@@ -354,6 +587,40 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/admin/projects/{project}/stop': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Stop a project */
+		post: operations['projectControl.stop'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/admin/projects/{project}/suspend': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Suspend a project */
+		post: operations['projectControl.suspend'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1': {
 		parameters: {
 			query?: never;
@@ -374,26 +641,91 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
-	'/v1/onboarding/source': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		get?: never;
-		put?: never;
-		post: operations['v1.onboarding.source'];
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
+		/** AgentCommandResource */
+		AgentCommandResource: {
+			id: string;
+			type: string;
+			status: string;
+			project_id: string | null;
+			deployment_id: string | null;
+			payload: unknown[];
+		};
+		/** AgentHeartbeatRequest */
+		AgentHeartbeatRequest: {
+			/** @enum {string} */
+			status: 'ready' | 'busy' | 'degraded' | 'draining' | 'drained' | 'maintenance';
+			hostname: string;
+			runtime_network: string;
+			/** Format: date-time */
+			sent_at: string;
+			capabilities: string[];
+			metadata: {
+				version: string;
+				protocol_version: number;
+				runtime_driver: string;
+				lifecycle_state: string;
+				uptime_seconds: number | null;
+				detail_counts: {
+					unhealthy_details: number;
+					recovered_workloads: number;
+					orphans: number;
+					stale_routes: number;
+					stale_images: number;
+					compatibility_issues: number;
+				};
+				resources: {
+					cpu_total: number | null;
+					cpu_load_1m: number | null;
+					memory_total_bytes: number | null;
+					memory_available_bytes: number | null;
+					disk_total_bytes: number | null;
+					disk_available_bytes: number | null;
+					workspace_used_bytes: number | null;
+				};
+				workloads: {
+					active: number | null;
+					starting: number | null;
+					unhealthy: number | null;
+					stopped: number | null;
+					unhealthy_details: string[];
+				};
+				disk_pressure: {
+					state: string;
+					minimum_workspace_free_bytes: number;
+					available_workspace_bytes: number | null;
+				};
+				runtime_dependencies: {
+					git?: string | null;
+					docker?: string | null;
+					buildx?: string | null;
+					railpack?: string | null;
+				} | null;
+				execution: {
+					active_commands: number | null;
+					queued_local_commands: number | null;
+					capacity_waiting_commands: number | null;
+					active_builds: number | null;
+					maximum_concurrent_builds: number | null;
+				};
+				startup_reconciliation: {
+					/** Format: date-time */
+					captured_at: string;
+					inspected_containers: number;
+					cleaned_workspaces: number;
+					reattached_log_followers: number;
+					recovered_execution_records: number;
+					recovered_workloads: string[];
+					orphans: string[];
+					stale_routes: string[];
+					stale_images: string[];
+					compatibility_issues: string[];
+				};
+			};
+		};
 		/** AgentHeartbeatResource */
 		AgentHeartbeatResource: {
 			id: string;
@@ -409,17 +741,28 @@ export interface components {
 			/** Format: date-time */
 			last_seen_at: string | null;
 		};
+		/** AgentReportAcknowledgementResource */
+		AgentReportAcknowledgementResource: {
+			accepted_count: number;
+			duplicate_count: number;
+			first_sequence: number;
+			last_sequence: number;
+		};
 		/** AgentResource */
 		AgentResource: {
 			id: string;
 			agent_id: string;
 			name: string | null;
-			description: string;
+			description: string | null;
 			token_prefix: string | null;
 			auth_status: string;
 			status: string;
 			created_at: string;
 			updated_at: string;
+		};
+		/** CompleteAgentCommandRequest */
+		CompleteAgentCommandRequest: {
+			result?: string[] | null;
 		};
 		/** CreateProjectResource */
 		CreateProjectResource: {
@@ -469,12 +812,34 @@ export interface components {
 			requested_resources: unknown[] | null;
 			effective_resources: unknown[] | null;
 			started_at: string;
-			finished_at: string;
-			cancelled_at: string;
+			finished_at: string | null;
+			cancelled_at: string | null;
 			failure_code: string | null;
 			failure_summary: string | null;
+			created_at: string | null;
+			updated_at: string | null;
+		};
+		/** EnvironmentVariableRequest */
+		EnvironmentVariableRequest: {
+			key: string;
+			value: string;
+			is_secret: boolean;
+		};
+		/** EnvironmentVariableResource */
+		EnvironmentVariableResource: {
+			id: number;
+			key: string;
+			is_secret: boolean;
 			created_at: string;
-			updated_at: string;
+		};
+		/** EnvironmentVariableValueResource */
+		EnvironmentVariableValueResource: {
+			value: string;
+		};
+		/** FailAgentCommandRequest */
+		FailAgentCommandRequest: {
+			error_code: string;
+			error_message: string;
 		};
 		/**
 		 * FeedbackCategory
@@ -521,10 +886,21 @@ export interface components {
 			private: boolean;
 		};
 		/**
-		 * LogStream
+		 * OnboardingProfileLogStream
 		 * @enum {string}
 		 */
 		LogStream: 'stdout' | 'stderr' | 'system';
+		/** LoginRequest */
+		LoginRequest: {
+			/** Format: email */
+			email: string;
+			password: string;
+		};
+		/**
+		 * OnboardingProfile
+		 * @enum {string}
+		 */
+		OnboardingProfile: 'developer' | 'devops' | 'architect' | 'other';
 		/**
 		 * OnboardingSource
 		 * @enum {string}
@@ -566,6 +942,7 @@ export interface components {
 				max_line_length: number;
 				max_batch_lines: number;
 				max_total_bytes: number;
+				max_request_bytes: number;
 			};
 		};
 		/** ProjectResource */
@@ -590,11 +967,37 @@ export interface components {
 			created_at: string;
 			updated_at: string;
 		};
+		/** ReportDeploymentEventRequest */
+		ReportDeploymentEventRequest: {
+			mixed_report_formats?: string;
+			events: {
+				level: components['schemas']['DeploymentEventLevel'];
+				type: string;
+				message: string;
+				metadata?: string[] | null;
+				/** Format: date-time */
+				occurred_at: string;
+			}[];
+		};
+		/** ReportDeploymentLogRequest */
+		ReportDeploymentLogRequest: {
+			mixed_report_formats?: string;
+			logs: {
+				stream: components['schemas']['LogStream'];
+				message: string;
+				/** Format: date-time */
+				recorded_at: string;
+			}[];
+		};
 		/** ServiceStatusResource */
 		ServiceStatusResource: {
 			service: string;
 			status: string;
 			api_version: string;
+		};
+		/** StopProjectRequest */
+		StopProjectRequest: {
+			reason: string;
 		};
 		/** StoreAgentRequest */
 		StoreAgentRequest: {
@@ -620,10 +1023,16 @@ export interface components {
 			deployment_id?: string | null;
 			consent: boolean;
 		};
+		/** StoreOnboardingProfileRequest */
+		StoreOnboardingProfileRequest: {
+			name?: string;
+			role?: components['schemas']['OnboardingProfile'];
+			skip?: boolean;
+		};
 		/** StoreOnboardingSourceRequest */
 		StoreOnboardingSourceRequest: {
 			source?: components['schemas']['OnboardingSource'];
-			skip?: string;
+			skip?: boolean;
 		};
 		/** StoreProjectRequest */
 		StoreProjectRequest: {
@@ -639,6 +1048,17 @@ export interface components {
 				repository_id?: number;
 			};
 		};
+		/** SuspendProjectRequest */
+		SuspendProjectRequest: {
+			reason: string;
+		};
+		/** UpdateProfileRequest */
+		UpdateProfileRequest: {
+			name?: string;
+			username?: string;
+			/** Format: binary */
+			avatar?: string;
+		};
 		/** UpdateProjectRequest */
 		UpdateProjectRequest: {
 			name?: string;
@@ -650,10 +1070,12 @@ export interface components {
 		UserResource: {
 			id: number;
 			name: string;
+			username: string;
 			email: string;
 			avatar_url: string | null;
 			role: string;
 			onboarding_source: string | null;
+			onboarding_role: string | null;
 			onboarding_completed_at: string | null;
 			last_login_at: string | null;
 		};
@@ -664,18 +1086,6 @@ export interface components {
 		};
 	};
 	responses: {
-		/** @description Unauthenticated */
-		AuthenticationException: {
-			headers: {
-				[name: string]: unknown;
-			};
-			content: {
-				'application/json': {
-					/** @description Error overview. */
-					message: string;
-				};
-			};
-		};
 		/** @description Validation error */
 		ValidationException: {
 			headers: {
@@ -689,6 +1099,18 @@ export interface components {
 					errors: {
 						[key: string]: string[];
 					};
+				};
+			};
+		};
+		/** @description Unauthenticated */
+		AuthenticationException: {
+			headers: {
+				[name: string]: unknown;
+			};
+			content: {
+				'application/json': {
+					/** @description Error overview. */
+					message: string;
 				};
 			};
 		};
@@ -867,7 +1289,13 @@ export interface operations {
 			path?: never;
 			cookie?: never;
 		};
-		requestBody?: never;
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['AgentHeartbeatRequest'] & {
+					agent?: string;
+				};
+			};
+		};
 		responses: {
 			/** @description `AgentHeartbeatResource` */
 			200: {
@@ -880,7 +1308,177 @@ export interface operations {
 					};
 				};
 			};
-			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.pollCommands': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AgentCommandResource'][];
+				};
+			};
+		};
+	};
+	'agent.claimCommand': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				command: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AgentCommandResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentCommandResource'];
+					};
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.reportEvents': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Optional key used to safely retry an event report.
+				 * @example event-report-2026-09-07T10:00:00Z
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				command: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['ReportDeploymentEventRequest'] & {
+					agent?: string;
+				};
+			};
+		};
+		responses: {
+			/** @description `AgentReportAcknowledgementResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentReportAcknowledgementResource'];
+					};
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.reportLogs': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Optional key used to safely retry a log report.
+				 * @example log-report-2026-09-07T10:00:00Z
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				command: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['ReportDeploymentLogRequest'] & {
+					agent?: string;
+				};
+			};
+		};
+		responses: {
+			/** @description `AgentReportAcknowledgementResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentReportAcknowledgementResource'];
+					};
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.completeCommand': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				command: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['CompleteAgentCommandRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.failCommand': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				command: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FailAgentCommandRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			422: components['responses']['ValidationException'];
 		};
 	};
 	'v1.auth.user': {
@@ -1132,6 +1730,123 @@ export interface operations {
 			403: components['responses']['AuthorizationException'];
 			404: components['responses']['ModelNotFoundException'];
 			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.projects.environment-variables.index': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Array of `EnvironmentVariableResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['EnvironmentVariableResource'][];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
+	'v1.app.projects.environment-variables.store': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['EnvironmentVariableRequest'];
+			};
+		};
+		responses: {
+			/** @description `EnvironmentVariableResource` */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['EnvironmentVariableResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.projects.environment-variables.destroy': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The environment variable ID */
+				environmentVariable: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
+	'v1.app.projects.environment-variables.value': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The environment variable ID */
+				environmentVariable: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `EnvironmentVariableValueResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['EnvironmentVariableValueResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
 		};
 	};
 	'v1.app.feedback.store': {
@@ -1396,6 +2111,33 @@ export interface operations {
 			};
 		};
 	};
+	'v1.auth.login': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['LoginRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.auth.logout': {
 		parameters: {
 			query?: never;
@@ -1411,6 +2153,87 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content?: never;
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.onboarding.source': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['StoreOnboardingSourceRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.onboarding.profile': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['StoreOnboardingProfileRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.onboarding.complete': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
 			};
 			401: components['responses']['AuthenticationException'];
 		};
@@ -1436,6 +2259,35 @@ export interface operations {
 				};
 			};
 			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.profile.update': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'multipart/form-data': components['schemas']['UpdateProfileRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
 		};
 	};
 	'projects.index': {
@@ -1608,6 +2460,78 @@ export interface operations {
 			404: components['responses']['ModelNotFoundException'];
 		};
 	};
+	'projectControl.stop': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry a deployment request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['StopProjectRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projectControl.suspend': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry a deployment request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['SuspendProjectRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.status': {
 		parameters: {
 			query?: never;
@@ -1628,35 +2552,6 @@ export interface operations {
 					};
 				};
 			};
-		};
-	};
-	'v1.onboarding.source': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody?: {
-			content: {
-				'application/json': components['schemas']['StoreOnboardingSourceRequest'];
-			};
-		};
-		responses: {
-			/** @description `UserResource` */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': {
-						data: components['schemas']['UserResource'];
-					};
-				};
-			};
-			401: components['responses']['AuthenticationException'];
-			403: components['responses']['AuthorizationException'];
-			422: components['responses']['ValidationException'];
 		};
 	};
 }
