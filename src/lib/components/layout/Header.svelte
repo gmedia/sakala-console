@@ -20,7 +20,13 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
+	const pageTitle = $derived.by(() => {
+		const path = page.url.pathname;
+		if (path.startsWith('/profile')) return 'Akun / Profil Saya';
+		if (path.startsWith('/settings')) return 'Akun / Pengaturan';
+		if (path.startsWith('/projects')) return 'Projects';
+		return 'Projects';
+	});
 </script>
 
 <header class="mb-8 flex items-center justify-between bg-transparent">
