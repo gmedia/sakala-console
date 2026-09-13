@@ -1,5 +1,17 @@
 export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed';
 
+export type DeploymentStatus =
+	| 'queued'
+	| 'cloning'
+	| 'analyzing'
+	| 'building'
+	| 'deploying'
+	| 'routing'
+	| 'health_checking'
+	| 'succeeded'
+	| 'failed'
+	| 'cancelled';
+
 export type DeploymentStage =
 	| 'Queued'
 	| 'Cloning'

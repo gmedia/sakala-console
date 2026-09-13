@@ -1,11 +1,12 @@
 import type { BannerStatus } from '../status-config';
+import type { DeploymentStatus } from '../type';
 
 export interface MockDeploymentDetail {
 	id: string;
 	project_id: string;
 	sequence: number;
 	branch: string;
-	status: string;
+	status: DeploymentStatus;
 	trigger: string;
 	commit_sha: string | null;
 	commit_message: string | null;
@@ -27,7 +28,7 @@ export const mockDeploymentDetail: Record<BannerStatus, MockDeploymentDetail> = 
 		project_id: 'project-1',
 		sequence: 12,
 		branch: 'main',
-		status: 'running',
+		status: 'deploying',
 		trigger: 'webhook',
 		commit_sha: 'a3f2c9d8e1b74f0c2b9a1d3e5f6789ab12cd34ef',
 		commit_message: 'Update deployment configuration',
@@ -48,7 +49,7 @@ export const mockDeploymentDetail: Record<BannerStatus, MockDeploymentDetail> = 
 		project_id: 'project-1',
 		sequence: 12,
 		branch: 'main',
-		status: 'success',
+		status: 'succeeded',
 		trigger: 'redeploy',
 		commit_sha: 'a3f2c9d8e1b74f0c2b9a1d3e5f6789ab12cd34ef',
 		commit_message: 'Update deployment configuration',
