@@ -1,18 +1,26 @@
 <script lang="ts">
+	import type { DeploymentStep } from '../type';
 	import DeploymentTimelineItem from './DeploymentTimelineItem.svelte';
-	import type { DeploymentStep } from '../../projects/type';
 
 	type Props = {
 		steps: DeploymentStep[];
+		showSubtitle?: boolean;
+		emphasizeRunning?: boolean;
 	};
 
-	let { steps }: Props = $props();
+	let { steps, showSubtitle = true, emphasizeRunning = false }: Props = $props();
 </script>
 
-<div class="rounded-lg py-2">
+<div class="rounded-lg">
 	<div class="flex flex-col gap-2">
 		{#each steps as step (step.key)}
-			<DeploymentTimelineItem status={step.status} title={step.title} />
+			<DeploymentTimelineItem
+				status={step.status}
+				title={step.title}
+				timestamp={step.timestamp}
+				{showSubtitle}
+				{emphasizeRunning}
+			/>
 		{/each}
 	</div>
 </div>
