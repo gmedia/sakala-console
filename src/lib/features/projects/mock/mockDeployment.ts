@@ -292,29 +292,14 @@ function getStageFromEvent(event: DeploymentEvent): DeploymentStage {
 	}
 }
 
-const EVENT_OFFSETS_MS = [500, 1800, 3100, 4400, 5700, 7000, 8300];
-
-const LOG_OFFSETS_MS = [500, 1400, 2300, 3200, 4400, 5700, 8300];
-
-function withRuntimeTimestamp(
-	event: DeploymentEvent,
-	StartedAt: number,
-	offsetMs: number
-): DeploymentEvent {
-	return {
-		...event,
-		occurred_at: new Date(StartedAt + offsetMs).toISOString()
-	};
+function withRuntimeTimestamp(event: DeploymentEvent): DeploymentEvent {
+	return { ...event, occurred_at: new Date().toISOString() };
 }
 
-function withRuntimeLogTimestamp(
-	log: BackendLogLine,
-	StartedAt: number,
-	offsetMs: number
-): BackendLogLine {
+function withRuntimeLogTimestamp(log: BackendLogLine): BackendLogLine {
 	return {
 		...log,
-		recorded_at: new Date(StartedAt + offsetMs).toISOString()
+		recorded_at: new Date().toISOString()
 	};
 }
 
@@ -323,43 +308,44 @@ export function resolveDeployScenario(successRate = 0.8): DeployScenario {
 }
 
 export async function* streamDeploymentProgress(
-	scenario: DeployScenario = 'success',
-	startedAt = Date.now()
+	scenario: DeployScenario = 'success'
 ): AsyncGenerator<DeploymentProgress> {
 	const events = scenarioEvents[scenario];
 	const logs = scenarioLogs[scenario];
 
 	const receivedEvents: DeploymentEvent[] = [];
+	const revealedLogs: DeployLogLine[] = [];
 	let shownLogCount = 0;
 
 	for (let i = 0; i < events.length; i++) {
 		await new Promise((resolve) => setTimeout(resolve, 500));
+
 		const currentStage = getStageFromEvent(events[i]);
-		const offsetMs = EVENT_OFFSETS_MS[i];
 
-		if (offsetMs === undefined) {
-			throw new Error(`Missing event offset for event index ${i}`);
-		}
-
-		const runtimeEvent = withRuntimeTimestamp(events[i], startedAt, offsetMs);
-
+		const runtimeEvent = withRuntimeTimestamp(events[i]);
 		receivedEvents.push(runtimeEvent);
 
-		shownLogCount = Math.max(shownLogCount, Math.floor(((i + 1) / events.length) * logs.length));
+		const newShownLogCount = Math.max(
+			shownLogCount,
+			Math.floor(((i + 1) / events.length) * logs.length)
+		);
 
-		const runtimeLogs = logs
-			.slice(0, shownLogCount)
-			.map((log, idx) => withRuntimeLogTimestamp(log, startedAt, LOG_OFFSETS_MS[idx]));
+		const newlyRevealed = logs
+			.slice(shownLogCount, newShownLogCount)
+			.map((log) => toDeployLogLine(withRuntimeLogTimestamp(log)));
+
+		revealedLogs.push(...newlyRevealed);
+		shownLogCount = newShownLogCount;
 
 		yield {
 			stage: currentStage,
 			steps: deriveStepsFromEvents(receivedEvents),
-			logs: runtimeLogs.map(toDeployLogLine),
+			logs: revealedLogs,
 			errorMessage: deriveErrorMessage(receivedEvents)
 		};
 
-		await new Promise((resolve) => setTimeout(resolve, 800));
-
 		if (events[i].type === 'deployment.failed') break;
+
+		await new Promise((resolve) => setTimeout(resolve, 800));
 	}
 }
