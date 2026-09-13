@@ -35,33 +35,46 @@ type LogLine = { timestamp: string; message: string; variant?: LogVariant };
 
 export const mockLogs: Record<BannerStatus, LogLine[]> = {
 	running: [
-		{ timestamp: '08:41:02', message: 'Cloning repository from main...' },
-		{ timestamp: '08:41:14', message: 'Repository cloned successfully' },
-		{ timestamp: '08:41:15', message: 'Analyzing project structure...' },
-		{ timestamp: '08:41:20', message: 'Detected SvelteKit project' },
-		{ timestamp: '08:41:22', message: 'Starting build: docker build -t sakala-app .' },
-		{ timestamp: '08:41:30', message: 'Step 3/8 : COPY package.json ./' }
+		{ timestamp: '2026-09-13T01:41:02.000Z', message: 'Cloning repository from main...' },
+		{ timestamp: '2026-09-13T01:41:14.000Z', message: 'Repository cloned successfully' },
+		{ timestamp: '2026-09-13T01:41:15.000Z', message: 'Analyzing project structure...' },
+		{ timestamp: '2026-09-13T01:41:20.000Z', message: 'Detected SvelteKit project' },
+		{
+			timestamp: '2026-09-13T01:41:22.000Z',
+			message: 'Starting build: docker build -t sakala-app .'
+		},
+		{ timestamp: '2026-09-13T01:41:30.000Z', message: 'Step 3/8 : COPY package.json ./' }
 	],
 	success: [
-		{ timestamp: '08:41:02', message: 'Cloning repository from main...' },
-		{ timestamp: '08:41:14', message: 'Repository cloned successfully' },
-		{ timestamp: '08:41:15', message: 'Analyzing project structure...' },
-		{ timestamp: '08:41:38', message: 'Image built successfully' },
-		{ timestamp: '08:41:45', message: 'Container deployed' },
-		{ timestamp: '08:41:47', message: 'Routing configured successfully' },
-		{ timestamp: '08:41:48', message: 'Running health check on /health...' },
-		{ timestamp: '08:41:49', message: 'Deployment is live' }
+		{ timestamp: '2026-09-13T01:41:02.000Z', message: 'Cloning repository from main...' },
+		{ timestamp: '2026-09-13T01:41:14.000Z', message: 'Repository cloned successfully' },
+		{ timestamp: '2026-09-13T01:41:15.000Z', message: 'Analyzing project structure...' },
+		{ timestamp: '2026-09-13T01:41:38.000Z', message: 'Image built successfully' },
+		{ timestamp: '2026-09-13T01:41:45.000Z', message: 'Container deployed' },
+		{ timestamp: '2026-09-13T01:41:47.000Z', message: 'Routing configured successfully' },
+		{ timestamp: '2026-09-13T01:41:48.000Z', message: 'Running health check on /health...' },
+		{ timestamp: '2026-09-13T01:41:49.000Z', message: 'Deployment is live' }
 	],
 	failed: [
-		{ timestamp: '08:39:02', message: 'Cloning repository from feature/checkout-fix...' },
-		{ timestamp: '08:39:07', message: 'Repository cloned successfully' },
-		{ timestamp: '08:39:08', message: 'Analyzing project structure...' },
-		{ timestamp: '08:39:09', message: 'Starting build: docker build -t sakala-app .' },
 		{
-			timestamp: '08:39:11',
+			timestamp: '2026-09-13T01:39:02.000Z',
+			message: 'Cloning repository from feature/checkout-fix...'
+		},
+		{ timestamp: '2026-09-13T01:39:07.000Z', message: 'Repository cloned successfully' },
+		{ timestamp: '2026-09-13T01:39:08.000Z', message: 'Analyzing project structure...' },
+		{
+			timestamp: '2026-09-13T01:39:09.000Z',
+			message: 'Starting build: docker build -t sakala-app .'
+		},
+		{
+			timestamp: '2026-09-13T01:39:11.000Z',
 			message: 'Step 5/8 : RUN pnpm build — exited with code 1',
 			variant: 'error'
 		},
-		{ timestamp: '08:39:12', message: 'Build failed: see step 5 output above', variant: 'error' }
+		{
+			timestamp: '2026-09-13T01:39:12.000Z',
+			message: 'Build failed: see step 5 output above',
+			variant: 'error'
+		}
 	]
 };

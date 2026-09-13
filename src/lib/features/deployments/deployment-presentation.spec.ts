@@ -4,6 +4,7 @@ import {
 	deriveCurrentStepLabel,
 	deriveDurationLabel,
 	deriveFailedStepLabel,
+	formatDeploymentTime,
 	getDeploymentTriggerLabel
 } from './deployment-presentation';
 
@@ -121,5 +122,19 @@ describe('deriveDurationLabel', () => {
 
 	it('returns undefined when finishedAt is null', () => {
 		expect(deriveDurationLabel('2026-09-12T08:41:02+07:00', null)).toBeUndefined();
+	});
+});
+
+describe('formatDeploymentTime', () => {
+	it('formats timestamp with hours, minutes, and seconds', () => {
+		const timestamp = new Date(2026, 8, 13, 8, 41, 2).toISOString();
+
+		expect(formatDeploymentTime(timestamp)).toBe('08.41.02');
+	});
+
+	it('pads single-digit time values', () => {
+		const timestamp = new Date(2026, 8, 13, 8, 1, 2).toISOString();
+
+		expect(formatDeploymentTime(timestamp)).toBe('08.01.02');
 	});
 });

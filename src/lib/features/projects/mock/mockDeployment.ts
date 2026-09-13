@@ -16,7 +16,7 @@ function formatTime(isoString: string): string {
 
 function toDeployLogLine(raw: BackendLogLine): DeployLogLine {
 	return {
-		timestamp: formatTime(raw.recorded_at),
+		timestamp: raw.recorded_at,
 		message: raw.message,
 		variant: raw.stream === 'stderr' ? 'error' : undefined
 	};
@@ -292,12 +292,39 @@ function getStageFromEvent(event: DeploymentEvent): DeploymentStage {
 	}
 }
 
+const EVENT_OFFSETS_MS = [500, 1800, 3100, 4400, 5700, 7000, 8300];
+
+const LOG_OFFSETS_MS = [500, 1400, 2300, 3200, 4400, 5700, 8300];
+
+function withRuntimeTimestamp(
+	event: DeploymentEvent,
+	StartedAt: number,
+	offsetMs: number
+): DeploymentEvent {
+	return {
+		...event,
+		occurred_at: new Date(StartedAt + offsetMs).toISOString()
+	};
+}
+
+function withRuntimeLogTimestamp(
+	log: BackendLogLine,
+	StartedAt: number,
+	offsetMs: number
+): BackendLogLine {
+	return {
+		...log,
+		recorded_at: new Date(StartedAt + offsetMs).toISOString()
+	};
+}
+
 export function resolveDeployScenario(successRate = 0.8): DeployScenario {
 	return Math.random() < successRate ? 'success' : 'failed';
 }
 
 export async function* streamDeploymentProgress(
-	scenario: DeployScenario = 'success'
+	scenario: DeployScenario = 'success',
+	startedAt = Date.now()
 ): AsyncGenerator<DeploymentProgress> {
 	const events = scenarioEvents[scenario];
 	const logs = scenarioLogs[scenario];
@@ -308,15 +335,26 @@ export async function* streamDeploymentProgress(
 	for (let i = 0; i < events.length; i++) {
 		await new Promise((resolve) => setTimeout(resolve, 500));
 		const currentStage = getStageFromEvent(events[i]);
+		const offsetMs = EVENT_OFFSETS_MS[i];
 
-		receivedEvents.push(events[i]);
+		if (offsetMs === undefined) {
+			throw new Error(`Missing event offset for event index ${i}`);
+		}
+
+		const runtimeEvent = withRuntimeTimestamp(events[i], startedAt, offsetMs);
+
+		receivedEvents.push(runtimeEvent);
 
 		shownLogCount = Math.max(shownLogCount, Math.floor(((i + 1) / events.length) * logs.length));
+
+		const runtimeLogs = logs
+			.slice(0, shownLogCount)
+			.map((log, idx) => withRuntimeLogTimestamp(log, startedAt, LOG_OFFSETS_MS[idx]));
 
 		yield {
 			stage: currentStage,
 			steps: deriveStepsFromEvents(receivedEvents),
-			logs: logs.slice(0, shownLogCount).map(toDeployLogLine),
+			logs: runtimeLogs.map(toDeployLogLine),
 			errorMessage: deriveErrorMessage(receivedEvents)
 		};
 

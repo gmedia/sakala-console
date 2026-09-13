@@ -25,18 +25,22 @@ describe('streamDeploymentProgress', () => {
 		vi.useRealTimers();
 	});
 
-	async function collectAllProgress(scenario?: 'success' | 'failed') {
+	async function collectAllProgress(scenario?: 'success' | 'failed', startedAt = Date.now()) {
 		const results: DeploymentProgress[] = [];
-		const gen = streamDeploymentProgress(scenario);
+		const gen = streamDeploymentProgress(scenario, startedAt);
 
 		let next = gen.next();
+
 		while (true) {
 			await vi.advanceTimersByTimeAsync(1300);
 			const result = await next;
+
 			if (result.done) break;
+
 			results.push(result.value);
 			next = gen.next();
 		}
+
 		return results;
 	}
 
@@ -97,7 +101,7 @@ describe('streamDeploymentProgress', () => {
 		expect(progressList.length).toBe(4);
 	});
 
-	it('scenario failed: no yeild after failing step', async () => {
+	it('scenario failed: no yield after failing step', async () => {
 		const progressList = await collectAllProgress('failed');
 		const successProgressList = await collectAllProgress('success');
 		expect(progressList.length).toBeLessThan(successProgressList.length);
@@ -122,5 +126,51 @@ describe('streamDeploymentProgress', () => {
 
 		const finalLogCount = logCounts[logCounts.length - 1];
 		expect(finalLogCount).toBe(7);
+	});
+
+	it('live logs should use runtime timestamps', async () => {
+		const startedAt = new Date('2026-09-13T02:00:00.000Z').getTime();
+
+		const progressList = await collectAllProgress('success', startedAt);
+		const finalProgress = progressList[progressList.length - 1];
+
+		for (const log of finalProgress.logs) {
+			expect(new Date(log.timestamp).getTime()).toBeGreaterThanOrEqual(startedAt);
+		}
+	});
+
+	it('live success should use runtime timestamp for terminal step', async () => {
+		const startedAt = new Date('2026-09-13T02:00:00.000Z').getTime();
+
+		const progressList = await collectAllProgress('success', startedAt);
+		const finalProgress = progressList[progressList.length - 1];
+
+		const timestampedSteps = finalProgress.steps.filter((step) => step.timestamp);
+		const terminalStep = timestampedSteps[timestampedSteps.length - 1];
+
+		expect(terminalStep?.timestamp).toBeDefined();
+
+		const expectedTimestamp = new Date(startedAt + 7000).toLocaleTimeString('id-ID', {
+			hour12: false
+		});
+
+		expect(terminalStep!.timestamp).toBe(expectedTimestamp);
+	});
+
+	it('live failed should use runtime timestamp for failure step', async () => {
+		const startedAt = new Date('2026-09-13T02:00:00.000Z').getTime();
+
+		const progressList = await collectAllProgress('failed', startedAt);
+		const finalProgress = progressList[progressList.length - 1];
+
+		const failedStep = finalProgress.steps.find((step) => step.status === 'failed');
+
+		expect(failedStep?.timestamp).toBeDefined();
+
+		const expectedTimestamp = new Date(startedAt + 4400).toLocaleTimeString('id-ID', {
+			hour12: false
+		});
+
+		expect(failedStep!.timestamp).toBe(expectedTimestamp);
 	});
 });

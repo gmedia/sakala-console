@@ -28,3 +28,12 @@ export function deriveDurationLabel(
 	const durationSeconds = Math.round(durationMs / 1000);
 	return `${durationSeconds} detik`;
 }
+
+export function formatDeploymentTime(timestamp: string): string {
+	return new Intl.DateTimeFormat('id-ID', {
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hour12: false
+	}).format(new Date(timestamp));
+}

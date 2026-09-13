@@ -57,7 +57,7 @@
 		let cancelled = false;
 
 		(async () => {
-			for await (const progress of streamDeploymentProgress(scenario)) {
+			for await (const progress of streamDeploymentProgress(scenario, startedAt)) {
 				if (cancelled) return;
 				liveSteps = progress.steps;
 				liveLines = progress.logs;
