@@ -10,32 +10,34 @@
 		DotsThree
 	} from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
-	// import type { OnboardingSource } from '../types';
 	import { ONBOARDING_SOURCE_VALUES, ONBOARDING_SOURCE_OPTIONS_MAP } from '../constants';
 	import type { OnboardingSource } from '$lib/api/resources/onboarding';
 	import type { Component } from 'svelte';
+	import OnboardingError from './OnboardingError.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	type Props = {
 		selectedSource?: OnboardingSource;
-		isPending: boolean;
+		isSubmitPending: boolean;
+		isSkipPending: boolean;
+		errorMessage?: string | null;
 		onSelect: (source: OnboardingSource) => void;
 		onNext: () => void;
 		onSkip?: () => void;
 		onBack?: () => void;
 	};
 
-	let { selectedSource, isPending, onSelect, onNext, onSkip, onBack }: Props = $props();
+	let {
+		selectedSource,
+		isSubmitPending,
+		errorMessage,
+		isSkipPending,
+		onSelect,
+		onNext,
+		onSkip,
+		onBack
+	}: Props = $props();
 
-	// const sources: { id: OnboardingSource; label: string; icon: typeof GraduationCap }[] = [
-	// 	{ id: 'campus', label: 'Kampus', icon: GraduationCap },
-	// 	{ id: 'social_media', label: 'Media Sosial', icon: ShareNetwork },
-	// 	{ id: 'friend', label: 'Teman', icon: UsersThree },
-	// 	{ id: 'gmedia', label: 'Gmedia', icon: GoogleLogo },
-	// 	{ id: 'community', label: 'Komunitas', icon: SpeakerHigh },
-	// 	{ id: 'github', label: 'GitHub', icon: GithubLogo },
-	// 	{ id: 'workshop', label: 'Workshop', icon: Files },
-	// 	{ id: 'other', label: 'Lainnya', icon: DotsThree }
-	// ];
 	const ICONS: Record<OnboardingSource, Component> = {
 		campus: GraduationCap,
 		social_media: ShareNetwork,
@@ -64,32 +66,15 @@
 	</h1>
 	<p class="mt-2 text-sm text-black">Bantu kami memahami bagaimana Anda menemukan platform kami.</p>
 
+	{#if errorMessage}
+		<OnboardingError title="Gagal menyimpan pilihan anda." description={errorMessage} />
+	{/if}
+
 	<!-- Column Options Grid -->
 	<div class="mt-10 grid w-full grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-2">
 		{#each ONBOARDING_SOURCE_VALUES as source (source)}
 			{@const Icon = ICONS[source]}
 			{@const isSelected = selectedSource === source}
-			<!-- <button
-				type="button"
-				disabled={isPending}
-				onclick={() => onSelect(source)}
-				class={cn(
-					'flex h-16.5 w-full items-center gap-3.5 rounded-lg border px-4 text-left transition-all',
-					isSelected
-						? 'border-primary bg-primary-50/40 text-black ring-1 ring-primary'
-						: 'border-border-strong bg-surface text-black hover:border-primary/40 hover:bg-background/50'
-				)}
-			>
-				<div
-					class={cn(
-						'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-						isSelected ? 'bg-primary text-white' : 'bg-primary-50 text-primary'
-					)}
-				>
-					<Icon size={18} weight="regular" />
-				</div>
-				<span class="text-sm font-normal text-black">{ONBOARDING_OPTIONS_MAP[source]}</span>
-			</button> -->
 			<label
 				class={cn(
 					'flex h-16.5 w-full cursor-pointer items-center gap-3.5 rounded-lg border px-4 text-left transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2',
@@ -103,7 +88,7 @@
 					name="onboarding-source"
 					value={source}
 					checked={isSelected}
-					disabled={isPending}
+					disabled={isSubmitPending || isSkipPending}
 					onchange={() => onSelect(source)}
 					class="sr-only"
 				/>
@@ -122,33 +107,33 @@
 
 	<!-- Footer Navigation Controls -->
 	<div class="mt-20 flex items-center justify-between pt-6">
-		<button
+		<Button
 			type="button"
 			onclick={onBack}
-			disabled={!onBack || isPending}
+			disabled={!onBack || isSubmitPending || isSkipPending}
 			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 		>
 			Kembali
-		</button>
+		</Button>
 
 		<div class="flex items-center gap-2">
-			<button
+			<Button
 				type="button"
 				onclick={onSkip}
-				disabled={isPending}
+				disabled={isSubmitPending || isSkipPending}
 				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background"
 			>
-				Lewati
-			</button>
+				{isSkipPending ? 'Melewati...' : 'Lewati'}
+			</Button>
 
-			<button
+			<Button
 				type="button"
 				onclick={onNext}
-				disabled={!selectedSource || isPending}
+				disabled={!selectedSource || isSubmitPending || isSkipPending}
 				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white"
 			>
-				Lanjutkan
-			</button>
+				{isSubmitPending ? 'Menyimpan...' : 'Lanjutkan'}
+			</Button>
 		</div>
 	</div>
 </div>

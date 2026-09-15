@@ -3,10 +3,12 @@ import { expect, test, type Page } from '@playwright/test';
 const validUser = {
 	id: 1,
 	name: 'Test User',
+	username: 'testuser',
 	email: 'test@sakala.local',
 	avatar_url: null,
 	role: 'user',
 	onboarding_source: 'github',
+	onboarding_role: 'developer',
 	onboarding_completed_at: new Date().toISOString(),
 	last_login_at: new Date().toISOString()
 };

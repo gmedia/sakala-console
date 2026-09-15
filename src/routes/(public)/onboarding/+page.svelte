@@ -14,7 +14,9 @@
 <div class="flex min-h-screen w-full items-center justify-center bg-background text-black">
 	{#if flow.step === 1}
 		<OnboardingStep1
-			isPending={flow.sourceMutation.isPending}
+			isSubmitPending={flow.isSubmittingSource}
+			isSkipPending={flow.isSkippingSource}
+			errorMessage={flow.sourceErrorMessage}
 			selectedSource={flow.selectedSource}
 			onSelect={flow.selectSource}
 			onNext={flow.submitSource}
@@ -24,7 +26,9 @@
 		<OnboardingStep2
 			displayName={flow.profileName}
 			selectedRole={flow.profileRole}
-			isPending={flow.profileMutation.isPending}
+			isSubmitPending={flow.isSubmittingProfile}
+			isSkipPending={flow.isSkippingProfile}
+			errorMessage={flow.profileErrorMessage}
 			onUpdate={flow.updateProfile}
 			onNext={flow.submitProfile}
 			onSkip={flow.skipProfile}
@@ -33,6 +37,7 @@
 	{:else if flow.step === 3}
 		<OnboardingStep3
 			onFinish={flow.finish}
+			errorMessage={flow.completeErrorMessage}
 			onBack={flow.back}
 			isPending={flow.completeMutation.isPending}
 		/>

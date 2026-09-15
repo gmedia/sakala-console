@@ -6,6 +6,17 @@ import {
 	useSubmitOnboardingProfile,
 	useSubmitOnboardingSource
 } from './mutations';
+import { ApiError, NetworkError } from '$lib/api/errors';
+
+function toErrorMessage(error: unknown): string | null {
+	if (!error) return null;
+	if (error instanceof NetworkError)
+		return 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.';
+	if (error instanceof ApiError && error.isValidationError) {
+		return 'Data yang dikirim tidak valid. Silakan periksa kembali.';
+	}
+	return 'Gagal menyimpan, silakan coba lagi.';
+}
 
 export function useOnboardingFlow() {
 	let step = $state<1 | 2 | 3>(1);
@@ -16,6 +27,26 @@ export function useOnboardingFlow() {
 	const sourceMutation = useSubmitOnboardingSource();
 	const profileMutation = useSubmitOnboardingProfile();
 	const completeMutation = useCompleteOnboarding();
+
+	const isSubmittingSource = $derived(
+		sourceMutation.isPending && sourceMutation.variables?.type === 'source'
+	);
+
+	const isSkippingSource = $derived(
+		sourceMutation.isPending && sourceMutation.variables?.type === 'skip'
+	);
+
+	const isSubmittingProfile = $derived(
+		profileMutation.isPending && !profileMutation.variables?.skip
+	);
+
+	const isSkippingProfile = $derived(
+		profileMutation.isPending && profileMutation.variables?.skip === true
+	);
+
+	const sourceErrorMessage = $derived(toErrorMessage(sourceMutation.error));
+	const profileErrorMessage = $derived(toErrorMessage(profileMutation.error));
+	const completeErrorMessage = $derived(toErrorMessage(completeMutation.error));
 
 	function selectSource(source: OnboardingSource) {
 		selectedSource = source;
@@ -69,6 +100,27 @@ export function useOnboardingFlow() {
 		},
 		get profileRole() {
 			return profileRole;
+		},
+		get isSubmittingSource() {
+			return isSubmittingSource;
+		},
+		get isSkippingSource() {
+			return isSkippingSource;
+		},
+		get isSubmittingProfile() {
+			return isSubmittingProfile;
+		},
+		get isSkippingProfile() {
+			return isSkippingProfile;
+		},
+		get sourceErrorMessage() {
+			return sourceErrorMessage;
+		},
+		get profileErrorMessage() {
+			return profileErrorMessage;
+		},
+		get completeErrorMessage() {
+			return completeErrorMessage;
 		},
 		selectSource,
 		updateProfile,
