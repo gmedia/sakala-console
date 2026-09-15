@@ -84,7 +84,7 @@
 				value={displayName}
 				oninput={handleInput}
 				disabled={isSubmitPending || isSkipPending}
-				class="mt-2 h-14 w-full rounded-lg border border-border/60 bg-surface pl-10 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:outline-none disabled:opacity-60"
+				class="mt-2 h-14 w-full rounded-lg border border-border/60 bg-surface pl-10 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:ring-primary focus:outline-none disabled:opacity-60"
 			/>
 		</div>
 
@@ -145,7 +145,7 @@
 			<Button
 				type="button"
 				onclick={onNext}
-				disabled={isSubmitPending || isSkipPending}
+				disabled={(!displayName?.trim() && !selectedRole) || isSubmitPending || isSkipPending}
 				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white disabled:opacity-60"
 			>
 				{isSubmitPending ? 'Menyimpan...' : 'Lanjutkan'}
