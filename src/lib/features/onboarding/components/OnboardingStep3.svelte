@@ -1,12 +1,16 @@
 <script lang="ts">
-	import { ArrowLeft } from 'phosphor-svelte';
+	import { BookOpen, RocketLaunch } from 'phosphor-svelte';
+	import OnboardingError from './OnboardingError.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	type Props = {
+		isPending?: boolean;
+		errorMessage?: string | null;
 		onFinish: () => void;
 		onBack?: () => void;
 	};
 
-	let { onFinish, onBack }: Props = $props();
+	let { isPending = false, errorMessage, onFinish, onBack }: Props = $props();
 </script>
 
 <div class="mx-auto w-full py-12 px-6 md:px-25">
@@ -29,16 +33,20 @@
 		</p>
 	</div>
 
+	{#if errorMessage}
+		<OnboardingError title="Verifikasi workspace gagal." description={errorMessage} />
+	{/if}
+
 	<!-- Block 2: 3 Cards & Terminal Snippet Section (80px gap from header) -->
 	<div class="mt-20">
 		<!-- 3 Cards (8px gap between cards) -->
-		<div class="grid grid-cols-1 gap-2 lg:grid-cols-3">
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 			<!-- Card 1 -->
 			<div
-				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-[407px]"
+				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-full"
 			>
 				<div class="mb-4 flex items-center justify-between">
-					<ArrowLeft size={20} class="text-primary" />
+					<BookOpen size={20} class="text-primary" />
 					<span class="text-sm font-medium text-primary">Ready</span>
 				</div>
 				<div class="w-66.25 tracking-[0px]">
@@ -53,10 +61,10 @@
 
 			<!-- Card 2 -->
 			<div
-				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-[407px]"
+				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-full"
 			>
 				<div class="mb-4 flex items-center justify-between">
-					<ArrowLeft size={20} class="text-primary" />
+					<RocketLaunch size={20} class="text-primary" />
 					<span class="text-sm font-medium text-primary">Active</span>
 				</div>
 				<div class="w-[265px] tracking-[0px]">
@@ -65,24 +73,6 @@
 						class="mt-2 font-sans text-[18px] font-normal leading-snug tracking-[0px] text-black/70"
 					>
 						Pipeline CI/CD sudah siap untuk pengiriman kode secara otomatis.
-					</p>
-				</div>
-			</div>
-
-			<!-- Card 3 -->
-			<div
-				class="flex min-h-[181px] w-full flex-col justify-start rounded-lg border border-primary-100 bg-surface pl-4 pr-[32px] pt-4 pb-5 text-left transition-all lg:w-[407px]"
-			>
-				<div class="mb-4 flex items-center justify-between">
-					<ArrowLeft size={20} class="text-primary" />
-					<span class="text-sm font-medium text-primary">Linked</span>
-				</div>
-				<div class="w-[265px] tracking-[0px]">
-					<h3 class="font-sans text-[22px] font-medium tracking-[0px] text-black">Team Sync</h3>
-					<p
-						class="mt-2 font-sans text-[18px] font-normal leading-snug tracking-[0px] text-black/70"
-					>
-						Kolaborasi real-time dengan anggota tim lainnya kini tersedia.
 					</p>
 				</div>
 			</div>
@@ -106,23 +96,33 @@
 		</div>
 	</div>
 
+	{#if errorMessage}
+		<div
+			role="alert"
+			class="mt-6 rounded-lg border border-error/30 bg-error/5 px-4 py-3 text-sm text-error"
+		>
+			{errorMessage}
+		</div>
+	{/if}
+
 	<!-- Block 3: Footer Navigation Controls (80px gap from cards/snippet) -->
 	<div class="mt-20 flex items-center justify-between pt-6 text-left">
-		<button
+		<Button
 			type="button"
 			onclick={onBack}
-			disabled={!onBack}
+			disabled={!onBack || isPending}
 			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
 		>
 			Kembali
-		</button>
+		</Button>
 
-		<button
+		<Button
 			type="button"
 			onclick={onFinish}
-			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white"
+			disabled={isPending}
+			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white disabled:opacity-60"
 		>
-			Lanjutkan
-		</button>
+			{isPending ? 'Memproses...' : 'Lanjutkan'}
+		</Button>
 	</div>
 </div>

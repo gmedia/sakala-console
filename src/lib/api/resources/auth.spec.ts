@@ -7,10 +7,12 @@ describe('Auth Resource', () => {
 			data: {
 				id: 1,
 				name: 'Developer',
+				username: 'developer123',
 				email: 'dev@example.com',
 				avatar_url: null,
 				role: 'user',
 				onboarding_source: 'github',
+				onboarding_role: 'developer',
 				onboarding_completed_at: '2026-08-25T10:00:00Z',
 				last_login_at: '2026-08-25T10:00:00Z'
 			}
@@ -32,10 +34,12 @@ describe('Auth Resource', () => {
 			data: {
 				id: 2,
 				name: 'Fresh User',
+				username: 'freshuser',
 				email: 'fresh@example.com',
 				avatar_url: null,
 				role: 'user',
 				onboarding_source: null,
+				onboarding_role: 'developer',
 				onboarding_completed_at: null,
 				last_login_at: null
 			}
@@ -44,6 +48,7 @@ describe('Auth Resource', () => {
 		const result = parseCurrentUserResponse(userPayload);
 		expect(result.id).toBe(2);
 		expect(result.name).toBe('Fresh User');
+		expect(result.username).toBe('freshuser');
 		expect(result.onboarding_source).toBeNull();
 		expect(result.onboarding_completed_at).toBeNull();
 		expect(result.last_login_at).toBeNull();
