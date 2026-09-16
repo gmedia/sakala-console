@@ -18,9 +18,11 @@ vi.mock('$lib/api/resources/onboarding', () => ({
 }));
 
 const invalidateQueries = vi.fn();
+const setQueryData = vi.fn();
+
 let capturedConfig: {
 	mutationFn: (selection?: unknown) => Promise<unknown>;
-	onSuccess: () => void;
+	onSuccess: (user?: unknown) => void;
 } | null = null;
 
 vi.mock('@tanstack/svelte-query', () => ({
@@ -28,7 +30,10 @@ vi.mock('@tanstack/svelte-query', () => ({
 		capturedConfig = config();
 		return {} as unknown;
 	}),
-	useQueryClient: vi.fn(() => ({ invalidateQueries }))
+	useQueryClient: vi.fn(() => ({
+		invalidateQueries,
+		setQueryData
+	}))
 }));
 
 const mockedSubmitSource = vi.mocked(submitOnboardingSource);
@@ -40,6 +45,7 @@ beforeEach(() => {
 	mockedSubmitProfile.mockReset();
 	mockedSubmitCompleted.mockReset();
 	invalidateQueries.mockReset();
+	setQueryData.mockReset();
 	capturedConfig = null;
 });
 
@@ -108,11 +114,47 @@ describe('useCompleteOnboarding', () => {
 		expect(mockedSubmitCompleted).toHaveBeenCalledWith();
 	});
 
-	it('calls invalidateQueries for current-user after success', () => {
+	it('updates current-user cache with the completed user before invalidating', () => {
+		const completedUser = {
+			id: 1,
+			name: 'Test User',
+			username: 'testuser',
+			email: 'test@sakala.local',
+			avatar_url: null,
+			role: 'user',
+			onboarding_source: 'github',
+			onboarding_role: 'developer',
+			onboarding_completed_at: '2026-09-16T10:00:00Z',
+			last_login_at: '2026-09-16T10:00:00Z'
+		};
+
 		useCompleteOnboarding();
 
-		capturedConfig!.onSuccess();
+		capturedConfig!.onSuccess(completedUser);
 
-		expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
+		expect(setQueryData).toHaveBeenCalledWith(queryKeys.auth.currentUser, completedUser);
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: queryKeys.auth.currentUser
+		});
+	});
+
+	it('updates current-user cache before invalidating it', () => {
+		const calls: string[] = [];
+
+		setQueryData.mockImplementation(() => {
+			calls.push('setQueryData');
+		});
+
+		invalidateQueries.mockImplementation(() => {
+			calls.push('invalidateQueries');
+		});
+
+		useCompleteOnboarding();
+
+		capturedConfig!.onSuccess({
+			onboarding_completed_at: '2026-09-16T10:00:00Z'
+		});
+
+		expect(calls).toEqual(['setQueryData', 'invalidateQueries']);
 	});
 });

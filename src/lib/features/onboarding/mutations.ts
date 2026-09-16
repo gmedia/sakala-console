@@ -40,8 +40,12 @@ export function useCompleteOnboarding() {
 
 	return createMutation(() => ({
 		mutationFn: () => submitOnboardingCompleted(),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser });
+		onSuccess: (user) => {
+			queryClient.setQueryData(queryKeys.auth.currentUser, user);
+
+			queryClient.invalidateQueries({
+				queryKey: queryKeys.auth.currentUser
+			});
 		}
 	}));
 }
