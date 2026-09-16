@@ -145,7 +145,7 @@
 			<Button
 				type="button"
 				onclick={onNext}
-				disabled={(!displayName?.trim() && !selectedRole) || isSubmitPending || isSkipPending}
+				disabled={!displayName?.trim() || !selectedRole || isSubmitPending || isSkipPending}
 				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white disabled:opacity-60"
 			>
 				{isSubmitPending ? 'Menyimpan...' : 'Lanjutkan'}

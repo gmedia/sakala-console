@@ -70,6 +70,9 @@ export function useOnboardingFlow() {
 	}
 
 	function submitProfile() {
+		const name = profileName?.trim();
+
+		if (!name || !profileRole) return;
 		profileMutation.mutate(
 			{ name: profileName, role: profileRole },
 			{ onSuccess: () => (step = 3) }

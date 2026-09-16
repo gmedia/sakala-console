@@ -269,6 +269,39 @@ describe('useOnboardingFlow', () => {
 			expect(flow.isSubmittingProfile).toBe(false);
 			expect(flow.isSkippingProfile).toBe(true);
 		});
+
+		it('only name tidak bisa submite profile', () => {
+			const flow = useOnboardingFlow();
+
+			flow.updateProfile({ name: 'Test User' });
+
+			flow.submitProfile();
+
+			expect(profileMutationStub.mutate).not.toHaveBeenCalled();
+		});
+
+		it('only role tidak bisa submite profile', () => {
+			const flow = useOnboardingFlow();
+
+			flow.updateProfile({ role: 'developer' });
+
+			flow.submitProfile();
+
+			expect(profileMutationStub.mutate).not.toHaveBeenCalled();
+		});
+
+		it('name yang hanya berisi whitespace tidak bisa submite profile', () => {
+			const flow = useOnboardingFlow();
+
+			flow.updateProfile({
+				name: '   ',
+				role: 'developer'
+			});
+
+			flow.submitProfile();
+
+			expect(profileMutationStub.mutate).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('source error state', () => {
