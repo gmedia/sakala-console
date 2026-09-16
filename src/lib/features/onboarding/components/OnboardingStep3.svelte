@@ -96,15 +96,6 @@
 		</div>
 	</div>
 
-	{#if errorMessage}
-		<div
-			role="alert"
-			class="mt-6 rounded-lg border border-error/30 bg-error/5 px-4 py-3 text-sm text-error"
-		>
-			{errorMessage}
-		</div>
-	{/if}
-
 	<!-- Block 3: Footer Navigation Controls (80px gap from cards/snippet) -->
 	<div class="mt-20 flex items-center justify-between pt-6 text-left">
 		<Button
