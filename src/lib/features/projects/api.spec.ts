@@ -57,3 +57,87 @@ describe('Projects API - Error Propagation Regression', () => {
 		await expect(getEnvironmentVariables('p-1')).rejects.toThrow(error);
 	});
 });
+
+describe('Projects API - Deployment Pagination & Filter Regression', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('requests page 2 when page parameter is provided', async () => {
+		mockedApiRequest.mockResolvedValueOnce({
+			data: [],
+			meta: { current_page: 2, last_page: 3, per_page: 6, total: 18, from: 7, to: 12 }
+		});
+
+		await getDeployments('p-1', { page: 2 });
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('/api/v1/app/projects/p-1/deployments?page=2');
+	});
+
+	it('forwards search parameter to API query string', async () => {
+		mockedApiRequest.mockResolvedValueOnce({
+			data: [],
+			meta: { current_page: 1, last_page: 1, per_page: 6, total: 1, from: 1, to: 1 }
+		});
+
+		await getDeployments('p-1', { search: 'feat-login' });
+
+		expect(mockedApiRequest).toHaveBeenCalledWith(
+			'/api/v1/app/projects/p-1/deployments?search=feat-login'
+		);
+	});
+
+	it('forwards filter parameter to API query string', async () => {
+		mockedApiRequest.mockResolvedValueOnce({
+			data: [],
+			meta: { current_page: 1, last_page: 1, per_page: 6, total: 2, from: 1, to: 2 }
+		});
+
+		await getDeployments('p-1', { filter: '7_days' });
+
+		expect(mockedApiRequest).toHaveBeenCalledWith(
+			'/api/v1/app/projects/p-1/deployments?filter=7_days'
+		);
+	});
+
+	it('combines page, per_page, search, and filter parameters', async () => {
+		const mockResponse = {
+			data: [
+				{
+					id: 'd-1',
+					project_id: 'p-1',
+					sequence: 2,
+					branch: 'main',
+					status: 'succeeded' as const,
+					trigger: 'manual' as const,
+					commit_sha: 'abc1234',
+					commit_message: 'fix',
+					image_reference: null,
+					requested_resources: null,
+					effective_resources: null,
+					started_at: null,
+					finished_at: null,
+					cancelled_at: null,
+					failure_code: null,
+					failure_summary: null,
+					created_at: '2026-01-01T00:00:00Z',
+					updated_at: '2026-01-01T00:00:00Z'
+				}
+			],
+			meta: { current_page: 2, last_page: 2, per_page: 6, total: 7, from: 7, to: 7 }
+		};
+		mockedApiRequest.mockResolvedValueOnce(mockResponse);
+
+		const result = await getDeployments('p-1', {
+			page: 2,
+			per_page: 6,
+			search: 'fix',
+			filter: '30_days'
+		});
+
+		expect(mockedApiRequest).toHaveBeenCalledWith(
+			'/api/v1/app/projects/p-1/deployments?page=2&per_page=6&search=fix&filter=30_days'
+		);
+		expect(result).toEqual(mockResponse);
+	});
+});

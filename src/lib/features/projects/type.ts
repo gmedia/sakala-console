@@ -92,6 +92,29 @@ export interface Deployment {
 	updated_at: string;
 }
 
+export type DeploymentFilter = '7_days' | '30_days' | 'all';
+
+export interface GetDeploymentsParams {
+	page?: number;
+	per_page?: number;
+	search?: string;
+	filter?: DeploymentFilter;
+}
+
+export interface PaginationMeta {
+	current_page: number;
+	from: number | null;
+	last_page: number;
+	per_page: number;
+	to: number | null;
+	total: number;
+}
+
+export interface PaginatedDeployments {
+	data: Deployment[];
+	meta: PaginationMeta;
+}
+
 export interface TriggerRedeployPayload {
 	branch: string;
 	idempotencyKey?: string;

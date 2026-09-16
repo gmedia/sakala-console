@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createDeploymentsQuery } from '../../queries';
+	import type { DeploymentFilter } from '../../type';
 	import {
 		CircleNotch,
 		WarningCircle,
@@ -13,33 +14,38 @@
 
 	let { projectId }: { projectId: string } = $props();
 
-	const query = createDeploymentsQuery(() => projectId);
-
+	const filterOptions: DeploymentFilter[] = ['30_days', '7_days', 'all'];
+	let selectedFilter = $state<DeploymentFilter>('30_days');
 	let searchQuery = $state('');
+	let currentPage = $state(1);
 
-	const filteredDeployments = $derived(
-		(query.data ?? []).filter((d) => {
-			if (!searchQuery) return true;
-			const q = searchQuery.toLowerCase();
-			const seqName = `deployment #${d.sequence || 0}`.toLowerCase();
-			return seqName.includes(q);
+	const query = createDeploymentsQuery(
+		() => projectId,
+		() => ({
+			page: currentPage,
+			per_page: 6,
+			search: searchQuery.trim() || undefined,
+			filter: selectedFilter
 		})
 	);
 
-	const itemsPerPage = 6;
-	let currentPage = $state(1);
+	function toggleFilter() {
+		const currentIndex = filterOptions.indexOf(selectedFilter);
+		const nextIndex = (currentIndex + 1) % filterOptions.length;
+		selectedFilter = filterOptions[nextIndex];
+		currentPage = 1;
+	}
 
-	$effect(() => {
-		if (searchQuery !== undefined) {
-			currentPage = 1;
-		}
-	});
+	const filterLabels: Record<DeploymentFilter, string> = {
+		'7_days': '7 hari terakhir',
+		'30_days': '30 hari terakhir',
+		all: 'Semua waktu'
+	};
 
-	const totalPages = $derived(Math.ceil(filteredDeployments.length / itemsPerPage));
+	const filterText = $derived(filterLabels[selectedFilter]);
 
-	const paginatedDeployments = $derived(
-		filteredDeployments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-	);
+	const deployments = $derived(query.data?.data ?? []);
+	const totalPages = $derived(query.data?.meta.last_page ?? 1);
 
 	function getPaginationRange(current: number, total: number) {
 		if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
@@ -51,27 +57,16 @@
 	}
 
 	const paginationRange = $derived(getPaginationRange(currentPage, totalPages));
-
-	let filterDays = $state(30);
-	const filterOptions = [7, 30, 90, 0];
-
-	function toggleFilterDays() {
-		const currentIndex = filterOptions.indexOf(filterDays);
-		const nextIndex = (currentIndex + 1) % filterOptions.length;
-		filterDays = filterOptions[nextIndex];
-	}
-
-	const filterText = $derived(filterDays === 0 ? 'Semua waktu' : `${filterDays} hari terakhir`);
 </script>
 
 <div class="flex flex-col gap-6 w-full">
 	<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 		<button
 			type="button"
-			onclick={toggleFilterDays}
-			class="flex items-center w-35.75 h-6 rounded-none bg-primary-50 text-primary transition-colors hover:bg-primary-100 cursor-pointer"
+			onclick={toggleFilter}
+			class="flex items-center min-w-35.75 h-6 px-3 rounded-none bg-primary-50 text-primary transition-colors hover:bg-primary-100 cursor-pointer"
 		>
-			<span class="pl-3 py-1">
+			<span class="py-1">
 				<List size={16} />
 			</span>
 			<span class="pl-2 text-[12px] font-montserrat-semibold">{filterText}</span>
@@ -82,7 +77,11 @@
 			<input
 				type="text"
 				placeholder="Search..."
-				bind:value={searchQuery}
+				value={searchQuery}
+				oninput={(e) => {
+					searchQuery = e.currentTarget.value;
+					currentPage = 1;
+				}}
 				class="w-full h-full bg-surface border border-border rounded-lg pl-11 pr-4 py-2 text-sm outline-none focus:border-primary transition-colors"
 			/>
 		</div>
@@ -99,7 +98,7 @@
 			<WarningCircle size={24} weight="fill" />
 			<p class="font-medium text-sm">Gagal memuat riwayat deployment. Silakan coba lagi.</p>
 		</div>
-	{:else if query.data?.length === 0}
+	{:else if deployments.length === 0 && !searchQuery.trim()}
 		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
 			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
 				<Empty size={32} weight="regular" />
@@ -108,7 +107,7 @@
 				Belum ada riwayat deployment untuk proyek ini.
 			</p>
 		</div>
-	{:else if filteredDeployments.length === 0}
+	{:else if deployments.length === 0 && searchQuery.trim()}
 		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
 			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
 				<MagnifyingGlass size={32} weight="regular" />
@@ -119,7 +118,7 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-			{#each paginatedDeployments as deployment (deployment.id)}
+			{#each deployments as deployment (deployment.id)}
 				<DeploymentCard {deployment} />
 			{/each}
 		</div>

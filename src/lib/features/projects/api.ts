@@ -6,7 +6,9 @@ import type {
 	EnvironmentVariable,
 	CreateEnvVarPayload,
 	EnvVarValueResponse,
-	TriggerRedeployPayload
+	TriggerRedeployPayload,
+	GetDeploymentsParams,
+	PaginatedDeployments
 } from './type';
 
 /**
@@ -40,11 +42,20 @@ export async function deleteProject(id: string): Promise<void> {
 /**
  * Get project deployments
  */
-export async function getDeployments(projectId: string): Promise<Deployment[]> {
-	const res = await apiRequest<{ data: Deployment[] }>(
-		`/api/v1/app/projects/${projectId}/deployments`
-	);
-	return res.data;
+export async function getDeployments(
+	projectId: string,
+	params?: GetDeploymentsParams
+): Promise<PaginatedDeployments> {
+	const searchParams = new URLSearchParams();
+	if (params?.page) searchParams.set('page', String(params.page));
+	if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+	if (params?.search) searchParams.set('search', params.search);
+	if (params?.filter) searchParams.set('filter', params.filter);
+
+	const query = searchParams.toString();
+	const endpoint = `/api/v1/app/projects/${projectId}/deployments${query ? `?${query}` : ''}`;
+
+	return apiRequest<PaginatedDeployments>(endpoint);
 }
 
 /**
