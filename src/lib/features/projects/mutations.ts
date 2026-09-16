@@ -37,8 +37,11 @@ export function createRedeployMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: (variables: { projectId: string; idempotencyKey: string }) =>
-			triggerRedeploy(variables.projectId, variables.idempotencyKey),
+		mutationFn: (variables: { projectId: string; branch: string; idempotencyKey?: string }) =>
+			triggerRedeploy(variables.projectId, {
+				branch: variables.branch,
+				idempotencyKey: variables.idempotencyKey
+			}),
 		onSuccess: (_: Deployment, variables) => {
 			queryClient.invalidateQueries({ queryKey: projectKeys.deployments(variables.projectId) });
 			queryClient.invalidateQueries({ queryKey: projectKeys.detail(variables.projectId) });

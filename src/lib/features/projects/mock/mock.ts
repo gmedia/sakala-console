@@ -1,6 +1,4 @@
 import type {
-	CreateProjectPayload,
-	CreateProjectResult,
 	Project,
 	Deployment,
 	Repository,

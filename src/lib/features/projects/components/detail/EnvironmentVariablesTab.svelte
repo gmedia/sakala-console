@@ -7,6 +7,7 @@
 		createDeleteEnvironmentVariableMutation
 	} from '../../mutations';
 	import { getEnvironmentVariableValue } from '../../api';
+	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -24,6 +25,8 @@
 	let newKey = $state('');
 	let newValue = $state('');
 	let errorMessage = $state('');
+
+	let deletingEnv = $state<{ id: string; key: string } | null>(null);
 
 	const KEY_REGEX = /^[A-Z_][A-Z0-9_]*$/;
 
@@ -112,19 +115,29 @@
 		);
 	}
 
-	function handleDelete(id: string) {
-		if (confirm('Apakah kamu yakin ingin menghapus variabel ini?')) {
-			deleteMutation.mutate(
-				{ projectId, id },
-				{
-					onSuccess: () => {
-						visibleIds.delete(id);
-						loadingRevealIds.delete(id);
-						delete revealedValues[id];
-					}
+	function handlePromptDelete(env: { id: string; key: string }) {
+		deletingEnv = env;
+	}
+
+	function handleCloseDelete() {
+		deletingEnv = null;
+	}
+
+	function handleConfirmDelete() {
+		if (!deletingEnv) return;
+		const envId = deletingEnv.id;
+
+		deleteMutation.mutate(
+			{ projectId, id: envId },
+			{
+				onSuccess: () => {
+					visibleIds.delete(envId);
+					loadingRevealIds.delete(envId);
+					delete revealedValues[envId];
+					deletingEnv = null;
 				}
-			);
-		}
+			}
+		);
 	}
 </script>
 
@@ -194,7 +207,7 @@
 							<button
 								type="button"
 								class="font-montserrat-medium text-sm text-muted hover:text-error transition-colors mr-6 cursor-pointer"
-								onclick={() => handleDelete(env.id)}
+								onclick={() => handlePromptDelete(env)}
 								disabled={deleteMutation.isPending}
 							>
 								Hapus
@@ -275,4 +288,12 @@
 			<span>Tambah Variabel</span>
 		</button>
 	{/if}
+
+	<DeleteEnvConfirmModal
+		open={deletingEnv !== null}
+		envKey={deletingEnv?.key ?? ''}
+		isLoading={deleteMutation.isPending}
+		onConfirm={handleConfirmDelete}
+		onClose={handleCloseDelete}
+	/>
 </div>

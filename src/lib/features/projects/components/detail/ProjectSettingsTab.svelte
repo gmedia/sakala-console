@@ -3,57 +3,63 @@
 	import { resolveRoute } from '$app/paths';
 	import { Trash } from 'phosphor-svelte';
 	import { createProjectQuery } from '../../queries';
-	import { createUpdateProjectMutation, createDeleteProjectMutation } from '../../mutations';
+	import { createDeleteProjectMutation } from '../../mutations';
+	import { getProjectDetailContext } from '../../detail/projectDetailState.svelte';
+	import DeleteProjectConfirmModal from './DeleteProjectConfirmModal.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
 	const projectQuery = createProjectQuery(() => projectId);
-	const updateMutation = createUpdateProjectMutation();
 	const deleteMutation = createDeleteProjectMutation();
+	const detailState = getProjectDetailContext();
 
 	// Form State
 	let name = $state('');
 	let branch = $state('');
 
-	// Unused by backend currently, but UI is requested
+	// Read-only / auto-detected fields
 	let subdomain = $state('');
 	let port = $state('');
 	let rootDirectory = $state('');
 	let buildCommand = $state('');
 
+	let isDeleteDialogOpen = $state(false);
+
 	$effect(() => {
-		if (projectQuery.data) {
-			name = projectQuery.data.project_name || '';
+		if (projectQuery.data && !detailState?.isDirty) {
+			name = projectQuery.data.name ?? projectQuery.data.project_name ?? '';
 			branch = projectQuery.data.branch || '';
 
 			subdomain = projectQuery.data.slug || '';
-			port = projectQuery.data.detected_port?.toString() || '';
+			port = projectQuery.data.detected_port?.toString() || '3000';
+			rootDirectory = './';
+			buildCommand = 'npm run build';
 		}
 	});
 
-	function handleSubmit(e?: Event) {
-		if (e) e.preventDefault();
-		updateMutation.mutate({
-			id: projectId,
-			data: {
-				name,
-				branch
-			}
-		});
+	$effect(() => {
+		if (projectQuery.data) {
+			const origName = projectQuery.data.name ?? projectQuery.data.project_name ?? '';
+			const origBranch = projectQuery.data.branch || '';
+			detailState?.setDraft(name, branch, origName, origBranch);
+		}
+	});
+
+	function handleOpenDelete() {
+		isDeleteDialogOpen = true;
 	}
 
-	function handleDeleteProject() {
-		if (
-			confirm(
-				'Apakah kamu yakin ingin menghapus proyek ini? Tindakan ini permanen dan tidak bisa dibatalkan.'
-			)
-		) {
-			deleteMutation.mutate(projectId, {
-				onSuccess: () => {
-					goto(resolveRoute('/(app)/projects'));
-				}
-			});
-		}
+	function handleCloseDelete() {
+		isDeleteDialogOpen = false;
+	}
+
+	function handleConfirmDelete() {
+		deleteMutation.mutate(projectId, {
+			onSuccess: () => {
+				isDeleteDialogOpen = false;
+				goto(resolveRoute('/(app)/projects'));
+			}
+		});
 	}
 </script>
 
@@ -66,7 +72,7 @@
 		</div>
 	{:else if projectQuery.data}
 		<form
-			onsubmit={handleSubmit}
+			onsubmit={(e) => e.preventDefault()}
 			class="flex w-280 max-w-full h-61 rounded-lg border border-border bg-surface pt-6 pb-6 shadow-none"
 		>
 			<div class="ml-6 w-132 flex flex-col">
@@ -99,15 +105,19 @@
 				</div>
 
 				<div class="flex flex-col">
-					<label for="rootDirectory" class="font-montserrat-medium text-xs text-foreground mb-2">
-						Root Directory
-					</label>
+					<div class="flex items-center gap-1.5 mb-2">
+						<label for="rootDirectory" class="font-montserrat-medium text-xs text-foreground">
+							Root Directory
+						</label>
+						<span class="text-[10px] text-muted font-montserrat">(Default)</span>
+					</div>
 					<input
 						type="text"
 						id="rootDirectory"
 						bind:value={rootDirectory}
+						disabled
 						placeholder="./"
-						class="w-132 h-7.75 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
+						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 			</div>
@@ -116,54 +126,55 @@
 
 			<div class="mr-6 w-132 flex flex-col">
 				<div class="flex flex-col mb-4">
-					<label for="subdomain" class="font-montserrat-medium text-xs text-foreground mb-2">
-						Subdomain (URL Publik)
-					</label>
+					<div class="flex items-center gap-1.5 mb-2">
+						<label for="subdomain" class="font-montserrat-medium text-xs text-foreground">
+							Subdomain (URL Publik)
+						</label>
+						<span class="text-[10px] text-muted font-montserrat">(Otomatis)</span>
+					</div>
 					<input
 						type="text"
 						id="subdomain"
 						bind:value={subdomain}
+						disabled
 						placeholder="subdomain"
-						class="w-132 h-7.75 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
+						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 
 				<div class="flex flex-col mb-4">
-					<label for="port" class="font-montserrat-medium text-xs text-foreground mb-2">
-						Port
-					</label>
+					<div class="flex items-center gap-1.5 mb-2">
+						<label for="port" class="font-montserrat-medium text-xs text-foreground"> Port </label>
+						<span class="text-[10px] text-muted font-montserrat">(Terdeteksi)</span>
+					</div>
 					<input
 						type="number"
 						id="port"
 						bind:value={port}
+						disabled
 						placeholder="3000"
-						class="w-132 h-7.75 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
+						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 
 				<div class="flex flex-col">
-					<label for="buildCommand" class="font-montserrat-medium text-xs text-foreground mb-2">
-						Build command
-					</label>
+					<div class="flex items-center gap-1.5 mb-2">
+						<label for="buildCommand" class="font-montserrat-medium text-xs text-foreground">
+							Build command
+						</label>
+						<span class="text-[10px] text-muted font-montserrat">(Default)</span>
+					</div>
 					<input
 						type="text"
 						id="buildCommand"
 						bind:value={buildCommand}
+						disabled
 						placeholder="npm run build"
-						class="w-132 h-7.75 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
+						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 			</div>
 		</form>
-
-		{#if updateMutation.isSuccess}
-			<p class="mt-2 text-xs font-montserrat text-primary">
-				Perubahan Nama Proyek & Branch berhasil disimpan ke sistem.
-			</p>
-		{/if}
-		{#if updateMutation.isError}
-			<p class="mt-2 text-xs font-montserrat text-error">Gagal menyimpan perubahan.</p>
-		{/if}
 
 		<div
 			class="w-280 max-w-full h-20 rounded-lg border border-error/50 bg-error-50 mt-6 flex items-center justify-between shadow-none"
@@ -179,7 +190,7 @@
 
 			<button
 				type="button"
-				onclick={handleDeleteProject}
+				onclick={handleOpenDelete}
 				disabled={deleteMutation.isPending}
 				class="w-42 h-10 rounded-lg border border-error/50 bg-error-50 mr-4 flex items-center justify-between px-4 text-error hover:bg-error/10 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
 			>
@@ -187,5 +198,14 @@
 				<span class="font-montserrat-semibold text-sm">Hapus Proyek</span>
 			</button>
 		</div>
+
+		<DeleteProjectConfirmModal
+			open={isDeleteDialogOpen}
+			projectName={projectQuery.data.name ?? projectQuery.data.project_name ?? ''}
+			defaultDomain={projectQuery.data.default_domain}
+			isLoading={deleteMutation.isPending}
+			onConfirm={handleConfirmDelete}
+			onClose={handleCloseDelete}
+		/>
 	{/if}
 </div>

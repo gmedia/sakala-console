@@ -1,5 +1,5 @@
 import { apiRequest } from '$lib/api/client';
-import { mockDeployments, mockProjects, mockEnvironmentVariables } from './mock';
+import { mockDeployments, mockProjects, mockEnvironmentVariables } from './mock/mock';
 import type {
 	Deployment,
 	Project,
@@ -7,7 +7,8 @@ import type {
 	EnvironmentVariable,
 	CreateEnvVarPayload,
 	EnvVarValueResponse,
-	ProjectEnvironmentVariable
+	ProjectEnvironmentVariable,
+	TriggerRedeployPayload
 } from './type';
 
 /**
@@ -91,8 +92,17 @@ export async function getDeployments(projectId: string): Promise<Deployment[]> {
  */
 export async function triggerRedeploy(
 	projectId: string,
-	idempotencyKey: string
+	payload: TriggerRedeployPayload | string
 ): Promise<Deployment> {
+	const branch = typeof payload === 'string' ? 'main' : payload.branch;
+	const idempotencyKey =
+		typeof payload === 'string'
+			? payload
+			: payload.idempotencyKey ||
+				(typeof crypto !== 'undefined' && crypto.randomUUID
+					? crypto.randomUUID()
+					: 'deploy-' + Date.now());
+
 	try {
 		const res = await apiRequest<{ data: Deployment }>(
 			`/api/v1/app/projects/${projectId}/deployments`,
@@ -100,13 +110,18 @@ export async function triggerRedeploy(
 				method: 'POST',
 				headers: {
 					'Idempotency-Key': idempotencyKey
+				},
+				json: {
+					branch
 				}
 			}
 		);
 		return res.data;
 	} catch {
 		await delay(800);
-		console.log(`Triggering redeploy with Idempotency-Key: ${idempotencyKey}`);
+		console.log(
+			`Triggering redeploy on branch '${branch}' with Idempotency-Key: ${idempotencyKey}`
+		);
 
 		const isRunning = mockDeployments.some(
 			(d) => d.project_id === projectId && ['queued', 'building', 'running'].includes(d.status)
@@ -116,7 +131,10 @@ export async function triggerRedeploy(
 			throw new Error('Deployment sedang berjalan. Harap tunggu hingga selesai.');
 		}
 
-		return mockDeployments[0];
+		return {
+			...mockDeployments[0],
+			branch
+		};
 	}
 }
 

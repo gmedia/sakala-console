@@ -4,12 +4,14 @@
 	import { createProjectQuery } from '$lib/features/projects/queries';
 	import ProjectHeaderBanner from '$lib/features/projects/components/detail/ProjectHeaderBanner.svelte';
 	import { resolveRoute } from '$app/paths';
+	import { initProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
 	let currentPath = $derived($page.url.pathname);
 	let projectId = $derived($page.params.id as string);
 
+	initProjectDetailContext();
 	const projectQuery = createProjectQuery(() => projectId);
 </script>
 

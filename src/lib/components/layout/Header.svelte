@@ -20,7 +20,7 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	import { mockProjects } from '$lib/features/projects/mock';
+	import { mockProjects } from '$lib/features/projects/mock/mock';
 	const currentProject = $derived(
 		page.params.id ? mockProjects.find((p) => p.id === page.params.id) || mockProjects[0] : null
 	);

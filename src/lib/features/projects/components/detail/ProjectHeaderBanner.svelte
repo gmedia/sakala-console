@@ -10,13 +10,18 @@
 		Plus,
 		WarningCircle
 	} from 'phosphor-svelte';
-	import { createRedeployMutation } from '$lib/features/projects/mutations';
+	import {
+		createRedeployMutation,
+		createUpdateProjectMutation
+	} from '$lib/features/projects/mutations';
+	import { getProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
 
 	type Props = {
 		project: Project;
 	};
 
 	let { project }: Props = $props();
+	const detailState = getProjectDetailContext();
 
 	let badgeTone = $derived.by<'success' | 'error' | 'warning' | 'info' | 'neutral'>(() => {
 		if (project.runtime_status === 'not_deployed') return 'neutral';
@@ -45,16 +50,46 @@
 	});
 
 	const redeploy = createRedeployMutation();
+	const updateProjectMutation = createUpdateProjectMutation();
 
-	function handleRedeploy() {
-		redeploy.mutate(
-			{ projectId: project.id, idempotencyKey: crypto.randomUUID() },
-			{
-				onError: (error) => {
-					alert(error.message || 'Gagal melakukan redeploy. Silakan coba lagi.');
-				}
+	let isProcessing = $derived(redeploy.isPending || updateProjectMutation.isPending);
+
+	async function handleRedeploy() {
+		if (isProcessing) return;
+
+		try {
+			if (detailState?.isDirty && (detailState.draftName || detailState.draftBranch)) {
+				await updateProjectMutation.mutateAsync({
+					id: project.id,
+					data: {
+						name: detailState.draftName || undefined,
+						branch: detailState.draftBranch || undefined
+					}
+				});
+				detailState.resetDraft();
 			}
-		);
+
+			const activeBranch = detailState?.draftBranch || project.branch || 'main';
+
+			redeploy.mutate(
+				{
+					projectId: project.id,
+					branch: activeBranch,
+					idempotencyKey: crypto.randomUUID()
+				},
+				{
+					onError: (error) => {
+						alert(error.message || 'Gagal melakukan redeploy. Silakan coba lagi.');
+					}
+				}
+			);
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: 'Gagal menyimpan perubahan pengaturan sebelum redeploy.';
+			alert(message);
+		}
 	}
 
 	function formatRelativeTime(dateString: string) {
@@ -97,10 +132,10 @@
 		<div class="flex items-center">
 			<button
 				onclick={handleRedeploy}
-				disabled={redeploy.isPending}
-				class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white h-10 px-4 rounded-lg font-medium transition-colors shadow-sm text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+				disabled={isProcessing}
+				class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white h-10 px-4 rounded-lg font-medium transition-colors shadow-sm text-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
 			>
-				{#if redeploy.isPending}
+				{#if isProcessing}
 					<CircleNotch size={18} weight="bold" class="animate-spin" />
 				{:else if project.runtime_status === 'not_deployed'}
 					<Plus size={18} weight="bold" />

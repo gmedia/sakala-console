@@ -75,6 +75,11 @@ export interface Deployment {
 	updated_at: string;
 }
 
+export interface TriggerRedeployPayload {
+	branch: string;
+	idempotencyKey?: string;
+}
+
 export interface UpdateProjectPayload {
 	name?: string;
 	thumbnail_url?: string | null;
