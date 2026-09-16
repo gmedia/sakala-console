@@ -25,10 +25,9 @@
 
 	let badgeTone = $derived.by<'success' | 'error' | 'warning' | 'info' | 'neutral'>(() => {
 		if (project.runtime_status === 'not_deployed') return 'neutral';
-		if (project.status !== 'ready') {
-			if (project.status === 'failed') return 'error';
-			return 'warning';
-		}
+		if (project.status === 'failed') return 'error';
+		if (project.status === 'suspended') return 'warning';
+		if (project.status === 'draft') return 'neutral';
 
 		switch (project.runtime_status) {
 			case 'running':
@@ -38,6 +37,7 @@
 				return 'error';
 			case 'deploying':
 				return 'info';
+			case 'stopped':
 			default:
 				return 'neutral';
 		}
@@ -46,7 +46,9 @@
 	let displayStatus = $derived.by(() => {
 		if (project.runtime_status === 'not_deployed') return 'Belum deploy';
 		if (project.status === 'failed' || project.runtime_status === 'failed') return 'Failed';
-		return project.status === 'ready' ? project.runtime_status.replace('_', ' ') : project.status;
+		if (project.status === 'suspended') return 'Suspended';
+		if (project.status === 'draft') return 'Draft';
+		return project.runtime_status.replace('_', ' ');
 	});
 
 	const redeploy = createRedeployMutation();

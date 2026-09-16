@@ -1,22 +1,33 @@
 <script lang="ts">
-	import type { Deployment } from '../../type';
+	import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type DeploymentStatus } from '../../type';
 	import { formatDate } from '$lib/utils/date';
 
 	let { deployment }: { deployment: Deployment } = $props();
 
+	function isActive(status: string): boolean {
+		return ACTIVE_DEPLOYMENT_STATUSES.includes(status as DeploymentStatus);
+	}
+
 	function getBadgeStyle(status: string) {
-		if (status === 'success') return 'bg-success/10 text-success';
+		if (status === 'succeeded' || status === 'success') return 'bg-success/10 text-success';
 		if (status === 'failed' || status === 'cancelled') return 'bg-error/10 text-error';
-		if (status === 'running' || status === 'building' || status === 'queued')
-			return 'bg-warning/10 text-warning';
+		if (isActive(status)) return 'bg-warning/10 text-warning';
 		return 'bg-muted/20 text-muted';
 	}
 
 	function getDotStyle(status: string) {
-		if (status === 'success') return 'bg-success';
+		if (status === 'succeeded' || status === 'success') return 'bg-success';
 		if (status === 'failed' || status === 'cancelled') return 'bg-error';
-		if (status === 'running' || status === 'building' || status === 'queued') return 'bg-warning';
+		if (isActive(status)) return 'bg-warning';
 		return 'bg-muted';
+	}
+
+	function getStatusLabel(status: string) {
+		if (status === 'succeeded' || status === 'success') return 'Selesai';
+		if (isActive(status)) return 'Deploying';
+		if (status === 'failed') return 'Failed';
+		if (status === 'cancelled') return 'Cancelled';
+		return status.replace('_', ' ');
 	}
 
 	function formatRelativeTime(dateString: string) {
@@ -69,11 +80,7 @@
 			)}"
 		>
 			<span class="size-1.5 rounded-full {getDotStyle(deployment.status)}"></span>
-			{deployment.status === 'running' ||
-			deployment.status === 'building' ||
-			deployment.status === 'queued'
-				? 'Deploying'
-				: deployment.status.replace('_', ' ')}
+			{getStatusLabel(deployment.status)}
 		</div>
 	</div>
 
@@ -92,8 +99,8 @@
 
 	<div class="flex items-center justify-between mt-5">
 		<span class="text-xs font-montserrat-semibold text-muted">
-			{#if deployment.status === 'running' || deployment.status === 'building' || deployment.status === 'queued'}
-				Tahap: {deployment.status}...
+			{#if isActive(deployment.status)}
+				Tahap: {deployment.status.replace('_', ' ')}...
 			{:else if deployment.status === 'failed' || deployment.status === 'cancelled'}
 				Build error
 			{:else}

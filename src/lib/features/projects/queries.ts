@@ -1,6 +1,6 @@
 import { createQuery } from '@tanstack/svelte-query';
 import { getProject, getDeployments, getEnvironmentVariables } from './api';
-import type { Deployment } from './type';
+import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment } from './type';
 
 export const projectKeys = {
 	all: ['projects'] as const,
@@ -36,7 +36,10 @@ export function createDeploymentsQuery(projectId: () => string) {
 
 			const isRunning = data.some(
 				(d: Deployment) =>
-					d.status === 'building' || d.status === 'running' || d.status === 'queued'
+					ACTIVE_DEPLOYMENT_STATUSES.includes(d.status) ||
+					(d.status as string) === 'building' ||
+					(d.status as string) === 'running' ||
+					(d.status as string) === 'queued'
 			);
 
 			return isRunning ? 3000 : false;

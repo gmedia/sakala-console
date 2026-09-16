@@ -1,4 +1,6 @@
-export type runtime_status =
+import type { DeploymentStatus } from '$lib/features/deployments/type';
+
+export type RuntimeStatus =
 	| 'not_deployed'
 	| 'deploying'
 	| 'running'
@@ -6,7 +8,22 @@ export type runtime_status =
 	| 'failed'
 	| 'crashed';
 
-export type project_status = 'creating' | 'ready' | 'deleting' | 'failed';
+export type ProjectStatus = 'draft' | 'active' | 'failed' | 'suspended';
+
+export type runtime_status = RuntimeStatus;
+export type project_status = ProjectStatus;
+
+export { type DeploymentStatus };
+
+export const ACTIVE_DEPLOYMENT_STATUSES: readonly DeploymentStatus[] = [
+	'queued',
+	'cloning',
+	'analyzing',
+	'building',
+	'deploying',
+	'routing',
+	'health_checking'
+] as const;
 
 export interface Project {
 	id: string;
@@ -22,8 +39,8 @@ export interface Project {
 	github_repository_id: number | null;
 	branch: string;
 	default_domain: string;
-	status: project_status;
-	runtime_status: runtime_status;
+	status: ProjectStatus;
+	runtime_status: RuntimeStatus;
 	detected_port: number | null;
 	last_deployed_at: string | null;
 	created_at: string;
@@ -59,7 +76,7 @@ export interface Deployment {
 	project_id: string;
 	sequence: number;
 	branch: string;
-	status: 'queued' | 'building' | 'running' | 'success' | 'failed' | 'cancelled';
+	status: DeploymentStatus;
 	trigger: 'manual' | 'github_webhook';
 	commit_sha: string | null;
 	commit_message: string | null;
