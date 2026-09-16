@@ -20,10 +20,10 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	import { mockProjects } from '$lib/features/projects/mock/mock';
-	const currentProject = $derived(
-		page.params.id ? mockProjects.find((p) => p.id === page.params.id) || mockProjects[0] : null
-	);
+	import { createProjectQuery } from '$lib/features/projects/queries';
+	const projectQuery = createProjectQuery(() => page.params.id ?? '');
+	const currentProject = $derived(page.params.id ? projectQuery.data : null);
+	const projectName = $derived(currentProject?.name ?? currentProject?.project_name ?? '');
 
 	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
 </script>
@@ -41,10 +41,10 @@
 			</button>
 
 			<h1 class="font-sans text-lg tracking-tight flex items-center gap-1.5">
-				{#if currentProject}
+				{#if page.params.id}
 					<span class="text-muted font-medium">Projects</span>
 					<span class="text-foreground font-medium">/</span>
-					<span class="font-semibold text-foreground">{currentProject.project_name}</span>
+					<span class="font-semibold text-foreground">{projectName || '...'}</span>
 				{:else}
 					<span class="font-semibold text-foreground">{pageTitle}</span>
 				{/if}
