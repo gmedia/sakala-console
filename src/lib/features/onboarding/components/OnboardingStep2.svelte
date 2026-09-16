@@ -127,7 +127,7 @@
 			type="button"
 			onclick={onBack}
 			disabled={!onBack || isSubmitPending || isSkipPending}
-			class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
+			class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-base font-medium text-black transition-colors hover:bg-background disabled:opacity-30 sm:w-40.5 sm:text-[22px]"
 		>
 			Kembali
 		</Button>
@@ -137,7 +137,7 @@
 				type="button"
 				onclick={onSkip}
 				disabled={isSubmitPending || isSkipPending}
-				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg border border-border bg-white text-[22px] font-medium text-black transition-colors hover:bg-background disabled:opacity-30"
+				class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-base font-medium text-black transition-colors hover:bg-background sm:w-40.5 sm:text-[22px]"
 			>
 				{isSkipPending ? 'Melewati...' : 'Lewati'}
 			</Button>
@@ -146,7 +146,7 @@
 				type="button"
 				onclick={onNext}
 				disabled={!displayName?.trim() || !selectedRole || isSubmitPending || isSkipPending}
-				class="flex h-11.75 w-40.5 items-center justify-center rounded-lg bg-primary text-[22px] font-normal text-white transition-colors hover:bg-primary-dark hover:text-white disabled:opacity-60"
+				class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-normal text-white transition-colors hover:bg-primary-dark hover:text-white sm:w-40.5 sm:text-[22px]"
 			>
 				{isSubmitPending ? 'Menyimpan...' : 'Lanjutkan'}
 			</Button>
