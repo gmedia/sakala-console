@@ -20,6 +20,11 @@
 				(unreadCount ?? 0) > 0)
 	);
 
+	import { createProjectQuery } from '$lib/features/projects/queries';
+	const projectQuery = createProjectQuery(() => page.params.id ?? '');
+	const currentProject = $derived(page.params.id ? projectQuery.data : null);
+	const projectName = $derived(currentProject?.name ?? currentProject?.project_name ?? '');
+
 	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
 </script>
 
@@ -35,8 +40,14 @@
 				<List size={20} />
 			</button>
 
-			<h1 class="font-sans text-lg font-semibold tracking-tight text-foreground">
-				{pageTitle}
+			<h1 class="font-sans text-lg tracking-tight flex items-center gap-1.5">
+				{#if page.params.id}
+					<span class="text-muted font-medium">Projects</span>
+					<span class="text-foreground font-medium">/</span>
+					<span class="font-semibold text-foreground">{projectName || '...'}</span>
+				{:else}
+					<span class="font-semibold text-foreground">{pageTitle}</span>
+				{/if}
 			</h1>
 		</div>
 

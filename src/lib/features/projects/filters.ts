@@ -21,7 +21,8 @@ export function filterProjects(
 		}
 
 		if (searchLower) {
-			return project.project_name.toLowerCase().includes(searchLower);
+			const displayName = project.name ?? project.project_name;
+			return displayName.toLowerCase().includes(searchLower);
 		}
 		return true;
 	});
