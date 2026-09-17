@@ -107,12 +107,5 @@
 				{formatDuration(deployment.started_at, deployment.finished_at)}
 			{/if}
 		</span>
-
-		<button
-			type="button"
-			class="flex items-center justify-center w-21.5 h-7.75 border border-black text-foreground hover:bg-muted/10 rounded-lg text-xs font-montserrat-semibold transition-colors cursor-pointer"
-		>
-			Lihat detail
-		</button>
 	</div>
 </div>

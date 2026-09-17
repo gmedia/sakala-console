@@ -31,9 +31,11 @@
 			branch = projectQuery.data.branch || '';
 
 			subdomain = projectQuery.data.slug || '';
-			port = projectQuery.data.detected_port?.toString() || '3000';
-			rootDirectory = './';
-			buildCommand = 'npm run build';
+			port = projectQuery.data.detected_port
+				? String(projectQuery.data.detected_port)
+				: 'Belum terdeteksi';
+			rootDirectory = 'Belum tersedia';
+			buildCommand = 'Belum tersedia';
 		}
 	});
 
@@ -109,14 +111,14 @@
 						<label for="rootDirectory" class="font-montserrat-medium text-xs text-foreground">
 							Root Directory
 						</label>
-						<span class="text-[10px] text-muted font-montserrat">(Default)</span>
+						<span class="text-[10px] text-muted font-montserrat">(Belum tersedia)</span>
 					</div>
 					<input
 						type="text"
 						id="rootDirectory"
 						bind:value={rootDirectory}
 						disabled
-						placeholder="./"
+						placeholder="Belum tersedia"
 						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
@@ -145,14 +147,16 @@
 				<div class="flex flex-col mb-4">
 					<div class="flex items-center gap-1.5 mb-2">
 						<label for="port" class="font-montserrat-medium text-xs text-foreground"> Port </label>
-						<span class="text-[10px] text-muted font-montserrat">(Terdeteksi)</span>
+						<span class="text-[10px] text-muted font-montserrat">
+							{projectQuery.data.detected_port ? '(Terdeteksi)' : '(Belum terdeteksi)'}
+						</span>
 					</div>
 					<input
-						type="number"
+						type="text"
 						id="port"
 						bind:value={port}
 						disabled
-						placeholder="3000"
+						placeholder="Belum terdeteksi"
 						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
@@ -162,19 +166,25 @@
 						<label for="buildCommand" class="font-montserrat-medium text-xs text-foreground">
 							Build command
 						</label>
-						<span class="text-[10px] text-muted font-montserrat">(Default)</span>
+						<span class="text-[10px] text-muted font-montserrat">(Belum tersedia)</span>
 					</div>
 					<input
 						type="text"
 						id="buildCommand"
 						bind:value={buildCommand}
 						disabled
-						placeholder="npm run build"
+						placeholder="Belum tersedia"
 						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 			</div>
 		</form>
+
+		<p class="mt-2 text-xs text-muted font-montserrat">
+			Catatan: Perubahan nama proyek dan branch akan otomatis disimpan saat Anda melakukan <strong
+				class="text-foreground">Redeploy</strong
+			> pada banner di atas.
+		</p>
 
 		<div
 			class="w-280 max-w-full h-20 rounded-lg border border-error/50 bg-error-50 mt-6 flex items-center justify-between shadow-none"
