@@ -15,6 +15,7 @@
 		createUpdateProjectMutation
 	} from '$lib/features/projects/mutations';
 	import { getProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
+	import { executeRedeployFlow } from '$lib/features/projects/detail/redeploy';
 
 	type Props = {
 		project: Project;
@@ -60,31 +61,18 @@
 		if (isProcessing) return;
 
 		try {
-			if (detailState?.isDirty && (detailState.draftName || detailState.draftBranch)) {
-				await updateProjectMutation.mutateAsync({
-					id: project.id,
-					data: {
-						name: detailState.draftName || undefined,
-						branch: detailState.draftBranch || undefined
-					}
-				});
-				detailState.resetDraft();
-			}
-
-			const activeBranch = detailState?.draftBranch || project.branch || 'main';
-
-			redeploy.mutate(
-				{
-					projectId: project.id,
-					branch: activeBranch,
-					idempotencyKey: crypto.randomUUID()
-				},
-				{
-					onError: (error) => {
-						alert(error.message || 'Gagal melakukan redeploy. Silakan coba lagi.');
-					}
+			await executeRedeployFlow({
+				project,
+				detailState,
+				updateProject: (payload) => updateProjectMutation.mutateAsync(payload),
+				triggerRedeploy: (payload) => {
+					redeploy.mutate(payload, {
+						onError: (error) => {
+							alert(error.message || 'Gagal melakukan redeploy. Silakan coba lagi.');
+						}
+					});
 				}
-			);
+			});
 		} catch (error) {
 			const message =
 				error instanceof Error
