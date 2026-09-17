@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Project } from '$lib/features/projects/type';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import { resolveRoute } from '$app/paths';
 	import {
 		ArrowSquareOut,
 		ArrowsClockwise,
@@ -8,7 +9,8 @@
 		Link,
 		CircleNotch,
 		Plus,
-		WarningCircle
+		WarningCircle,
+		Check
 	} from 'phosphor-svelte';
 	import {
 		createRedeployMutation,
@@ -23,6 +25,22 @@
 
 	let { project }: Props = $props();
 	const detailState = getProjectDetailContext();
+
+	let isCopied = $state(false);
+	let copyTimer: ReturnType<typeof setTimeout> | undefined;
+
+	function handleCopyUrl() {
+		if (!project.default_domain) return;
+		const url = project.default_domain.startsWith('http')
+			? project.default_domain
+			: `https://${project.default_domain}`;
+		navigator.clipboard?.writeText(url);
+		isCopied = true;
+		clearTimeout(copyTimer);
+		copyTimer = setTimeout(() => {
+			isCopied = false;
+		}, 2000);
+	}
 
 	let badgeTone = $derived.by<'success' | 'error' | 'warning' | 'info' | 'neutral'>(() => {
 		if (project.runtime_status === 'not_deployed') return 'neutral';
@@ -154,11 +172,12 @@
 					Deploy gagal, belum ada URL publik yang aktif. Cek log build untuk lihat penyebabnya.
 				</span>
 			</div>
-			<button
-				class="flex items-center justify-center w-18 h-8 bg-white border border-black rounded-lg hover:bg-muted/10 transition-colors font-montserrat-semibold text-xs whitespace-nowrap"
+			<a
+				href={resolveRoute('/(app)/projects/[id]/deployments', { id: project.id })}
+				class="flex items-center justify-center px-3 h-8 bg-white border border-border rounded-lg hover:bg-muted/10 transition-colors font-montserrat-semibold text-xs whitespace-nowrap text-foreground"
 			>
-				Lihat log
-			</button>
+				Lihat riwayat
+			</a>
 		</div>
 	{:else}
 		<div
@@ -173,13 +192,10 @@
 
 			<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
 				<div class="flex items-center gap-1.5">
-					<span>Framework</span>
-					<!-- still hardcode, currently there's no 'framework' data field in sakala-api -->
-					<span class="text-foreground font-semibold">Node.js</span>
-				</div>
-				<div class="flex items-center gap-1.5">
 					<span>Port</span>
-					<span class="text-foreground font-semibold">{project.detected_port || '3000'}</span>
+					<span class="text-foreground font-semibold">
+						{project.detected_port ? project.detected_port : 'Belum terdeteksi'}
+					</span>
 				</div>
 				<div class="flex items-center gap-1.5">
 					<span>Deploy terakhir</span>
@@ -192,16 +208,26 @@
 
 				<div class="flex items-center gap-2 md:ml-4">
 					<button
-						class="flex items-center justify-center size-8 rounded-md border border-border/80 bg-white text-muted hover:text-foreground transition-colors shadow-sm"
+						type="button"
+						onclick={handleCopyUrl}
+						disabled={!project.default_domain}
+						class="flex items-center justify-center size-8 rounded-md border border-border/80 bg-white text-muted hover:text-foreground transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
 						aria-label="Copy URL"
+						title={isCopied ? 'URL berhasil disalin' : 'Salin URL'}
 					>
-						<Copy size={16} />
+						{#if isCopied}
+							<Check size={16} class="text-success" />
+						{:else}
+							<Copy size={16} />
+						{/if}
 					</button>
 					<a
 						href="https://{project.default_domain}"
 						target="_blank"
 						rel="noreferrer"
-						class="flex items-center justify-center size-8 rounded-md border border-border/80 bg-white text-muted hover:text-foreground transition-colors shadow-sm"
+						class="flex items-center justify-center size-8 rounded-md border border-border/80 bg-white text-muted hover:text-foreground transition-colors shadow-sm {project.default_domain
+							? ''
+							: 'pointer-events-none opacity-50'}"
 						aria-label="Open external link"
 					>
 						<ArrowSquareOut size={16} />
