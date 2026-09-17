@@ -1,33 +1,32 @@
 <script lang="ts">
 	import { RotateCcw, CircleAlert, CircleOff } from '@lucide/svelte';
-	import type { Project } from '$lib/features/projects/type';
+	import type { Project } from '$lib/api/resources/projects';
 	import ProjectCard from '$lib/features/projects/components/project/ProjectCard.svelte';
 	import ProjectCardSkeleton from '$lib/features/projects/components/project/ProjectCardSkeleton.svelte';
-	import { filterProjects, type DateFilterValue } from '$lib/features/projects/filters';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 
 	type Props = {
 		projects: Project[];
-		dateFilter: DateFilterValue;
-		search: string;
-		currentPage?: number;
-		perPage?: number;
-		onPageChange?: (page: number) => void;
+		total: number;
+		currentPage: number;
+		totalPages: number;
 		isError?: Error | string | null;
 		isLoading?: boolean;
+		isFetching?: boolean;
+		onPageChange?: (page: number) => void;
 		onRetry?: () => void;
 	};
 
 	let {
 		projects,
-		dateFilter,
-		search,
-		currentPage = 1,
-		perPage = 6,
-		onPageChange = () => {},
+		total,
+		currentPage,
+		totalPages,
 		isError = null,
 		isLoading = false,
+		isFetching = false,
+		onPageChange = () => {},
 		onRetry
 	}: Props = $props();
 
@@ -35,12 +34,6 @@
 
 	const skeletonCount = 6;
 	const skeletons = Array.from({ length: skeletonCount }, (_, i) => i);
-
-	const filteredProjects = $derived(filterProjects(projects, { date: dateFilter, search }));
-	const totalPages = $derived(Math.ceil(filteredProjects.length / perPage));
-	const visibleProjects = $derived(
-		filteredProjects.slice((currentPage - 1) * perPage, currentPage * perPage)
-	);
 </script>
 
 <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="List Projects">
@@ -54,21 +47,25 @@
 			tone="failed"
 			title="Gagal memuat project"
 			description="Terjadi kendala saat mengambil data dari server. Ini bukan karena project kamu hilang, coba muat ulang halamannya."
-			class="col-span-full bg-transparent border-none shadow-none"
+			class="col-span-full border-none bg-transparent shadow-none"
 		>
 			{#snippet action()}
 				<button
-					class="inline-flex gap-2 bg-primary text-white border border-muted/20 rounded-lg py-3 px-4 font-montserrat-semibold cursor-pointer"
-					onclick={onRetry}><RotateCcw class="w-6 h-6" /> Coba lagi</button
+					type="button"
+					class="inline-flex cursor-pointer gap-2 rounded-lg border border-muted/20 bg-primary px-4 py-3 font-montserrat-semibold text-white"
+					onclick={onRetry}
 				>
+					<RotateCcw class="h-6 w-6" />
+					Coba lagi
+				</button>
 			{/snippet}
 		</EmptyState>
-	{:else if projects.length === 0}
+	{:else if total === 0}
 		<EmptyState
 			icon={CircleOff}
 			title="Belum ada proyek"
 			description="Kamu belum punya project apapun. Buat project pertamamu untuk melihatnya muncul di sini."
-			class="col-span-full bg-transparent border-none shadow-none"
+			class="col-span-full border-none bg-transparent shadow-none"
 		>
 			{#snippet action()}
 				<p class="text-sm text-muted">
@@ -79,17 +76,20 @@
 				</p>
 			{/snippet}
 		</EmptyState>
-	{:else if filteredProjects.length === 0}
+	{:else if projects.length === 0}
 		<EmptyState
 			icon={CircleOff}
 			title="Tidak menemukan project"
 			description="Project yang kamu cari tidak ditemukan. Coba periksa kembali kata kunci pencarianmu atau filter tanggal yang digunakan."
-			class="col-span-full bg-transparent border-none shadow-none"
+			class="col-span-full border-none bg-transparent shadow-none"
 		/>
 	{:else}
-		{#each visibleProjects as project (project.id)}
-			<ProjectCard {...project} loading={true} />
+		{#each projects as project (project.id)}
+			<ProjectCard {...project} loading={isFetching} />
 		{/each}
 	{/if}
 </section>
-<Pagination {currentPage} {totalPages} {onPageChange} />
+
+{#if !isLoading && !isError && projects.length > 0 && totalPages > 1}
+	<Pagination {currentPage} {totalPages} {onPageChange} />
+{/if}

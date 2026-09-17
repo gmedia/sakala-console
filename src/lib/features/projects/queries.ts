@@ -1,4 +1,7 @@
 import { createQuery } from '@tanstack/svelte-query';
+import { queryKeys } from '$lib/api/query-keys';
+import { getListProjects } from '$lib/api/resources/projects';
+import type { ProjectsQueryParams } from '$lib/api/resources/projects';
 import { getProject, getDeployments, getEnvironmentVariables } from './api';
 import {
 	ACTIVE_DEPLOYMENT_STATUSES,
@@ -59,6 +62,23 @@ export function createDeploymentsQuery(
 
 				return isRunning ? 3000 : false;
 			}
+		};
+	});
+}
+
+export function createListProjectsQuery(params: () => ProjectsQueryParams) {
+	return createQuery(() => {
+		const queryParams = params();
+
+		return {
+			queryKey: queryKeys.projects.list(queryParams),
+			queryFn: () => getListProjects(queryParams),
+			retry: false,
+			select: (response) => ({
+				projects: response.data,
+				meta: response.meta
+			}),
+			placeholderData: (prev) => prev
 		};
 	});
 }

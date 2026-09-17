@@ -63,6 +63,7 @@
 			{/if}
 		{/each}
 		<button
+			aria-label="Next Page"
 			disabled={currentPage === totalPages}
 			onclick={() => onPageChange(currentPage + 1)}
 			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"

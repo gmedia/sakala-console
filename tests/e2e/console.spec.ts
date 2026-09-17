@@ -13,6 +13,43 @@ const validUser = {
 	last_login_at: new Date().toISOString()
 };
 
+const validProject = {
+	id: 'proj_1',
+	name: 'Sakala Console',
+	repository_full_name: 'gmedia/sakala-console',
+	repository_source: 'github_installation',
+	github_installation_id: '123',
+	github_repository_id: '456',
+	branch: 'main',
+	thumbnail_url: 'https://example.com/thumb.png',
+	runtime_status: 'running',
+	last_deployed_at: '2026-09-10T10:00:00Z',
+	created_at: '2026-01-01T00:00:00Z'
+};
+
+function buildProjectsResponse(
+	overrides: Partial<{
+		data: (typeof validProject)[];
+		meta: Record<string, unknown>;
+	}> = {}
+) {
+	return {
+		data: overrides.data ?? [],
+		links: { first: null, last: null, prev: null, next: null },
+		meta: {
+			current_page: 1,
+			from: null,
+			last_page: 1,
+			links: [],
+			path: null,
+			per_page: 6,
+			to: null,
+			total: overrides.data?.length ?? 0,
+			...overrides.meta
+		}
+	};
+}
+
 async function mockCurrentUserSuccess(page: Page, delayMs = 0) {
 	await page.route('**/api/v1/auth/user', async (route) => {
 		if (delayMs > 0) {
@@ -39,6 +76,16 @@ async function mockCurrentUserError(page: Page, status: number) {
 async function mockCurrentUserNetworkError(page: Page) {
 	await page.route('**/api/v1/auth/user', async (route) => {
 		await route.abort('failed');
+	});
+}
+
+async function mockProjectsSuccess(page: Page, response: ReturnType<typeof buildProjectsResponse>) {
+	await page.route('**/api/v1/app/projects**', async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify(response)
+		});
 	});
 }
 
@@ -152,5 +199,140 @@ test.describe('Deployment detail page', () => {
 
 		await expect(page.getByText('Building image - gagal')).toBeVisible();
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
+	});
+});
+
+test.describe('Projects list page', () => {
+	test('shows empty state when no projects exist', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjectsSuccess(page, buildProjectsResponse({ data: [] }));
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Belum ada proyek')).toBeVisible();
+		await expect(page.getByRole('link', { name: /baca panduan deploy pertamamu/i })).toBeVisible();
+	});
+
+	test('shows empty state when search results are empty', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjectsSuccess(
+			page,
+			buildProjectsResponse({
+				data: [],
+				meta: { total: 5 }
+			})
+		);
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
+	});
+
+	test('shows project list', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjectsSuccess(
+			page,
+			buildProjectsResponse({ data: [validProject], meta: { total: 1 } })
+		);
+
+		await page.goto('/projects');
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+	});
+
+	test('shows error state and retry when loading fails', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		let requestCount = 0;
+
+		await page.route('**/api/v1/app/projects**', async (route) => {
+			requestCount++;
+
+			if (requestCount === 1) {
+				await route.fulfill({
+					status: 500,
+					contentType: 'application/json',
+					body: JSON.stringify({
+						message: 'mocked error',
+						errors: {}
+					})
+				});
+				return;
+			}
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(
+					buildProjectsResponse({
+						data: [validProject],
+						meta: {
+							current_page: 1,
+							last_page: 1,
+							total: 1
+						}
+					})
+				)
+			});
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Gagal memuat project')).toBeVisible();
+
+		await page.getByRole('button', { name: /coba lagi/i }).click();
+
+		await expect.poll(() => requestCount).toBe(2);
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+	});
+
+	test('shows pagination when there are multiple pages', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		const page1Projects = [{ ...validProject, id: 'proj_1', name: 'Project Satu' }];
+		const page2Projects = [{ ...validProject, id: 'proj_2', name: 'Project Dua' }];
+
+		await page.route('**/api/v1/app/projects**', async (route) => {
+			const url = new URL(route.request().url());
+			const currentPage = Number(url.searchParams.get('page') ?? '1');
+
+			const response = buildProjectsResponse({
+				data: currentPage === 2 ? page2Projects : page1Projects,
+				meta: {
+					current_page: currentPage,
+					last_page: 2,
+					total: 7,
+					per_page: 6
+				}
+			});
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(response)
+			});
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Project Satu')).toBeVisible();
+
+		await page.getByRole('button', { name: /next page|next/i }).click();
+
+		await expect(page.getByText('Project Dua')).toBeVisible();
+		await expect(page.getByText('Project Satu')).not.toBeVisible();
+	});
+
+	test('does not show pagination when there is only one page', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjectsSuccess(
+			page,
+			buildProjectsResponse({ data: [validProject], meta: { total: 1, last_page: 1 } })
+		);
+
+		await page.goto('/projects');
+
+		await expect(page.getByRole('navigation', { name: /pagination/i })).not.toBeVisible();
 	});
 });

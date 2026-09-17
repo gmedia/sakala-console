@@ -1,21 +1,28 @@
 <script lang="ts">
 	import CreateProjectHeroCard from '$lib/features/projects/components/create/CreateProjectHeroCard.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
-	import type { DateFilterValue } from '$lib/features/projects/filters';
-	import { mockProjects } from '$lib/features/projects/mock/mock';
 	import ProjectList from '$lib/features/projects/components/project/ProjectList.svelte';
 	import ProjectFilter from '$lib/features/projects/components/project/ProjectFilter.svelte';
+	import type { ProjectsQueryParams } from '$lib/api/resources/projects';
+	import { createListProjectsQuery } from '$lib/features/projects/queries';
 
 	let search = $state('');
-	let dateFilter: DateFilterValue = $state('30d');
+	let filter = $state<NonNullable<ProjectsQueryParams['filter']>>('30_days');
 	let currentPage = $state(1);
 	const perPage = 6;
 
 	$effect(() => {
 		void search;
-		void dateFilter;
+		void filter;
 		currentPage = 1;
 	});
+
+	const projectsQuery = createListProjectsQuery(() => ({
+		page: currentPage,
+		per_page: perPage,
+		search: search.trim() || undefined,
+		filter
+	}));
 </script>
 
 <svelte:head><title>Projects | Sakala Console</title></svelte:head>
@@ -27,7 +34,7 @@
 			<h2 class="text-2xl font-semibold font-montserrat-semibold whitespace-nowrap">
 				Recent Projects
 			</h2>
-			<ProjectFilter bind:value={dateFilter} />
+			<ProjectFilter bind:value={filter} />
 		</div>
 		<div class="relative w-full sm:max-w-max sm:flex-2">
 			<SearchInput bind:value={search} placeholder="Cari.." />
@@ -35,13 +42,17 @@
 	</div>
 
 	<ProjectList
-		projects={mockProjects}
-		isLoading={false}
-		{perPage}
-		{currentPage}
+		projects={projectsQuery.data?.projects ?? []}
+		total={projectsQuery.data?.meta.total ?? 0}
+		currentPage={projectsQuery.data?.meta.current_page ?? currentPage}
+		totalPages={projectsQuery.data?.meta.last_page ?? 1}
+		isLoading={projectsQuery.isPending}
+		isFetching={projectsQuery.isFetching}
+		isError={projectsQuery.error}
+		onRetry={() => {
+			console.log('PROJECT RETRY CLICKED');
+			projectsQuery.refetch();
+		}}
 		onPageChange={(page) => (currentPage = page)}
-		isError={null}
-		{dateFilter}
-		{search}
 	/>
 </main>

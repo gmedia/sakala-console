@@ -1,3 +1,5 @@
+import type { ProjectsQueryParams } from './resources/projects';
+
 export const queryKeys = {
 	system: {
 		status: ['system', 'status'] as const
@@ -7,7 +9,7 @@ export const queryKeys = {
 	},
 	projects: {
 		all: ['projects'] as const,
-		list: () => ['projects', 'list'] as const,
+		list: (params: ProjectsQueryParams) => [...queryKeys.projects.all, 'list', params] as const,
 		detail: (projectId: string) => ['projects', 'detail', projectId] as const
 	},
 	deployments: {

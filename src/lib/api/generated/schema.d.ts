@@ -853,12 +853,12 @@ export interface components {
 			repository_full_name: string;
 			/** @enum {string} */
 			repository_source: 'public_url' | 'github_installation';
-			github_installation_id: string;
-			github_repository_id: string;
+			github_installation_id: string | null;
+			github_repository_id: string | null;
 			branch: string;
-			thumbnail_url: string;
+			thumbnail_url: string | null;
 			runtime_status: string;
-			last_deployed_at: string;
+			last_deployed_at: string | null;
 			created_at: string;
 		};
 		/** GithubBranchResource */

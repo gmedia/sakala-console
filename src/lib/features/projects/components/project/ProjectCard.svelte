@@ -3,15 +3,16 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { formatDate } from '$lib/utils/date';
-
-	import type { Project, runtime_status } from '$lib/features/projects/type';
+	import type { Project } from '$lib/api/resources/projects';
+	import type { RuntimeStatus } from '$lib/features/projects/type';
+	import { toRuntimeStatus } from '../../presentation';
 
 	type badgeConfig = {
 		variant: 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'muted';
 		label: string;
 	};
 
-	const runtimeStatusBadge: Record<runtime_status, badgeConfig> = {
+	const runtimeStatusBadge: Record<RuntimeStatus, badgeConfig> = {
 		running: { variant: 'success', label: 'Live' },
 		failed: { variant: 'error', label: 'Failed' },
 		stopped: { variant: 'error', label: 'Failed' },
@@ -62,15 +63,21 @@
 	};
 
 	let { ...projects }: Props = $props();
-	const badge = $derived(runtimeStatusBadge[projects.runtime_status]);
+	const runtimeStatus = $derived(toRuntimeStatus(projects.runtime_status));
+
+	const badge = $derived(
+		runtimeStatus
+			? runtimeStatusBadge[runtimeStatus]
+			: { variant: 'neutral' as const, label: 'Status tidak diketahui' }
+	);
 </script>
 
 <Card
 	class="relative rounded-xl border border-muted/30 hover:text-primary hover:shadow-lg transition-all duration-300"
 >
 	<div class="flex items-center justify-between gap-2">
-		<p class="flex-1 truncate text-lg font-montserrat-semibold" title={projects.project_name}>
-			{projects.project_name}
+		<p class="flex-1 truncate text-lg font-montserrat-semibold" title={projects.name}>
+			{projects.name}
 		</p>
 		<Badge tone={badge.variant} class="shrink-0 tracking-wide">{badge.label}</Badge>
 	</div>
@@ -82,11 +89,7 @@
 	</p>
 	<div class="h-40 w-full overflow-hidden rounded-xl bg-background-soft">
 		{#if thumbnailState.type === 'image'}
-			<img
-				class="h-full w-full object-cover"
-				src={thumbnailState.src}
-				alt={projects.project_name}
-			/>
+			<img class="h-full w-full object-cover" src={thumbnailState.src} alt={projects.name} />
 		{:else}
 			<div class="flex flex-col items-center justify-center gap-2 rounded-xl h-full p-4">
 				<p class="text-md font-montserrat-semibold text-muted">{thumbnailState.text}</p>
