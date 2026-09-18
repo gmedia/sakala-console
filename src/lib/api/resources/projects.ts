@@ -13,7 +13,7 @@ const projectSchema = z.object({
 	repository_full_name: z.string(),
 	repository_source: z.enum(['public_url', 'github_installation']),
 	github_installation_id: z.string().nullable(),
-	github_repository_id: z.string().nullable(),
+	github_repository_id: z.number().nullable(),
 	branch: z.string(),
 	thumbnail_url: z.string().nullable(),
 	runtime_status: z.string(),

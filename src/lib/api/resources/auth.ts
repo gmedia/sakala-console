@@ -26,7 +26,6 @@ const currentUserResponseSchema = z.object({
 
 export async function getCurrentUser(): Promise<CurrentUser> {
 	const response = await apiRequest<unknown>('api/v1/auth/user');
-	console.log('responce:', response); // Log the raw response for debugging
 	return parseCurrentUserResponse(response);
 }
 

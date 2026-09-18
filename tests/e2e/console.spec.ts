@@ -19,7 +19,7 @@ const validProject = {
 	repository_full_name: 'gmedia/sakala-console',
 	repository_source: 'github_installation',
 	github_installation_id: '123',
-	github_repository_id: '456',
+	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: 'https://example.com/thumb.png',
 	runtime_status: 'running',
@@ -79,16 +79,19 @@ async function mockCurrentUserNetworkError(page: Page) {
 	});
 }
 
-async function mockProjectsSuccess(page: Page, response: ReturnType<typeof buildProjectsResponse>) {
+async function mockProjects(
+	page: Page,
+	resolver: (url: URL) => ReturnType<typeof buildProjectsResponse>
+) {
 	await page.route('**/api/v1/app/projects**', async (route) => {
+		const url = new URL(route.request().url());
 		await route.fulfill({
 			status: 200,
 			contentType: 'application/json',
-			body: JSON.stringify(response)
+			body: JSON.stringify(resolver(url))
 		});
 	});
 }
-
 test('shows the honest foundation state', async ({ page }) => {
 	await page.goto('/');
 
@@ -205,7 +208,7 @@ test.describe('Deployment detail page', () => {
 test.describe('Projects list page', () => {
 	test('shows empty state when no projects exist', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
-		await mockProjectsSuccess(page, buildProjectsResponse({ data: [] }));
+		await mockProjects(page, () => buildProjectsResponse({ data: [] }));
 
 		await page.goto('/projects');
 
@@ -213,25 +216,63 @@ test.describe('Projects list page', () => {
 		await expect(page.getByRole('link', { name: /baca panduan deploy pertamamu/i })).toBeVisible();
 	});
 
-	test('shows empty state when search results are empty', async ({ page }) => {
+	test('shows "tidak menemukan" when active date filter excludes existing projects', async ({
+		page
+	}) => {
 		await mockCurrentUserSuccess(page);
-		await mockProjectsSuccess(
-			page,
-			buildProjectsResponse({
-				data: [],
-				meta: { total: 5 }
-			})
-		);
+		await mockProjects(page, (url) => {
+			const isProbe = url.searchParams.get('per_page') === '1';
+			return isProbe
+				? buildProjectsResponse({ data: [validProject] })
+				: buildProjectsResponse({ data: [] });
+		});
 
 		await page.goto('/projects');
 
 		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
+		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+	});
+
+	test('shows "tidak menemukan" when a search term matches nothing', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		await mockProjects(page, (url) => {
+			if (url.searchParams.get('per_page') === '1') {
+				return buildProjectsResponse({
+					data: [validProject]
+				});
+			}
+
+			if (url.searchParams.get('search')) {
+				return buildProjectsResponse({
+					data: [],
+					meta: {
+						total: 0
+					}
+				});
+			}
+
+			return buildProjectsResponse({
+				data: [validProject],
+				meta: {
+					total: 1
+				}
+			});
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+
+		await page.getByPlaceholder('Cari..').fill('project-yang-tidak-ada');
+
+		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
+		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
 	});
 
 	test('shows project list', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
-		await mockProjectsSuccess(
-			page,
+		await mockProjects(page, () =>
 			buildProjectsResponse({ data: [validProject], meta: { total: 1 } })
 		);
 
@@ -240,15 +281,36 @@ test.describe('Projects list page', () => {
 		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
 	});
 
-	test('shows error state and retry when loading fails', async ({ page }) => {
+	test('shows server error state and retries when loading fails', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
 
-		let requestCount = 0;
+		let projectRequestCount = 0;
 
 		await page.route('**/api/v1/app/projects**', async (route) => {
-			requestCount++;
+			const url = new URL(route.request().url());
+			const isProbe = url.searchParams.get('per_page') === '1';
 
-			if (requestCount === 1) {
+			if (isProbe) {
+				await route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify(
+						buildProjectsResponse({
+							data: [validProject],
+							meta: {
+								current_page: 1,
+								last_page: 1,
+								total: 1
+							}
+						})
+					)
+				});
+				return;
+			}
+
+			projectRequestCount++;
+
+			if (projectRequestCount === 1) {
 				await route.fulfill({
 					status: 500,
 					contentType: 'application/json',
@@ -278,11 +340,15 @@ test.describe('Projects list page', () => {
 
 		await page.goto('/projects');
 
-		await expect(page.getByText('Gagal memuat project')).toBeVisible();
+		await expect(page.getByText('Server sedang bermasalah')).toBeVisible();
+
+		await expect(
+			page.getByText('Terjadi masalah pada server saat mengambil data project. Silakan coba lagi.')
+		).toBeVisible();
 
 		await page.getByRole('button', { name: /coba lagi/i }).click();
 
-		await expect.poll(() => requestCount).toBe(2);
+		await expect.poll(() => projectRequestCount).toBe(2);
 
 		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
 	});
@@ -324,15 +390,75 @@ test.describe('Projects list page', () => {
 		await expect(page.getByText('Project Satu')).not.toBeVisible();
 	});
 
-	test('does not show pagination when there is only one page', async ({ page }) => {
+	test('shows a visible fetching state while paginating, without silently presenting stale data as fresh', async ({
+		page
+	}) => {
 		await mockCurrentUserSuccess(page);
-		await mockProjectsSuccess(
-			page,
-			buildProjectsResponse({ data: [validProject], meta: { total: 1, last_page: 1 } })
+
+		const page1Projects = [{ ...validProject, id: 'proj_1', name: 'Project Satu' }];
+		const page2Projects = [{ ...validProject, id: 'proj_2', name: 'Project Dua' }];
+
+		const gate: { release: (() => void) | null } = { release: null };
+
+		await page.route('**/api/v1/app/projects**', async (route) => {
+			const url = new URL(route.request().url());
+			const currentPage = Number(url.searchParams.get('page') ?? '1');
+
+			if (currentPage === 2) {
+				await new Promise<void>((resolve) => {
+					gate.release = resolve;
+				});
+			}
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(
+					buildProjectsResponse({
+						data: currentPage === 2 ? page2Projects : page1Projects,
+						meta: { current_page: currentPage, last_page: 2, total: 7, per_page: 6 }
+					})
+				)
+			});
+		});
+
+		await page.goto('/projects');
+		await expect(page.getByText('Project Satu')).toBeVisible();
+
+		const list = page.getByRole('region', { name: 'List Projects' });
+		await expect(list).toHaveAttribute('aria-busy', 'false');
+
+		await page.getByRole('button', { name: /next page|next/i }).click();
+
+		await expect(list).toHaveAttribute('aria-busy', 'true');
+		await expect(page.getByRole('button', { name: /next page|next/i })).toBeDisabled();
+		await expect(page.getByText('Project Satu')).toBeVisible();
+		await expect(page.getByText('Project Dua')).not.toBeVisible();
+
+		gate.release?.();
+
+		await expect(page.getByText('Project Dua')).toBeVisible();
+		await expect(list).toHaveAttribute('aria-busy', 'false');
+	});
+
+	test('navigates to project detail when clicking lihat detail', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		await mockProjects(page, () =>
+			buildProjectsResponse({
+				data: [validProject],
+				meta: {
+					total: 1
+				}
+			})
 		);
 
 		await page.goto('/projects');
 
-		await expect(page.getByRole('navigation', { name: /pagination/i })).not.toBeVisible();
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+
+		await page.getByRole('link', { name: /lihat detail/i }).click();
+
+		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
 	});
 });

@@ -66,14 +66,19 @@ export function createDeploymentsQuery(
 	});
 }
 
-export function createListProjectsQuery(params: () => ProjectsQueryParams) {
+export function createListProjectsQuery(
+	params: () => ProjectsQueryParams,
+	options: () => { enabled?: boolean } = () => ({})
+) {
 	return createQuery(() => {
 		const queryParams = params();
+		const { enabled = true } = options();
 
 		return {
 			queryKey: queryKeys.projects.list(queryParams),
 			queryFn: () => getListProjects(queryParams),
 			retry: false,
+			enabled,
 			select: (response) => ({
 				projects: response.data,
 				meta: response.meta

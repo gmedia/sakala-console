@@ -1,11 +1,12 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
+	// import Button from '$lib/components/ui/Button.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import type { Project } from '$lib/api/resources/projects';
 	import type { RuntimeStatus } from '$lib/features/projects/type';
 	import { toRuntimeStatus } from '../../presentation';
+	import { resolve } from '$app/paths';
 
 	type badgeConfig = {
 		variant: 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'muted';
@@ -96,12 +97,16 @@
 			</div>
 		{/if}
 	</div>
-	<div class="flex w-full justify-between items-center mt-4">
+	<div class="mt-4 flex w-full items-center justify-between">
 		<p class="mt-4 mb-2 text-sm text-muted/80 font-jetbrains-mono-medium">
 			{formatDate(projects.created_at)}
 		</p>
-		<Button variant="outline" class="hover:cursor-pointer font-montserrat-semibold"
-			>Lihat detail</Button
+
+		<a
+			href={resolve(`/projects/${projects.id}`)}
+			class="inline-flex items-center justify-center rounded-lg border border-muted/30 px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10"
 		>
+			Lihat detail
+		</a>
 	</div>
 </Card>

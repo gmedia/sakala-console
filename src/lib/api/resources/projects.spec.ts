@@ -13,7 +13,7 @@ function buildProject(overrides: Partial<Project> = {}): Project {
 		repository_full_name: 'gmedia/sakala-console',
 		repository_source: 'github_installation',
 		github_installation_id: '123',
-		github_repository_id: '456',
+		github_repository_id: 456,
 		branch: 'main',
 		thumbnail_url: 'https://example.com/thumb.png',
 		runtime_status: 'running',

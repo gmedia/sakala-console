@@ -23,6 +23,17 @@
 		search: search.trim() || undefined,
 		filter
 	}));
+
+	const isCurrentResultEmpty = $derived(
+		!projectsQuery.isPending && (projectsQuery.data?.projects.length ?? 0) === 0
+	);
+
+	const hasAnyProjectQuery = createListProjectsQuery(
+		() => ({ page: 1, per_page: 1, filter: 'all' }),
+		() => ({ enabled: isCurrentResultEmpty })
+	);
+
+	const isTrulyEmpty = $derived(isCurrentResultEmpty && hasAnyProjectQuery.data?.meta.total === 0);
 </script>
 
 <svelte:head><title>Projects | Sakala Console</title></svelte:head>
@@ -43,14 +54,14 @@
 
 	<ProjectList
 		projects={projectsQuery.data?.projects ?? []}
-		total={projectsQuery.data?.meta.total ?? 0}
+		isAccountEmpty={isTrulyEmpty}
+		isCheckingEmptyState={isCurrentResultEmpty && hasAnyProjectQuery.isPending}
 		currentPage={projectsQuery.data?.meta.current_page ?? currentPage}
 		totalPages={projectsQuery.data?.meta.last_page ?? 1}
 		isLoading={projectsQuery.isPending}
 		isFetching={projectsQuery.isFetching}
 		isError={projectsQuery.error}
 		onRetry={() => {
-			console.log('PROJECT RETRY CLICKED');
 			projectsQuery.refetch();
 		}}
 		onPageChange={(page) => (currentPage = page)}
