@@ -534,22 +534,6 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
-	'/v1/admin/metrics/pilot-validation': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		get: operations['admin.pilotValidationMetrics'];
-		put?: never;
-		post?: never;
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
 	'/v1/app/profile': {
 		parameters: {
 			query?: never;
@@ -631,38 +615,6 @@ export interface paths {
 		put?: never;
 		/** Suspend a project */
 		post: operations['projectControl.suspend'];
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
-	'/v1/auth/register': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		get?: never;
-		put?: never;
-		post: operations['v1.auth.register'];
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
-	'/v1/auth/email/verification-notification': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		get?: never;
-		put?: never;
-		post: operations['v1.auth.email.verification-notification'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -816,13 +768,13 @@ export interface components {
 		CreateProjectResource: {
 			id: string;
 			name: string;
-			repository_full_name: string;
+			repository_full_name: string | null;
 			/** @enum {string} */
 			repository_source: 'public_url' | 'github_installation';
-			github_installation_id: string;
-			github_repository_id: string;
+			github_installation_id: string | null;
+			github_repository_id: number | null;
 			branch: string;
-			runtime_status: string;
+			runtime_status: components['schemas']['RuntimeStatus'];
 			created_at: string;
 		};
 		/**
@@ -904,14 +856,14 @@ export interface components {
 		GetCollectionProjectResource: {
 			id: string;
 			name: string;
-			repository_full_name: string;
+			repository_full_name: string | null;
 			/** @enum {string} */
 			repository_source: 'public_url' | 'github_installation';
 			github_installation_id: string | null;
 			github_repository_id: number | null;
 			branch: string;
 			thumbnail_url: string | null;
-			runtime_status: string;
+			runtime_status: components['schemas']['RuntimeStatus'];
 			last_deployed_at: string | null;
 			created_at: string;
 		};
@@ -999,17 +951,6 @@ export interface components {
 				max_request_bytes: number;
 			};
 		};
-		/** PilotValidationMetricsResource */
-		PilotValidationMetricsResource: {
-			from: string;
-			to: string;
-			activated_users: number;
-			successful_deployments: number;
-			unique_deployers: number;
-			repeat_deployers: number;
-			failure_categories: unknown[];
-			pilot_feedback_count: number;
-		};
 		/** ProjectResource */
 		ProjectResource: {
 			id: string;
@@ -1026,19 +967,11 @@ export interface components {
 			branch: string;
 			default_domain: string;
 			status: string;
-			runtime_status: string;
+			runtime_status: components['schemas']['RuntimeStatus'];
 			detected_port: number | null;
-			last_deployed_at: string;
+			last_deployed_at: string | null;
 			created_at: string;
 			updated_at: string;
-		};
-		/** RegisterRequest */
-		RegisterRequest: {
-			name: string;
-			/** Format: email */
-			email: string;
-			password: string;
-			password_confirmation: string;
 		};
 		/** ReportDeploymentEventRequest */
 		ReportDeploymentEventRequest: {
@@ -1062,11 +995,11 @@ export interface components {
 				recorded_at: string;
 			}[];
 		};
-		/** ResendVerificationNotificationRequest */
-		ResendVerificationNotificationRequest: {
-			/** Format: email */
-			email: string;
-		};
+		/**
+		 * RuntimeStatus
+		 * @enum {string}
+		 */
+		RuntimeStatus: 'not_deployed' | 'deploying' | 'running' | 'stopped' | 'failed' | 'crashed';
 		/** ServiceStatusResource */
 		ServiceStatusResource: {
 			service: string;
@@ -2339,34 +2272,6 @@ export interface operations {
 			401: components['responses']['AuthenticationException'];
 		};
 	};
-	'admin.pilotValidationMetrics': {
-		parameters: {
-			query?: {
-				from?: string | null;
-				to?: string | null;
-			};
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description `PilotValidationMetricsResource` */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': {
-						data: components['schemas']['PilotValidationMetricsResource'];
-					};
-				};
-			};
-			401: components['responses']['AuthenticationException'];
-			403: components['responses']['AuthorizationException'];
-			422: components['responses']['ValidationException'];
-		};
-	};
 	'v1.app.profile.update': {
 		parameters: {
 			query?: never;
@@ -2635,54 +2540,6 @@ export interface operations {
 			401: components['responses']['AuthenticationException'];
 			403: components['responses']['AuthorizationException'];
 			404: components['responses']['ModelNotFoundException'];
-			422: components['responses']['ValidationException'];
-		};
-	};
-	'v1.auth.register': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				'application/json': components['schemas']['RegisterRequest'];
-			};
-		};
-		responses: {
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': 201;
-				};
-			};
-			422: components['responses']['ValidationException'];
-		};
-	};
-	'v1.auth.email.verification-notification': {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				'application/json': components['schemas']['ResendVerificationNotificationRequest'];
-			};
-		};
-		responses: {
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': 202;
-				};
-			};
 			422: components['responses']['ValidationException'];
 		};
 	};

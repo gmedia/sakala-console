@@ -1,24 +1,6 @@
-import type { RuntimeStatus } from './type';
 import { ApiError, NetworkError } from '$lib/api/errors';
 
 export type ProjectListErrorState = 'unauthenticated' | 'network' | 'server' | 'unknown';
-
-const runtimeStatuses = [
-	'not_deployed',
-	'deploying',
-	'running',
-	'stopped',
-	'failed',
-	'crashed'
-] as const;
-
-export function toRuntimeStatus(value: string): RuntimeStatus | null {
-	if ((runtimeStatuses as readonly string[]).includes(value)) {
-		return value as RuntimeStatus;
-	}
-
-	return null;
-}
 
 export type ProjectListErrorPresentation = {
 	title: string;

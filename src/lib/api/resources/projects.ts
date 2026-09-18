@@ -3,6 +3,8 @@ import { apiRequest } from '../client';
 import type { components, operations } from '../generated/schema';
 
 export type Project = components['schemas']['GetCollectionProjectResource'];
+export type RuntimeStatus = components['schemas']['RuntimeStatus'];
+
 type projectResponse =
 	operations['projects.index']['responses'][200]['content']['application/json'];
 export type ProjectsQueryParams = NonNullable<operations['projects.index']['parameters']['query']>;
@@ -16,7 +18,7 @@ const projectSchema = z.object({
 	github_repository_id: z.number().nullable(),
 	branch: z.string(),
 	thumbnail_url: z.string().nullable(),
-	runtime_status: z.string(),
+	runtime_status: z.enum(['not_deployed', 'deploying', 'running', 'stopped', 'failed', 'crashed']),
 	last_deployed_at: z.string().nullable(),
 	created_at: z.string()
 }) satisfies z.ZodType<Project>;

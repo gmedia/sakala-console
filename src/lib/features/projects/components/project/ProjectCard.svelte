@@ -1,11 +1,8 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	// import Button from '$lib/components/ui/Button.svelte';
 	import { formatDate } from '$lib/utils/date';
-	import type { Project } from '$lib/api/resources/projects';
-	import type { RuntimeStatus } from '$lib/features/projects/type';
-	import { toRuntimeStatus } from '../../presentation';
+	import type { Project, RuntimeStatus } from '$lib/api/resources/projects';
 	import { resolve } from '$app/paths';
 
 	type badgeConfig = {
@@ -64,13 +61,7 @@
 	};
 
 	let { ...projects }: Props = $props();
-	const runtimeStatus = $derived(toRuntimeStatus(projects.runtime_status));
-
-	const badge = $derived(
-		runtimeStatus
-			? runtimeStatusBadge[runtimeStatus]
-			: { variant: 'neutral' as const, label: 'Status tidak diketahui' }
-	);
+	const badge = $derived(runtimeStatusBadge[projects.runtime_status]);
 </script>
 
 <Card
@@ -97,14 +88,14 @@
 			</div>
 		{/if}
 	</div>
-	<div class="mt-4 flex w-full items-center justify-between">
-		<p class="mt-4 mb-2 text-sm text-muted/80 font-jetbrains-mono-medium">
+	<div class="mt-4 flex w-full items-center justify-between gap-3">
+		<p class="mt-4 mb-2 min-w-0 truncate text-sm text-muted/80 font-jetbrains-mono-medium">
 			{formatDate(projects.created_at)}
 		</p>
 
 		<a
 			href={resolve(`/projects/${projects.id}`)}
-			class="inline-flex items-center justify-center rounded-lg border border-muted/30 px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10"
+			class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border text-black border-black px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10"
 		>
 			Lihat detail
 		</a>
