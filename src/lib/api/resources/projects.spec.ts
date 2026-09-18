@@ -54,6 +54,18 @@ describe('parseListProjectsResponse', () => {
 		expect(result).toEqual(raw);
 	});
 
+	it('menerima repository_full_name bernilai null', () => {
+		const raw = buildListResponse([
+			buildProject({
+				repository_full_name: null
+			})
+		]);
+
+		const result = parseListProjectsResponse(raw);
+
+		expect(result.data[0].repository_full_name).toBeNull();
+	});
+
 	it('melempar error saat field wajib pada project hilang', () => {
 		const raw = buildListResponse();
 		// @ts-expect-error sengaja menghapus field wajib untuk menguji validasi
