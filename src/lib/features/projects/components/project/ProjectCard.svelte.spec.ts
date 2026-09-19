@@ -1,6 +1,6 @@
-import { render } from 'vitest-browser-svelte';
-import { page } from '@vitest/browser/context';
+import { page } from 'vitest/browser';
 import { describe, expect, test } from 'vitest';
+import { render } from 'vitest-browser-svelte';
 import ProjectCard from './ProjectCard.svelte';
 import type { Project, RuntimeStatus } from '$lib/api/resources/projects';
 
