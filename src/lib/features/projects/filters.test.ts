@@ -279,12 +279,12 @@ describe('filterProjects', () => {
 	});
 
 	it('should filter by date when date filter is 7d', () => {
-		const result = filterProjects(mockProjectsTest, { search: '', date: '7d' });
+		const result = filterProjects(mockProjectsTest, { search: '', date: '7_days' });
 		expect(result).toHaveLength(2);
 	});
 
 	it('should filter by date when date filter is 30d', () => {
-		const result = filterProjects(mockProjectsTest, { search: '', date: '30d' });
+		const result = filterProjects(mockProjectsTest, { search: '', date: '30_days' });
 		expect(result).toHaveLength(6);
 	});
 
@@ -293,13 +293,13 @@ describe('filterProjects', () => {
 	});
 
 	it('combines search + 7d', () => {
-		const result = filterProjects(mockProjectsTest, { search: 'payment', date: '7d' });
+		const result = filterProjects(mockProjectsTest, { search: 'payment', date: '7_days' });
 		expect(result).toHaveLength(1);
 		expect(result[0].project_name).toBe('Payment Gateway Integration');
 	});
 
-	it('combines search + 7d', () => {
-		const result = filterProjects(mockProjectsTest, { search: 'dashboard', date: '30d' });
+	it('combines search + 30d', () => {
+		const result = filterProjects(mockProjectsTest, { search: 'dashboard', date: '30_days' });
 		expect(result).toHaveLength(2);
 		expect(result.map((p) => p.project_name)).toEqual(['Customer Dashboard', 'Admin Dashboard']);
 	});
@@ -310,7 +310,7 @@ describe('filterProjects', () => {
 	});
 
 	it('returns empty array when search matches but date filter excludes it', () => {
-		const result = filterProjects(mockProjectsTest, { search: 'warehouse', date: '30d' });
+		const result = filterProjects(mockProjectsTest, { search: 'warehouse', date: '30_days' });
 		expect(result).toEqual([]);
 	});
 

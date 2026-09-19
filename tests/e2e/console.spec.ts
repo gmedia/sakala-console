@@ -13,6 +13,43 @@ const validUser = {
 	last_login_at: new Date().toISOString()
 };
 
+const validProject = {
+	id: 'proj_1',
+	name: 'Sakala Console',
+	repository_full_name: 'gmedia/sakala-console',
+	repository_source: 'github_installation',
+	github_installation_id: '123',
+	github_repository_id: 456,
+	branch: 'main',
+	thumbnail_url: 'https://example.com/thumb.png',
+	runtime_status: 'running',
+	last_deployed_at: '2026-09-10T10:00:00Z',
+	created_at: '2026-01-01T00:00:00Z'
+};
+
+function buildProjectsResponse(
+	overrides: Partial<{
+		data: (typeof validProject)[];
+		meta: Record<string, unknown>;
+	}> = {}
+) {
+	return {
+		data: overrides.data ?? [],
+		links: { first: null, last: null, prev: null, next: null },
+		meta: {
+			current_page: 1,
+			from: null,
+			last_page: 1,
+			links: [],
+			path: null,
+			per_page: 6,
+			to: null,
+			total: overrides.data?.length ?? 0,
+			...overrides.meta
+		}
+	};
+}
+
 async function mockCurrentUserSuccess(page: Page, delayMs = 0) {
 	await page.route('**/api/v1/auth/user', async (route) => {
 		if (delayMs > 0) {
@@ -42,6 +79,19 @@ async function mockCurrentUserNetworkError(page: Page) {
 	});
 }
 
+async function mockProjects(
+	page: Page,
+	resolver: (url: URL) => ReturnType<typeof buildProjectsResponse>
+) {
+	await page.route('**/api/v1/app/projects**', async (route) => {
+		const url = new URL(route.request().url());
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify(resolver(url))
+		});
+	});
+}
 test('shows the honest foundation state', async ({ page }) => {
 	await page.goto('/');
 
@@ -152,5 +202,263 @@ test.describe('Deployment detail page', () => {
 
 		await expect(page.getByText('Building image - gagal')).toBeVisible();
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
+	});
+});
+
+test.describe('Projects list page', () => {
+	test('shows empty state when no projects exist', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, () => buildProjectsResponse({ data: [] }));
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Belum ada proyek')).toBeVisible();
+		await expect(page.getByRole('link', { name: /baca panduan deploy pertamamu/i })).toBeVisible();
+	});
+
+	test('shows "tidak menemukan" when active date filter excludes existing projects', async ({
+		page
+	}) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, (url) => {
+			const isProbe = url.searchParams.get('per_page') === '1';
+			return isProbe
+				? buildProjectsResponse({ data: [validProject] })
+				: buildProjectsResponse({ data: [] });
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
+		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+	});
+
+	test('shows "tidak menemukan" when a search term matches nothing', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		await mockProjects(page, (url) => {
+			if (url.searchParams.get('per_page') === '1') {
+				return buildProjectsResponse({
+					data: [validProject]
+				});
+			}
+
+			if (url.searchParams.get('search')) {
+				return buildProjectsResponse({
+					data: [],
+					meta: {
+						total: 0
+					}
+				});
+			}
+
+			return buildProjectsResponse({
+				data: [validProject],
+				meta: {
+					total: 1
+				}
+			});
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+
+		await page.getByPlaceholder('Cari..').fill('project-yang-tidak-ada');
+
+		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
+		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+	});
+
+	test('shows project list', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, () =>
+			buildProjectsResponse({ data: [validProject], meta: { total: 1 } })
+		);
+
+		await page.goto('/projects');
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+	});
+
+	test('shows server error state and retries when loading fails', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		let projectRequestCount = 0;
+
+		await page.route('**/api/v1/app/projects**', async (route) => {
+			const url = new URL(route.request().url());
+			const isProbe = url.searchParams.get('per_page') === '1';
+
+			if (isProbe) {
+				await route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify(
+						buildProjectsResponse({
+							data: [validProject],
+							meta: {
+								current_page: 1,
+								last_page: 1,
+								total: 1
+							}
+						})
+					)
+				});
+				return;
+			}
+
+			projectRequestCount++;
+
+			if (projectRequestCount === 1) {
+				await route.fulfill({
+					status: 500,
+					contentType: 'application/json',
+					body: JSON.stringify({
+						message: 'mocked error',
+						errors: {}
+					})
+				});
+				return;
+			}
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(
+					buildProjectsResponse({
+						data: [validProject],
+						meta: {
+							current_page: 1,
+							last_page: 1,
+							total: 1
+						}
+					})
+				)
+			});
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Server sedang bermasalah')).toBeVisible();
+
+		await expect(
+			page.getByText('Terjadi masalah pada server saat mengambil data project. Silakan coba lagi.')
+		).toBeVisible();
+
+		await page.getByRole('button', { name: /coba lagi/i }).click();
+
+		await expect.poll(() => projectRequestCount).toBe(2);
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+	});
+
+	test('shows pagination when there are multiple pages', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		const page1Projects = [{ ...validProject, id: 'proj_1', name: 'Project Satu' }];
+		const page2Projects = [{ ...validProject, id: 'proj_2', name: 'Project Dua' }];
+
+		await page.route('**/api/v1/app/projects**', async (route) => {
+			const url = new URL(route.request().url());
+			const currentPage = Number(url.searchParams.get('page') ?? '1');
+
+			const response = buildProjectsResponse({
+				data: currentPage === 2 ? page2Projects : page1Projects,
+				meta: {
+					current_page: currentPage,
+					last_page: 2,
+					total: 7,
+					per_page: 6
+				}
+			});
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(response)
+			});
+		});
+
+		await page.goto('/projects');
+
+		await expect(page.getByText('Project Satu')).toBeVisible();
+
+		await page.getByRole('button', { name: /next page|next/i }).click();
+
+		await expect(page.getByText('Project Dua')).toBeVisible();
+		await expect(page.getByText('Project Satu')).not.toBeVisible();
+	});
+
+	test('shows a visible fetching state while paginating, without silently presenting stale data as fresh', async ({
+		page
+	}) => {
+		await mockCurrentUserSuccess(page);
+
+		const page1Projects = [{ ...validProject, id: 'proj_1', name: 'Project Satu' }];
+		const page2Projects = [{ ...validProject, id: 'proj_2', name: 'Project Dua' }];
+
+		const gate: { release: (() => void) | null } = { release: null };
+
+		await page.route('**/api/v1/app/projects**', async (route) => {
+			const url = new URL(route.request().url());
+			const currentPage = Number(url.searchParams.get('page') ?? '1');
+
+			if (currentPage === 2) {
+				await new Promise<void>((resolve) => {
+					gate.release = resolve;
+				});
+			}
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify(
+					buildProjectsResponse({
+						data: currentPage === 2 ? page2Projects : page1Projects,
+						meta: { current_page: currentPage, last_page: 2, total: 7, per_page: 6 }
+					})
+				)
+			});
+		});
+
+		await page.goto('/projects');
+		await expect(page.getByText('Project Satu')).toBeVisible();
+
+		const list = page.getByRole('region', { name: 'List Projects' });
+		await expect(list).toHaveAttribute('aria-busy', 'false');
+
+		await page.getByRole('button', { name: /next page|next/i }).click();
+
+		await expect(list).toHaveAttribute('aria-busy', 'true');
+		await expect(page.getByRole('button', { name: /next page|next/i })).toBeDisabled();
+		await expect(page.getByText('Project Satu')).toBeVisible();
+		await expect(page.getByText('Project Dua')).not.toBeVisible();
+
+		gate.release?.();
+
+		await expect(page.getByText('Project Dua')).toBeVisible();
+		await expect(list).toHaveAttribute('aria-busy', 'false');
+	});
+
+	test('navigates to project detail when clicking lihat detail', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+
+		await mockProjects(page, () =>
+			buildProjectsResponse({
+				data: [validProject],
+				meta: {
+					total: 1
+				}
+			})
+		);
+
+		await page.goto('/projects');
+
+		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
+
+		await page.getByRole('link', { name: /lihat detail/i }).click();
+
+		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
 	});
 });

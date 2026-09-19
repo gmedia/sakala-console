@@ -8,6 +8,7 @@ export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
 	json?: unknown;
 	body?: BodyInit | null;
 	skipCsrf?: boolean;
+	params?: Record<string, string | number | boolean | undefined>;
 };
 
 type ErrorPayload = {
@@ -16,7 +17,7 @@ type ErrorPayload = {
 };
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-	const { json, skipCsrf = false, ...requestOptions } = options;
+	const { json, skipCsrf = false, params, ...requestOptions } = options;
 	const method = (requestOptions.method ?? 'GET').toUpperCase();
 
 	if (!safeMethods.has(method) && !skipCsrf) {
@@ -35,10 +36,20 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 		headers.set('X-XSRF-TOKEN', xsrfToken);
 	}
 
+	const url = new URL(path, withTrailingSlash(publicConfig.apiUrl));
+
+	if (params) {
+		for (const [key, value] of Object.entries(params)) {
+			if (value !== undefined) {
+				url.searchParams.set(key, String(value));
+			}
+		}
+	}
+
 	let response: Response;
 
 	try {
-		response = await fetch(new URL(path, withTrailingSlash(publicConfig.apiUrl)), {
+		response = await fetch(url, {
 			...requestOptions,
 			method,
 			credentials: 'include',
