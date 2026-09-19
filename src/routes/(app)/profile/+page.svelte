@@ -1,19 +1,40 @@
 <script lang="ts">
 	import { PencilSimple, User as UserIcon } from 'phosphor-svelte';
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
+	import { useCurrentUser } from '$lib/features/auth/queries';
 
-	let initialName = $state('Sasongko');
-	let initialUsername = $state('ssngk');
-	let initialAvatarUrl = $state<string | null>(null);
+	const currentUserQuery = useCurrentUser();
 
-	let name = $state('Sasongko');
-	let username = $state('ssngk');
-	let email = $state('sasongko@gmail.com');
+	let initialName = $state(currentUserQuery.data?.name ?? '');
+	let initialUsername = $state(currentUserQuery.data?.username ?? '');
+	let initialAvatarUrl = $state<string | null>(currentUserQuery.data?.avatar_url ?? null);
+
+	let name = $state(currentUserQuery.data?.name ?? '');
+	let username = $state(currentUserQuery.data?.username ?? '');
+	let email = $state(currentUserQuery.data?.email ?? '');
 	let joinedDate = $state('-');
-	let avatarUrl = $state<string | null>(null);
+	let avatarUrl = $state<string | null>(currentUserQuery.data?.avatar_url ?? null);
 
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let lastTriggerElement = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		const u = currentUserQuery.data;
+		if (u) {
+			email = u.email ?? '';
+			const dirty = untrack(() => isDirty);
+			if (!dirty) {
+				initialName = u.name ?? '';
+				name = u.name ?? '';
+
+				initialUsername = u.username ?? '';
+				username = u.username ?? '';
+
+				initialAvatarUrl = u.avatar_url ?? null;
+				avatarUrl = u.avatar_url ?? null;
+			}
+		}
+	});
 
 	let isDirty = $derived(
 		name !== initialName || username !== initialUsername || avatarUrl !== initialAvatarUrl

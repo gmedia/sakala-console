@@ -27,7 +27,7 @@
 	let {
 		isMobileOpen = false,
 		onCloseMobile,
-		user: initialUser = { name: 'Sasongko', email: 'sasongkoahay@gmail.com' }
+		user: initialUser = { name: 'Sasongko', username: 'ssngk', email: 'sasongkoahay@gmail.com' }
 	}: Props = $props();
 
 	const currentUserQuery = useCurrentUser();
@@ -37,6 +37,7 @@
 	let isProfileMenuOpen = $state(false);
 	let isLogoutModalOpen = $state(false);
 	let profileContainerRef = $state<HTMLElement | null>(null);
+	let profileTriggerRef = $state<HTMLElement | null>(null);
 
 	type NavItem = {
 		href: string;
@@ -81,12 +82,32 @@
 	async function closeLogoutModal() {
 		isLogoutModalOpen = false;
 		await tick();
-		lastLogoutTrigger?.focus();
+		if (lastLogoutTrigger && lastLogoutTrigger.isConnected) {
+			lastLogoutTrigger.focus();
+		} else {
+			profileTriggerRef?.focus();
+		}
 	}
 
 	function logoutModalTrap(node: HTMLElement) {
 		const focusableSelector =
-			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+			'button:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), [href]:not([tabindex="-1"]):not([aria-hidden="true"]), input:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), select:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), textarea:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), [tabindex]:not([tabindex="-1"]):not([aria-hidden="true"])';
+
+		function isVisible(el: HTMLElement) {
+			return (
+				(el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0) &&
+				window.getComputedStyle(el).visibility !== 'hidden'
+			);
+		}
+
+		function getFocusableElements(): HTMLElement[] {
+			return Array.from(node.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+				(el) =>
+					el.getAttribute('tabindex') !== '-1' &&
+					el.getAttribute('aria-hidden') !== 'true' &&
+					isVisible(el)
+			);
+		}
 
 		function handleKeyDown(e: KeyboardEvent) {
 			if (e.key === 'Escape') {
@@ -96,7 +117,7 @@
 			}
 
 			if (e.key === 'Tab') {
-				const focusables = Array.from(node.querySelectorAll<HTMLElement>(focusableSelector));
+				const focusables = getFocusableElements();
 				if (focusables.length === 0) return;
 
 				const first = focusables[0];
@@ -113,9 +134,8 @@
 		}
 
 		tick().then(() => {
-			node.focus();
-			const firstFocusable = node.querySelector<HTMLElement>(focusableSelector);
-			firstFocusable?.focus();
+			const focusables = getFocusableElements();
+			focusables[0]?.focus();
 		});
 
 		window.addEventListener('keydown', handleKeyDown);
@@ -147,7 +167,7 @@
 		>
 			<div class="px-3 py-2">
 				<p class="font-sans text-sm font-semibold text-foreground truncate">
-					{user.name || (user.email ? user.email.split('@')[0] : 'Sasongko')}
+					{user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')}
 				</p>
 				{#if user.email}
 					<p class="font-sans text-xs text-muted truncate">{user.email}</p>
@@ -202,6 +222,7 @@
 
 {#snippet profileTrigger()}
 	<button
+		bind:this={profileTriggerRef}
 		type="button"
 		onclick={() => (isProfileMenuOpen = !isProfileMenuOpen)}
 		class={cn(
@@ -229,7 +250,7 @@
 			{/if}
 			<div class="flex flex-col min-w-0">
 				<span class="truncate font-sans text-sm font-semibold text-foreground">
-					{user.name || (user.email ? user.email.split('@')[0] : 'Sasongko')}
+					{user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')}
 				</span>
 				{#if user.email}
 					<span class="truncate font-sans text-xs font-normal text-muted">{user.email}</span>
@@ -332,6 +353,8 @@
 	>
 		<button
 			type="button"
+			tabindex="-1"
+			aria-hidden="true"
 			class="absolute inset-0 h-full w-full cursor-default"
 			onclick={closeLogoutModal}
 			aria-label="Tutup modal konfirmasi"

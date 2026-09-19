@@ -461,4 +461,47 @@ test.describe('Projects list page', () => {
 
 		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
 	});
+
+	test('logout dialog handles accessibility focus trap and escape key', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, () =>
+			buildProjectsResponse({
+				data: [],
+				meta: {
+					total: 0
+				}
+			})
+		);
+
+		await page.goto('/projects');
+
+		const profileTrigger = page.getByRole('button', { name: 'Menu akun pengguna' });
+		await expect(profileTrigger).toBeVisible();
+		await profileTrigger.click();
+
+		const logoutMenuItem = page.getByRole('button', { name: 'Keluar' });
+		await expect(logoutMenuItem).toBeVisible();
+		await logoutMenuItem.click();
+
+		const logoutDialog = page.getByRole('dialog');
+		await expect(logoutDialog).toBeVisible();
+
+		const cancelButton = page.getByRole('button', { name: 'Tidak' });
+		const confirmButton = page.getByRole('button', { name: 'Iya' });
+
+		await expect(cancelButton).toBeFocused();
+
+		await page.keyboard.press('Tab');
+		await expect(confirmButton).toBeFocused();
+
+		await page.keyboard.press('Tab');
+		await expect(cancelButton).toBeFocused();
+
+		await page.keyboard.press('Shift+Tab');
+		await expect(confirmButton).toBeFocused();
+
+		await page.keyboard.press('Escape');
+		await expect(logoutDialog).not.toBeVisible();
+		await expect(profileTrigger).toBeFocused();
+	});
 });

@@ -1,8 +1,23 @@
 <script lang="ts">
 	import { PencilSimple, Eye, EyeClosed } from 'phosphor-svelte';
+	import { untrack } from 'svelte';
+	import { useCurrentUser } from '$lib/features/auth/queries';
 
-	let initialEmail = $state('sasongko@gmail.com');
-	let email = $state('sasongko@gmail.com');
+	const currentUserQuery = useCurrentUser();
+
+	let initialEmail = $state(currentUserQuery.data?.email ?? '');
+	let email = $state(currentUserQuery.data?.email ?? '');
+
+	$effect(() => {
+		const u = currentUserQuery.data;
+		if (u?.email) {
+			const dirty = untrack(() => isEmailDirty);
+			if (!dirty) {
+				initialEmail = u.email;
+				email = u.email;
+			}
+		}
+	});
 
 	let currentPassword = $state('');
 	let newPassword = $state('');
