@@ -5,9 +5,16 @@
 		currentPage: number;
 		totalPages: number;
 		onPageChange: (page: number) => void;
+		disabled?: boolean;
 		class?: string;
 	};
-	let { currentPage, totalPages, onPageChange, class: buttonClass }: Props = $props();
+	let {
+		currentPage,
+		totalPages,
+		onPageChange,
+		disabled = false,
+		class: buttonClass
+	}: Props = $props();
 	const baseButton = $derived(
 		cn(
 			buttonClass,
@@ -35,10 +42,14 @@
 </script>
 
 {#if totalPages > 1}
-	<nav class="flex items-center justify-center gap-2 mt-3" aria-label="Pagination">
+	<nav
+		class="flex items-center justify-center gap-2 mt-3"
+		aria-label="Pagination"
+		aria-busy={disabled}
+	>
 		<button
 			aria-label="Previous Page"
-			disabled={currentPage === 1}
+			disabled={disabled || currentPage === 1}
 			onclick={() => onPageChange(currentPage - 1)}
 			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
 		>
@@ -53,6 +64,7 @@
 				<button
 					aria-label={`Page ${page}`}
 					aria-current={page === currentPage ? 'page' : undefined}
+					disabled={disabled || page === currentPage}
 					onclick={() => onPageChange(page)}
 					class="{baseButton} {page === currentPage
 						? 'bg-primary text-white border-primary'
@@ -63,7 +75,8 @@
 			{/if}
 		{/each}
 		<button
-			disabled={currentPage === totalPages}
+			aria-label="Next Page"
+			disabled={disabled || currentPage === totalPages}
 			onclick={() => onPageChange(currentPage + 1)}
 			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
 		>

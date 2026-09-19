@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeploymentTime } from '$lib/features/deployments/deployment-presentation';
 	type logVariant = 'default' | 'error';
 
 	type LogLine = {
@@ -24,7 +25,11 @@
 	$effect(() => {
 		void lines.length;
 		if (!autoScroll || !scrollContainer) return;
-		scrollContainer.scrollTop = scrollContainer.scrollHeight;
+		requestAnimationFrame(() => {
+			if (scrollContainer) {
+				scrollContainer.scrollTop = scrollContainer.scrollHeight;
+			}
+		});
 	});
 </script>
 
@@ -35,7 +40,7 @@
 	{#each lines as line, i (i)}
 		{@const variant = line.variant ?? 'default'}
 		<div class="whitespace-pre-wrap">
-			<span class={timestampColorMap[variant]}>[{line.timestamp}]</span>
+			<span class={timestampColorMap[variant]}>[{formatDeploymentTime(line.timestamp)}]</span>
 			<span class="text-terminal-text">{line.message}</span>
 		</div>
 	{/each}

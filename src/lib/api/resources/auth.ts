@@ -10,10 +10,12 @@ type CurrentUserResponse =
 const currentUserSchema = z.object({
 	id: z.number(),
 	name: z.string(),
+	username: z.string(),
 	email: z.string().email(),
 	avatar_url: z.string().url().nullable(),
 	role: z.string(),
 	onboarding_source: z.string().nullable(),
+	onboarding_role: z.string().nullable(),
 	onboarding_completed_at: z.string().nullable(),
 	last_login_at: z.string().nullable()
 }) satisfies z.ZodType<CurrentUser>;

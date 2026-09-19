@@ -2,6 +2,7 @@
 	import { Bell, List } from 'phosphor-svelte';
 	import { page } from '$app/state';
 	import { createUnreadNotificationCountQuery } from '$lib/features/notifications/queries';
+	import { createProjectQuery } from '$lib/features/projects/queries';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -19,6 +20,10 @@
 				(notificationQuery.data?.unread_count ?? 0) > 0 ||
 				(unreadCount ?? 0) > 0)
 	);
+
+	const projectQuery = createProjectQuery(() => page.params.id ?? '');
+	const currentProject = $derived(page.params.id ? projectQuery.data : null);
+	const projectName = $derived(currentProject?.name ?? currentProject?.project_name ?? '');
 
 	const pageTitle = $derived.by(() => {
 		const path = page.url.pathname;
@@ -41,8 +46,14 @@
 				<List size={20} />
 			</button>
 
-			<h1 class="font-sans text-lg font-semibold tracking-tight text-foreground">
-				{pageTitle}
+			<h1 class="font-sans text-lg tracking-tight flex items-center gap-1.5">
+				{#if page.params.id}
+					<span class="text-muted font-medium">Projects</span>
+					<span class="text-foreground font-medium">/</span>
+					<span class="font-semibold text-foreground">{projectName || '...'}</span>
+				{:else}
+					<span class="font-semibold text-foreground">{pageTitle}</span>
+				{/if}
 			</h1>
 		</div>
 
