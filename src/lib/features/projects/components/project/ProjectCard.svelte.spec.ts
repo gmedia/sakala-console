@@ -21,10 +21,10 @@ const baseProject: Project = {
 describe('ProjectCard — status badge', () => {
 	test.each<[RuntimeStatus, string]>([
 		['running', 'Live'],
-		['failed', 'Failed'],
-		['stopped', 'Failed'],
-		['crashed', 'Failed'],
-		['deploying', 'Deploying'],
+		['failed', 'Gagal'],
+		['stopped', 'Gagal'],
+		['crashed', 'Gagal'],
+		['deploying', 'Mendeploy'],
 		['not_deployed', 'Belum Deploy']
 	])('menampilkan label "%s" -> "%s"', async (runtime_status, expectedLabel) => {
 		await render(ProjectCard, { ...baseProject, runtime_status });
@@ -34,13 +34,13 @@ describe('ProjectCard — status badge', () => {
 			.toBeVisible();
 	});
 
-	test('fallback ke "Unknown" untuk status yang tidak dikenal, tanpa crash', async () => {
+	test('fallback ke "Lainnya" untuk status yang tidak dikenal, tanpa crash', async () => {
 		await render(ProjectCard, {
 			...baseProject,
 			runtime_status: 'some_new_status_from_backend' as RuntimeStatus
 		});
 
-		await expect.element(page.getByRole('status', { name: 'Unknown', exact: true })).toBeVisible();
+		await expect.element(page.getByRole('status', { name: 'Lainnya', exact: true })).toBeVisible();
 	});
 });
 

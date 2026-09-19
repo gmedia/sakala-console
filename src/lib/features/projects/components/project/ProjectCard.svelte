@@ -12,10 +12,10 @@
 
 	const runtimeStatusBadge: Record<RuntimeStatus, badgeConfig> = {
 		running: { variant: 'success', label: 'Live' },
-		failed: { variant: 'error', label: 'Failed' },
-		stopped: { variant: 'error', label: 'Failed' },
-		crashed: { variant: 'error', label: 'Failed' },
-		deploying: { variant: 'warning', label: 'Deploying' },
+		failed: { variant: 'error', label: 'Gagal' },
+		stopped: { variant: 'error', label: 'Gagal' },
+		crashed: { variant: 'error', label: 'Gagal' },
+		deploying: { variant: 'warning', label: 'Mendeploy' },
 		not_deployed: { variant: 'muted', label: 'Belum Deploy' }
 	};
 
@@ -56,13 +56,11 @@
 		}
 	});
 
-	type Props = Project & {
-		loading?: boolean;
-	};
+	type Props = Project;
 
 	let { ...projects }: Props = $props();
 	const badge = $derived(
-		runtimeStatusBadge[projects.runtime_status] ?? { variant: 'neutral' as const, label: 'Unknown' }
+		runtimeStatusBadge[projects.runtime_status] ?? { variant: 'neutral' as const, label: 'Lainnya' }
 	);
 </script>
 
