@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { getProjectListErrorPresentation } from './presentation';
+import {
+	getProjectListErrorPresentation,
+	runtimeStatusPresentation,
+	toRuntimeStatus
+} from './presentation';
 import { apiErrorFromResponse, NetworkError } from '$lib/api/errors';
+
+describe('runtimeStatusPresentation', () => {
+	it.each([
+		['running', 'Live', 'success'],
+		['failed', 'Gagal', 'error'],
+		['stopped', 'Berhenti', 'muted'],
+		['crashed', 'Gagal', 'error'],
+		['deploying', 'Mendeploy', 'warning'],
+		['not_deployed', 'Belum Deploy', 'muted']
+	] as const)('memiliki presentation untuk status %s', (status, label, variant) => {
+		expect(runtimeStatusPresentation[status]).toEqual({
+			label,
+			variant
+		});
+	});
+});
+
+describe('toRuntimeStatus', () => {
+	it.each(['not_deployed', 'deploying', 'running', 'stopped', 'failed', 'crashed'])(
+		'menerima runtime status yang dikenal: %s',
+		(status) => {
+			expect(toRuntimeStatus(status)).toBe(status);
+		}
+	);
+
+	it('mengembalikan null untuk runtime status yang belum dikenal frontend', () => {
+		expect(toRuntimeStatus('maintenance')).toBeNull();
+	});
+});
 
 describe('getProjectListErrorPresentation', () => {
 	it('memetakan 401 ke action login', () => {

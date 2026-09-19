@@ -22,7 +22,6 @@
 </script>
 
 <span
-	role="status"
 	aria-label={label}
 	class={cn(
 		'inline-flex items-center gap-1 leading-none rounded-full border px-2 py-1 text-xs font-normal capitalize',

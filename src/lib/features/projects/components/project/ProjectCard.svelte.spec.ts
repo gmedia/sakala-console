@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import ProjectCard from './ProjectCard.svelte';
 import type { Project, RuntimeStatus } from '$lib/api/resources/projects';
+import { formatDate } from '$lib/utils/date';
 
 const baseProject: Project = {
 	id: 'proj_1',
@@ -19,28 +20,28 @@ const baseProject: Project = {
 };
 
 describe('ProjectCard — status badge', () => {
-	test.each<[RuntimeStatus, string]>([
-		['running', 'Live'],
-		['failed', 'Gagal'],
-		['stopped', 'Gagal'],
-		['crashed', 'Gagal'],
-		['deploying', 'Mendeploy'],
-		['not_deployed', 'Belum Deploy']
-	])('menampilkan label "%s" -> "%s"', async (runtime_status, expectedLabel) => {
-		await render(ProjectCard, { ...baseProject, runtime_status });
-
-		await expect
-			.element(page.getByRole('status', { name: expectedLabel, exact: true }))
-			.toBeVisible();
-	});
-
-	test('fallback ke "Lainnya" untuk status yang tidak dikenal, tanpa crash', async () => {
+	test('menampilkan runtime status', async () => {
 		await render(ProjectCard, {
 			...baseProject,
-			runtime_status: 'some_new_status_from_backend' as RuntimeStatus
+			runtime_status: 'running'
 		});
 
-		await expect.element(page.getByRole('status', { name: 'Lainnya', exact: true })).toBeVisible();
+		const badge = page.getByTestId('runtime-status-badge');
+
+		await expect.element(badge).toBeVisible();
+		await expect.element(badge).toHaveTextContent('Live');
+	});
+
+	test('tetap menampilkan fallback untuk runtime status yang tidak dikenal', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			runtime_status: 'maintenance'
+		});
+
+		const badge = page.getByTestId('runtime-status-badge');
+
+		await expect.element(badge).toBeVisible();
+		await expect.element(badge).toHaveTextContent('Lainnya');
 	});
 });
 
@@ -79,15 +80,19 @@ describe('ProjectCard — thumbnail placeholder', () => {
 
 	test.each<[RuntimeStatus, string]>([
 		['deploying', 'Menunggu build selesai...'],
-		['failed', '404'],
-		['stopped', '404'],
-		['crashed', '404'],
+		['failed', 'Deployment gagal'],
+		['stopped', 'Project sedang berhenti'],
+		['crashed', 'Project mengalami crash'],
 		['not_deployed', 'Belum Deploy'],
 		['running', 'Belum memiliki thumbnail']
 	])(
 		'placeholder benar saat thumbnail_url null dan status %s',
 		async (runtime_status, expectedText) => {
-			await render(ProjectCard, { ...baseProject, thumbnail_url: null, runtime_status });
+			await render(ProjectCard, {
+				...baseProject,
+				thumbnail_url: null,
+				runtime_status
+			});
 
 			await expect
 				.element(page.getByTestId('thumbnail-placeholder'))
@@ -102,5 +107,32 @@ describe('ProjectCard — nullable fields', () => {
 
 		await expect.element(page.getByText(baseProject.name, { exact: true })).toBeVisible();
 		await expect.element(page.getByText('null', { exact: true })).not.toBeInTheDocument();
+	});
+});
+
+describe('ProjectCard — last deployment', () => {
+	test('menampilkan tanggal last deployment, bukan tanggal project dibuat', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			created_at: '2026-01-01T00:00:00Z',
+			last_deployed_at: '2026-09-10T10:00:00Z'
+		});
+
+		await expect
+			.element(page.getByText(formatDate('2026-09-10T10:00:00Z'), { exact: true }))
+			.toBeVisible();
+
+		await expect
+			.element(page.getByText(formatDate('2026-01-01T00:00:00Z'), { exact: true }))
+			.not.toBeInTheDocument();
+	});
+
+	test('menampilkan "Belum pernah deploy" ketika last_deployed_at null', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			last_deployed_at: null
+		});
+
+		await expect.element(page.getByText('Belum pernah deploy', { exact: true })).toBeVisible();
 	});
 });

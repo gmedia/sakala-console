@@ -1,23 +1,9 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
-	import Badge from '$lib/components/ui/Badge.svelte';
 	import { formatDate } from '$lib/utils/date';
-	import type { Project, RuntimeStatus } from '$lib/api/resources/projects';
+	import type { Project } from '$lib/api/resources/projects';
 	import { resolve } from '$app/paths';
-
-	type badgeConfig = {
-		variant: 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'muted';
-		label: string;
-	};
-
-	const runtimeStatusBadge: Record<RuntimeStatus, badgeConfig> = {
-		running: { variant: 'success', label: 'Live' },
-		failed: { variant: 'error', label: 'Gagal' },
-		stopped: { variant: 'error', label: 'Gagal' },
-		crashed: { variant: 'error', label: 'Gagal' },
-		deploying: { variant: 'warning', label: 'Mendeploy' },
-		not_deployed: { variant: 'muted', label: 'Belum Deploy' }
-	};
+	import RuntimeStatusBadge from './RuntimeStatusBadge.svelte';
 
 	const thumbnailState = $derived.by(() => {
 		if (projects.thumbnail_url) {
@@ -35,11 +21,21 @@
 				} as const;
 
 			case 'failed':
-			case 'stopped':
+				return {
+					type: 'placeholder',
+					text: 'Deployment gagal'
+				} as const;
+
 			case 'crashed':
 				return {
 					type: 'placeholder',
-					text: '404'
+					text: 'Project mengalami crash'
+				} as const;
+
+			case 'stopped':
+				return {
+					type: 'placeholder',
+					text: 'Project sedang berhenti'
 				} as const;
 
 			case 'not_deployed':
@@ -59,9 +55,6 @@
 	type Props = Project;
 
 	let { ...projects }: Props = $props();
-	const badge = $derived(
-		runtimeStatusBadge[projects.runtime_status] ?? { variant: 'neutral' as const, label: 'Lainnya' }
-	);
 </script>
 
 <Card
@@ -71,9 +64,7 @@
 		<p class="flex-1 min-w-0 truncate text-lg font-montserrat-semibold" title={projects.name}>
 			{projects.name}
 		</p>
-		<Badge tone={badge.variant} label={badge.label} class="shrink-0 tracking-wide"
-			>{badge.label}</Badge
-		>
+		<RuntimeStatusBadge runtimeStatus={projects.runtime_status} />
 	</div>
 	<p
 		class="mb-5 text-sm truncate font-jetbrains-mono-regular text-muted"
@@ -94,7 +85,7 @@
 	</div>
 	<div class="mt-4 flex w-full items-center justify-between gap-3">
 		<p class="mt-4 mb-2 min-w-0 truncate text-sm text-muted/80 font-jetbrains-mono-medium">
-			{formatDate(projects.created_at)}
+			{projects.last_deployed_at ? formatDate(projects.last_deployed_at) : 'Belum pernah deploy'}
 		</p>
 
 		<a
