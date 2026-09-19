@@ -534,6 +534,22 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/admin/metrics/pilot-validation': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['admin.pilotValidationMetrics'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/app/profile': {
 		parameters: {
 			query?: never;
@@ -621,6 +637,38 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/auth/register': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.register'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/email/verification-notification': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.email.verification-notification'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1': {
 		parameters: {
 			query?: never;
@@ -633,6 +681,22 @@ export interface paths {
 		 * @description This public endpoint confirms that the versioned API is reachable.
 		 */
 		get: operations['v1.status'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/admin/signals': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['admin.usageSignals'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -951,6 +1015,17 @@ export interface components {
 				max_request_bytes: number;
 			};
 		};
+		/** PilotValidationMetricsResource */
+		PilotValidationMetricsResource: {
+			from: string;
+			to: string;
+			activated_users: number;
+			successful_deployments: number;
+			unique_deployers: number;
+			repeat_deployers: number;
+			failure_categories: unknown[];
+			pilot_feedback_count: number;
+		};
 		/** ProjectResource */
 		ProjectResource: {
 			id: string;
@@ -966,12 +1041,25 @@ export interface components {
 			github_repository_id: number | null;
 			branch: string;
 			default_domain: string;
-			status: string;
+			status: components['schemas']['ProjectStatus'];
 			runtime_status: components['schemas']['RuntimeStatus'];
 			detected_port: number | null;
 			last_deployed_at: string | null;
 			created_at: string;
 			updated_at: string;
+		};
+		/**
+		 * ProjectStatus
+		 * @enum {string}
+		 */
+		ProjectStatus: 'draft' | 'active' | 'failed' | 'suspended';
+		/** RegisterRequest */
+		RegisterRequest: {
+			name: string;
+			/** Format: email */
+			email: string;
+			password: string;
+			password_confirmation: string;
 		};
 		/** ReportDeploymentEventRequest */
 		ReportDeploymentEventRequest: {
@@ -994,6 +1082,11 @@ export interface components {
 				/** Format: date-time */
 				recorded_at: string;
 			}[];
+		};
+		/** ResendVerificationNotificationRequest */
+		ResendVerificationNotificationRequest: {
+			/** Format: email */
+			email: string;
 		};
 		/**
 		 * RuntimeStatus
@@ -1076,6 +1169,12 @@ export interface components {
 			/** Format: uri */
 			thumbnail_url?: string | null;
 			branch?: string;
+		};
+		/** UsageSignalsResource */
+		UsageSignalsResource: {
+			from: string;
+			to: string;
+			signals: unknown[];
 		};
 		/** UserResource */
 		UserResource: {
@@ -2272,6 +2371,34 @@ export interface operations {
 			401: components['responses']['AuthenticationException'];
 		};
 	};
+	'admin.pilotValidationMetrics': {
+		parameters: {
+			query?: {
+				from?: string | null;
+				to?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `PilotValidationMetricsResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['PilotValidationMetricsResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.app.profile.update': {
 		parameters: {
 			query?: never;
@@ -2543,6 +2670,54 @@ export interface operations {
 			422: components['responses']['ValidationException'];
 		};
 	};
+	'v1.auth.register': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['RegisterRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 201;
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.auth.email.verification-notification': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResendVerificationNotificationRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 202;
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.status': {
 		parameters: {
 			query?: never;
@@ -2563,6 +2738,34 @@ export interface operations {
 					};
 				};
 			};
+		};
+	};
+	'admin.usageSignals': {
+		parameters: {
+			query?: {
+				from?: string | null;
+				to?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `UsageSignalsResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UsageSignalsResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
 		};
 	};
 }
