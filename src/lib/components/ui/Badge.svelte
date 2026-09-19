@@ -4,11 +4,12 @@
 
 	type Props = {
 		children: Snippet;
+		label: string;
 		tone?: 'neutral' | 'success' | 'warning' | 'error' | 'info' | 'muted';
 		class?: string;
 	};
 
-	let { children, tone = 'success', class: className = '' }: Props = $props();
+	let { children, label, tone = 'success', class: className = '' }: Props = $props();
 
 	const tones = {
 		neutral: 'border-border bg-background-soft text-muted',
@@ -21,6 +22,8 @@
 </script>
 
 <span
+	role="status"
+	aria-label={label}
 	class={cn(
 		'inline-flex items-center gap-1 leading-none rounded-full border px-2 py-1 text-xs font-normal capitalize',
 		tones[tone],

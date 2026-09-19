@@ -128,7 +128,9 @@
 				<h1 class="text-[22px] font-sans font-semibold tracking-tight text-foreground leading-none">
 					{project.name ?? project.project_name ?? 'Project'}
 				</h1>
-				<Badge tone={badgeTone} class="capitalize px-2 py-0.5">{displayStatus}</Badge>
+				<Badge tone={badgeTone} label={displayStatus} class="capitalize px-2 py-0.5"
+					>{displayStatus}</Badge
+				>
 			</div>
 			<div class="flex items-center gap-2 text-sm text-foreground/80 font-mono mt-1">
 				<span>{project.repository_full_name || 'Repository'}</span>

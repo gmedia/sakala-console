@@ -61,17 +61,21 @@
 	};
 
 	let { ...projects }: Props = $props();
-	const badge = $derived(runtimeStatusBadge[projects.runtime_status]);
+	const badge = $derived(
+		runtimeStatusBadge[projects.runtime_status] ?? { variant: 'neutral' as const, label: 'Unknown' }
+	);
 </script>
 
 <Card
 	class="relative rounded-xl border border-muted/30 hover:text-primary hover:shadow-lg transition-all duration-300"
 >
 	<div class="flex items-center justify-between gap-2">
-		<p class="flex-1 truncate text-lg font-montserrat-semibold" title={projects.name}>
+		<p class="flex-1 min-w-0 truncate text-lg font-montserrat-semibold" title={projects.name}>
 			{projects.name}
 		</p>
-		<Badge tone={badge.variant} class="shrink-0 tracking-wide">{badge.label}</Badge>
+		<Badge tone={badge.variant} label={badge.label} class="shrink-0 tracking-wide"
+			>{badge.label}</Badge
+		>
 	</div>
 	<p
 		class="mb-5 text-sm truncate font-jetbrains-mono-regular text-muted"
@@ -84,7 +88,9 @@
 			<img class="h-full w-full object-cover" src={thumbnailState.src} alt={projects.name} />
 		{:else}
 			<div class="flex flex-col items-center justify-center gap-2 rounded-xl h-full p-4">
-				<p class="text-md font-montserrat-semibold text-muted">{thumbnailState.text}</p>
+				<p data-testid="thumbnail-placeholder" class="text-md font-montserrat-semibold text-muted">
+					{thumbnailState.text}
+				</p>
 			</div>
 		{/if}
 	</div>
@@ -95,7 +101,7 @@
 
 		<a
 			href={resolve(`/projects/${projects.id}`)}
-			class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border text-black border-black px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10"
+			class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-muted/30 px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
 		>
 			Lihat detail
 		</a>
