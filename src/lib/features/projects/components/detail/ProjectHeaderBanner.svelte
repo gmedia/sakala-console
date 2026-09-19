@@ -18,6 +18,7 @@
 	} from '$lib/features/projects/mutations';
 	import { getProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
 	import { executeRedeployFlow } from '$lib/features/projects/detail/redeploy';
+	import { runtimeStatusPresentation, toRuntimeStatus } from '$lib/features/projects/presentation';
 
 	type Props = {
 		project: Project;
@@ -42,32 +43,31 @@
 		}, 2000);
 	}
 
-	let badgeTone = $derived.by<'success' | 'error' | 'warning' | 'info' | 'neutral'>(() => {
-		if (project.runtime_status === 'not_deployed') return 'neutral';
+	const runtimeStatus = $derived(toRuntimeStatus(project.runtime_status));
+
+	const runtimePresentation = $derived(
+		runtimeStatus
+			? runtimeStatusPresentation[runtimeStatus]
+			: {
+					label: 'Lainnya',
+					variant: 'neutral' as const
+				}
+	);
+
+	const badgeTone = $derived.by(() => {
 		if (project.status === 'failed') return 'error';
 		if (project.status === 'suspended') return 'warning';
 		if (project.status === 'draft') return 'neutral';
 
-		switch (project.runtime_status) {
-			case 'running':
-				return 'success';
-			case 'failed':
-			case 'crashed':
-				return 'error';
-			case 'deploying':
-				return 'info';
-			case 'stopped':
-			default:
-				return 'neutral';
-		}
+		return runtimePresentation.variant;
 	});
 
-	let displayStatus = $derived.by(() => {
-		if (project.runtime_status === 'not_deployed') return 'Belum deploy';
-		if (project.status === 'failed' || project.runtime_status === 'failed') return 'Failed';
+	const displayStatus = $derived.by(() => {
+		if (project.status === 'failed') return 'Gagal';
 		if (project.status === 'suspended') return 'Suspended';
 		if (project.status === 'draft') return 'Draft';
-		return project.runtime_status.replace('_', ' ');
+
+		return runtimePresentation.label;
 	});
 
 	const redeploy = createRedeployMutation();
@@ -128,7 +128,9 @@
 				<h1 class="text-[22px] font-sans font-semibold tracking-tight text-foreground leading-none">
 					{project.name ?? project.project_name ?? 'Project'}
 				</h1>
-				<Badge tone={badgeTone} class="capitalize px-2 py-0.5">{displayStatus}</Badge>
+				<Badge tone={badgeTone} label={displayStatus} class="capitalize px-2 py-0.5"
+					>{displayStatus}</Badge
+				>
 			</div>
 			<div class="flex items-center gap-2 text-sm text-foreground/80 font-mono mt-1">
 				<span>{project.repository_full_name || 'Repository'}</span>

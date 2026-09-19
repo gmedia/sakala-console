@@ -109,7 +109,7 @@
 		/>
 	{:else}
 		{#each projects as project (project.id)}
-			<ProjectCard {...project} loading={isFetching} />
+			<ProjectCard {...project} />
 		{/each}
 	{/if}
 </section>

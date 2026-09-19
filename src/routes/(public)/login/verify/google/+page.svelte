@@ -21,6 +21,7 @@
 		<div class="w-full max-w-2xl text-center">
 			<Badge
 				tone="success"
+				label="Menunggu Verifikasi"
 				class="border-[#0F766E] bg-[#E7F1F1] text-sm font-semibold text-[#0F766E] [&>span:first-child]:hidden"
 			>
 				Menunggu Verifikasi
@@ -69,6 +70,7 @@
 	{:else}
 		<div class="w-full max-w-2xl text-center">
 			<Badge
+				label="Verifikasi Selesai"
 				tone="success"
 				class="border-[#0F766E] bg-[#E7F1F1] text-sm font-semibold text-[#0F766E] [&>span:first-child]:hidden"
 			>

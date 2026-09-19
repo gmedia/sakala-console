@@ -2,14 +2,20 @@ import { z } from 'zod';
 import { apiRequest } from '../client';
 import type { components, operations } from '../generated/schema';
 
-export type Project = components['schemas']['GetCollectionProjectResource'];
+export type GeneratedProject = components['schemas']['GetCollectionProjectResource'];
+export type Project = Omit<GeneratedProject, 'runtime_status'> & {
+	runtime_status: string;
+};
 export type RuntimeStatus = components['schemas']['RuntimeStatus'];
 
-type projectResponse =
+type GeneratedProjectResponse =
 	operations['projects.index']['responses'][200]['content']['application/json'];
+export type ProjectResponse = Omit<GeneratedProjectResponse, 'data'> & {
+	data: Project[];
+};
 export type ProjectsQueryParams = NonNullable<operations['projects.index']['parameters']['query']>;
 
-const projectSchema = z.object({
+const projectSchema: z.ZodType<Project> = z.object({
 	id: z.string(),
 	name: z.string(),
 	repository_full_name: z.string().nullable(),
@@ -18,10 +24,10 @@ const projectSchema = z.object({
 	github_repository_id: z.number().nullable(),
 	branch: z.string(),
 	thumbnail_url: z.string().nullable(),
-	runtime_status: z.enum(['not_deployed', 'deploying', 'running', 'stopped', 'failed', 'crashed']),
+	runtime_status: z.string(),
 	last_deployed_at: z.string().nullable(),
 	created_at: z.string()
-}) satisfies z.ZodType<Project>;
+});
 
 const paginationLinkSchema = z.object({
 	url: z.string().nullable(),
@@ -47,17 +53,17 @@ const paginationMetaSchema = z.object({
 	total: z.number()
 });
 
-const listProjectsResponseSchema = z.object({
+const listProjectsResponseSchema: z.ZodType<ProjectResponse> = z.object({
 	data: z.array(projectSchema),
 	links: paginationLinksSchema,
 	meta: paginationMetaSchema
-}) satisfies z.ZodType<projectResponse>;
+});
 
-export async function getListProjects(params: ProjectsQueryParams): Promise<projectResponse> {
+export async function getListProjects(params: ProjectsQueryParams): Promise<ProjectResponse> {
 	const response = await apiRequest<unknown>('/api/v1/app/projects', { params });
 	return parseListProjectsResponse(response);
 }
 
-export function parseListProjectsResponse(response: unknown): projectResponse {
+export function parseListProjectsResponse(response: unknown): ProjectResponse {
 	return listProjectsResponseSchema.parse(response);
 }
