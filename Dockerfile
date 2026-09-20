@@ -18,6 +18,19 @@ ARG PUBLIC_APP_URL
 ENV PUBLIC_API_URL=$PUBLIC_API_URL
 ENV PUBLIC_APP_URL=$PUBLIC_APP_URL
 
+# Reverb connection metadata read by src/lib/realtime/env.ts through
+# $env/static/public, so it must exist at build time. All four are public
+# values; the Reverb app secret never belongs here. Leaving them empty
+# builds a console with realtime disabled.
+ARG PUBLIC_REVERB_HOST
+ARG PUBLIC_REVERB_PORT
+ARG PUBLIC_REVERB_SCHEME
+ARG PUBLIC_REVERB_KEY
+ENV PUBLIC_REVERB_HOST=$PUBLIC_REVERB_HOST
+ENV PUBLIC_REVERB_PORT=$PUBLIC_REVERB_PORT
+ENV PUBLIC_REVERB_SCHEME=$PUBLIC_REVERB_SCHEME
+ENV PUBLIC_REVERB_KEY=$PUBLIC_REVERB_KEY
+
 RUN pnpm build
 
 FROM caddy:2.10-alpine AS runtime
