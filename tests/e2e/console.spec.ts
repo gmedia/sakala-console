@@ -461,4 +461,117 @@ test.describe('Projects list page', () => {
 
 		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
 	});
+
+	test('logout dialog handles accessibility focus trap and escape key', async ({ page }) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, () =>
+			buildProjectsResponse({
+				data: [],
+				meta: {
+					total: 0
+				}
+			})
+		);
+
+		await page.goto('/projects');
+
+		const profileTrigger = page.getByRole('button', { name: 'Menu akun pengguna' });
+		await expect(profileTrigger).toBeVisible();
+		await profileTrigger.click();
+
+		const logoutMenuItem = page.getByRole('button', { name: 'Keluar' });
+		await expect(logoutMenuItem).toBeVisible();
+		await logoutMenuItem.click();
+
+		const logoutDialog = page.getByRole('dialog');
+		await expect(logoutDialog).toBeVisible();
+
+		const cancelButton = page.getByRole('button', { name: 'Tidak' });
+		const confirmButton = page.getByRole('button', { name: 'Iya' });
+
+		await expect(cancelButton).toBeFocused();
+
+		await page.keyboard.press('Tab');
+		await expect(confirmButton).toBeFocused();
+
+		await page.keyboard.press('Tab');
+		await expect(cancelButton).toBeFocused();
+
+		await page.keyboard.press('Shift+Tab');
+		await expect(confirmButton).toBeFocused();
+
+		await page.keyboard.press('Escape');
+		await expect(logoutDialog).not.toBeVisible();
+		await expect(profileTrigger).toBeFocused();
+	});
+
+	test('mobile drawer profile dropdown stays open and accessible when clicked', async ({
+		page
+	}) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, () =>
+			buildProjectsResponse({
+				data: [],
+				meta: { total: 0 }
+			})
+		);
+
+		await page.setViewportSize({ width: 375, height: 667 });
+		await page.goto('/projects');
+
+		const openNavButton = page.getByRole('button', { name: 'Buka navigasi' });
+		await expect(openNavButton).toBeVisible();
+		await openNavButton.click();
+
+		const mobileNav = page.getByRole('navigation', { name: 'Navigasi mobile' });
+		await expect(mobileNav).toBeVisible();
+
+		const profileTrigger = mobileNav.getByRole('button', { name: 'Menu akun pengguna' });
+		await expect(profileTrigger).toBeVisible();
+		await profileTrigger.click();
+
+		await expect(mobileNav.getByRole('link', { name: 'Lihat Profil' })).toBeVisible();
+		await expect(mobileNav.getByRole('link', { name: 'Pengaturan' })).toBeVisible();
+		await expect(mobileNav.getByRole('button', { name: 'Keluar' })).toBeVisible();
+	});
+
+	test('logout dialog displays error and allows retry when logout request fails', async ({
+		page
+	}) => {
+		await mockCurrentUserSuccess(page);
+		await mockProjects(page, () =>
+			buildProjectsResponse({
+				data: [],
+				meta: { total: 0 }
+			})
+		);
+
+		await page.route('**/api/v1/auth/logout', async (route) => {
+			await route.fulfill({
+				status: 500,
+				contentType: 'application/json',
+				body: JSON.stringify({ message: 'Internal Server Error' })
+			});
+		});
+
+		await page.goto('/projects');
+
+		const profileTrigger = page.getByRole('button', { name: 'Menu akun pengguna' });
+		await expect(profileTrigger).toBeVisible();
+		await profileTrigger.click();
+
+		const logoutMenuItem = page.getByRole('button', { name: 'Keluar' });
+		await expect(logoutMenuItem).toBeVisible();
+		await logoutMenuItem.click();
+
+		const logoutDialog = page.getByRole('dialog');
+		await expect(logoutDialog).toBeVisible();
+
+		const confirmButton = page.getByRole('button', { name: 'Iya' });
+		await confirmButton.click();
+
+		await expect(logoutDialog).toBeVisible();
+		await expect(page.getByText('Gagal keluar akun. Silakan coba lagi.')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Coba Lagi' })).toBeVisible();
+	});
 });
