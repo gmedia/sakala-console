@@ -36,8 +36,10 @@
 
 	let isProfileMenuOpen = $state(false);
 	let isLogoutModalOpen = $state(false);
-	let profileContainerRef = $state<HTMLElement | null>(null);
+	let desktopProfileContainerRef = $state<HTMLElement | null>(null);
+	let mobileProfileContainerRef = $state<HTMLElement | null>(null);
 	let profileTriggerRef = $state<HTMLElement | null>(null);
+	let logoutErrorMessage = $state<string | null>(null);
 
 	type NavItem = {
 		href: string;
@@ -61,11 +63,12 @@
 	}
 
 	function handleClickOutside(event: MouseEvent) {
-		if (
-			isProfileMenuOpen &&
-			profileContainerRef &&
-			!profileContainerRef.contains(event.target as Node)
-		) {
+		if (!isProfileMenuOpen) return;
+		const target = event.target as Node;
+		const isInsideDesktop = desktopProfileContainerRef?.contains(target);
+		const isInsideMobile = mobileProfileContainerRef?.contains(target);
+
+		if (!isInsideDesktop && !isInsideMobile) {
 			isProfileMenuOpen = false;
 		}
 	}
@@ -76,11 +79,14 @@
 		lastLogoutTrigger =
 			(e?.currentTarget as HTMLElement) ?? (document.activeElement as HTMLElement);
 		isProfileMenuOpen = false;
+		logoutErrorMessage = null;
 		isLogoutModalOpen = true;
 	}
 
 	async function closeLogoutModal() {
+		if (logoutMutation.isPending) return;
 		isLogoutModalOpen = false;
+		logoutErrorMessage = null;
 		await tick();
 		if (lastLogoutTrigger && lastLogoutTrigger.isConnected) {
 			lastLogoutTrigger.focus();
@@ -148,8 +154,20 @@
 	}
 
 	function handleConfirmLogout() {
-		isLogoutModalOpen = false;
-		logoutMutation.mutate();
+		logoutErrorMessage = null;
+		logoutMutation.mutate(undefined, {
+			onSuccess: () => {
+				isLogoutModalOpen = false;
+			},
+			onError: (error: unknown) => {
+				const err = error as { status?: number; response?: { status?: number } };
+				if (err?.status === 401 || err?.response?.status === 401) {
+					isLogoutModalOpen = false;
+					return;
+				}
+				logoutErrorMessage = 'Gagal keluar akun. Silakan coba lagi.';
+			}
+		});
 	}
 
 	function handleNavigationClick() {
@@ -293,7 +311,7 @@
 		{/each}
 	</nav>
 
-	<div class="relative mt-auto px-6 py-4" bind:this={profileContainerRef}>
+	<div class="relative mt-auto px-6 py-4" bind:this={desktopProfileContainerRef}>
 		{@render profileMenu()}
 		{@render profileTrigger()}
 	</div>
@@ -335,7 +353,7 @@
 			{/each}
 		</div>
 
-		<div class="relative mt-auto border-t border-border pt-4">
+		<div class="relative mt-auto border-t border-border pt-4" bind:this={mobileProfileContainerRef}>
 			{@render profileMenu()}
 			{@render profileTrigger()}
 		</div>
@@ -357,20 +375,31 @@
 			aria-hidden="true"
 			class="absolute inset-0 h-full w-full cursor-default"
 			onclick={closeLogoutModal}
+			disabled={logoutMutation.isPending}
 			aria-label="Tutup modal konfirmasi"
 		></button>
 		<div
 			class="relative z-10 flex w-full max-w-xs flex-col items-center gap-6 rounded-2xl bg-white p-6 text-center shadow-xl border border-border/80"
 		>
-			<h3 id="logout-dialog-title" class="font-sans text-base font-semibold text-foreground">
-				Yakin Ingin Keluar Akun?
-			</h3>
+			<div class="space-y-2">
+				<h3 id="logout-dialog-title" class="font-sans text-base font-semibold text-foreground">
+					Yakin Ingin Keluar Akun?
+				</h3>
+				{#if logoutErrorMessage}
+					<p
+						class="text-xs text-error-base font-medium bg-error/10 py-1.5 px-3 rounded-lg border border-error/20"
+						role="alert"
+					>
+						{logoutErrorMessage}
+					</p>
+				{/if}
+			</div>
 			<div class="flex w-full items-center justify-center gap-3">
 				<button
 					type="button"
 					onclick={closeLogoutModal}
 					disabled={logoutMutation.isPending}
-					class="flex-1 rounded-lg bg-primary-dark py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
+					class="flex-1 rounded-lg bg-primary-dark py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
 				>
 					Tidak
 				</button>
@@ -380,7 +409,13 @@
 					disabled={logoutMutation.isPending}
 					class="flex-1 rounded-lg border border-border/80 py-2.5 font-sans text-sm font-semibold text-foreground transition-colors hover:bg-background-soft cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
 				>
-					{logoutMutation.isPending ? 'Keluar...' : 'Iya'}
+					{#if logoutMutation.isPending}
+						Keluar...
+					{:else if logoutErrorMessage}
+						Coba Lagi
+					{:else}
+						Iya
+					{/if}
 				</button>
 			</div>
 		</div>
