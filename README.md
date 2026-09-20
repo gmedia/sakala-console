@@ -36,16 +36,13 @@ Console tersedia di `http://app.sakala.localhost:5173` jika host lokal tersebut 
 
 `Dockerfile` membangun static SPA SvelteKit lalu menyajikannya melalui Caddy internal pada port `8080`.
 
-`PUBLIC_API_URL`, `PUBLIC_APP_URL`, dan `PUBLIC_REVERB_*` adalah konfigurasi publik yang dibundel saat build, bukan secret runtime. Deployment harus mengirim semuanya sebagai build argument sesuai environment target. `PUBLIC_REVERB_KEY` adalah app key publik Reverb; app secret tidak pernah masuk ke build. Jika `PUBLIC_REVERB_*` dikosongkan, console tetap terbangun tetapi realtime dinonaktifkan.
+`PUBLIC_API_URL`, `PUBLIC_APP_URL`, dan `PUBLIC_REVERB_*` adalah konfigurasi publik yang dibundel saat build, bukan secret runtime. Deployment mengirim seluruh set nilai untuk satu environment sebagai satu file env melalui BuildKit secret `frontend_env` (di-mount sebagai `.env.production`), plus hash file tersebut sebagai build arg `FRONTEND_ENV_SHA` supaya perubahan nilai selalu memicu build ulang. `PUBLIC_REVERB_KEY` adalah app key publik Reverb; app secret tidak pernah masuk ke file ini.
 
 ```bash
+cp .env.example .env.docker.local   # isi nilai untuk environment target
 docker build \
-  --build-arg PUBLIC_API_URL=http://api.sakala.localhost:8000 \
-  --build-arg PUBLIC_APP_URL=http://app.sakala.localhost:5173 \
-  --build-arg PUBLIC_REVERB_HOST=api.sakala.localhost \
-  --build-arg PUBLIC_REVERB_PORT=8081 \
-  --build-arg PUBLIC_REVERB_SCHEME=http \
-  --build-arg PUBLIC_REVERB_KEY=local-public-app-key \
+  --secret id=frontend_env,src=.env.docker.local \
+  --build-arg FRONTEND_ENV_SHA="$(sha256sum .env.docker.local | awk '{print $1}')" \
   -t sakala-console:local .
 docker run --rm -p 8080:8080 sakala-console:local
 ```
