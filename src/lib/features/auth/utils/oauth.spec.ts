@@ -1,5 +1,14 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { isValidInternalPath, getLastLoginProvider, setLastLoginProvider } from './oauth';
+import {
+	isValidInternalPath,
+	getLastLoginProvider,
+	setLastLoginProvider,
+	getPendingOAuthProvider,
+	setPendingOAuthProvider,
+	clearPendingOAuthProvider,
+	redirectToGithubAuth,
+	redirectToGoogleAuth
+} from './oauth';
 
 describe('isValidInternalPath', () => {
 	it('returns true for valid internal paths', () => {
@@ -53,7 +62,10 @@ describe('last login provider storage', () => {
 				store = {};
 			}
 		};
-		vi.stubGlobal('window', { localStorage: mockStorage });
+		vi.stubGlobal('window', {
+			localStorage: mockStorage,
+			location: { href: '' }
+		});
 		vi.stubGlobal('localStorage', mockStorage);
 	});
 
@@ -78,6 +90,44 @@ describe('last login provider storage', () => {
 
 	it('returns null for unknown provider strings', () => {
 		localStorage.setItem('last_login_provider', 'facebook');
+		expect(getLastLoginProvider()).toBeNull();
+	});
+
+	it('manages pending OAuth provider correctly', () => {
+		expect(getPendingOAuthProvider()).toBeNull();
+
+		setPendingOAuthProvider('google');
+		expect(getPendingOAuthProvider()).toBe('google');
+
+		clearPendingOAuthProvider();
+		expect(getPendingOAuthProvider()).toBeNull();
+
+		setPendingOAuthProvider('github');
+		expect(getPendingOAuthProvider()).toBe('github');
+	});
+
+	it('redirectToGoogleAuth does not set last_login_provider but records pending provider and return_url', () => {
+		redirectToGoogleAuth('/settings');
+
+		expect(getLastLoginProvider()).toBeNull();
+		expect(getPendingOAuthProvider()).toBe('google');
+		expect(localStorage.getItem('return_url')).toBe('/settings');
+	});
+
+	it('redirectToGithubAuth does not set last_login_provider but records pending provider and return_url', () => {
+		redirectToGithubAuth('/projects/123');
+
+		expect(getLastLoginProvider()).toBeNull();
+		expect(getPendingOAuthProvider()).toBe('github');
+		expect(localStorage.getItem('return_url')).toBe('/projects/123');
+	});
+
+	it('cleans return_url if invalid internal path is passed', () => {
+		localStorage.setItem('return_url', '/old-path');
+		redirectToGoogleAuth('https://evil.com');
+
+		expect(localStorage.getItem('return_url')).toBeNull();
+		expect(getPendingOAuthProvider()).toBe('google');
 		expect(getLastLoginProvider()).toBeNull();
 	});
 });

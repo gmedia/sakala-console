@@ -10,7 +10,7 @@ import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { disconnectEcho } from '$lib/realtime/echo';
 import { queryKeys } from '$lib/api/query-keys';
-import { setLastLoginProvider } from '$lib/features/auth/utils/oauth';
+import { setLastLoginProvider, clearPendingOAuthProvider } from '$lib/features/auth/utils/oauth';
 
 export function useLogout() {
 	const queryClient = useQueryClient();
@@ -46,6 +46,7 @@ export function useLogin() {
 		mutationFn: (payload: LoginPayload) => login(payload),
 		onSuccess: (user) => {
 			setLastLoginProvider('email');
+			clearPendingOAuthProvider();
 			queryClient.setQueryData(queryKeys.auth.currentUser, user);
 		}
 	}));

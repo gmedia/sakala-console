@@ -4,6 +4,11 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { ApiError, NetworkError } from '$lib/api/errors';
+	import {
+		getPendingOAuthProvider,
+		setLastLoginProvider,
+		clearPendingOAuthProvider
+	} from '$lib/features/auth/utils/oauth';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import LoadingSkeleton from '$lib/components/feedback/LoadingSkeleton.svelte';
 	import { CellSignalSlashIcon, WarningIcon, ArrowsClockwiseIcon } from 'phosphor-svelte';
@@ -15,6 +20,7 @@
 
 	$effect(() => {
 		if (currentUser.isError) {
+			clearPendingOAuthProvider();
 			const err = currentUser.error;
 			if (err instanceof ApiError && err.isUnauthenticated) {
 				const returnTo = encodeURIComponent(page.url.pathname + page.url.search);
@@ -22,6 +28,11 @@
 			}
 		}
 		if (currentUser.isSuccess && currentUser.data) {
+			const pendingProvider = getPendingOAuthProvider();
+			if (pendingProvider) {
+				setLastLoginProvider(pendingProvider);
+				clearPendingOAuthProvider();
+			}
 			const user = currentUser.data;
 			const currentPath = page.url.pathname;
 			if (!user.onboarding_completed_at) {

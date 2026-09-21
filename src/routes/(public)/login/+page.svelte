@@ -7,6 +7,7 @@
 		redirectToGoogleAuth,
 		getLastLoginProvider,
 		isValidInternalPath,
+		clearPendingOAuthProvider,
 		type AuthProviderId
 	} from '$lib/features/auth/utils/oauth';
 	import { resolve } from '$app/paths';
@@ -55,6 +56,8 @@
 	$effect(() => {
 		const errorParam = page.url.searchParams.get('error');
 		if (errorParam) {
+			clearPendingOAuthProvider();
+			localStorage.removeItem('return_url');
 			switch (errorParam) {
 				case 'google_access_denied':
 					errors.general = 'Anda membatalkan izin masuk dengan Google.';

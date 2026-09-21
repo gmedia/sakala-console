@@ -178,3 +178,113 @@ test('renders register page with Nama Lengkap field in email registration mode',
 	await expect(page.getByLabel('Konfirmasi Kata Sandi', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Buat Akun' })).toBeVisible();
 });
+
+test('redirects to saved valid return_url after Google login via /dashboard and records last_login_provider', async ({
+	page
+}) => {
+	await mockCurrentUserSuccess(page, userCompletedOnboarding);
+
+	await page.addInitScript(() => {
+		localStorage.setItem('pending_oauth_provider', 'google');
+		localStorage.setItem('return_url', '/settings');
+	});
+
+	await page.goto('/dashboard');
+	await page.waitForURL(/\/settings/, { timeout: 10000 });
+	expect(new URL(page.url()).pathname).toBe('/settings');
+
+	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
+	expect(lastProvider).toBe('google');
+
+	const returnUrl = await page.evaluate(() => localStorage.getItem('return_url'));
+	expect(returnUrl).toBeNull();
+});
+
+test('redirects to /projects after Google login when return_url is missing and records last_login_provider', async ({
+	page
+}) => {
+	await mockCurrentUserSuccess(page, userCompletedOnboarding);
+
+	await page.addInitScript(() => {
+		localStorage.setItem('pending_oauth_provider', 'google');
+	});
+
+	await page.goto('/dashboard');
+	await page.waitForURL(/\/projects/, { timeout: 10000 });
+	expect(new URL(page.url()).pathname).toBe('/projects');
+
+	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
+	expect(lastProvider).toBe('google');
+});
+
+test('ignores invalid return_url after Google login and falls back to /projects', async ({
+	page
+}) => {
+	await mockCurrentUserSuccess(page, userCompletedOnboarding);
+
+	await page.addInitScript(() => {
+		localStorage.setItem('pending_oauth_provider', 'google');
+		localStorage.setItem('return_url', '//example.com');
+	});
+
+	await page.goto('/dashboard');
+	await page.waitForURL(/\/projects/, { timeout: 10000 });
+	expect(new URL(page.url()).pathname).toBe('/projects');
+
+	const returnUrl = await page.evaluate(() => localStorage.getItem('return_url'));
+	expect(returnUrl).toBeNull();
+});
+
+test('does not set last_login_provider when Google login is cancelled or fails', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('pending_oauth_provider', 'google');
+		localStorage.setItem('return_url', '/settings');
+	});
+
+	await page.goto('/login?error=google_access_denied');
+
+	await expect(page.getByText('Anda membatalkan izin masuk dengan Google.')).toBeVisible();
+	await expect(page.getByText(/Terakhir Digunakan/)).not.toBeVisible();
+
+	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
+	expect(lastProvider).toBeNull();
+
+	const pendingProvider = await page.evaluate(() => localStorage.getItem('pending_oauth_provider'));
+	expect(pendingProvider).toBeNull();
+});
+
+test('does not set last_login_provider when GitHub login is cancelled or fails', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('pending_oauth_provider', 'github');
+		localStorage.setItem('return_url', '/settings');
+	});
+
+	await page.goto('/auth/github/callback?error=github_access_denied');
+
+	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
+	expect(lastProvider).toBeNull();
+
+	const heading = page.getByRole('heading', { name: 'Gagal Masuk' });
+	await expect(heading).toBeVisible();
+});
+
+test('sets last_login_provider to github only after successful authentication in GitHub callback', async ({
+	page
+}) => {
+	await mockCurrentUserSuccess(page, userCompletedOnboarding);
+
+	await page.addInitScript(() => {
+		localStorage.setItem('pending_oauth_provider', 'github');
+	});
+
+	await page.goto('/auth/github/callback');
+	await page.waitForURL(/\/projects/, { timeout: 10000 });
+	expect(new URL(page.url()).pathname).toBe('/projects');
+
+	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
+	expect(lastProvider).toBe('github');
+});

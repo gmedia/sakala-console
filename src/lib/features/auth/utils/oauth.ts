@@ -32,6 +32,7 @@ export function isValidInternalPath(path: string | null | undefined): boolean {
 export type AuthProviderId = 'github' | 'google' | 'email';
 
 const LAST_LOGIN_PROVIDER_KEY = 'last_login_provider';
+const PENDING_OAUTH_PROVIDER_KEY = 'pending_oauth_provider';
 
 export function getLastLoginProvider(): AuthProviderId | null {
 	if (typeof window === 'undefined') return null;
@@ -47,6 +48,25 @@ export function setLastLoginProvider(provider: AuthProviderId): void {
 	localStorage.setItem(LAST_LOGIN_PROVIDER_KEY, provider);
 }
 
+export function getPendingOAuthProvider(): AuthProviderId | null {
+	if (typeof window === 'undefined') return null;
+	const val = localStorage.getItem(PENDING_OAUTH_PROVIDER_KEY);
+	if (val === 'github' || val === 'google') {
+		return val;
+	}
+	return null;
+}
+
+export function setPendingOAuthProvider(provider: 'github' | 'google'): void {
+	if (typeof window === 'undefined') return;
+	localStorage.setItem(PENDING_OAUTH_PROVIDER_KEY, provider);
+}
+
+export function clearPendingOAuthProvider(): void {
+	if (typeof window === 'undefined') return;
+	localStorage.removeItem(PENDING_OAUTH_PROVIDER_KEY);
+}
+
 export function redirectToGithubAuth(returnUrl?: string | null) {
 	const url = new URL(`${apiUrl}/auth/github/redirect`);
 
@@ -57,7 +77,7 @@ export function redirectToGithubAuth(returnUrl?: string | null) {
 		localStorage.removeItem('return_url');
 	}
 
-	setLastLoginProvider('github');
+	setPendingOAuthProvider('github');
 	window.location.href = url.toString();
 }
 
@@ -71,6 +91,6 @@ export function redirectToGoogleAuth(returnUrl?: string | null) {
 		localStorage.removeItem('return_url');
 	}
 
-	setLastLoginProvider('google');
+	setPendingOAuthProvider('google');
 	window.location.href = url.toString();
 }
