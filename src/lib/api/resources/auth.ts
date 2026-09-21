@@ -38,3 +38,30 @@ export async function logout(): Promise<void> {
 		method: 'POST'
 	});
 }
+
+export type LoginPayload = {
+	email: string;
+	password: string;
+};
+
+export type RegisterPayload = {
+	name: string;
+	email: string;
+	password: string;
+	password_confirmation: string;
+};
+
+export async function login(payload: LoginPayload): Promise<CurrentUser> {
+	const response = await apiRequest<unknown>('api/v1/auth/login', {
+		method: 'POST',
+		json: payload
+	});
+	return parseCurrentUserResponse(response);
+}
+
+export async function register(payload: RegisterPayload): Promise<void> {
+	await apiRequest<unknown>('api/v1/auth/register', {
+		method: 'POST',
+		json: payload
+	});
+}

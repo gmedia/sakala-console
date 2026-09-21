@@ -59,6 +59,6 @@
 
 	<div class="mt-16 flex items-center gap-1.5 w-full">
 		<Copyright class="size-4" color="#ffffff" />
-		<span>Sakala Systems. Build for Builders</span>
+		<span>2026 Sakala Contributors · Apache-2.0</span>
 	</div>
 </div>

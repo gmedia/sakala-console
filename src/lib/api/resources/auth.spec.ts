@@ -1,5 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { parseCurrentUserResponse } from './auth';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { parseCurrentUserResponse, login, register } from './auth';
+import { apiRequest } from '../client';
+
+vi.mock('../client', () => ({ apiRequest: vi.fn() }));
+const mockedApiRequest = vi.mocked(apiRequest);
+
+beforeEach(() => {
+	mockedApiRequest.mockReset();
+});
 
 describe('Auth Resource', () => {
 	it('successfully parses a valid API response', () => {
@@ -64,5 +72,53 @@ describe('Auth Resource', () => {
 		};
 
 		expect(() => parseCurrentUserResponse(invalidPayload)).toThrow();
+	});
+
+	it('calls api/v1/auth/login and returns parsed user', async () => {
+		const userPayload = {
+			data: {
+				id: 1,
+				name: 'User',
+				username: 'user1',
+				email: 'user@example.com',
+				avatar_url: null,
+				role: 'user',
+				onboarding_source: null,
+				onboarding_role: null,
+				onboarding_completed_at: null,
+				last_login_at: null
+			}
+		};
+		mockedApiRequest.mockResolvedValue(userPayload);
+
+		const result = await login({ email: 'user@example.com', password: 'password123' });
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/login', {
+			method: 'POST',
+			json: { email: 'user@example.com', password: 'password123' }
+		});
+		expect(result.id).toBe(1);
+		expect(result.email).toBe('user@example.com');
+	});
+
+	it('calls api/v1/auth/register with registration payload', async () => {
+		mockedApiRequest.mockResolvedValue(undefined);
+
+		await register({
+			name: 'Budi Santoso',
+			email: 'budi@example.com',
+			password: 'password123',
+			password_confirmation: 'password123'
+		});
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/register', {
+			method: 'POST',
+			json: {
+				name: 'Budi Santoso',
+				email: 'budi@example.com',
+				password: 'password123',
+				password_confirmation: 'password123'
+			}
+		});
 	});
 });

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { isValidInternalPath } from './oauth';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { isValidInternalPath, getLastLoginProvider, setLastLoginProvider } from './oauth';
 
 describe('isValidInternalPath', () => {
 	it('returns true for valid internal paths', () => {
@@ -33,5 +33,51 @@ describe('isValidInternalPath', () => {
 		expect(isValidInternalPath('javascript:alert(1)')).toBe(false);
 		expect(isValidInternalPath('data:text/html,test')).toBe(false);
 		expect(isValidInternalPath('projects')).toBe(false);
+	});
+});
+
+describe('last login provider storage', () => {
+	let store: Record<string, string> = {};
+
+	beforeEach(() => {
+		store = {};
+		const mockStorage = {
+			getItem: (key: string) => store[key] ?? null,
+			setItem: (key: string, val: string) => {
+				store[key] = val;
+			},
+			removeItem: (key: string) => {
+				delete store[key];
+			},
+			clear: () => {
+				store = {};
+			}
+		};
+		vi.stubGlobal('window', { localStorage: mockStorage });
+		vi.stubGlobal('localStorage', mockStorage);
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('returns null when no last login provider is set', () => {
+		expect(getLastLoginProvider()).toBeNull();
+	});
+
+	it('sets and retrieves last login provider correctly', () => {
+		setLastLoginProvider('google');
+		expect(getLastLoginProvider()).toBe('google');
+
+		setLastLoginProvider('github');
+		expect(getLastLoginProvider()).toBe('github');
+
+		setLastLoginProvider('email');
+		expect(getLastLoginProvider()).toBe('email');
+	});
+
+	it('returns null for unknown provider strings', () => {
+		localStorage.setItem('last_login_provider', 'facebook');
+		expect(getLastLoginProvider()).toBeNull();
 	});
 });

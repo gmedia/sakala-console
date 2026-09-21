@@ -142,3 +142,39 @@ test('shows re-login button for unauthenticated 401 response', async ({ page }) 
 	await expect(heading).toBeFocused();
 	await expect(page.getByRole('link', { name: 'Kembali ke Login' })).toBeVisible();
 });
+
+test('shows "Terakhir Digunakan" badge when last_login_provider exists in localStorage', async ({
+	page
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem('last_login_provider', 'google');
+	});
+
+	await page.goto('/login');
+
+	const lastUsedBadge = page.getByText(/Terakhir Digunakan/);
+	await expect(lastUsedBadge).toBeVisible();
+
+	const googleButton = page.getByRole('button', { name: /Masuk akun dengan Google/ });
+	await expect(googleButton).toBeVisible();
+
+	const otherProfileButton = page.getByRole('button', { name: 'Masuk dengan profil lainnya' });
+	await expect(otherProfileButton).toBeVisible();
+
+	await otherProfileButton.click();
+	await expect(page.getByRole('button', { name: /Masuk akun dengan Github/ })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Masuk akun dengan Email/ })).toBeVisible();
+});
+
+test('renders register page with Nama Lengkap field in email registration mode', async ({
+	page
+}) => {
+	await page.goto('/register?method=email');
+
+	await expect(page.getByRole('heading', { name: 'Daftar Dengan Email' })).toBeVisible();
+	await expect(page.getByLabel('Nama Lengkap')).toBeVisible();
+	await expect(page.getByLabel('Email')).toBeVisible();
+	await expect(page.getByLabel('Kata Sandi', { exact: true })).toBeVisible();
+	await expect(page.getByLabel('Konfirmasi Kata Sandi', { exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Buat Akun' })).toBeVisible();
+});
