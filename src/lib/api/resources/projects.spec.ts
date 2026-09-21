@@ -54,6 +54,18 @@ describe('parseListProjectsResponse', () => {
 		expect(result).toEqual(raw);
 	});
 
+	it('menerima runtime_status yang belum dikenal frontend', () => {
+		const raw = buildListResponse([
+			buildProject({
+				runtime_status: 'maintenance'
+			})
+		]);
+
+		const result = parseListProjectsResponse(raw);
+
+		expect(result.data[0].runtime_status).toBe('maintenance');
+	});
+
 	it('menerima repository_full_name bernilai null', () => {
 		const raw = buildListResponse([
 			buildProject({
@@ -115,6 +127,20 @@ describe('getListProjects', () => {
 
 		expect(result.data).toHaveLength(1);
 		expect(result.data[0].name).toBe('other-project');
+	});
+
+	it('menerima runtime_status baru dari API tanpa gagal parsing', async () => {
+		const raw = buildListResponse([
+			buildProject({
+				runtime_status: 'maintenance'
+			})
+		]);
+
+		vi.mocked(apiRequest).mockResolvedValueOnce(raw);
+
+		const result = await getListProjects({});
+
+		expect(result.data[0].runtime_status).toBe('maintenance');
 	});
 
 	it('melempar error jika response dari apiRequest tidak sesuai schema', async () => {

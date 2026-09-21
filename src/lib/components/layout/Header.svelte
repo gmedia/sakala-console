@@ -2,6 +2,7 @@
 	import { Bell, List } from 'phosphor-svelte';
 	import { page } from '$app/state';
 	import { createUnreadNotificationCountQuery } from '$lib/features/notifications/queries';
+	import { createProjectQuery } from '$lib/features/projects/queries';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -20,12 +21,17 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	import { createProjectQuery } from '$lib/features/projects/queries';
 	const projectQuery = createProjectQuery(() => page.params.id ?? '');
 	const currentProject = $derived(page.params.id ? projectQuery.data : null);
 	const projectName = $derived(currentProject?.name ?? currentProject?.project_name ?? '');
 
-	const pageTitle = $derived(page.url.pathname.startsWith('/projects') ? 'Projects' : 'Projects');
+	const pageTitle = $derived.by(() => {
+		const path = page.url.pathname;
+		if (path.startsWith('/profile')) return 'Akun / Profil Saya';
+		if (path.startsWith('/settings')) return 'Akun / Pengaturan';
+		if (path.startsWith('/projects')) return 'Projects';
+		return 'Projects';
+	});
 </script>
 
 <header class="mb-8 flex items-center justify-between bg-transparent">

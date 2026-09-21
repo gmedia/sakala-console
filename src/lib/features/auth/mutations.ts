@@ -15,12 +15,26 @@ import { setLastLoginProvider } from '$lib/features/auth/utils/oauth';
 export function useLogout() {
 	const queryClient = useQueryClient();
 
+	function cleanupSession() {
+		queryClient.clear();
+		disconnectEcho();
+		goto(resolve('/login'));
+	}
+
 	return createMutation(() => ({
 		mutationFn: logout,
 		onSuccess: () => {
-			queryClient.clear();
-			disconnectEcho();
-			goto(resolve('/login'));
+			cleanupSession();
+		},
+		onError: (error: unknown) => {
+			const err = error as { status?: number; response?: { status?: number } };
+
+			if (err?.status === 401 || err?.response?.status === 401) {
+				cleanupSession();
+				return;
+			}
+
+			console.error('Logout failed:', error);
 		}
 	}));
 }
