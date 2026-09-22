@@ -3,7 +3,11 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { currentUserQuery } from '$lib/features/auth/queries';
-	import { isValidInternalPath } from '$lib/features/auth/utils/oauth';
+	import {
+		isValidInternalPath,
+		setLastLoginProvider,
+		clearPendingOAuthProvider
+	} from '$lib/features/auth/utils/oauth';
 	import { ApiError, NetworkError } from '$lib/api/errors';
 
 	const hasError = $derived(Boolean(page.url.searchParams.get('error')));
@@ -19,9 +23,13 @@
 	let queryErrorHeading: HTMLHeadingElement | undefined = $state();
 
 	$effect(() => {
-		if (errorParam && errorHeading) {
-			const el = errorHeading;
-			setTimeout(() => el.focus(), 0);
+		if (errorParam) {
+			clearPendingOAuthProvider();
+			localStorage.removeItem('return_url');
+			if (errorHeading) {
+				const el = errorHeading;
+				setTimeout(() => el.focus(), 0);
+			}
 		}
 	});
 
@@ -35,6 +43,8 @@
 	$effect(() => {
 		if (userQuery.isSuccess && userQuery.data) {
 			const user = userQuery.data;
+			setLastLoginProvider('github');
+			clearPendingOAuthProvider();
 			const savedReturnUrl = localStorage.getItem('return_url');
 			if (savedReturnUrl) {
 				localStorage.removeItem('return_url');

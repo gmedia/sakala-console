@@ -1,5 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { isValidInternalPath } from './oauth';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import {
+	isValidInternalPath,
+	getLastLoginProvider,
+	setLastLoginProvider,
+	getPendingOAuthProvider,
+	setPendingOAuthProvider,
+	clearPendingOAuthProvider,
+	redirectToGithubAuth,
+	redirectToGoogleAuth
+} from './oauth';
 
 describe('isValidInternalPath', () => {
 	it('returns true for valid internal paths', () => {
@@ -33,5 +42,92 @@ describe('isValidInternalPath', () => {
 		expect(isValidInternalPath('javascript:alert(1)')).toBe(false);
 		expect(isValidInternalPath('data:text/html,test')).toBe(false);
 		expect(isValidInternalPath('projects')).toBe(false);
+	});
+});
+
+describe('last login provider storage', () => {
+	let store: Record<string, string> = {};
+
+	beforeEach(() => {
+		store = {};
+		const mockStorage = {
+			getItem: (key: string) => store[key] ?? null,
+			setItem: (key: string, val: string) => {
+				store[key] = val;
+			},
+			removeItem: (key: string) => {
+				delete store[key];
+			},
+			clear: () => {
+				store = {};
+			}
+		};
+		vi.stubGlobal('window', {
+			localStorage: mockStorage,
+			location: { href: '' }
+		});
+		vi.stubGlobal('localStorage', mockStorage);
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('returns null when no last login provider is set', () => {
+		expect(getLastLoginProvider()).toBeNull();
+	});
+
+	it('sets and retrieves last login provider correctly', () => {
+		setLastLoginProvider('google');
+		expect(getLastLoginProvider()).toBe('google');
+
+		setLastLoginProvider('github');
+		expect(getLastLoginProvider()).toBe('github');
+
+		setLastLoginProvider('email');
+		expect(getLastLoginProvider()).toBe('email');
+	});
+
+	it('returns null for unknown provider strings', () => {
+		localStorage.setItem('last_login_provider', 'facebook');
+		expect(getLastLoginProvider()).toBeNull();
+	});
+
+	it('manages pending OAuth provider correctly', () => {
+		expect(getPendingOAuthProvider()).toBeNull();
+
+		setPendingOAuthProvider('google');
+		expect(getPendingOAuthProvider()).toBe('google');
+
+		clearPendingOAuthProvider();
+		expect(getPendingOAuthProvider()).toBeNull();
+
+		setPendingOAuthProvider('github');
+		expect(getPendingOAuthProvider()).toBe('github');
+	});
+
+	it('redirectToGoogleAuth does not set last_login_provider but records pending provider and return_url', () => {
+		redirectToGoogleAuth('/settings');
+
+		expect(getLastLoginProvider()).toBeNull();
+		expect(getPendingOAuthProvider()).toBe('google');
+		expect(localStorage.getItem('return_url')).toBe('/settings');
+	});
+
+	it('redirectToGithubAuth does not set last_login_provider but records pending provider and return_url', () => {
+		redirectToGithubAuth('/projects/123');
+
+		expect(getLastLoginProvider()).toBeNull();
+		expect(getPendingOAuthProvider()).toBe('github');
+		expect(localStorage.getItem('return_url')).toBe('/projects/123');
+	});
+
+	it('cleans return_url if invalid internal path is passed', () => {
+		localStorage.setItem('return_url', '/old-path');
+		redirectToGoogleAuth('https://evil.com');
+
+		expect(localStorage.getItem('return_url')).toBeNull();
+		expect(getPendingOAuthProvider()).toBe('google');
+		expect(getLastLoginProvider()).toBeNull();
 	});
 });

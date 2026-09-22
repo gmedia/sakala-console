@@ -1,8 +1,16 @@
 import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { logout } from '$lib/api/resources/auth';
+import {
+	logout,
+	login,
+	register,
+	type LoginPayload,
+	type RegisterPayload
+} from '$lib/api/resources/auth';
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { disconnectEcho } from '$lib/realtime/echo';
+import { queryKeys } from '$lib/api/query-keys';
+import { setLastLoginProvider, clearPendingOAuthProvider } from '$lib/features/auth/utils/oauth';
 
 export function useLogout() {
 	const queryClient = useQueryClient();
@@ -28,5 +36,24 @@ export function useLogout() {
 
 			console.error('Logout failed:', error);
 		}
+	}));
+}
+
+export function useLogin() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (payload: LoginPayload) => login(payload),
+		onSuccess: (user) => {
+			setLastLoginProvider('email');
+			clearPendingOAuthProvider();
+			queryClient.setQueryData(queryKeys.auth.currentUser, user);
+		}
+	}));
+}
+
+export function useRegister() {
+	return createMutation(() => ({
+		mutationFn: (payload: RegisterPayload) => register(payload)
 	}));
 }
