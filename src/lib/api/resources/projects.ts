@@ -67,3 +67,51 @@ export async function getListProjects(params: ProjectsQueryParams): Promise<Proj
 export function parseListProjectsResponse(response: unknown): ProjectResponse {
 	return listProjectsResponseSchema.parse(response);
 }
+
+export type StoreProjectRequest = components['schemas']['StoreProjectRequest'];
+
+export type CreateProjectResource = {
+	id: string;
+	name: string;
+	repository_full_name: string | null;
+	repository_source: 'public_url' | 'github_installation';
+	github_installation_id: string | null;
+	github_repository_id: number | null;
+	branch: string;
+	runtime_status: string;
+	preview_status?: string;
+	created_at: string;
+};
+
+export const createProjectResourceSchema: z.ZodType<CreateProjectResource> = z.object({
+	id: z.string(),
+	name: z.string(),
+	repository_full_name: z.string().nullable().default(null),
+	repository_source: z.enum(['public_url', 'github_installation']),
+	github_installation_id: z.string().nullable().default(null),
+	github_repository_id: z
+		.union([z.number(), z.string()])
+		.transform((val) => (val === null || val === undefined ? null : Number(val)))
+		.nullable()
+		.default(null),
+	branch: z.string(),
+	runtime_status: z.string(),
+	preview_status: z.string().optional(),
+	created_at: z.string()
+});
+
+const createProjectResponseSchema = z.object({
+	data: createProjectResourceSchema
+});
+
+export function parseCreateProjectResponse(response: unknown): CreateProjectResource {
+	return createProjectResponseSchema.parse(response).data;
+}
+
+export async function createProject(payload: StoreProjectRequest): Promise<CreateProjectResource> {
+	const response = await apiRequest<unknown>('/api/v1/app/projects', {
+		method: 'POST',
+		json: payload
+	});
+	return parseCreateProjectResponse(response);
+}

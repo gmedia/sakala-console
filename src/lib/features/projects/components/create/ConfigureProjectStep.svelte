@@ -1,25 +1,32 @@
 <script lang="ts">
-	import { EyeIcon, EyeSlashIcon, CaretDownIcon, PlusIcon } from 'phosphor-svelte';
+	import {
+		EyeIcon,
+		EyeSlashIcon,
+		CaretDownIcon,
+		PlusIcon,
+		CircleNotchIcon,
+		WarningCircleIcon
+	} from 'phosphor-svelte';
 	import { cn } from '$lib/utils/cn';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
-	import type { CreateProjectPayload } from '../../type';
+	import type { StoreProjectRequest } from '$lib/api/resources/projects';
 	import {
-		validateConfigureProjectStep,
-		isConfigureProjectStepValid,
-		sanitizePortInput
-	} from '../../validation/configureProjectStep';
+		createProjectFormSchema,
+		type CreateProjectFieldErrors
+	} from '../../validation/createProjectSchema';
+	import { sanitizePortInput } from '../../validation/configureProjectStep';
 
 	type Props = {
-		onSubmit: (payload: CreateProjectPayload) => void;
+		onSubmit: (payload: StoreProjectRequest) => void;
 		onRepositoryChange: () => void;
 		isSubmitting?: boolean;
-		error?: string | null;
+		apiErrors?: CreateProjectFieldErrors;
 	};
 
-	let { onSubmit, onRepositoryChange, isSubmitting = false, error = null }: Props = $props();
+	let { onSubmit, onRepositoryChange, isSubmitting = false, apiErrors = {} }: Props = $props();
 
 	const wizard = getCreateProjectContext();
 
@@ -30,14 +37,52 @@
 		buildCommand: false
 	});
 
-	const errors = $derived(
-		validateConfigureProjectStep({
-			projectName: wizard.projectName,
+	// Client-side validation using Zod
+	const clientValidation = $derived.by(() => {
+		const repoPayload =
+			wizard.repositorySource === 'github' &&
+			wizard.selectedRepository?.id &&
+			!isNaN(Number(wizard.selectedRepository.id))
+				? {
+						type: 'github_installation' as const,
+						installation_id: '00000000-0000-0000-0000-000000000000',
+						repository_id: Number(wizard.selectedRepository.id)
+					}
+				: {
+						type: 'public_url' as const,
+						url:
+							wizard.repositorySource === 'git-url'
+								? wizard.gitUrl.trim()
+								: (wizard.selectedRepository?.clone_url.replace(/\.git$/, '') ?? '')
+					};
+
+		const result = createProjectFormSchema.safeParse({
+			name: wizard.projectName,
 			branch: wizard.selectedBranch,
-			port: wizard.selectedPort,
-			buildCommand: wizard.buildCommand
-		})
-	);
+			repository: repoPayload
+		});
+
+		if (result.success) {
+			return { isValid: true, errors: {}, payload: result.data };
+		}
+
+		const formatted = result.error.flatten().fieldErrors;
+		return {
+			isValid: false,
+			errors: {
+				name: formatted.name?.[0],
+				branch: formatted.branch?.[0],
+				repository: formatted.repository?.[0]
+			},
+			payload: null
+		};
+	});
+
+	const fieldErrors = $derived({
+		name: (touched.projectName && clientValidation.errors.name) || apiErrors.name,
+		branch: (touched.branch && clientValidation.errors.branch) || apiErrors.branch,
+		repository: clientValidation.errors.repository || apiErrors.repository
+	});
 
 	let newEnv = $state({
 		key: '',
@@ -47,7 +92,6 @@
 
 	function addEnvVar() {
 		wizard.addEnvVar(newEnv.key, newEnv.value);
-
 		newEnv.key = '';
 		newEnv.value = '';
 	}
@@ -73,10 +117,18 @@
 			port: true,
 			buildCommand: true
 		};
-		if (!isConfigureProjectStepValid(errors)) {
+
+		if (!clientValidation.isValid || !clientValidation.payload) {
 			return;
 		}
-		onSubmit(wizard.createProjectPayload);
+
+		const storePayload: StoreProjectRequest = {
+			name: clientValidation.payload.name.trim(),
+			branch: clientValidation.payload.branch.trim(),
+			repository: clientValidation.payload.repository
+		};
+
+		onSubmit(storePayload);
 	}
 
 	const branchOptions = $derived.by(() => {
@@ -94,38 +146,59 @@
 	});
 </script>
 
-<form class="flex flex-col mt-3 gap-4" onsubmit={handleSubmit}>
+<form class="flex flex-col mt-3 gap-4" onsubmit={handleSubmit} novalidate>
 	<div>
 		<p class="text-lg font-montserrat-semibold">Persiapan deployment</p>
 		<p class="font-montserrat">Atur konfigurasi proyek sebelum dibuat.</p>
 	</div>
+
+	{#if apiErrors.general}
+		<div
+			class="flex items-start gap-3 rounded-lg border border-error/30 bg-error/10 p-4 text-error"
+			role="alert"
+			aria-live="assertive"
+		>
+			<WarningCircleIcon class="size-5 shrink-0 mt-0.5" />
+			<div class="text-sm">
+				<p class="font-montserrat-semibold">Gagal Membuat Proyek</p>
+				<p class="mt-0.5 font-montserrat">{apiErrors.general}</p>
+			</div>
+		</div>
+	{/if}
 
 	<Card class="rounded-lg">
 		<div
 			class="flex justify-between items-center w-full bg-background rounded-lg py-1 px-4 border border-muted/20"
 		>
 			<p class="font-jetbrains-mono-medium">
-				{wizard.selectedRepository?.full_name || 'Repository'}
+				{wizard.selectedRepository?.full_name || wizard.gitUrl || 'Repository'}
 			</p>
 			<Button
+				type="button"
 				onclick={onRepositoryChange}
 				variant="outline"
 				class="font-montserrat bg-transparent border-none text-primary cursor-pointer"
-				>Ganti Repository</Button
 			>
+				Ganti Repository
+			</Button>
 		</div>
+
+		{#if fieldErrors.repository}
+			<p class="text-sm text-error px-1 mt-1">{fieldErrors.repository}</p>
+		{/if}
+
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
 			<p class="font-montserrat-medium">Nama Proyek</p>
 			<input
 				class={cn(
 					'font-montserrat w-full px-4 rounded-lg bg-primary-50/40 border focus:ring-primary',
-					touched.projectName && errors.projectName ? 'border-error' : 'border-muted/20'
+					fieldErrors.name ? 'border-error ring-1 ring-error' : 'border-muted/20'
 				)}
 				bind:value={wizard.projectName}
 				onblur={() => (touched.projectName = true)}
 			/>
-			{#if touched.projectName && errors.projectName}
-				<p class="text-sm text-error">{errors.projectName}</p>
+			{#if fieldErrors.name}
+				<p class="text-sm text-error">{fieldErrors.name}</p>
 			{:else}
 				<p class="text-sm text-muted">
 					Default diambil dari nama repository. Bisa diganti kapan saja lewat Settings setelah
@@ -133,6 +206,7 @@
 				</p>
 			{/if}
 		</div>
+
 		<div class="flex justify-between items-center w-full py-3 gap-2 border-muted/20">
 			<div class="flex flex-col w-full gap-2">
 				<p class="font-montserrat-medium">Branch</p>
@@ -143,7 +217,7 @@
 					iconPosition="end"
 					class={cn(
 						'w-full rounded-lg bg-primary-50/40 font-montserrat-medium border focus:ring focus:ring-primary px-3 xs:px-4 py-2',
-						touched.branch && errors.branch ? 'border-error' : 'border-muted/20'
+						fieldErrors.branch ? 'border-error' : 'border-muted/20'
 					)}
 					labelClass="font-montserrat-medium"
 					selectedLabelClass="font-montserrat-semibold bg-primary text-white"
@@ -155,10 +229,11 @@
 						/>
 					{/snippet}
 				</Select>
-				{#if touched.branch && errors.branch}
-					<p class="text-sm text-error">{errors.branch}</p>
+				{#if fieldErrors.branch}
+					<p class="text-sm text-error">{fieldErrors.branch}</p>
 				{/if}
 			</div>
+
 			<div class="flex flex-col w-full gap-2">
 				<p class="font-montserrat-medium">Port</p>
 				<input
@@ -168,37 +243,27 @@
 					oninput={handlePortInput}
 					onblur={() => (touched.port = true)}
 					bind:value={wizard.selectedPort}
-					class={cn(
-						'font-montserrat w-full rounded-lg bg-primary-50/40 border focus:ring-primary',
-						touched.port && errors.port ? 'border-error' : 'border-muted/20'
-					)}
+					class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
 				/>
-				{#if touched.port && errors.port}
-					<p class="text-sm text-error">{errors.port}</p>
-				{/if}
 			</div>
 		</div>
+
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
 			<p class="font-montserrat-medium">Build Command</p>
 			<input
-				class={cn(
-					'font-montserrat w-full rounded-lg bg-primary-50/40 border focus:ring-primary',
-					touched.buildCommand && errors.buildCommand ? 'border-error' : 'border-muted/20'
-				)}
+				class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
 				bind:value={wizard.buildCommand}
 				onblur={() => (touched.buildCommand = true)}
 			/>
-			{#if touched.buildCommand && errors.buildCommand}
-				<p class="text-sm text-error">{errors.buildCommand}</p>
-			{/if}
 		</div>
+
 		<div class="flex flex-col w-full py-3">
 			<p class="font-montserrat-medium">Environment Variables (opsional)</p>
 
 			<div class="flex flex-col gap-2 mt-2">
 				{#each wizard.envVars as env (env.id)}
 					<div class="flex w-full items-center gap-1 p-2">
-						<p class="font-jetbrains-mono-semibold w-1/3 rounded-lg">
+						<p class="font-jetbrains-mono-semibold w-1/3 rounded-lg truncate">
 							{env.key}
 						</p>
 
@@ -208,6 +273,7 @@
 							</p>
 
 							<Button
+								type="button"
 								variant="outline"
 								class="border-none p-1"
 								onclick={() => toggleEnvVisibility(env.id)}
@@ -221,7 +287,12 @@
 							</Button>
 						</div>
 
-						<Button variant="outline" class="border-none" onclick={() => removeEnvVar(env.id)}>
+						<Button
+							type="button"
+							variant="outline"
+							class="border-none"
+							onclick={() => removeEnvVar(env.id)}
+						>
 							<span class="text-error">Hapus</span>
 						</Button>
 					</div>
@@ -267,12 +338,14 @@
 	<Button
 		type="submit"
 		variant="primary"
-		class="w-full py-3 cursor-pointer"
+		class="w-full py-3 cursor-pointer flex items-center justify-center gap-2"
 		disabled={isSubmitting}
 	>
-		{isSubmitting ? 'Membuat Proyek...' : 'Buat Proyek'}
+		{#if isSubmitting}
+			<CircleNotchIcon class="size-5 animate-spin" />
+			<span>Membuat Proyek...</span>
+		{:else}
+			<span>Buat Proyek</span>
+		{/if}
 	</Button>
-	{#if error}
-		<p class="text-sm text-red-500">{error}</p>
-	{/if}
 </form>

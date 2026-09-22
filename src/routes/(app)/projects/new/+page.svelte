@@ -1,71 +1,56 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import CreateProjectStepper from '$lib/features/projects/components/create/CreateProjectStepper.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
-	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
-	import DeployStep from '$lib/features/projects/components/create/DeployStep.svelte';
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
-	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
-	import type { CreateProjectPayload } from '$lib/features/projects/type';
-	import { detectProjectConfig } from '$lib/features/projects/mock/mockDetectConfig';
-	import { mockCreateProject } from '$lib/features/projects/mock/mockCreateProject';
+	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import { createProjectMutation } from '$lib/features/projects/mutations';
+	import {
+		mapCreateProjectErrors,
+		type CreateProjectFieldErrors
+	} from '$lib/features/projects/validation/createProjectSchema';
+	import type { StoreProjectRequest } from '$lib/api/resources/projects';
 	import { mockRepositories } from '$lib/features/projects/mock/mock';
 
 	const wizard = initCreateProjectContext();
+	const createMutation = createProjectMutation();
 
-	let isSubmitting = $state(false);
-	let submitError = $state<string | null>(null);
+	let apiErrors = $state<CreateProjectFieldErrors>({});
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
 		{ label: 'Projects' },
 		{ label: 'New Project', current: true }
 	];
 
-	async function handleCreateProject(payload: CreateProjectPayload) {
-		isSubmitting = true;
-		submitError = null;
+	async function handleCreateProject(payload: StoreProjectRequest) {
+		apiErrors = {};
 
 		try {
-			const result = await mockCreateProject(payload);
-			wizard.goToAutoDetect(result);
-			await runScan();
+			const project = await createMutation.mutateAsync(payload);
+			await goto(resolve(`/projects/${project.id}`));
 		} catch (err) {
-			submitError = err instanceof Error ? err.message : 'Gagal membuat proyek';
-		} finally {
-			isSubmitting = false;
-		}
-	}
-
-	async function runScan() {
-		wizard.startScan();
-
-		try {
-			const result = await detectProjectConfig(
-				wizard.selectedRepository,
-				wizard.selectedBranch,
-				wizard.selectedPort,
-				undefined,
-				wizard.scanAttempt
-			);
-			wizard.selectedPort = result.detectedPort ?? '';
-			wizard.completeScan(result.hasDockerfile);
-		} catch {
-			wizard.failScan();
+			apiErrors = mapCreateProjectErrors(err);
 		}
 	}
 </script>
 
-<svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
+<svelte:head>
+	<title>Project Baru | Sakala Console</title>
+</svelte:head>
 
 <div class="flex flex-col items-center justify-center">
 	<div class="flex w-full justify-between items-center">
 		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-montserrat-semibold" />
 		<CancelCreatePorjectAction />
 	</div>
+
 	<div class="max-w-2xl w-full">
 		<CreateProjectStepper currentStep={wizard.currentStep} />
+
 		<div class="flex flex-col gap-2 mt-4 mx-2">
 			{#if wizard.currentStep === 1}
 				{#if wizard.repositorySubstep === 'select-repository'}
@@ -79,14 +64,10 @@
 					<ConfigureProjectStep
 						onSubmit={handleCreateProject}
 						onRepositoryChange={wizard.backToSelectRepository}
-						{isSubmitting}
-						error={submitError}
+						isSubmitting={createMutation.isPending}
+						{apiErrors}
 					/>
 				{/if}
-			{:else if wizard.currentStep === 2}
-				<AutoDetectStep onNext={wizard.goToDeploy} onRetryScan={runScan} />
-			{:else if wizard.currentStep === 3}
-				<DeployStep />
 			{/if}
 		</div>
 	</div>

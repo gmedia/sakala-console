@@ -6,8 +6,20 @@ import {
 	addEnvironmentVariable,
 	deleteEnvironmentVariable
 } from './api';
+import { createProject, type StoreProjectRequest } from '$lib/api/resources/projects';
 import { projectKeys } from './queries';
 import type { UpdateProjectPayload, Project, Deployment, CreateEnvVarPayload } from './type';
+
+export function createProjectMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (payload: StoreProjectRequest) => createProject(payload),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: projectKeys.all });
+		}
+	}));
+}
 
 export function createUpdateProjectMutation() {
 	const queryClient = useQueryClient();
