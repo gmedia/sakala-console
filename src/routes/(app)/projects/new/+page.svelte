@@ -10,14 +10,39 @@
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import { createProjectMutation } from '$lib/features/projects/mutations';
 	import {
+		createGithubInstallationsQuery,
+		createInstallationRepositoriesQuery
+	} from '$lib/features/projects/githubQueries';
+	import {
 		mapCreateProjectErrors,
 		type CreateProjectFieldErrors
 	} from '$lib/features/projects/validation/createProjectSchema';
 	import type { StoreProjectRequest } from '$lib/api/resources/projects';
+	import type { Repository } from '$lib/features/projects/type';
 	import { mockRepositories } from '$lib/features/projects/mock/mock';
 
 	const wizard = initCreateProjectContext();
 	const createMutation = createProjectMutation();
+
+	const installationsQuery = createGithubInstallationsQuery();
+	const firstInstallationId = $derived(
+		installationsQuery.data && installationsQuery.data.length > 0
+			? installationsQuery.data[0].id
+			: null
+	);
+
+	const reposQuery = createInstallationRepositoriesQuery(() => firstInstallationId);
+
+	const githubConnected = $derived(
+		!installationsQuery.isLoading && (installationsQuery.data?.length ?? 0) > 0
+	);
+
+	const repositories = $derived.by<Repository[]>(() => {
+		if (reposQuery.data && reposQuery.data.length > 0) {
+			return reposQuery.data;
+		}
+		return mockRepositories;
+	});
 
 	let apiErrors = $state<CreateProjectFieldErrors>({});
 
@@ -25,6 +50,16 @@
 		{ label: 'Projects' },
 		{ label: 'New Project', current: true }
 	];
+
+	function handleSelectRepository(_id: string, repo: Repository) {
+		if (firstInstallationId) {
+			wizard.selectGithubRepository(firstInstallationId, repo);
+		}
+	}
+
+	function handleConnectGithub() {
+		window.location.href = '/auth/github/install';
+	}
 
 	async function handleCreateProject(payload: StoreProjectRequest) {
 		apiErrors = {};
@@ -55,10 +90,12 @@
 			{#if wizard.currentStep === 1}
 				{#if wizard.repositorySubstep === 'select-repository'}
 					<RepositoryStep
-						repositories={mockRepositories}
-						githubConnected={wizard.githubConnected}
+						{repositories}
+						{githubConnected}
+						loading={installationsQuery.isLoading || reposQuery.isLoading}
 						onNext={wizard.goToPrepareDeployment}
-						onConnectGithub={wizard.connectGithub}
+						onConnectGithub={handleConnectGithub}
+						onSelectRepository={handleSelectRepository}
 					/>
 				{:else}
 					<ConfigureProjectStep

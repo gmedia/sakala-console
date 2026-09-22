@@ -16,6 +16,8 @@ export function createProjectWizardState() {
 	let repositorySubstep = $state<RepositorySubstep>('select-repository');
 	let hasEnteredConfig = $state(false);
 	let selectedRepositoryId = $state<string | null>(null);
+	let selectedInstallationId = $state<string | null>(null);
+	let customGithubRepository = $state<Repository | null>(null);
 	let lastAppliedRepoKey: string | null = null;
 	let githubConnected = $state(true);
 	let checkingGithubConnection = $state(true);
@@ -39,7 +41,11 @@ export function createProjectWizardState() {
 	let deployStatus = $state<DeployStatus>('idle');
 
 	const githubRepository = $derived(
-		mockRepositories.find((repo) => repo.id === selectedRepositoryId) ?? null
+		(customGithubRepository && String(customGithubRepository.id) === selectedRepositoryId
+			? customGithubRepository
+			: null) ??
+			mockRepositories.find((repo) => repo.id === selectedRepositoryId) ??
+			null
 	);
 
 	const gitUrlRepository = $derived.by<Repository | null>(() => {
@@ -323,6 +329,18 @@ export function createProjectWizardState() {
 		},
 		backToSelectRepository() {
 			repositorySubstep = 'select-repository';
+		},
+		get selectedInstallationId() {
+			return selectedInstallationId;
+		},
+		set selectedInstallationId(v: string | null) {
+			selectedInstallationId = v;
+		},
+		selectGithubRepository(installationId: string, repo: Repository) {
+			selectedInstallationId = installationId;
+			selectedRepositoryId = String(repo.id);
+			customGithubRepository = repo;
+			applyRepositoryDefaults(repo);
 		},
 		goToAutoDetect(result: CreateProjectResult) {
 			createdProject = result;

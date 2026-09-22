@@ -39,21 +39,26 @@
 
 	// Client-side validation using Zod
 	const clientValidation = $derived.by(() => {
+		const isGithub = wizard.repositorySource === 'github';
+		const repo = wizard.selectedRepository;
+		const installationId = wizard.selectedInstallationId;
+		const numericRepoId = repo?.id ? Number(repo.id) : NaN;
+
 		const repoPayload =
-			wizard.repositorySource === 'github' &&
-			wizard.selectedRepository?.id &&
-			!isNaN(Number(wizard.selectedRepository.id))
+			isGithub && installationId && !isNaN(numericRepoId) && numericRepoId > 0
 				? {
 						type: 'github_installation' as const,
-						installation_id: '00000000-0000-0000-0000-000000000000',
-						repository_id: Number(wizard.selectedRepository.id)
+						installation_id: installationId,
+						repository_id: numericRepoId
 					}
 				: {
 						type: 'public_url' as const,
 						url:
 							wizard.repositorySource === 'git-url'
 								? wizard.gitUrl.trim()
-								: (wizard.selectedRepository?.clone_url.replace(/\.git$/, '') ?? '')
+								: repo?.clone_url
+									? repo.clone_url.replace(/\.git$/, '')
+									: ''
 					};
 
 		const result = createProjectFormSchema.safeParse({

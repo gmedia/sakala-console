@@ -13,11 +13,20 @@
 	type Props = {
 		repositories: Repository[];
 		githubConnected: boolean;
+		loading?: boolean;
 		onNext: () => void;
 		onConnectGithub: () => void;
+		onSelectRepository?: (id: string, repo: Repository) => void;
 	};
 
-	let { repositories, githubConnected, onNext, onConnectGithub }: Props = $props();
+	let {
+		repositories,
+		githubConnected,
+		loading = false,
+		onNext,
+		onConnectGithub,
+		onSelectRepository
+	}: Props = $props();
 
 	const wizard = getCreateProjectContext();
 
@@ -93,10 +102,14 @@
 		{:else}
 			<RepositoryList
 				repositories={filteredRepositories}
-				loading={false}
+				{loading}
 				selectedId={wizard.selectedRepositoryId}
 				onSelect={(id) => {
 					wizard.selectedRepositoryId = id;
+					const found = repositories.find((r) => String(r.id) === String(id));
+					if (found && onSelectRepository) {
+						onSelectRepository(id, found);
+					}
 				}}
 				currentPage={wizard.currentPage}
 				perPage={wizard.perPage}

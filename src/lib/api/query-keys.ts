@@ -19,5 +19,10 @@ export const queryKeys = {
 	},
 	notifications: {
 		unreadCount: ['notifications', 'unread-count'] as const
+	},
+	github: {
+		all: ['github'] as const,
+		installations: () => ['github', 'installations'] as const,
+		repositories: (installationId: string) => ['github', 'repositories', installationId] as const
 	}
 };
