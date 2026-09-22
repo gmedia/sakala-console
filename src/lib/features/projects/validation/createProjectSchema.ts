@@ -6,11 +6,7 @@ export const createProjectFormSchema = z.object({
 		.string()
 		.trim()
 		.min(1, 'Nama proyek wajib diisi')
-		.max(120, 'Nama proyek maksimal 120 karakter')
-		.regex(
-			/^[a-zA-Z0-9-_ ]+$/,
-			'Nama proyek hanya boleh mengandung huruf, angka, spasi, dash (-), atau underscore (_)'
-		),
+		.max(120, 'Nama proyek maksimal 120 karakter'),
 	branch: z.string().trim().min(1, 'Branch wajib dipilih'),
 	repository: z.discriminatedUnion('type', [
 		z.object({

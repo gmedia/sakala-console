@@ -15,6 +15,7 @@
 	import type { StoreProjectRequest } from '$lib/api/resources/projects';
 	import {
 		createProjectFormSchema,
+		generateDomainPreview,
 		type CreateProjectFieldErrors
 	} from '../../validation/createProjectSchema';
 	// import { sanitizePortInput } from '../../validation/configureProjectStep';
@@ -88,6 +89,8 @@
 		branch: (touched.branch && clientValidation.errors.branch) || apiErrors.branch,
 		repository: clientValidation.errors.repository || apiErrors.repository
 	});
+
+	const domainPreview = $derived(generateDomainPreview(wizard.projectName));
 
 	/*
 	// TODO(#7): Aktifkan kembali saat StoreProjectRequest sakala-api mendukung port, build command, dan env vars
@@ -205,6 +208,14 @@
 				bind:value={wizard.projectName}
 				onblur={() => (touched.projectName = true)}
 			/>
+			<div class="flex items-center gap-1.5 text-xs text-muted font-montserrat">
+				<span>Domain preview:</span>
+				<span
+					class="font-jetbrains-mono font-medium text-foreground bg-muted/10 px-1.5 py-0.5 rounded border border-muted/20"
+				>
+					{domainPreview}
+				</span>
+			</div>
 			{#if fieldErrors.name}
 				<p class="text-sm text-error">{fieldErrors.name}</p>
 			{:else}

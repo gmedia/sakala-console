@@ -37,6 +37,20 @@ describe('createProjectFormSchema', () => {
 		expect(result.success).toBe(true);
 	});
 
+	it('menerima nama proyek dengan karakter bebas yang dinormalisasi slug backend', () => {
+		const input = {
+			name: 'sakala.io / app (staging)',
+			branch: 'main',
+			repository: {
+				type: 'public_url' as const,
+				url: 'https://github.com/user/demo-repo'
+			}
+		};
+
+		const result = createProjectFormSchema.safeParse(input);
+		expect(result.success).toBe(true);
+	});
+
 	it('menolak nama proyek kosong atau hanya spasi', () => {
 		const input = {
 			name: '   ',

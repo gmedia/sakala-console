@@ -71,6 +71,8 @@
 			apiErrors = mapCreateProjectErrors(err);
 		}
 	}
+
+	const currentStep = $derived(wizard.repositorySubstep === 'select-repository' ? 1 : 2);
 </script>
 
 <svelte:head>
@@ -84,7 +86,7 @@
 	</div>
 
 	<div class="max-w-2xl w-full">
-		<CreateProjectStepper currentStep={wizard.currentStep} />
+		<CreateProjectStepper {currentStep} />
 
 		<div class="flex flex-col gap-2 mt-4 mx-2">
 			{#if wizard.currentStep === 1}

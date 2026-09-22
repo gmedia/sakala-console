@@ -13,8 +13,7 @@
 		currentStep,
 		steps = [
 			{ number: 1, title: 'Repository' },
-			{ number: 2, title: 'Auto Detect' },
-			{ number: 3, title: 'Deploy' }
+			{ number: 2, title: 'Konfigurasi' }
 		]
 	}: Props = $props();
 
