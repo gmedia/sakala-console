@@ -1,9 +1,9 @@
 <script lang="ts">
 	import {
-		EyeIcon,
-		EyeSlashIcon,
+		// EyeIcon,
+		// EyeSlashIcon,
 		CaretDownIcon,
-		PlusIcon,
+		// PlusIcon,
 		CircleNotchIcon,
 		WarningCircleIcon
 	} from 'phosphor-svelte';
@@ -17,7 +17,7 @@
 		createProjectFormSchema,
 		type CreateProjectFieldErrors
 	} from '../../validation/createProjectSchema';
-	import { sanitizePortInput } from '../../validation/configureProjectStep';
+	// import { sanitizePortInput } from '../../validation/configureProjectStep';
 
 	type Props = {
 		onSubmit: (payload: StoreProjectRequest) => void;
@@ -32,9 +32,9 @@
 
 	let touched = $state({
 		projectName: false,
-		branch: false,
-		port: false,
-		buildCommand: false
+		branch: false
+		// port: false,
+		// buildCommand: false
 	});
 
 	// Client-side validation using Zod
@@ -89,6 +89,8 @@
 		repository: clientValidation.errors.repository || apiErrors.repository
 	});
 
+	/*
+	// TODO(#7): Aktifkan kembali saat StoreProjectRequest sakala-api mendukung port, build command, dan env vars
 	let newEnv = $state({
 		key: '',
 		value: ''
@@ -113,14 +115,15 @@
 	function removeEnvVar(id: number) {
 		wizard.removeEnvVar(id);
 	}
+	*/
 
 	function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		touched = {
 			projectName: true,
-			branch: true,
-			port: true,
-			buildCommand: true
+			branch: true
+			// port: true,
+			// buildCommand: true
 		};
 
 		if (!clientValidation.isValid || !clientValidation.payload) {
@@ -212,45 +215,45 @@
 			{/if}
 		</div>
 
-		<div class="flex justify-between items-center w-full py-3 gap-2 border-muted/20">
-			<div class="flex flex-col w-full gap-2">
-				<p class="font-montserrat-medium">Branch</p>
-				<Select
-					options={branchOptions}
-					bind:value={wizard.selectedBranch}
-					variant="outline"
-					iconPosition="end"
-					class={cn(
-						'w-full rounded-lg bg-primary-50/40 font-montserrat-medium border focus:ring focus:ring-primary px-3 xs:px-4 py-2',
-						fieldErrors.branch ? 'border-error' : 'border-muted/20'
-					)}
-					labelClass="font-montserrat-medium"
-					selectedLabelClass="font-montserrat-semibold bg-primary text-white"
-					onblur={() => (touched.branch = true)}
-				>
-					{#snippet icon(open)}
-						<CaretDownIcon
-							class={cn('h-5 w-5 transition-transform duration-200', open && 'rotate-180')}
-						/>
-					{/snippet}
-				</Select>
-				{#if fieldErrors.branch}
-					<p class="text-sm text-error">{fieldErrors.branch}</p>
-				{/if}
-			</div>
+		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
+			<p class="font-montserrat-medium">Branch</p>
+			<Select
+				options={branchOptions}
+				bind:value={wizard.selectedBranch}
+				variant="outline"
+				iconPosition="end"
+				class={cn(
+					'w-full rounded-lg bg-primary-50/40 font-montserrat-medium border focus:ring focus:ring-primary px-3 xs:px-4 py-2',
+					fieldErrors.branch ? 'border-error' : 'border-muted/20'
+				)}
+				labelClass="font-montserrat-medium"
+				selectedLabelClass="font-montserrat-semibold bg-primary text-white"
+				onblur={() => (touched.branch = true)}
+			>
+				{#snippet icon(open)}
+					<CaretDownIcon
+						class={cn('h-5 w-5 transition-transform duration-200', open && 'rotate-180')}
+					/>
+				{/snippet}
+			</Select>
+			{#if fieldErrors.branch}
+				<p class="text-sm text-error">{fieldErrors.branch}</p>
+			{/if}
+		</div>
 
-			<div class="flex flex-col w-full gap-2">
-				<p class="font-montserrat-medium">Port</p>
-				<input
-					type="text"
-					inputmode="numeric"
-					pattern="[0-9]*"
-					oninput={handlePortInput}
-					onblur={() => (touched.port = true)}
-					bind:value={wizard.selectedPort}
-					class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
-				/>
-			</div>
+		<!--
+		TODO(#7): Aktifkan kembali saat StoreProjectRequest sakala-api mendukung port, build command, dan env vars
+		<div class="flex flex-col w-full gap-2 py-3 border-muted/20">
+			<p class="font-montserrat-medium">Port</p>
+			<input
+				type="text"
+				inputmode="numeric"
+				pattern="[0-9]*"
+				oninput={handlePortInput}
+				onblur={() => (touched.port = true)}
+				bind:value={wizard.selectedPort}
+				class="font-montserrat w-full rounded-lg bg-primary-50/40 border border-muted/20 focus:ring-primary"
+			/>
 		</div>
 
 		<div class="flex flex-col gap-2 w-full py-3 border-muted/20">
@@ -338,6 +341,7 @@
 				Bisa ditambah/diedit kapan saja nanti lewat Settings, tidak wajib diisi sekarang.
 			</p>
 		</div>
+		-->
 	</Card>
 
 	<Button
