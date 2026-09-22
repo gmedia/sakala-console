@@ -17,9 +17,9 @@
 		mapCreateProjectErrors,
 		type CreateProjectFieldErrors
 	} from '$lib/features/projects/validation/createProjectSchema';
+	import { ApiError } from '$lib/api/errors';
 	import type { StoreProjectRequest } from '$lib/api/resources/projects';
 	import type { Repository } from '$lib/features/projects/type';
-	import { mockRepositories } from '$lib/features/projects/mock/mock';
 
 	const wizard = initCreateProjectContext();
 	const createMutation = createProjectMutation();
@@ -37,12 +37,38 @@
 		!installationsQuery.isLoading && (installationsQuery.data?.length ?? 0) > 0
 	);
 
-	const repositories = $derived.by<Repository[]>(() => {
-		if (reposQuery.data && reposQuery.data.length > 0) {
-			return reposQuery.data;
+	const repositories = $derived<Repository[]>(reposQuery.data ?? []);
+
+	const reposErrorMessage = $derived.by(() => {
+		const err = installationsQuery.error || reposQuery.error;
+		if (!err) return null;
+
+		if (err instanceof ApiError) {
+			if (err.status === 409) {
+				return 'Instalasi GitHub sudah tidak aktif. Silakan hubungkan ulang akun GitHub kamu.';
+			}
+			if (err.status === 403) {
+				return 'Kamu tidak memiliki akses ke instalasi GitHub ini.';
+			}
 		}
-		return mockRepositories;
+
+		if (installationsQuery.isError) {
+			return 'Gagal memuat instalasi GitHub. Silakan coba beberapa saat lagi.';
+		}
+		if (reposQuery.isError) {
+			return 'Gagal memuat daftar repository GitHub. Silakan coba beberapa saat lagi.';
+		}
+		return 'Terjadi kesalahan saat memuat repository. Silakan coba lagi.';
 	});
+
+	function handleRetryRepos() {
+		if (installationsQuery.isError) {
+			installationsQuery.refetch();
+		}
+		if (reposQuery.isError) {
+			reposQuery.refetch();
+		}
+	}
 
 	let apiErrors = $state<CreateProjectFieldErrors>({});
 
@@ -95,6 +121,8 @@
 						{repositories}
 						{githubConnected}
 						loading={installationsQuery.isLoading || reposQuery.isLoading}
+						errorMessage={reposErrorMessage}
+						onRetry={handleRetryRepos}
 						onNext={wizard.goToPrepareDeployment}
 						onConnectGithub={handleConnectGithub}
 						onSelectRepository={handleSelectRepository}

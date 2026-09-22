@@ -7,13 +7,15 @@
 	import { searchRepositories } from '../../filters';
 	import type { Repository } from '../../type';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import { GithubLogoIcon, ArrowRightIcon } from 'phosphor-svelte';
+	import { GithubLogoIcon, ArrowRightIcon, WarningCircleIcon } from 'phosphor-svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
 		repositories: Repository[];
 		githubConnected: boolean;
 		loading?: boolean;
+		errorMessage?: string | null;
+		onRetry?: () => void;
 		onNext: () => void;
 		onConnectGithub: () => void;
 		onSelectRepository?: (id: string, repo: Repository) => void;
@@ -23,6 +25,8 @@
 		repositories,
 		githubConnected,
 		loading = false,
+		errorMessage = null,
+		onRetry,
 		onNext,
 		onConnectGithub,
 		onSelectRepository
@@ -98,6 +102,22 @@
 				<p class="text-muted">
 					Tidak ingin menghubungkan akun? <span class="text-primary">Gunakan Public Git URL</span>
 				</p>
+			</div>
+		{:else if errorMessage}
+			<div class="flex flex-col items-center justify-center py-6">
+				<EmptyState
+					icon={WarningCircleIcon}
+					tone="failed"
+					title="Gagal Memuat Repository"
+					description={errorMessage}
+					class="bg-background border-none shadow-none sm:py-4"
+				>
+					{#snippet action()}
+						{#if onRetry}
+							<Button variant="outline" onclick={onRetry}>Coba Lagi</Button>
+						{/if}
+					{/snippet}
+				</EmptyState>
 			</div>
 		{:else}
 			<RepositoryList
