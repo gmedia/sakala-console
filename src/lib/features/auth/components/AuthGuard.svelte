@@ -20,9 +20,9 @@
 
 	$effect(() => {
 		if (currentUser.isError) {
-			clearPendingOAuthProvider();
 			const err = currentUser.error;
 			if (err instanceof ApiError && err.isUnauthenticated) {
+				clearPendingOAuthProvider();
 				const returnTo = encodeURIComponent(page.url.pathname + page.url.search);
 				goto(resolve(`/login?returnTo=${returnTo}` as '/login'), { replaceState: true });
 			}
