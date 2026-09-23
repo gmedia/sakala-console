@@ -18,6 +18,7 @@ export function createProjectWizardState() {
 	let selectedRepositoryId = $state<string | null>(null);
 	let selectedInstallationId = $state<string | null>(null);
 	let customGithubRepository = $state<Repository | null>(null);
+	let validatedGitRepository = $state<Repository | null>(null);
 	let lastAppliedRepoKey: string | null = null;
 	let githubConnected = $state(true);
 	let checkingGithubConnection = $state(true);
@@ -50,6 +51,10 @@ export function createProjectWizardState() {
 
 	const gitUrlRepository = $derived.by<Repository | null>(() => {
 		if (repositorySource !== 'git-url' || !gitUrl) return null;
+
+		if (validatedGitRepository && validatedGitRepository.clone_url === gitUrl.trim()) {
+			return validatedGitRepository;
+		}
 
 		const parsed = parseGitUrl(gitUrl);
 		if (!parsed) return null;
@@ -149,6 +154,9 @@ export function createProjectWizardState() {
 		},
 		set repositorySource(v) {
 			repositorySource = v;
+			if (v === 'github') {
+				validatedGitRepository = null;
+			}
 		},
 		get selectedRepositoryId() {
 			return selectedRepositoryId;
@@ -162,6 +170,9 @@ export function createProjectWizardState() {
 		},
 		set gitUrl(v: string) {
 			gitUrl = v;
+			if (validatedGitRepository && validatedGitRepository.clone_url !== v.trim()) {
+				validatedGitRepository = null;
+			}
 		},
 
 		get selectedBranch() {
@@ -316,8 +327,13 @@ export function createProjectWizardState() {
 		removeEnvVar,
 		toggleEnvVisible,
 
-		confirmGitUrl() {
-			applyRepositoryDefaults(gitUrlRepository);
+		confirmGitUrl(repo?: Repository) {
+			if (repo) {
+				validatedGitRepository = repo;
+				applyRepositoryDefaults(repo);
+			} else {
+				applyRepositoryDefaults(gitUrlRepository);
+			}
 		},
 
 		connectGithub() {

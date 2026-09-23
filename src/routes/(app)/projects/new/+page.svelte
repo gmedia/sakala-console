@@ -8,7 +8,10 @@
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
 	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
-	import { createProjectMutation } from '$lib/features/projects/mutations';
+	import {
+		createProjectMutation,
+		createValidateGithubRepositoryMutation
+	} from '$lib/features/projects/mutations';
 	import {
 		createGithubInstallationsQuery,
 		createInstallationRepositoriesQuery
@@ -23,6 +26,7 @@
 
 	const wizard = initCreateProjectContext();
 	const createMutation = createProjectMutation();
+	const validateMutation = createValidateGithubRepositoryMutation();
 
 	const installationsQuery = createGithubInstallationsQuery();
 	const firstInstallationId = $derived(
@@ -87,6 +91,19 @@
 		window.location.href = '/auth/github/install';
 	}
 
+	async function handleValidateGitUrl(url: string): Promise<Repository> {
+		const result = await validateMutation.mutateAsync(url);
+		return {
+			id: String(result.id),
+			name: result.name,
+			full_name: result.full_name,
+			clone_url: result.clone_url,
+			default_branch: result.default_branch,
+			pushed_at: result.pushed_at,
+			private: result.private
+		};
+	}
+
 	async function handleCreateProject(payload: StoreProjectRequest) {
 		apiErrors = {};
 
@@ -126,6 +143,7 @@
 						onNext={wizard.goToPrepareDeployment}
 						onConnectGithub={handleConnectGithub}
 						onSelectRepository={handleSelectRepository}
+						onValidateGitUrl={handleValidateGitUrl}
 					/>
 				{:else}
 					<ConfigureProjectStep

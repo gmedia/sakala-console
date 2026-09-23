@@ -12,6 +12,7 @@
 		onNext?: () => void;
 		onConnectGithub?: () => void;
 		onSelectRepository?: (id: string, repo: Repository) => void;
+		onValidateGitUrl?: (url: string) => Promise<Repository>;
 	};
 
 	let {
@@ -22,7 +23,8 @@
 		onRetry = () => {},
 		onNext = () => {},
 		onConnectGithub = () => {},
-		onSelectRepository
+		onSelectRepository,
+		onValidateGitUrl
 	}: Props = $props();
 
 	initCreateProjectContext();
@@ -37,4 +39,5 @@
 	{onNext}
 	{onConnectGithub}
 	{onSelectRepository}
+	{onValidateGitUrl}
 />

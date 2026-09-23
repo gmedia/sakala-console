@@ -5,17 +5,19 @@
 	let {
 		value = $bindable(),
 		touched = $bindable(false),
+		apiErrorMessage = null,
 		onValidityChange
 	}: {
 		value: string;
 		touched?: boolean;
+		apiErrorMessage?: string | null;
 		onValidityChange: (isValid: boolean) => void;
 	} = $props();
 
 	const wizard = getCreateProjectContext();
 
 	const validationError = $derived(validateRepositoryUrl(value));
-	const displayError = $derived(touched ? validationError : null);
+	const displayError = $derived((touched ? validationError : null) || apiErrorMessage);
 
 	$effect(() => {
 		onValidityChange?.(validationError === null);
@@ -23,7 +25,9 @@
 
 	function handleBlur() {
 		touched = true;
-		wizard.confirmGitUrl();
+		if (!validationError) {
+			wizard.confirmGitUrl();
+		}
 	}
 </script>
 

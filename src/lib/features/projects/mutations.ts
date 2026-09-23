@@ -7,8 +7,15 @@ import {
 	deleteEnvironmentVariable
 } from './api';
 import { createProject, type StoreProjectRequest } from '$lib/api/resources/projects';
+import { validateGithubRepository } from '$lib/api/resources/github';
 import { projectKeys } from './queries';
 import type { UpdateProjectPayload, Project, Deployment, CreateEnvVarPayload } from './type';
+
+export function createValidateGithubRepositoryMutation() {
+	return createMutation(() => ({
+		mutationFn: (repositoryUrl: string) => validateGithubRepository(repositoryUrl)
+	}));
+}
 
 export function createProjectMutation() {
 	const queryClient = useQueryClient();

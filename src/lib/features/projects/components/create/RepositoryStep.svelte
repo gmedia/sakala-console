@@ -8,7 +8,12 @@
 	import { searchRepositories } from '../../filters';
 	import type { Repository } from '../../type';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import { GithubLogoIcon, ArrowRightIcon, WarningCircleIcon } from 'phosphor-svelte';
+	import {
+		GithubLogoIcon,
+		ArrowRightIcon,
+		WarningCircleIcon,
+		CircleNotchIcon
+	} from 'phosphor-svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
@@ -20,6 +25,7 @@
 		onNext: () => void;
 		onConnectGithub: () => void;
 		onSelectRepository?: (id: string, repo: Repository) => void;
+		onValidateGitUrl?: (url: string) => Promise<Repository>;
 	};
 
 	let {
@@ -30,7 +36,8 @@
 		onRetry,
 		onNext,
 		onConnectGithub,
-		onSelectRepository
+		onSelectRepository,
+		onValidateGitUrl
 	}: Props = $props();
 
 	const wizard = getCreateProjectContext();
@@ -40,21 +47,55 @@
 
 	let isGitUrlValid = $state(false);
 	let gitUrlTouched = $state(false);
+	let gitUrlApiError = $state<string | null>(null);
+	let isValidating = $state(false);
 
 	const isDisabled = $derived(
 		wizard.repositorySource === 'github'
 			? loading || Boolean(errorMessage) || !githubConnected
 				? true
 				: wizard.selectedRepositoryId === null
-			: false
+			: !isGitUrlValid || wizard.gitUrl.trim() === '' || isValidating
 	);
 
-	function handleNext() {
+	async function handleNext() {
 		if (wizard.repositorySource === 'git-url') {
 			if (!isGitUrlValid) {
 				gitUrlTouched = true;
 				return;
 			}
+			gitUrlApiError = null;
+
+			if (onValidateGitUrl) {
+				isValidating = true;
+				try {
+					const validatedRepo = await onValidateGitUrl(wizard.gitUrl.trim());
+					wizard.confirmGitUrl(validatedRepo);
+					onNext();
+				} catch (err: unknown) {
+					gitUrlTouched = true;
+					const anyErr = err as {
+						isValidationError?: boolean;
+						errors?: Record<string, string[]>;
+						message?: string;
+					};
+					if (anyErr?.isValidationError && anyErr?.errors) {
+						gitUrlApiError =
+							anyErr.errors.repository_url?.[0] ||
+							anyErr.message ||
+							'Repository GitHub publik tidak valid atau tidak ditemukan.';
+					} else if (anyErr?.message) {
+						gitUrlApiError = anyErr.message;
+					} else {
+						gitUrlApiError =
+							'Gagal memvalidasi repository GitHub. Silakan periksa kembali URL atau koneksi kamu.';
+					}
+				} finally {
+					isValidating = false;
+				}
+				return;
+			}
+
 			wizard.confirmGitUrl();
 		}
 		onNext();
@@ -73,6 +114,11 @@
 	$effect(() => {
 		void searchQuery;
 		wizard.currentPage = 1;
+	});
+
+	$effect(() => {
+		void wizard.gitUrl;
+		gitUrlApiError = null;
 	});
 </script>
 
@@ -147,6 +193,7 @@
 		<GitUrlForm
 			bind:value={wizard.gitUrl}
 			bind:touched={gitUrlTouched}
+			apiErrorMessage={gitUrlApiError}
 			onValidityChange={(isValid) => (isGitUrlValid = isValid)}
 		/>
 	{/if}
@@ -157,7 +204,12 @@
 		disabled={isDisabled}
 		onclick={handleNext}
 	>
-		Lanjut
-		<ArrowRightIcon class="h-5 w-5" />
+		{#if isValidating}
+			<CircleNotchIcon class="h-5 w-5 animate-spin" />
+			Memvalidasi...
+		{:else}
+			Lanjut
+			<ArrowRightIcon class="h-5 w-5" />
+		{/if}
 	</Button>
 </div>

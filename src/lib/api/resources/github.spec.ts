@@ -3,7 +3,9 @@ import {
 	getGithubInstallations,
 	parseGithubInstallationsResponse,
 	getInstallationRepositories,
-	parseGithubRepositoriesResponse
+	parseGithubRepositoriesResponse,
+	parseGithubRepositoryResponse,
+	validateGithubRepository
 } from './github';
 import { apiRequest } from '../client';
 
@@ -84,5 +86,46 @@ describe('github resource', () => {
 			'/api/v1/app/github/installations/inst-uuid-1/repositories',
 			{ params: { page: 2, per_page: 10 } }
 		);
+	});
+
+	it('berhasil mem-parse single repository dari validate endpoint', () => {
+		const raw = {
+			data: {
+				id: '12345',
+				name: 'my-public-repo',
+				full_name: 'octocat/my-public-repo',
+				clone_url: 'https://github.com/octocat/my-public-repo.git',
+				default_branch: 'develop',
+				pushed_at: '2026-03-01T00:00:00Z',
+				private: false
+			}
+		};
+
+		const result = parseGithubRepositoryResponse(raw);
+		expect(result.id).toBe('12345');
+		expect(result.name).toBe('my-public-repo');
+		expect(result.default_branch).toBe('develop');
+	});
+
+	it('berhasil memanggil validateGithubRepository dengan body JSON', async () => {
+		vi.mocked(apiRequest).mockResolvedValueOnce({
+			data: {
+				id: '999',
+				name: 'demo',
+				full_name: 'owner/demo',
+				clone_url: 'https://github.com/owner/demo.git',
+				default_branch: 'main',
+				pushed_at: '2026-03-01T00:00:00Z',
+				private: false
+			}
+		});
+
+		const result = await validateGithubRepository('https://github.com/owner/demo');
+		expect(apiRequest).toHaveBeenCalledWith('/api/v1/app/github/repositories/validate', {
+			method: 'POST',
+			body: JSON.stringify({ repository_url: 'https://github.com/owner/demo' })
+		});
+		expect(result.id).toBe('999');
+		expect(result.full_name).toBe('owner/demo');
 	});
 });

@@ -113,4 +113,92 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		const repoName = page.getByText('real-api-repo');
 		await expect.element(repoName).toBeVisible();
 	});
+
+	it('pada tab Public Git URL, tombol Lanjut disabled saat input kosong atau URL tidak valid', async () => {
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await expect.element(nextBtn).toBeDisabled();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('http://app.sakala.test:5173/projects/123');
+		input.element().dispatchEvent(new Event('blur'));
+
+		await expect.element(nextBtn).toBeDisabled();
+		const errorText = page.getByText(/URL harus berupa repository GitHub publik/i);
+		await expect.element(errorText).toBeVisible();
+
+		await input.fill('https://github.com/my-org/my-project');
+		await expect.element(nextBtn).toBeEnabled();
+	});
+
+	it('pada tab Public Git URL, menampilkan error API jika validasi backend gagal dan tidak memanggil onNext', async () => {
+		const onNext = vi.fn();
+		const onValidateGitUrl = vi.fn().mockRejectedValue({
+			isValidationError: true,
+			errors: {
+				repository_url: ['Repository GitHub tidak ditemukan atau bersifat private.']
+			}
+		});
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/my-org/private-repo');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await expect.element(nextBtn).toBeEnabled();
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/my-org/private-repo');
+		const errorMsg = page.getByText('Repository GitHub tidak ditemukan atau bersifat private.');
+		await expect.element(errorMsg).toBeVisible();
+		expect(onNext).not.toHaveBeenCalled();
+	});
+
+	it('pada tab Public Git URL, berhasil validasi memanggil onNext', async () => {
+		const onNext = vi.fn();
+		const onValidateGitUrl = vi.fn().mockResolvedValue({
+			id: '999',
+			name: 'valid-repo',
+			full_name: 'org/valid-repo',
+			clone_url: 'https://github.com/org/valid-repo.git',
+			default_branch: 'main',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/org/valid-repo');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/valid-repo');
+		expect(onNext).toHaveBeenCalledOnce();
+	});
 });
