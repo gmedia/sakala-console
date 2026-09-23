@@ -74,7 +74,7 @@ export function parseGithubRepositoryResponse(response: unknown): GithubReposito
 export async function validateGithubRepository(repositoryUrl: string): Promise<GithubRepository> {
 	const response = await apiRequest<unknown>('/api/v1/app/github/repositories/validate', {
 		method: 'POST',
-		body: JSON.stringify({ repository_url: repositoryUrl })
+		json: { repository_url: repositoryUrl }
 	});
 	return parseGithubRepositoryResponse(response);
 }

@@ -107,7 +107,7 @@ describe('github resource', () => {
 		expect(result.default_branch).toBe('develop');
 	});
 
-	it('berhasil memanggil validateGithubRepository dengan body JSON', async () => {
+	it('berhasil memanggil validateGithubRepository dengan option json', async () => {
 		vi.mocked(apiRequest).mockResolvedValueOnce({
 			data: {
 				id: '999',
@@ -123,7 +123,7 @@ describe('github resource', () => {
 		const result = await validateGithubRepository('https://github.com/owner/demo');
 		expect(apiRequest).toHaveBeenCalledWith('/api/v1/app/github/repositories/validate', {
 			method: 'POST',
-			body: JSON.stringify({ repository_url: 'https://github.com/owner/demo' })
+			json: { repository_url: 'https://github.com/owner/demo' }
 		});
 		expect(result.id).toBe('999');
 		expect(result.full_name).toBe('owner/demo');
