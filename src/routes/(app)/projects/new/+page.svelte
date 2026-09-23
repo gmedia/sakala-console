@@ -1,92 +1,140 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import CreateProjectStepper from '$lib/features/projects/components/create/CreateProjectStepper.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import RepositoryStep from '$lib/features/projects/components/create/RepositoryStep.svelte';
-	import AutoDetectStep from '$lib/features/projects/components/create/AutoDetectStep.svelte';
-	import DeployStep from '$lib/features/projects/components/create/DeployStep.svelte';
 	import ConfigureProjectStep from '$lib/features/projects/components/create/ConfigureProjectStep.svelte';
-	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import CancelCreatePorjectAction from '$lib/features/projects/components/create/CancelCreatePorjectAction.svelte';
-	import type { CreateProjectPayload } from '$lib/features/projects/type';
-	import { detectProjectConfig } from '$lib/features/projects/mock/mockDetectConfig';
-	import { mockCreateProject } from '$lib/features/projects/mock/mockCreateProject';
-	import { mockRepositories } from '$lib/features/projects/mock/mock';
+	import { initCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import { createProjectMutation } from '$lib/features/projects/mutations';
+	import {
+		createGithubInstallationsQuery,
+		createInstallationRepositoriesQuery
+	} from '$lib/features/projects/githubQueries';
+	import {
+		mapCreateProjectErrors,
+		type CreateProjectFieldErrors
+	} from '$lib/features/projects/validation/createProjectSchema';
+	import { ApiError } from '$lib/api/errors';
+	import type { StoreProjectRequest } from '$lib/api/resources/projects';
+	import type { Repository } from '$lib/features/projects/type';
 
 	const wizard = initCreateProjectContext();
+	const createMutation = createProjectMutation();
 
-	let isSubmitting = $state(false);
-	let submitError = $state<string | null>(null);
+	const installationsQuery = createGithubInstallationsQuery();
+	const firstInstallationId = $derived(
+		installationsQuery.data && installationsQuery.data.length > 0
+			? installationsQuery.data[0].id
+			: null
+	);
+
+	const reposQuery = createInstallationRepositoriesQuery(() => firstInstallationId);
+
+	const githubConnected = $derived(
+		!installationsQuery.isLoading && (installationsQuery.data?.length ?? 0) > 0
+	);
+
+	const repositories = $derived<Repository[]>(reposQuery.data ?? []);
+
+	const reposErrorMessage = $derived.by(() => {
+		const err = installationsQuery.error || reposQuery.error;
+		if (!err) return null;
+
+		if (err instanceof ApiError) {
+			if (err.status === 409) {
+				return 'Instalasi GitHub sudah tidak aktif. Silakan hubungkan ulang akun GitHub kamu.';
+			}
+			if (err.status === 403) {
+				return 'Kamu tidak memiliki akses ke instalasi GitHub ini.';
+			}
+		}
+
+		if (installationsQuery.isError) {
+			return 'Gagal memuat instalasi GitHub. Silakan coba beberapa saat lagi.';
+		}
+		if (reposQuery.isError) {
+			return 'Gagal memuat daftar repository GitHub. Silakan coba beberapa saat lagi.';
+		}
+		return 'Terjadi kesalahan saat memuat repository. Silakan coba lagi.';
+	});
+
+	function handleRetryRepos() {
+		if (installationsQuery.isError) {
+			installationsQuery.refetch();
+		}
+		if (reposQuery.isError) {
+			reposQuery.refetch();
+		}
+	}
+
+	let apiErrors = $state<CreateProjectFieldErrors>({});
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
 		{ label: 'Projects' },
 		{ label: 'New Project', current: true }
 	];
 
-	async function handleCreateProject(payload: CreateProjectPayload) {
-		isSubmitting = true;
-		submitError = null;
+	function handleSelectRepository(_id: string, repo: Repository) {
+		if (firstInstallationId) {
+			wizard.selectGithubRepository(firstInstallationId, repo);
+		}
+	}
+
+	function handleConnectGithub() {
+		window.location.href = '/auth/github/install';
+	}
+
+	async function handleCreateProject(payload: StoreProjectRequest) {
+		apiErrors = {};
 
 		try {
-			const result = await mockCreateProject(payload);
-			wizard.goToAutoDetect(result);
-			await runScan();
+			const project = await createMutation.mutateAsync(payload);
+			await goto(resolve(`/projects/${project.id}`));
 		} catch (err) {
-			submitError = err instanceof Error ? err.message : 'Gagal membuat proyek';
-		} finally {
-			isSubmitting = false;
+			apiErrors = mapCreateProjectErrors(err);
 		}
 	}
 
-	async function runScan() {
-		wizard.startScan();
-
-		try {
-			const result = await detectProjectConfig(
-				wizard.selectedRepository,
-				wizard.selectedBranch,
-				wizard.selectedPort,
-				undefined,
-				wizard.scanAttempt
-			);
-			wizard.selectedPort = result.detectedPort ?? '';
-			wizard.completeScan(result.hasDockerfile);
-		} catch {
-			wizard.failScan();
-		}
-	}
+	const currentStep = $derived(wizard.repositorySubstep === 'select-repository' ? 1 : 2);
 </script>
 
-<svelte:head><title>Project Baru | Sakala Console</title></svelte:head>
+<svelte:head>
+	<title>Project Baru | Sakala Console</title>
+</svelte:head>
 
 <div class="flex flex-col items-center justify-center">
 	<div class="flex w-full justify-between items-center">
 		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-montserrat-semibold" />
 		<CancelCreatePorjectAction />
 	</div>
+
 	<div class="max-w-2xl w-full">
-		<CreateProjectStepper currentStep={wizard.currentStep} />
+		<CreateProjectStepper {currentStep} />
+
 		<div class="flex flex-col gap-2 mt-4 mx-2">
 			{#if wizard.currentStep === 1}
 				{#if wizard.repositorySubstep === 'select-repository'}
 					<RepositoryStep
-						repositories={mockRepositories}
-						githubConnected={wizard.githubConnected}
+						{repositories}
+						{githubConnected}
+						loading={installationsQuery.isLoading || reposQuery.isLoading}
+						errorMessage={reposErrorMessage}
+						onRetry={handleRetryRepos}
 						onNext={wizard.goToPrepareDeployment}
-						onConnectGithub={wizard.connectGithub}
+						onConnectGithub={handleConnectGithub}
+						onSelectRepository={handleSelectRepository}
 					/>
 				{:else}
 					<ConfigureProjectStep
 						onSubmit={handleCreateProject}
 						onRepositoryChange={wizard.backToSelectRepository}
-						{isSubmitting}
-						error={submitError}
+						isSubmitting={createMutation.isPending}
+						{apiErrors}
 					/>
 				{/if}
-			{:else if wizard.currentStep === 2}
-				<AutoDetectStep onNext={wizard.goToDeploy} onRetryScan={runScan} />
-			{:else if wizard.currentStep === 3}
-				<DeployStep />
 			{/if}
 		</div>
 	</div>

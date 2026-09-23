@@ -159,3 +159,91 @@ describe('getListProjects', () => {
 		await expect(getListProjects({})).rejects.toThrow('Network Error');
 	});
 });
+
+describe('createProject & parseCreateProjectResponse', () => {
+	const validCreateResponse = {
+		data: {
+			id: 'proj_new_123',
+			name: 'my-awesome-app',
+			repository_full_name: 'user/my-awesome-app',
+			repository_source: 'github_installation' as const,
+			github_installation_id: 'inst_abc',
+			github_repository_id: 12345,
+			branch: 'main',
+			runtime_status: 'not_deployed',
+			preview_status: 'succeeded',
+			created_at: '2026-09-22T10:00:00Z'
+		}
+	};
+
+	it('berhasil mem-parse response create project yang valid', async () => {
+		const { parseCreateProjectResponse } = await import('./projects');
+		const parsed = parseCreateProjectResponse(validCreateResponse);
+
+		expect(parsed.id).toBe('proj_new_123');
+		expect(parsed.name).toBe('my-awesome-app');
+		expect(parsed.repository_source).toBe('github_installation');
+		expect(parsed.github_repository_id).toBe(12345);
+	});
+
+	it('berhasil mem-parse response untuk public_url dengan github fields null', async () => {
+		const { parseCreateProjectResponse } = await import('./projects');
+		const publicResponse = {
+			data: {
+				id: 'proj_public_456',
+				name: 'public-demo',
+				repository_full_name: 'owner/public-demo',
+				repository_source: 'public_url' as const,
+				github_installation_id: null,
+				github_repository_id: null,
+				branch: 'develop',
+				runtime_status: 'not_deployed',
+				created_at: '2026-09-22T10:00:00Z'
+			}
+		};
+
+		const parsed = parseCreateProjectResponse(publicResponse);
+		expect(parsed.id).toBe('proj_public_456');
+		expect(parsed.repository_source).toBe('public_url');
+		expect(parsed.github_installation_id).toBeNull();
+	});
+
+	it('memanggil apiRequest dengan method POST, URL /api/v1/app/projects, dan payload yang tepat', async () => {
+		const { createProject } = await import('./projects');
+		vi.mocked(apiRequest).mockResolvedValueOnce(validCreateResponse);
+
+		const payload = {
+			name: 'my-awesome-app',
+			branch: 'main',
+			repository: {
+				type: 'github_installation' as const,
+				installation_id: 'inst_abc',
+				repository_id: 12345
+			}
+		};
+
+		const result = await createProject(payload);
+
+		expect(apiRequest).toHaveBeenCalledWith('/api/v1/app/projects', {
+			method: 'POST',
+			json: payload
+		});
+		expect(result.id).toBe('proj_new_123');
+	});
+
+	it('melempar error jika response tidak valid', async () => {
+		const { createProject } = await import('./projects');
+		vi.mocked(apiRequest).mockResolvedValueOnce({ data: { invalid: true } });
+
+		await expect(
+			createProject({
+				name: 'fail-app',
+				branch: 'main',
+				repository: {
+					type: 'public_url',
+					url: 'https://github.com/fail/app'
+				}
+			})
+		).rejects.toThrow();
+	});
+});

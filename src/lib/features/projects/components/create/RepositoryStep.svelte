@@ -2,22 +2,36 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import RepositoryList from '../repository/RepositoryList.svelte';
+	import RepositoryListSkeleton from '../repository/RepositoryListSkeleton.svelte';
 	import RepositorySourceTab from '../repository/RepositorySourceTab.svelte';
 	import GitUrlForm from '../repository/GitUrlForm.svelte';
 	import { searchRepositories } from '../../filters';
 	import type { Repository } from '../../type';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import { GithubLogoIcon, ArrowRightIcon } from 'phosphor-svelte';
+	import { GithubLogoIcon, ArrowRightIcon, WarningCircleIcon } from 'phosphor-svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
 		repositories: Repository[];
 		githubConnected: boolean;
+		loading?: boolean;
+		errorMessage?: string | null;
+		onRetry?: () => void;
 		onNext: () => void;
 		onConnectGithub: () => void;
+		onSelectRepository?: (id: string, repo: Repository) => void;
 	};
 
-	let { repositories, githubConnected, onNext, onConnectGithub }: Props = $props();
+	let {
+		repositories,
+		githubConnected,
+		loading = false,
+		errorMessage = null,
+		onRetry,
+		onNext,
+		onConnectGithub,
+		onSelectRepository
+	}: Props = $props();
 
 	const wizard = getCreateProjectContext();
 
@@ -29,9 +43,9 @@
 
 	const isDisabled = $derived(
 		wizard.repositorySource === 'github'
-			? githubConnected
-				? wizard.selectedRepositoryId === null
-				: true
+			? loading || Boolean(errorMessage) || !githubConnected
+				? true
+				: wizard.selectedRepositoryId === null
 			: false
 	);
 
@@ -71,8 +85,29 @@
 	<RepositorySourceTab bind:value={wizard.repositorySource} />
 
 	{#if wizard.repositorySource === 'github'}
-		<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
-		{#if !githubConnected}
+		{#if loading}
+			<div class="flex flex-col overflow-hidden rounded-xl border border-muted/40">
+				{#each [0, 1, 2, 3, 4] as index (index)}
+					<RepositoryListSkeleton />
+				{/each}
+			</div>
+		{:else if errorMessage}
+			<div class="flex flex-col items-center justify-center py-6">
+				<EmptyState
+					icon={WarningCircleIcon}
+					tone="failed"
+					title="Gagal Memuat Repository"
+					description={errorMessage}
+					class="bg-background border-none shadow-none sm:py-4"
+				>
+					{#snippet action()}
+						{#if onRetry}
+							<Button variant="outline" onclick={onRetry}>Coba Lagi</Button>
+						{/if}
+					{/snippet}
+				</EmptyState>
+			</div>
+		{:else if !githubConnected}
 			<div class="flex flex-col items-center justify-center pb-6 border-b border-muted">
 				<EmptyState
 					icon={GithubLogoIcon}
@@ -91,12 +126,17 @@
 				</p>
 			</div>
 		{:else}
+			<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
 			<RepositoryList
 				repositories={filteredRepositories}
 				loading={false}
 				selectedId={wizard.selectedRepositoryId}
 				onSelect={(id) => {
 					wizard.selectedRepositoryId = id;
+					const found = repositories.find((r) => String(r.id) === String(id));
+					if (found && onSelectRepository) {
+						onSelectRepository(id, found);
+					}
 				}}
 				currentPage={wizard.currentPage}
 				perPage={wizard.perPage}
