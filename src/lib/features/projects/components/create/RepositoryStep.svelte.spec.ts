@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import RepositoryStepTestHost from './RepositoryStepTestHost.svelte';
 import type { Repository } from '../../type';
+import type { ProjectWizardState } from '../../create/createProjectState.svelte';
 
 const mockRepo1: Repository = {
 	id: '101',
@@ -200,5 +201,51 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 
 		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/valid-repo');
 		expect(onNext).toHaveBeenCalledOnce();
+	});
+
+	it('pada tab Public Git URL, menerapkan default_branch selain main dari backend meskipun input sempat blur sebelum validasi', async () => {
+		const onNext = vi.fn();
+		let wizardInstance: ProjectWizardState | undefined;
+		const onValidateGitUrl = vi.fn().mockResolvedValue({
+			id: '888',
+			name: 'production-repo',
+			full_name: 'org/production-repo',
+			clone_url: 'https://github.com/org/production-repo.git',
+			default_branch: 'production',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl,
+			onReady: (w) => {
+				wizardInstance = w;
+			}
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/org/production-repo');
+
+		// Simulasikan blur sebelum user mengklik tombol Lanjut
+		input.element().dispatchEvent(new Event('blur'));
+
+		// Pastikan saat blur belum menerapkan fallback default branch
+		expect(wizardInstance?.selectedBranch).toBe('');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/production-repo');
+		expect(onNext).toHaveBeenCalledOnce();
+
+		// Metadata authoritative dari backend harus diterapkan, bukan fallback main
+		expect(wizardInstance?.selectedBranch).toBe('production');
+		expect(wizardInstance?.projectName).toBe('production-repo');
 	});
 });

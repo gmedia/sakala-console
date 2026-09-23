@@ -75,7 +75,7 @@ export function createProjectWizardState() {
 	);
 
 	function repoKey(repo: Repository | null): string | null {
-		return repo?.full_name ?? null;
+		return repo ? `${repo.full_name}#${repo.default_branch}` : null;
 	}
 
 	function resolveRepository(id: string | null): Repository | null {
