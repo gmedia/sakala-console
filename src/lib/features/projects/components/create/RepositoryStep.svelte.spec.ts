@@ -56,6 +56,54 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		await expect.element(mockTitle1).not.toBeInTheDocument();
 	});
 
+	it('menampilkan error state dan bukan disconnected state saat githubConnected bernilai false tetapi errorMessage terisi', async () => {
+		const onRetry = vi.fn();
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: false,
+			errorMessage: 'Gagal memuat instalasi GitHub. Silakan coba beberapa saat lagi.',
+			onRetry
+		});
+
+		const errorTitle = page.getByText('Gagal Memuat Repository');
+		await expect.element(errorTitle).toBeVisible();
+
+		const errorDesc = page.getByText(/Gagal memuat instalasi GitHub/i);
+		await expect.element(errorDesc).toBeVisible();
+
+		const retryBtn = page.getByRole('button', { name: /coba lagi/i });
+		await expect.element(retryBtn).toBeVisible();
+		await retryBtn.click();
+		expect(onRetry).toHaveBeenCalledOnce();
+
+		// Pastikan state disconnected tidak menutupi error
+		const disconnectedTitle = page.getByText('Belum ada akun GitHub yang terhubung');
+		await expect.element(disconnectedTitle).not.toBeInTheDocument();
+	});
+
+	it('tidak menampilkan disconnected state saat loading masih true', async () => {
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: false,
+			loading: true
+		});
+
+		const disconnectedTitle = page.getByText('Belum ada akun GitHub yang terhubung');
+		await expect.element(disconnectedTitle).not.toBeInTheDocument();
+	});
+
+	it('menampilkan disconnected state saat tidak loading, tidak error, dan githubConnected bernilai false', async () => {
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: false,
+			loading: false,
+			errorMessage: null
+		});
+
+		const disconnectedTitle = page.getByText('Belum ada akun GitHub yang terhubung');
+		await expect.element(disconnectedTitle).toBeVisible();
+	});
+
 	it('menampilkan list repository asli yang diterima dari API', async () => {
 		await render(RepositoryStepTestHost, {
 			repositories: [mockRepo1],

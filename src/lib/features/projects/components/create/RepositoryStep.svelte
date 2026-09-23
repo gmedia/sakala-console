@@ -2,6 +2,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import RepositoryList from '../repository/RepositoryList.svelte';
+	import RepositoryListSkeleton from '../repository/RepositoryListSkeleton.svelte';
 	import RepositorySourceTab from '../repository/RepositorySourceTab.svelte';
 	import GitUrlForm from '../repository/GitUrlForm.svelte';
 	import { searchRepositories } from '../../filters';
@@ -42,9 +43,9 @@
 
 	const isDisabled = $derived(
 		wizard.repositorySource === 'github'
-			? githubConnected
-				? wizard.selectedRepositoryId === null
-				: true
+			? loading || Boolean(errorMessage) || !githubConnected
+				? true
+				: wizard.selectedRepositoryId === null
 			: false
 	);
 
@@ -84,24 +85,11 @@
 	<RepositorySourceTab bind:value={wizard.repositorySource} />
 
 	{#if wizard.repositorySource === 'github'}
-		<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
-		{#if !githubConnected}
-			<div class="flex flex-col items-center justify-center pb-6 border-b border-muted">
-				<EmptyState
-					icon={GithubLogoIcon}
-					class="bg-background border-none shadow-none sm:py-4"
-					title="Belum ada akun GitHub yang terhubung"
-					description="Hubungkan akun GitHub kamu supaya Sakala bisa menampilkan repository yang bisa kamu deploy."
-				/>
-				<Button class="max-w-max p-3 inline-flex" onclick={onConnectGithub}>
-					<GithubLogoIcon class="w-6 h-6" />
-					Hubungkan GitHub
-				</Button>
-			</div>
-			<div class="text-center">
-				<p class="text-muted">
-					Tidak ingin menghubungkan akun? <span class="text-primary">Gunakan Public Git URL</span>
-				</p>
+		{#if loading}
+			<div class="flex flex-col overflow-hidden rounded-xl border border-muted/40">
+				{#each [0, 1, 2, 3, 4] as index (index)}
+					<RepositoryListSkeleton />
+				{/each}
 			</div>
 		{:else if errorMessage}
 			<div class="flex flex-col items-center justify-center py-6">
@@ -119,10 +107,29 @@
 					{/snippet}
 				</EmptyState>
 			</div>
+		{:else if !githubConnected}
+			<div class="flex flex-col items-center justify-center pb-6 border-b border-muted">
+				<EmptyState
+					icon={GithubLogoIcon}
+					class="bg-background border-none shadow-none sm:py-4"
+					title="Belum ada akun GitHub yang terhubung"
+					description="Hubungkan akun GitHub kamu supaya Sakala bisa menampilkan repository yang bisa kamu deploy."
+				/>
+				<Button class="max-w-max p-3 inline-flex" onclick={onConnectGithub}>
+					<GithubLogoIcon class="w-6 h-6" />
+					Hubungkan GitHub
+				</Button>
+			</div>
+			<div class="text-center">
+				<p class="text-muted">
+					Tidak ingin menghubungkan akun? <span class="text-primary">Gunakan Public Git URL</span>
+				</p>
+			</div>
 		{:else}
+			<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
 			<RepositoryList
 				repositories={filteredRepositories}
-				{loading}
+				loading={false}
 				selectedId={wizard.selectedRepositoryId}
 				onSelect={(id) => {
 					wizard.selectedRepositoryId = id;
