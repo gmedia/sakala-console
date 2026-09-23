@@ -54,6 +54,8 @@ export interface StatusDisplayInput {
 	currentStepLabel?: string;
 	durationLabel?: string;
 	failedStepLabel?: string;
+	failureSummary?: string;
+	recoveryHint?: string;
 }
 
 export interface TimelineItemDisplayInput {
@@ -136,12 +138,14 @@ export function getStatusDisplay({
 	status,
 	currentStepLabel,
 	durationLabel,
-	failedStepLabel
+	failedStepLabel,
+	failureSummary,
+	recoveryHint
 }: StatusDisplayInput) {
 	const messages = {
 		running: {
 			title: 'Deployment sedang berjalan',
-			desc: `Tahap: ${currentStepLabel ?? '-'}, perkiraan selesai dalam beberapa detik`
+			desc: `Tahap: ${currentStepLabel ?? '-'}. Kamu dapat meninggalkan halaman ini dan kembali lagi nanti untuk melihat progresnya.`
 		},
 		success: {
 			title: 'Deployment berhasil',
@@ -149,12 +153,15 @@ export function getStatusDisplay({
 		},
 		failed: {
 			title: 'Deployment gagal',
-			desc: `Berhenti di tahap ${failedStepLabel ?? '-'}, lihat log di bawah untuk detail error`
+			desc:
+				failureSummary ??
+				`Deployment berhenti di tahap ${failedStepLabel ?? '-'}. Periksa detail error untuk mengetahui langkah perbaikannya.`
 		}
 	} as const;
 
 	return {
 		...messages[status],
+		recoveryHint: status === 'failed' ? recoveryHint : undefined,
 		bannerBgClass: bannerBgMap[status],
 		iconColorClass: bannerIconColorMap[status]
 	};
@@ -188,5 +195,19 @@ export function deriveBannerState(
 				status,
 				currentStepLabel: getDeploymentStageLabel(progress.stage)
 			};
+	}
+}
+
+export function getBannerStatusFromDeploymentStatus(status: string): BannerStatus {
+	switch (status) {
+		case 'succeeded':
+			return 'success';
+
+		case 'failed':
+		case 'cancelled':
+			return 'failed';
+
+		default:
+			return 'running';
 	}
 }

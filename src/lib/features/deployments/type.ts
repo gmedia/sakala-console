@@ -34,6 +34,8 @@ export const DEPLOYMENT_PIPELINE_STAGES = [
 	'HealthChecking'
 ] as const satisfies readonly DeploymentStage[];
 
+export type DeploymentPipelineStage = (typeof DEPLOYMENT_PIPELINE_STAGES)[number];
+
 export type DeploymentStep = {
 	key: string;
 	title: string;
@@ -44,6 +46,7 @@ export type DeploymentStep = {
 export type DeploymentEventLevel = 'info' | 'warning' | 'error';
 
 export type DeploymentEventType =
+	| 'deployment.queued'
 	| 'deployment.cloning'
 	| 'deployment.analyzing'
 	| 'deployment.building'
@@ -51,9 +54,10 @@ export type DeploymentEventType =
 	| 'deployment.routing'
 	| 'deployment.health_checking'
 	| 'deployment.succeeded'
-	| 'deployment.failed';
+	| 'deployment.failed'
+	| 'deployment.cancelled';
 
-export type DeploymentEvent = {
+export type MockDeploymentEvent = {
 	sequence: number;
 	level: DeploymentEventLevel;
 	type: DeploymentEventType;

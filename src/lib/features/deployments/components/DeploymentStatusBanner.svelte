@@ -8,9 +8,18 @@
 		currentStepLabel?: string;
 		durationLabel?: string;
 		failedStepLabel?: string;
+		failureSummary?: string;
+		recoveryHint?: string;
 	};
 
-	let { status, currentStepLabel, durationLabel, failedStepLabel }: Props = $props();
+	let {
+		status,
+		currentStepLabel,
+		durationLabel,
+		failedStepLabel,
+		failureSummary,
+		recoveryHint
+	}: Props = $props();
 
 	let display = $derived(
 		getStatusDisplay({ status, currentStepLabel, durationLabel, failedStepLabel })
@@ -26,7 +35,7 @@
 	);
 </script>
 
-<div class="rounded-lg p-4 mt-2 flex items-center gap-3 font-montserrat {display.bannerBgClass}">
+<div class="rounded-lg p-4 mt-2 flex items-start gap-3 font-montserrat {display.bannerBgClass}">
 	<StatusIndicator
 		{status}
 		size="xl"
@@ -34,8 +43,20 @@
 		colorClassOverride={display.iconColorClass}
 		animateIcon
 	/>
-	<div>
+	<div class="flex-1 min-w-0">
 		<h2 class="font-semibold">{display.title}</h2>
 		<p class="text-sm font-normal {descColorClass}">{display.desc}</p>
+
+		{#if status === 'failed' && failureSummary}
+			<p class="text-sm {descColorClass} mt-1">
+				{failureSummary}
+			</p>
+		{/if}
+
+		{#if status === 'failed' && recoveryHint}
+			<p class="text-sm {descColorClass} mt-1">
+				{recoveryHint}
+			</p>
+		{/if}
 	</div>
 </div>

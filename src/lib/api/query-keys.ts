@@ -14,7 +14,10 @@ export const queryKeys = {
 	},
 	deployments: {
 		all: ['deployments'] as const,
-		detail: (deploymentId: string) => ['deployments', 'detail', deploymentId] as const,
+		detail: (projectId: string, deploymentId: string) =>
+			[...queryKeys.deployments.all, 'detail', projectId, deploymentId] as const,
+		events: (projectId: string, deploymentId: string) =>
+			[...queryKeys.deployments.all, 'events', projectId, deploymentId] as const,
 		logs: (deploymentId: string) => ['deployments', 'logs', deploymentId] as const
 	},
 	notifications: {

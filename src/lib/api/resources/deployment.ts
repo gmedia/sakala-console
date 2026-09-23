@@ -1,0 +1,107 @@
+import { z } from 'zod';
+import { apiRequest } from '../client';
+import type { components, operations } from '../generated/schema';
+
+export type GeneratedDeployment = components['schemas']['DeploymentResource'];
+export type Deployment = GeneratedDeployment;
+
+export type GeneratedDeploymentEvent = components['schemas']['DeploymentEventResource'];
+export type DeploymentEvent = GeneratedDeploymentEvent;
+
+type DeploymentResponse =
+	operations['projects.deployments.show']['responses'][200]['content']['application/json'];
+export type DeploymentEventsResponse =
+	operations['deployment.events']['responses'][200]['content']['application/json'];
+
+const deploymentFailureSchema = z.object({
+	code: z.string(),
+	category: z.string(),
+	summary: z.string(),
+	recovery_hint: z.string()
+});
+
+const deploymentSchema = z.object({
+	id: z.string(),
+	project_id: z.string(),
+	sequence: z.number(),
+	branch: z.string(),
+	status: z.string(),
+	trigger: z.string(),
+	commit_sha: z.string().nullable(),
+	commit_message: z.string().nullable(),
+	image_reference: z.string().nullable(),
+	requested_resources: z.array(z.unknown()).nullable(),
+	effective_resources: z.array(z.unknown()).nullable(),
+	started_at: z.string(),
+	finished_at: z.string().nullable(),
+	cancelled_at: z.string().nullable(),
+	failure_code: z.string().nullable(),
+	failure_summary: z.string().nullable(),
+	failure: deploymentFailureSchema.nullable(),
+	created_at: z.string().nullable(),
+	updated_at: z.string().nullable()
+}) satisfies z.ZodType<Deployment>;
+
+const deploymentEventSchema = z.object({
+	sequence: z.number(),
+	level: z.enum(['info', 'warning', 'error']),
+	type: z.string().nullable(),
+	message: z.string(),
+	metadata: z.array(z.unknown()).nullable(),
+	occurred_at: z.string()
+}) satisfies z.ZodType<DeploymentEvent>;
+
+const deploymentResponseSchema = z.object({
+	data: deploymentSchema
+}) satisfies z.ZodType<DeploymentResponse>;
+
+const deploymentEventsResponseSchema = z.object({
+	data: z.array(deploymentEventSchema),
+	links: z.object({
+		first: z.string().nullable(),
+		last: z.string().nullable(),
+		prev: z.string().nullable(),
+		next: z.string().nullable()
+	}),
+	meta: z.object({
+		path: z.string().nullable(),
+		per_page: z.number(),
+		next_cursor: z.string().nullable(),
+		prev_cursor: z.string().nullable()
+	})
+}) satisfies z.ZodType<DeploymentEventsResponse>;
+
+export async function getDeployment(
+	project: string,
+	deployment: string
+): Promise<DeploymentResponse> {
+	const response = await apiRequest<unknown>(
+		`api/v1/app/projects/${project}/deployments/${deployment}`
+	);
+
+	return parseDeploymentResponse(response);
+}
+
+export async function getDeploymentEvents(
+	project: string,
+	deployment: string,
+	params?: {
+		cursor?: string;
+		per_page?: number;
+	}
+): Promise<DeploymentEventsResponse> {
+	const response = await apiRequest<unknown>(
+		`api/v1/app/projects/${project}/deployments/${deployment}/events`,
+		{ params }
+	);
+
+	return parseDeploymentEventsResponse(response);
+}
+
+export function parseDeploymentResponse(response: unknown): DeploymentResponse {
+	return deploymentResponseSchema.parse(response);
+}
+
+export function parseDeploymentEventsResponse(response: unknown): DeploymentEventsResponse {
+	return deploymentEventsResponseSchema.parse(response);
+}

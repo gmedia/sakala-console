@@ -7,13 +7,15 @@
 		branch,
 		trigger,
 		status,
-		timestamp
+		timestamp,
+		lastUpdate
 	}: {
 		commitSha: string;
 		branch: string;
 		trigger: string;
 		status: BannerStatus;
 		timestamp: string;
+		lastUpdate: string;
 	} = $props();
 
 	let shortHash = $derived(commitSha.slice(0, 7));
@@ -28,4 +30,5 @@
 	<InfoItem label="Branch" value={branch} />
 	<InfoItem label="Trigger" value={trigger} />
 	<InfoItem label={timeLabel} value={timestamp} />
+	<InfoItem label="Update terakhir" value={lastUpdate} />
 </div>

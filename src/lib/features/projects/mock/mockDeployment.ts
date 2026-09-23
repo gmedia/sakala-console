@@ -1,7 +1,7 @@
 import type {
 	BackendLogLine,
 	DeployLogLine,
-	DeploymentEvent,
+	MockDeploymentEvent,
 	DeploymentEventType,
 	DeploymentProgress,
 	DeploymentStage,
@@ -47,7 +47,7 @@ function buildStep(
 	return { key: step.key, title: step.title, status, timestamp };
 }
 
-export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep[] {
+export function deriveStepsFromEvents(events: MockDeploymentEvent[]): DeploymentStep[] {
 	let currentStepIndex = -1;
 	let finalStatus: 'success' | 'failed' | null = null;
 	const stepTimestamps: (string | undefined)[] = new Array(STEP_ORDER.length).fill(undefined);
@@ -76,12 +76,12 @@ export function deriveStepsFromEvents(events: DeploymentEvent[]): DeploymentStep
 	});
 }
 
-function deriveErrorMessage(events: DeploymentEvent[]): string | undefined {
+function deriveErrorMessage(events: MockDeploymentEvent[]): string | undefined {
 	const failedEvent = events.find((e) => e.type === 'deployment.failed');
 	return failedEvent?.message;
 }
 
-const successEvents: DeploymentEvent[] = [
+const successEvents: MockDeploymentEvent[] = [
 	{
 		sequence: 1,
 		level: 'info',
@@ -140,7 +140,7 @@ const successEvents: DeploymentEvent[] = [
 	}
 ];
 
-const failedEvents: DeploymentEvent[] = [
+const failedEvents: MockDeploymentEvent[] = [
 	{
 		sequence: 1,
 		level: 'info',
@@ -259,7 +259,7 @@ const failedLogs: BackendLogLine[] = [
 	}
 ];
 
-const scenarioEvents: Record<DeployScenario, DeploymentEvent[]> = {
+const scenarioEvents: Record<DeployScenario, MockDeploymentEvent[]> = {
 	success: successEvents,
 	failed: failedEvents
 };
@@ -269,7 +269,7 @@ const scenarioLogs: Record<DeployScenario, BackendLogLine[]> = {
 	failed: failedLogs
 };
 
-function getStageFromEvent(event: DeploymentEvent): DeploymentStage {
+function getStageFromEvent(event: MockDeploymentEvent): DeploymentStage {
 	switch (event.type) {
 		case 'deployment.cloning':
 			return 'Cloning';
@@ -292,7 +292,7 @@ function getStageFromEvent(event: DeploymentEvent): DeploymentStage {
 	}
 }
 
-function withRuntimeTimestamp(event: DeploymentEvent): DeploymentEvent {
+function withRuntimeTimestamp(event: MockDeploymentEvent): MockDeploymentEvent {
 	return { ...event, occurred_at: new Date().toISOString() };
 }
 
@@ -313,7 +313,7 @@ export async function* streamDeploymentProgress(
 	const events = scenarioEvents[scenario];
 	const logs = scenarioLogs[scenario];
 
-	const receivedEvents: DeploymentEvent[] = [];
+	const receivedEvents: MockDeploymentEvent[] = [];
 	const revealedLogs: DeployLogLine[] = [];
 	let shownLogCount = 0;
 
