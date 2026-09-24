@@ -25,7 +25,6 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		const emptyTitle = page.getByText('Tidak menemukan repository');
 		await expect.element(emptyTitle).toBeVisible();
 
-		// Pastikan mock data tidak muncul
 		const mockTitle1 = page.getByText('sakala-dashboard');
 		const mockTitle2 = page.getByText('react-ecommerce');
 		await expect.element(mockTitle1).not.toBeInTheDocument();
@@ -52,7 +51,6 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		await retryBtn.click();
 		expect(onRetry).toHaveBeenCalledOnce();
 
-		// Pastikan mock data tidak muncul saat error
 		const mockTitle1 = page.getByText('sakala-dashboard');
 		await expect.element(mockTitle1).not.toBeInTheDocument();
 	});
@@ -232,10 +230,8 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		const input = page.getByPlaceholder(/github\.com/i);
 		await input.fill('https://github.com/org/production-repo');
 
-		// Simulasikan blur sebelum user mengklik tombol Lanjut
 		input.element().dispatchEvent(new Event('blur'));
 
-		// Pastikan saat blur belum menerapkan fallback default branch
 		expect(wizardInstance?.selectedBranch).toBe('');
 
 		const nextBtn = page.getByRole('button', { name: /lanjut/i });
@@ -244,7 +240,6 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/production-repo');
 		expect(onNext).toHaveBeenCalledOnce();
 
-		// Metadata authoritative dari backend harus diterapkan, bukan fallback main
 		expect(wizardInstance?.selectedBranch).toBe('production');
 		expect(wizardInstance?.projectName).toBe('production-repo');
 		expect(wizardInstance?.selectedRepository?.default_branch).toBe('production');
@@ -252,5 +247,57 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			'https://github.com/org/production-repo.git'
 		);
 		expect(wizardInstance?.selectedRepository?.id).toBe('888');
+	});
+
+	it('pada tab Public Git URL, mengunci input saat validasi dan mengabaikan response jika URL berubah saat request pending', async () => {
+		const onNext = vi.fn();
+		let wizardInstance: ProjectWizardState | undefined;
+		let resolveValidation: (value: unknown) => void;
+		const validationPromise = new Promise((resolve) => {
+			resolveValidation = resolve;
+		});
+		const onValidateGitUrl = vi.fn().mockImplementation(() => validationPromise);
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl,
+			onReady: (w) => {
+				wizardInstance = w;
+			}
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/org/repo-a');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/repo-a');
+
+		await expect.element(input).toBeDisabled();
+
+		if (wizardInstance) {
+			wizardInstance.gitUrl = 'https://github.com/org/repo-b';
+		}
+
+		resolveValidation!({
+			id: '111',
+			name: 'repo-a',
+			full_name: 'org/repo-a',
+			clone_url: 'https://github.com/org/repo-a.git',
+			default_branch: 'main',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		await new Promise((r) => setTimeout(r, 50));
+
+		expect(onNext).not.toHaveBeenCalled();
+		expect(wizardInstance?.selectedRepository?.id).not.toBe('111');
 	});
 });

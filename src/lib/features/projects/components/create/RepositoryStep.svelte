@@ -67,12 +67,19 @@
 			gitUrlApiError = null;
 
 			if (onValidateGitUrl) {
+				const targetUrl = wizard.gitUrl.trim();
 				isValidating = true;
 				try {
-					const validatedRepo = await onValidateGitUrl(wizard.gitUrl.trim());
+					const validatedRepo = await onValidateGitUrl(targetUrl);
+					if (wizard.gitUrl.trim() !== targetUrl) {
+						return;
+					}
 					wizard.confirmGitUrl(validatedRepo);
 					onNext();
 				} catch (err: unknown) {
+					if (wizard.gitUrl.trim() !== targetUrl) {
+						return;
+					}
 					gitUrlTouched = true;
 					const anyErr = err as {
 						isValidationError?: boolean;
@@ -193,6 +200,7 @@
 		<GitUrlForm
 			bind:value={wizard.gitUrl}
 			bind:touched={gitUrlTouched}
+			disabled={isValidating}
 			apiErrorMessage={gitUrlApiError}
 			onValidityChange={(isValid) => (isGitUrlValid = isValid)}
 		/>
