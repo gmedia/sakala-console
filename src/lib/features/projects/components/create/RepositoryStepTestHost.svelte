@@ -3,6 +3,8 @@
 	import { initCreateProjectContext } from '../../create/createProjectContext';
 	import type { Repository } from '../../type';
 
+	import type { ProjectWizardState } from '../../create/createProjectState.svelte';
+
 	type Props = {
 		repositories?: Repository[];
 		githubConnected?: boolean;
@@ -12,6 +14,8 @@
 		onNext?: () => void;
 		onConnectGithub?: () => void;
 		onSelectRepository?: (id: string, repo: Repository) => void;
+		onValidateGitUrl?: (url: string) => Promise<Repository>;
+		onReady?: (wizard: ProjectWizardState) => void;
 	};
 
 	let {
@@ -22,10 +26,15 @@
 		onRetry = () => {},
 		onNext = () => {},
 		onConnectGithub = () => {},
-		onSelectRepository
+		onSelectRepository,
+		onValidateGitUrl,
+		onReady
 	}: Props = $props();
 
-	initCreateProjectContext();
+	const wizard = initCreateProjectContext();
+	$effect(() => {
+		onReady?.(wizard);
+	});
 </script>
 
 <RepositoryStep
@@ -37,4 +46,5 @@
 	{onNext}
 	{onConnectGithub}
 	{onSelectRepository}
+	{onValidateGitUrl}
 />

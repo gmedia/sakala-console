@@ -60,3 +60,21 @@ export async function getInstallationRepositories(
 export function parseGithubRepositoriesResponse(response: unknown): GithubRepository[] {
 	return githubRepositoriesResponseSchema.parse(response).data;
 }
+
+export type ValidateRepositoryUrlRequest = components['schemas']['ValidateUrlRequest'];
+
+export const singleGithubRepositoryResponseSchema = z.object({
+	data: githubRepositorySchema
+});
+
+export function parseGithubRepositoryResponse(response: unknown): GithubRepository {
+	return singleGithubRepositoryResponseSchema.parse(response).data;
+}
+
+export async function validateGithubRepository(repositoryUrl: string): Promise<GithubRepository> {
+	const response = await apiRequest<unknown>('/api/v1/app/github/repositories/validate', {
+		method: 'POST',
+		json: { repository_url: repositoryUrl }
+	});
+	return parseGithubRepositoryResponse(response);
+}

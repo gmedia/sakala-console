@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import RepositoryStepTestHost from './RepositoryStepTestHost.svelte';
 import type { Repository } from '../../type';
+import type { ProjectWizardState } from '../../create/createProjectState.svelte';
 
 const mockRepo1: Repository = {
 	id: '101',
@@ -24,7 +25,6 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		const emptyTitle = page.getByText('Tidak menemukan repository');
 		await expect.element(emptyTitle).toBeVisible();
 
-		// Pastikan mock data tidak muncul
 		const mockTitle1 = page.getByText('sakala-dashboard');
 		const mockTitle2 = page.getByText('react-ecommerce');
 		await expect.element(mockTitle1).not.toBeInTheDocument();
@@ -51,7 +51,6 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		await retryBtn.click();
 		expect(onRetry).toHaveBeenCalledOnce();
 
-		// Pastikan mock data tidak muncul saat error
 		const mockTitle1 = page.getByText('sakala-dashboard');
 		await expect.element(mockTitle1).not.toBeInTheDocument();
 	});
@@ -112,5 +111,193 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 
 		const repoName = page.getByText('real-api-repo');
 		await expect.element(repoName).toBeVisible();
+	});
+
+	it('pada tab Public Git URL, tombol Lanjut disabled saat input kosong atau URL tidak valid', async () => {
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await expect.element(nextBtn).toBeDisabled();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('http://app.sakala.test:5173/projects/123');
+		input.element().dispatchEvent(new Event('blur'));
+
+		await expect.element(nextBtn).toBeDisabled();
+		const errorText = page.getByText(/URL harus berupa repository GitHub publik/i);
+		await expect.element(errorText).toBeVisible();
+
+		await input.fill('https://github.com/my-org/my-project');
+		await expect.element(nextBtn).toBeEnabled();
+	});
+
+	it('pada tab Public Git URL, menampilkan error API jika validasi backend gagal dan tidak memanggil onNext', async () => {
+		const onNext = vi.fn();
+		const onValidateGitUrl = vi.fn().mockRejectedValue({
+			isValidationError: true,
+			errors: {
+				repository_url: ['Repository GitHub tidak ditemukan atau bersifat private.']
+			}
+		});
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/my-org/private-repo');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await expect.element(nextBtn).toBeEnabled();
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/my-org/private-repo');
+		const errorMsg = page.getByText('Repository GitHub tidak ditemukan atau bersifat private.');
+		await expect.element(errorMsg).toBeVisible();
+		expect(onNext).not.toHaveBeenCalled();
+	});
+
+	it('pada tab Public Git URL, berhasil validasi memanggil onNext', async () => {
+		const onNext = vi.fn();
+		const onValidateGitUrl = vi.fn().mockResolvedValue({
+			id: '999',
+			name: 'valid-repo',
+			full_name: 'org/valid-repo',
+			clone_url: 'https://github.com/org/valid-repo.git',
+			default_branch: 'main',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/org/valid-repo');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/valid-repo');
+		expect(onNext).toHaveBeenCalledOnce();
+	});
+
+	it('pada tab Public Git URL, menerapkan default_branch selain main dari backend meskipun input sempat blur sebelum validasi', async () => {
+		const onNext = vi.fn();
+		let wizardInstance: ProjectWizardState | undefined;
+		const onValidateGitUrl = vi.fn().mockResolvedValue({
+			id: '888',
+			name: 'production-repo',
+			full_name: 'org/production-repo',
+			clone_url: 'https://github.com/org/production-repo.git',
+			default_branch: 'production',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl,
+			onReady: (w) => {
+				wizardInstance = w;
+			}
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/org/production-repo');
+
+		input.element().dispatchEvent(new Event('blur'));
+
+		expect(wizardInstance?.selectedBranch).toBe('');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/production-repo');
+		expect(onNext).toHaveBeenCalledOnce();
+
+		expect(wizardInstance?.selectedBranch).toBe('production');
+		expect(wizardInstance?.projectName).toBe('production-repo');
+		expect(wizardInstance?.selectedRepository?.default_branch).toBe('production');
+		expect(wizardInstance?.selectedRepository?.clone_url).toBe(
+			'https://github.com/org/production-repo.git'
+		);
+		expect(wizardInstance?.selectedRepository?.id).toBe('888');
+	});
+
+	it('pada tab Public Git URL, mengunci input saat validasi dan mengabaikan response jika URL berubah saat request pending', async () => {
+		const onNext = vi.fn();
+		let wizardInstance: ProjectWizardState | undefined;
+		let resolveValidation: (value: unknown) => void;
+		const validationPromise = new Promise((resolve) => {
+			resolveValidation = resolve;
+		});
+		const onValidateGitUrl = vi.fn().mockImplementation(() => validationPromise);
+
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			githubConnected: true,
+			onNext,
+			onValidateGitUrl,
+			onReady: (w) => {
+				wizardInstance = w;
+			}
+		});
+
+		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		await publicTab.click();
+
+		const input = page.getByPlaceholder(/github\.com/i);
+		await input.fill('https://github.com/org/repo-a');
+
+		const nextBtn = page.getByRole('button', { name: /lanjut/i });
+		await nextBtn.click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/repo-a');
+
+		await expect.element(input).toBeDisabled();
+
+		if (wizardInstance) {
+			wizardInstance.gitUrl = 'https://github.com/org/repo-b';
+		}
+
+		resolveValidation!({
+			id: '111',
+			name: 'repo-a',
+			full_name: 'org/repo-a',
+			clone_url: 'https://github.com/org/repo-a.git',
+			default_branch: 'main',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		await new Promise((r) => setTimeout(r, 50));
+
+		expect(onNext).not.toHaveBeenCalled();
+		expect(wizardInstance?.selectedRepository?.id).not.toBe('111');
 	});
 });

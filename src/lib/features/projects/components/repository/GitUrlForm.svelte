@@ -1,21 +1,22 @@
 <script lang="ts">
 	import { validateRepositoryUrl } from '../../validation/repositoryUrl';
-	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	let {
 		value = $bindable(),
 		touched = $bindable(false),
+		apiErrorMessage = null,
+		disabled = false,
 		onValidityChange
 	}: {
 		value: string;
 		touched?: boolean;
+		apiErrorMessage?: string | null;
+		disabled?: boolean;
 		onValidityChange: (isValid: boolean) => void;
 	} = $props();
 
-	const wizard = getCreateProjectContext();
-
 	const validationError = $derived(validateRepositoryUrl(value));
-	const displayError = $derived(touched ? validationError : null);
+	const displayError = $derived((touched ? validationError : null) || apiErrorMessage);
 
 	$effect(() => {
 		onValidityChange?.(validationError === null);
@@ -23,7 +24,6 @@
 
 	function handleBlur() {
 		touched = true;
-		wizard.confirmGitUrl();
 	}
 </script>
 
@@ -32,11 +32,12 @@
 	<input
 		type="text"
 		bind:value
+		{disabled}
 		onblur={handleBlur}
 		placeholder="https : // github.com/username/nama-repo.git"
 		class="w-full rounded-md border {displayError
 			? 'border-error-dark'
-			: 'border-muted/30'} bg-white p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-muted/10"
+			: 'border-muted/30'} bg-white p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-muted/10 disabled:cursor-not-allowed disabled:bg-muted/10 disabled:opacity-60"
 		aria-invalid={displayError ? 'true' : 'false'}
 	/>
 	{#if displayError}

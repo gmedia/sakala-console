@@ -26,11 +26,27 @@ describe('validateRepositoryUrl', () => {
 		);
 	});
 
+	it('should return error message for non-GitHub domain (e.g. sakala console URL or gitlab)', () => {
+		expect(
+			validateRepositoryUrl(
+				'http://app.sakala.test:5173/projects/01a0cd45-c5a6-7170-9f8d-8322191f238f'
+			)
+		).toBe('URL harus berupa repository GitHub publik (contoh: https://github.com/user/repo)');
+
+		expect(validateRepositoryUrl('https://gitlab.com/owner/repo')).toBe(
+			'URL harus berupa repository GitHub publik (contoh: https://github.com/user/repo)'
+		);
+	});
+
 	it('should return null for valid GitHub repository URL', () => {
 		expect(validateRepositoryUrl('https://github.com/username/nama-repo.git')).toBeNull();
 	});
 
 	it('should return null for valid GitHub repository URL without .git', () => {
 		expect(validateRepositoryUrl('https://github.com/username/nama-repo')).toBeNull();
+	});
+
+	it('should return null for valid GitHub repository URL with www prefix', () => {
+		expect(validateRepositoryUrl('https://www.github.com/username/nama-repo')).toBeNull();
 	});
 });
