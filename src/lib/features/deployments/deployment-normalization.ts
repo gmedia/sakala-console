@@ -76,7 +76,7 @@ export function normalizeDeploymentTimeline(
 			key: stage,
 			title: STAGE_TITLE_MAP[stage],
 			status: getStepStatus(deployment, stage, currentStage),
-			timestamp: event?.occurred_at
+			timestamp: event?.occurred_at ?? undefined
 		};
 	});
 }

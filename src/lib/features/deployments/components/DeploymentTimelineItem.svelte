@@ -1,5 +1,6 @@
 <script lang="ts">
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
+	import { formatDeploymentTime } from '../deployment-presentation';
 	import { getTimelineItemDisplay } from '../status-config';
 	import type { StatusDeployment } from '../type';
 
@@ -19,7 +20,10 @@
 		emphasizeRunning = false
 	}: Props = $props();
 
-	let display = $derived(getTimelineItemDisplay({ status, title, timestamp, showSubtitle }));
+	let displayTimestamp = $derived(timestamp ? formatDeploymentTime(timestamp) : undefined);
+	let display = $derived(
+		getTimelineItemDisplay({ status, title, timestamp: displayTimestamp, showSubtitle })
+	);
 	let isRunningEmphasized = $derived(emphasizeRunning && status === 'running');
 </script>
 

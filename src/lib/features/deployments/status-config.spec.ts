@@ -11,7 +11,7 @@ import {
 	parseBannerStatus,
 	deriveLiveInfoTimestamp
 } from './status-config';
-import type { DeploymentProgress, DeploymentStep } from './type';
+import type { DeploymentProgress } from './type';
 
 describe('isBannerStatus', () => {
 	it('returns true for supported statuses', () => {
@@ -110,7 +110,7 @@ describe('getStatusDisplay', () => {
 
 		expect(result.title).toBe('Deployment gagal');
 		expect(result.desc).toBe(
-			'Deployment berhenti di tahap Building image. Periksa detail error untuk mengetahui langkah perbaikannya.'
+			'Berhenti di tahap Building image, lihat log di bawah untuk detail error'
 		);
 		expect(result.bannerBgClass).toBe('bg-error/10');
 	});
@@ -349,61 +349,54 @@ describe('parseBannerStatus', () => {
 });
 
 describe('deriveLiveInfoTimestamp', () => {
-	it('running: pakai jam mulai simulasi', () => {
+	it('running: pakai startedAtLabel', () => {
 		const result = deriveLiveInfoTimestamp({
 			status: 'running',
-			steps: [],
 			startedAtLabel: '08:41:00'
 		});
 		expect(result).toBe('08:41:00');
 	});
 
-	it('success: pakai timestamp step terakhir, bukan "-"', () => {
-		const steps: DeploymentStep[] = [
-			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
-			{ key: 'health', title: 'Health check', status: 'success', timestamp: '08:41:30' }
-		];
+	it('running: abaikan finishedAtLabel walau disediakan', () => {
 		const result = deriveLiveInfoTimestamp({
-			status: 'success',
-			steps,
-			startedAtLabel: '08:41:00'
+			status: 'running',
+			startedAtLabel: '08:41:00',
+			finishedAtLabel: '08:41:49'
 		});
-		expect(result).toBe('08:41:30');
-		expect(result).not.toBe('-');
+		expect(result).toBe('08:41:00');
 	});
 
-	it('success: abaikan step terakhir jika tidak punya timestamp', () => {
-		const steps: DeploymentStep[] = [
-			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
-			{ key: 'health', title: 'Health check', status: 'success', timestamp: '08:41:30' },
-			{ key: 'notify', title: 'Notify', status: 'success' } // tanpa timestamp
-		];
+	it('success: pakai finishedAtLabel', () => {
 		const result = deriveLiveInfoTimestamp({
 			status: 'success',
-			steps,
-			startedAtLabel: '08:41:00'
+			startedAtLabel: '08:41:00',
+			finishedAtLabel: '08:41:49'
 		});
-		expect(result).toBe('08:41:30');
+		expect(result).toBe('08:41:49');
 	});
 
-	it('success: return "-" jika tidak ada step dengan timestamp', () => {
-		const steps: DeploymentStep[] = [{ key: 'notify', title: 'Notify', status: 'success' }];
+	it('success: return "-" jika finishedAtLabel undefined', () => {
 		const result = deriveLiveInfoTimestamp({
 			status: 'success',
-			steps,
 			startedAtLabel: '08:41:00'
 		});
 		expect(result).toBe('-');
 	});
 
-	it('failed: pakai timestamp step yang gagal, bukan "-"', () => {
-		const steps: DeploymentStep[] = [
-			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
-			{ key: 'build', title: 'Building image', status: 'failed', timestamp: '08:41:15' },
-			{ key: 'deploy', title: 'Deploy container', status: 'pending' }
-		];
-		const result = deriveLiveInfoTimestamp({ status: 'failed', steps, startedAtLabel: '08:41:00' });
-		expect(result).toBe('08:41:15');
-		expect(result).not.toBe('-');
+	it('failed: pakai finishedAtLabel', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'failed',
+			startedAtLabel: '08:41:00',
+			finishedAtLabel: '08:39:12'
+		});
+		expect(result).toBe('08:39:12');
+	});
+
+	it('failed: return "-" jika finishedAtLabel undefined', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'failed',
+			startedAtLabel: '08:41:00'
+		});
+		expect(result).toBe('-');
 	});
 });

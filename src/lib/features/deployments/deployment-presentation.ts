@@ -73,10 +73,10 @@ export function deriveFailedStepLabel(steps: DeploymentStep[]): string | undefin
 }
 
 export function deriveDurationLabel(
-	startedAt: string,
+	startedAt: string | null,
 	finishedAt: string | null
 ): string | undefined {
-	if (!finishedAt) return undefined;
+	if (!startedAt || !finishedAt) return undefined;
 	const durationMs = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
 	const durationSeconds = Math.round(durationMs / 1000);
 	return `${durationSeconds} detik`;
@@ -88,11 +88,12 @@ export function deriveLastUpdateTimestamp(events: DeploymentEvent[]): string {
 	return latest?.occurred_at ? formatDeploymentTime(latest.occurred_at) : '-';
 }
 
-export function formatDeploymentTime(timestamp: string): string {
-	return new Intl.DateTimeFormat('id-ID', {
+export function formatDeploymentTime(iso: string | null | undefined): string {
+	if (!iso) return '-';
+	return new Date(iso).toLocaleTimeString('id-ID', {
 		hour: '2-digit',
 		minute: '2-digit',
 		second: '2-digit',
 		hour12: false
-	}).format(new Date(timestamp));
+	});
 }

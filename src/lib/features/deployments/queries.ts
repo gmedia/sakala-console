@@ -4,6 +4,16 @@ import { getDeployment, getDeploymentEvents } from '$lib/api/resources/deploymen
 import { TERMINAL_STATUSES } from './deployment-presentation';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 
+export const REALTIME_CONNECTED_SAFETY_POLL_MS = 10_000;
+export const FALLBACK_POLLING_INTERVAL_MS = 5_000;
+
+export function resolveRefetchInterval(isTerminalStatus: boolean): number | false {
+	if (isTerminalStatus) return false;
+	return realtimeState.status === 'connected'
+		? REALTIME_CONNECTED_SAFETY_POLL_MS
+		: FALLBACK_POLLING_INTERVAL_MS;
+}
+
 export function createDeploymentQuery(projectId: () => string, deploymentId: () => string) {
 	return createQuery(() => {
 		const project = projectId();
@@ -14,8 +24,7 @@ export function createDeploymentQuery(projectId: () => string, deploymentId: () 
 			queryFn: () => getDeployment(project, deployment),
 			refetchInterval: (query) => {
 				const status = query.state.data?.data.status;
-				if (status && TERMINAL_STATUSES.has(status)) return false;
-				return realtimeState.status === 'connected' ? false : 5000;
+				return resolveRefetchInterval(!!status && TERMINAL_STATUSES.has(status));
 			},
 			enabled: !!project && !!deployment
 		};
@@ -34,10 +43,7 @@ export function createDeploymentEventsQuery(
 		return {
 			queryKey: queryKeys.deployments.events(project, deployment),
 			queryFn: () => getDeploymentEvents(project, deployment),
-			refetchInterval: () => {
-				if (isTerminal()) return false;
-				return realtimeState.status === 'connected' ? false : 5000;
-			},
+			refetchInterval: () => resolveRefetchInterval(isTerminal()),
 			enabled: !!project && !!deployment
 		};
 	});

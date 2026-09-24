@@ -20,6 +20,30 @@ const deploymentFailureSchema = z.object({
 	recovery_hint: z.string()
 });
 
+const requestedResourcesSchema = z.object({
+	memory_mb: z.number().nullable(),
+	cpu_millis: z.number().nullable(),
+	pids_limit: z.number().nullable()
+});
+
+const effectiveResourcesSchema = z.object({
+	resources: z.object({
+		memory_mb: z.number(),
+		cpu_millis: z.number(),
+		pids_limit: z.number()
+	}),
+	timeouts: z.object({
+		build_timeout_seconds: z.number(),
+		start_timeout_seconds: z.number(),
+		command_timeout_seconds: z.number()
+	}),
+	log_bounds: z.object({
+		max_line_length: z.number(),
+		max_batch_lines: z.number(),
+		max_total_bytes: z.number()
+	})
+});
+
 const deploymentSchema = z.object({
 	id: z.string(),
 	project_id: z.string(),
@@ -30,9 +54,13 @@ const deploymentSchema = z.object({
 	commit_sha: z.string().nullable(),
 	commit_message: z.string().nullable(),
 	image_reference: z.string().nullable(),
-	requested_resources: z.array(z.unknown()).nullable(),
-	effective_resources: z.array(z.unknown()).nullable(),
-	started_at: z.string(),
+	requested_resources: requestedResourcesSchema.nullable(),
+	effective_resources: effectiveResourcesSchema.nullable(),
+	applied_resources: z.array(z.unknown()).nullable(),
+	finalization_deferred: z.boolean(),
+	finalization_deferred_reason: z.string().nullable(),
+	agent_node_id: z.string().nullable(),
+	started_at: z.string().nullable(),
 	finished_at: z.string().nullable(),
 	cancelled_at: z.string().nullable(),
 	failure_code: z.string().nullable(),
@@ -79,7 +107,13 @@ export async function getDeployment(
 		`api/v1/app/projects/${project}/deployments/${deployment}`
 	);
 
-	return parseDeploymentResponse(response);
+	try {
+		return parseDeploymentResponse(response);
+	} catch (error) {
+		console.error('[getDeployment] ZodError', error);
+		console.error('[getDeployment] response', response);
+		throw error;
+	}
 }
 
 export async function getDeploymentEvents(

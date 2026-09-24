@@ -23,6 +23,7 @@ export function useLogout() {
 
 	return createMutation(() => ({
 		mutationFn: logout,
+		retry: false,
 		onSuccess: () => {
 			cleanupSession();
 		},

@@ -1,4 +1,4 @@
-import type { DeploymentProgress, DeploymentStage, DeploymentStep, StatusDeployment } from './type';
+import type { DeploymentProgress, DeploymentStage, StatusDeployment } from './type';
 
 export type BannerStatus = Exclude<StatusDeployment, 'pending'>;
 
@@ -54,6 +54,7 @@ export interface StatusDisplayInput {
 	currentStepLabel?: string;
 	durationLabel?: string;
 	failedStepLabel?: string;
+	failureCode?: string;
 	failureSummary?: string;
 	recoveryHint?: string;
 }
@@ -112,26 +113,16 @@ const timeLabelMap: Record<BannerStatus, string> = {
 
 export interface LiveInfoTimestampInput {
 	status: BannerStatus;
-	steps: DeploymentStep[];
 	startedAtLabel: string;
+	finishedAtLabel?: string;
 }
-
 export function deriveLiveInfoTimestamp({
 	status,
-	steps,
-	startedAtLabel
+	startedAtLabel,
+	finishedAtLabel
 }: LiveInfoTimestampInput): string {
-	if (status === 'running') {
-		return startedAtLabel;
-	}
-
-	if (status === 'failed') {
-		const failedStep = steps.find((s) => s.status === 'failed');
-		return failedStep?.timestamp ?? '-';
-	}
-
-	const lastTimestamped = [...steps].reverse().find((s) => s.timestamp);
-	return lastTimestamped?.timestamp ?? '-';
+	if (status === 'running') return startedAtLabel;
+	return finishedAtLabel ?? '-';
 }
 
 export function getStatusDisplay({
@@ -139,7 +130,6 @@ export function getStatusDisplay({
 	currentStepLabel,
 	durationLabel,
 	failedStepLabel,
-	failureSummary,
 	recoveryHint
 }: StatusDisplayInput) {
 	const messages = {
@@ -153,9 +143,7 @@ export function getStatusDisplay({
 		},
 		failed: {
 			title: 'Deployment gagal',
-			desc:
-				failureSummary ??
-				`Deployment berhenti di tahap ${failedStepLabel ?? '-'}. Periksa detail error untuk mengetahui langkah perbaikannya.`
+			desc: `Berhenti di tahap ${failedStepLabel ?? '-'}, lihat log di bawah untuk detail error`
 		}
 	} as const;
 

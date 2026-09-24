@@ -15,9 +15,19 @@
 		() => page.params.id ?? '',
 		() => page.params.deploymentId ?? ''
 	);
+
+	function handleViewError() {
+		document.getElementById('deployment-logs')?.scrollIntoView({ behavior: 'smooth' });
+	}
+
+	let retryButtonClass = $derived(
+		'inline-flex cursor-pointer gap-2 rounded-lg border border-muted/20 bg-primary px-4 py-3 ' +
+			'font-montserrat-semibold text-white ' +
+			'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+	);
 </script>
 
-{#if detail.isLoading}
+{#if detail.isLoading && !detail.deployment}
 	<EmptyState
 		icon={CircleAlert}
 		tone="muted"
@@ -25,7 +35,7 @@
 		description="Harap tunggu, ini mungkin memakan waktu beberapa detik."
 		class="col-span-full border-none bg-transparent shadow-none"
 	/>
-{:else if detail.deploymentError}
+{:else if detail.deploymentError && !detail.deployment}
 	<EmptyState
 		icon={CircleAlert}
 		tone="failed"
@@ -37,7 +47,7 @@
 			{#if detail.deploymentError?.showRetry}
 				<button
 					type="button"
-					class="inline-flex cursor-pointer gap-2 rounded-lg border border-muted/20 bg-primary px-4 py-3 font-montserrat-semibold text-white"
+					class={retryButtonClass}
 					onclick={() => detail.deploymentQuery.refetch()}
 				>
 					<RotateCcw class="h-6 w-6" />
@@ -48,11 +58,21 @@
 	</EmptyState>
 {:else if detail.deployment}
 	<div class="px-6">
-		{#if detail.deployment}
-			<DeploymentLiveAnnouncement status={detail.bannerInput.status} />
-
-			<DeploymentStatusBanner {...detail.bannerInput} />
+		{#if detail.deploymentError}
+			<div
+				role="status"
+				class="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning-dark"
+			>
+				Gagal memuat data terbaru. Menampilkan data terakhir yang tersedia.
+			</div>
 		{/if}
+
+		<DeploymentLiveAnnouncement status={detail.bannerInput.status} />
+		<DeploymentStatusBanner
+			{...detail.bannerInput}
+			publicUrl={detail.publicUrl}
+			onViewError={handleViewError}
+		/>
 
 		<DeploymentInfoRow
 			commitSha={detail.deployment.commit_sha ?? '-'}
@@ -63,7 +83,7 @@
 			lastUpdate={detail.lastUpdateTimestamp}
 		/>
 
-		<p class="font-montserrat-semibold py-2">Timeline</p>
+		<h2 class="font-montserrat-semibold py-2 text-base">Timeline</h2>
 		{#if detail.eventsError}
 			<EmptyState
 				icon={CircleAlert}
@@ -76,7 +96,7 @@
 					{#if detail.eventsError?.showRetry}
 						<button
 							type="button"
-							class="inline-flex cursor-pointer gap-2 rounded-lg border border-muted/20 bg-primary px-4 py-3 font-montserrat-semibold text-white"
+							class={retryButtonClass}
 							onclick={() => detail.deploymentEventsQuery.refetch()}
 						>
 							<RotateCcw class="h-6 w-6" />
@@ -89,7 +109,15 @@
 			<DeploymentTimeline steps={detail.steps} showSubtitle emphasizeRunning />
 		{/if}
 
-		<p class="font-montserrat-semibold py-2">Logs</p>
+		<h2 id="deployment-logs" class="font-montserrat-semibold py-2 text-base">Logs</h2>
 		<DeploymentLogConsole lines={mockLogs.running} autoScroll />
 	</div>
+{:else}
+	<EmptyState
+		icon={CircleAlert}
+		tone="muted"
+		title="Deployment tidak tersedia"
+		description="Data deployment ini belum bisa ditampilkan. Coba muat ulang halaman."
+		class="col-span-full border-none bg-transparent shadow-none"
+	/>
 {/if}

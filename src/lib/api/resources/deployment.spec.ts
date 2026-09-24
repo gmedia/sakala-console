@@ -26,8 +26,32 @@ const validDeployment: Deployment = {
 	commit_sha: 'abc123',
 	commit_message: 'feat: add something',
 	image_reference: 'registry.example.com/app:abc123',
-	requested_resources: [{ cpu: '1', memory: '512Mi' }],
-	effective_resources: [{ cpu: '1', memory: '512Mi' }],
+	requested_resources: {
+		memory_mb: 512,
+		cpu_millis: 1000,
+		pids_limit: 128
+	},
+	effective_resources: {
+		resources: {
+			memory_mb: 512,
+			cpu_millis: 1000,
+			pids_limit: 128
+		},
+		timeouts: {
+			build_timeout_seconds: 600,
+			start_timeout_seconds: 120,
+			command_timeout_seconds: 900
+		},
+		log_bounds: {
+			max_line_length: 4096,
+			max_batch_lines: 500,
+			max_total_bytes: 10485760
+		}
+	},
+	applied_resources: null,
+	finalization_deferred: false,
+	finalization_deferred_reason: null,
+	agent_node_id: null,
 	started_at: '2024-01-01T00:00:00Z',
 	finished_at: '2024-01-01T00:01:00Z',
 	cancelled_at: null,
@@ -70,19 +94,87 @@ const validDeploymentEventsResponse: DeploymentEventsResponse = {
 describe('parseDeploymentResponse', () => {
 	it('mengembalikan response deployment yang valid', () => {
 		const result = parseDeploymentResponse(validDeploymentResponse);
-
 		expect(result).toEqual(validDeploymentResponse);
+	});
+
+	it('menerima semua resource sebagai null', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				requested_resources: null,
+				effective_resources: null,
+				applied_resources: null
+			}
+		});
+		expect(result.data.requested_resources).toBeNull();
+		expect(result.data.effective_resources).toBeNull();
+		expect(result.data.applied_resources).toBeNull();
+	});
+
+	it('menerima requested_resources dengan field nullable', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				requested_resources: {
+					memory_mb: null,
+					cpu_millis: 500,
+					pids_limit: null
+				}
+			}
+		});
+		expect(result.data.requested_resources).toEqual({
+			memory_mb: null,
+			cpu_millis: 500,
+			pids_limit: null
+		});
 	});
 
 	it('melempar error jika response deployment tidak valid', () => {
 		expect(() => parseDeploymentResponse({ data: {} })).toThrow();
+	});
+
+	it('melempar error jika requested_resources field-nya salah tipe', () => {
+		expect(() =>
+			parseDeploymentResponse({
+				data: {
+					...validDeployment,
+					requested_resources: {
+						memory_mb: 'bukan-angka',
+						cpu_millis: 500,
+						pids_limit: 128
+					}
+				}
+			})
+		).toThrow();
+	});
+
+	it('melempar error jika effective_resources.resources tidak lengkap', () => {
+		expect(() =>
+			parseDeploymentResponse({
+				data: {
+					...validDeployment,
+					effective_resources: {
+						resources: { memory_mb: 256 },
+						timeouts: {
+							build_timeout_seconds: 600,
+							start_timeout_seconds: 120,
+							command_timeout_seconds: 900
+						},
+						log_bounds: {
+							max_line_length: 4096,
+							max_batch_lines: 500,
+							max_total_bytes: 10485760
+						}
+					}
+				}
+			})
+		).toThrow();
 	});
 });
 
 describe('parseDeploymentEventsResponse', () => {
 	it('mengembalikan response deployment events yang valid', () => {
 		const result = parseDeploymentEventsResponse(validDeploymentEventsResponse);
-
 		expect(result).toEqual(validDeploymentEventsResponse);
 	});
 
@@ -98,6 +190,21 @@ describe('parseDeploymentEventsResponse', () => {
 				]
 			})
 		).toThrow();
+	});
+
+	it('menerima events dengan metadata null dan type null', () => {
+		const result = parseDeploymentEventsResponse({
+			...validDeploymentEventsResponse,
+			data: [
+				{
+					...validDeploymentEvent,
+					type: null,
+					metadata: null
+				}
+			]
+		});
+		expect(result.data[0].type).toBeNull();
+		expect(result.data[0].metadata).toBeNull();
 	});
 });
 

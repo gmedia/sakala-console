@@ -13,8 +13,12 @@ import {
 	deriveDurationLabel,
 	getDeploymentErrorConfig,
 	TERMINAL_STATUSES,
-	deriveLastUpdateTimestamp
+	deriveLastUpdateTimestamp,
+	formatDeploymentTime
 } from './deployment-presentation';
+import { createQuery } from '@tanstack/svelte-query';
+import { getProject } from '$lib/features/projects/api';
+import { queryKeys } from '$lib/api/query-keys';
 
 type RealtimePayload = { sequence?: number };
 
@@ -27,7 +31,8 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 	const deploymentEventsQuery = createDeploymentEventsQuery(projectId, deploymentId, isTerminal);
 
 	let currentDeploymentId = $state('');
-	let guard = $state(new SequenceGuard());
+	let deploymentGuard = $state(new SequenceGuard());
+	let eventsGuard = $state(new SequenceGuard());
 
 	$effect(() => {
 		const id = deploymentId();
@@ -35,20 +40,33 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		if (!id || id === currentDeploymentId) return;
 
 		currentDeploymentId = id;
-		guard = new SequenceGuard();
+		deploymentGuard = new SequenceGuard();
+		eventsGuard = new SequenceGuard();
 	});
 
 	usePrivateChannel(() => `deployment.${deploymentId()}`, {
 		'.deployment.event.created': (payload: unknown) => {
 			const seq = (payload as RealtimePayload).sequence;
-			if (typeof seq !== 'number' || !guard.accept(seq)) return;
+			if (typeof seq !== 'number' || !eventsGuard.accept(seq)) return;
 			deploymentEventsQuery.refetch();
 		},
 		'.deployment.updated': (payload: unknown) => {
 			const seq = (payload as RealtimePayload).sequence;
-			if (typeof seq !== 'number' || !guard.accept(seq)) return;
+			if (typeof seq !== 'number' || !deploymentGuard.accept(seq)) return;
 			deploymentQuery.refetch();
 		}
+	});
+
+	const projectQuery = createQuery(() => ({
+		queryKey: queryKeys.projects.detail(projectId()),
+		queryFn: () => getProject(projectId()),
+		enabled: !!projectId()
+	}));
+
+	const publicUrl = $derived.by(() => {
+		const domain = projectQuery.data?.default_domain;
+		if (!domain) return null;
+		return domain.startsWith('http') ? domain : `https://${domain}`;
 	});
 
 	const deployment = $derived(deploymentQuery.data?.data);
@@ -64,6 +82,7 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 					currentStepLabel: deriveCurrentStepLabel(steps),
 					durationLabel: deriveDurationLabel(deployment.started_at, deployment.finished_at),
 					failedStepLabel: deriveFailedStepLabel(steps),
+					failureCode: deployment.failure_code ?? undefined,
 					failureSummary: deployment.failure?.summary ?? deployment.failure_summary ?? undefined,
 					recoveryHint: deployment.failure?.recovery_hint ?? undefined
 				}
@@ -74,8 +93,10 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		deployment
 			? deriveLiveInfoTimestamp({
 					status: bannerInput.status,
-					steps,
-					startedAtLabel: deployment.started_at
+					startedAtLabel: formatDeploymentTime(deployment.started_at),
+					finishedAtLabel: deployment.finished_at
+						? formatDeploymentTime(deployment.finished_at)
+						: undefined
 				})
 			: '-'
 	);
@@ -85,6 +106,9 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		deploymentEventsQuery,
 		get deployment() {
 			return deployment;
+		},
+		get publicUrl() {
+			return publicUrl;
 		},
 		get steps() {
 			return steps;

@@ -107,5 +107,13 @@
 				{formatDuration(deployment.started_at, deployment.finished_at)}
 			{/if}
 		</span>
+		<!-- eslint-disable svelte/no-navigation-without-resolve -->
+		<a
+			href={`/projects/${deployment.project_id}/deployments/${deployment.id}`}
+			class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-muted/30 px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+		>
+			Lihat detail
+		</a>
+		<!-- eslint-enable svelte/no-navigation-without-resolve -->
 	</div>
 </div>
