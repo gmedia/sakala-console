@@ -4,7 +4,7 @@ name: release
 # artifact here once instead of building it on the deployment host.
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
 
 permissions:
   contents: read
