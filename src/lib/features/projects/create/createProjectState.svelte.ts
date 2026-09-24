@@ -52,12 +52,15 @@ export function createProjectWizardState() {
 	const gitUrlRepository = $derived.by<Repository | null>(() => {
 		if (repositorySource !== 'git-url' || !gitUrl) return null;
 
-		if (validatedGitRepository && validatedGitRepository.clone_url === gitUrl.trim()) {
-			return validatedGitRepository;
-		}
-
 		const parsed = parseGitUrl(gitUrl);
 		if (!parsed) return null;
+
+		if (
+			validatedGitRepository &&
+			validatedGitRepository.full_name.toLowerCase() === parsed.fullName.toLowerCase()
+		) {
+			return validatedGitRepository;
+		}
 
 		return {
 			id: gitUrl,
@@ -170,8 +173,14 @@ export function createProjectWizardState() {
 		},
 		set gitUrl(v: string) {
 			gitUrl = v;
-			if (validatedGitRepository && validatedGitRepository.clone_url !== v.trim()) {
-				validatedGitRepository = null;
+			if (validatedGitRepository) {
+				const parsed = parseGitUrl(v);
+				if (
+					!parsed ||
+					parsed.fullName.toLowerCase() !== validatedGitRepository.full_name.toLowerCase()
+				) {
+					validatedGitRepository = null;
+				}
 			}
 		},
 

@@ -247,5 +247,10 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		// Metadata authoritative dari backend harus diterapkan, bukan fallback main
 		expect(wizardInstance?.selectedBranch).toBe('production');
 		expect(wizardInstance?.projectName).toBe('production-repo');
+		expect(wizardInstance?.selectedRepository?.default_branch).toBe('production');
+		expect(wizardInstance?.selectedRepository?.clone_url).toBe(
+			'https://github.com/org/production-repo.git'
+		);
+		expect(wizardInstance?.selectedRepository?.id).toBe('888');
 	});
 });
