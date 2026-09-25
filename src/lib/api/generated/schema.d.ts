@@ -1062,7 +1062,8 @@ export interface components {
 			} | null;
 			applied_resources: unknown[] | null;
 			finalization_deferred: boolean;
-			finalization_deferred_reason: string | null;
+			/** @enum {string|null} */
+			finalization_deferred_reason: 'grace_elapsed' | 'runtime_error' | null;
 			agent_node_id: string | null;
 			started_at: string | null;
 			finished_at: string | null;

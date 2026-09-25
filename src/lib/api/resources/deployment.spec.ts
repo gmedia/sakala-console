@@ -170,6 +170,49 @@ describe('parseDeploymentResponse', () => {
 			})
 		).toThrow();
 	});
+
+	it('menerima finalization_deferred_reason grace_elapsed', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				finalization_deferred: true,
+				finalization_deferred_reason: 'grace_elapsed'
+			}
+		});
+		expect(result.data.finalization_deferred_reason).toBe('grace_elapsed');
+	});
+
+	it('menerima finalization_deferred_reason runtime_error', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				finalization_deferred: true,
+				finalization_deferred_reason: 'runtime_error'
+			}
+		});
+		expect(result.data.finalization_deferred_reason).toBe('runtime_error');
+	});
+
+	it('menerima finalization_deferred_reason null', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				finalization_deferred_reason: null
+			}
+		});
+		expect(result.data.finalization_deferred_reason).toBeNull();
+	});
+
+	it('melempar error jika finalization_deferred_reason bukan enum valid', () => {
+		expect(() =>
+			parseDeploymentResponse({
+				data: {
+					...validDeployment,
+					finalization_deferred_reason: 'unknown_value'
+				}
+			})
+		).toThrow();
+	});
 });
 
 describe('parseDeploymentEventsResponse', () => {

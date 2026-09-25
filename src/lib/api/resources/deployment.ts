@@ -58,7 +58,7 @@ const deploymentSchema = z.object({
 	effective_resources: effectiveResourcesSchema.nullable(),
 	applied_resources: z.array(z.unknown()).nullable(),
 	finalization_deferred: z.boolean(),
-	finalization_deferred_reason: z.string().nullable(),
+	finalization_deferred_reason: z.enum(['grace_elapsed', 'runtime_error']).nullable(),
 	agent_node_id: z.string().nullable(),
 	started_at: z.string().nullable(),
 	finished_at: z.string().nullable(),
