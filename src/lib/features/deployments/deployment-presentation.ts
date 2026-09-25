@@ -12,6 +12,13 @@ const triggerLabels: Record<string, string> = {
 
 export const TERMINAL_STATUSES = new Set(['succeeded', 'failed', 'cancelled']);
 
+export type LifecycleTimestamps = {
+	created_at?: string | null;
+	started_at?: string | null;
+	finished_at?: string | null;
+	cancelled_at?: string | null;
+};
+
 export type DeploymentErrorConfig = {
 	title: string;
 	description: string;
@@ -82,10 +89,23 @@ export function deriveDurationLabel(
 	return `${durationSeconds} detik`;
 }
 
-export function deriveLastUpdateTimestamp(events: DeploymentEvent[]): string {
+export function deriveLastUpdateTimestamp(
+	events: DeploymentEvent[],
+	lifecycle?: LifecycleTimestamps
+): string {
 	const sorted = sortUniqueEvents(events);
 	const latest = sorted.at(-1);
-	return latest?.occurred_at ? formatDeploymentTime(latest.occurred_at) : '-';
+	if (latest?.occurred_at) {
+		return formatDeploymentTime(latest.occurred_at);
+	}
+
+	const fallback =
+		lifecycle?.finished_at ??
+		lifecycle?.cancelled_at ??
+		lifecycle?.started_at ??
+		lifecycle?.created_at;
+
+	return fallback ? formatDeploymentTime(fallback) : '-';
 }
 
 export function formatDeploymentTime(iso: string | null | undefined): string {

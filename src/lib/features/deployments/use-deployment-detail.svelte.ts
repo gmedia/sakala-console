@@ -73,7 +73,16 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 	const events = $derived(deploymentEventsQuery.data?.data ?? []);
 	const steps = $derived(deployment ? normalizeDeploymentTimeline(deployment, events) : []);
 
-	const lastUpdateTimestamp = $derived(deriveLastUpdateTimestamp(events));
+	const lastUpdateTimestamp = $derived(
+		deployment
+			? deriveLastUpdateTimestamp(events, {
+					created_at: deployment.created_at,
+					started_at: deployment.started_at,
+					finished_at: deployment.finished_at,
+					cancelled_at: deployment.cancelled_at
+				})
+			: '-'
+	);
 
 	const bannerInput = $derived<StatusDisplayInput>(
 		deployment

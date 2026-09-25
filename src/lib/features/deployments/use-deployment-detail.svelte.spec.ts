@@ -504,6 +504,12 @@ describe('useDeploymentDetail', () => {
 		});
 
 		it('memakai occurred_at event terakhir', () => {
+			const deployment = makeDeployment();
+
+			mockCreateDeploymentQuery.mockReturnValue(
+				makeDeploymentQuery({ data: { data: deployment } }) as never
+			);
+
 			mockCreateDeploymentEventsQuery.mockReturnValue(
 				makeDeploymentQuery({
 					data: {
