@@ -92,7 +92,7 @@
 		</div>
 
 		{#if hasFailureDetails}
-			<div class="mt-3 rounded-lg border border-error/30 bg-background p-4">
+			<div id="failure-summary" class="mt-3 rounded-lg border border-error/30 bg-background p-4">
 				<div class="flex items-center gap-2">
 					{#if failureCode}
 						<span

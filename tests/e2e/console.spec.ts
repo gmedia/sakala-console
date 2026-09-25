@@ -106,21 +106,13 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 							{
 								sequence: 1,
 								level: 'info',
-								type: 'deployment.queued',
-								message: 'Deployment queued',
-								metadata: null,
-								occurred_at: '2026-09-20T08:40:00Z'
-							},
-							{
-								sequence: 2,
-								level: 'info',
 								type: 'deployment.checkout.started',
 								message: 'Cloning repository from main...',
 								metadata: null,
 								occurred_at: '2026-09-20T08:41:02Z'
 							},
 							{
-								sequence: 3,
+								sequence: 2,
 								level: 'info',
 								type: 'deployment.build.started',
 								message: 'Building image...',
@@ -175,21 +167,13 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 								{
 									sequence: 1,
 									level: 'info',
-									type: 'deployment.queued',
-									message: 'Deployment queued',
-									metadata: null,
-									occurred_at: '2026-09-20T08:38:00Z'
-								},
-								{
-									sequence: 2,
-									level: 'info',
 									type: 'deployment.checkout.started',
 									message: 'Cloning repository from main...',
 									metadata: null,
 									occurred_at: '2026-09-20T08:38:15Z'
 								},
 								{
-									sequence: 3,
+									sequence: 2,
 									level: 'info',
 									type: 'deployment.build.started',
 									message: 'Building image...',
@@ -197,7 +181,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 									occurred_at: '2026-09-20T08:38:30Z'
 								},
 								{
-									sequence: 4,
+									sequence: 3,
 									level: 'error',
 									type: 'deployment.failed',
 									message: 'Build failed: see step 5 output above',
@@ -374,6 +358,10 @@ test.describe('Deployment detail page', () => {
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Logs' })).toBeVisible();
+		await expect(
+			page.getByText('Log deployment akan tersedia pada iterasi berikutnya.')
+		).toBeVisible();
 		await page.waitForTimeout(2000);
 		await expect(page.getByText(/Tahap: Build project/)).toBeVisible();
 
@@ -429,6 +417,22 @@ test.describe('Deployment detail page', () => {
 
 		await expect(page.getByText('Build project - gagal')).toBeVisible();
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
+	});
+
+	test('shows failed state and "Lihat detail error" CTA scrolls to failure summary', async ({
+		page
+	}) => {
+		await mockCurrentUserSuccess(page);
+		await mockDeploymentDetail(page, 'failed');
+		await page.goto('/projects/sakala-console/deployments/12');
+
+		await expect(page.getByText('Deployment gagal')).toBeVisible();
+
+		const cta = page.getByRole('button', { name: /lihat detail error/i });
+		await expect(cta).toBeVisible();
+
+		await cta.click();
+		await expect(page.locator('#failure-summary')).toBeInViewport();
 	});
 });
 

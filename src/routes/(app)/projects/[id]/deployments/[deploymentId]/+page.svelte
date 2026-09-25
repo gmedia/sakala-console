@@ -2,11 +2,9 @@
 	import { CircleAlert, RotateCcw } from '@lucide/svelte';
 	import { page } from '$app/state';
 	import { getDeploymentTriggerLabel } from '$lib/features/deployments/deployment-presentation';
-	import { mockLogs } from '$lib/features/deployments/mock/events';
 	import DeploymentStatusBanner from '$lib/features/deployments/components/DeploymentStatusBanner.svelte';
 	import DeploymentInfoRow from '$lib/features/deployments/components/DeploymentInfoRow.svelte';
 	import DeploymentTimeline from '$lib/features/deployments/components/DeploymentTimeline.svelte';
-	import DeploymentLogConsole from '$lib/features/deployments/components/DeploymentLogConsole.svelte';
 	import { useDeploymentDetail } from '$lib/features/deployments/use-deployment-detail.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import DeploymentLiveAnnouncement from '$lib/components/feedback/DeploymentLiveAnnouncement.svelte';
@@ -17,7 +15,7 @@
 	);
 
 	function handleViewError() {
-		document.getElementById('deployment-logs')?.scrollIntoView({ behavior: 'smooth' });
+		document.getElementById('failure-summary')?.scrollIntoView({ behavior: 'smooth' });
 	}
 
 	let retryButtonClass = $derived(
@@ -110,7 +108,11 @@
 		{/if}
 
 		<h2 id="deployment-logs" class="font-montserrat-semibold py-2 text-base">Logs</h2>
-		<DeploymentLogConsole lines={mockLogs.running} autoScroll />
+		<div
+			class="rounded-lg border border-muted/30 bg-muted/5 px-4 py-8 text-center font-montserrat text-sm text-muted"
+		>
+			Log deployment akan tersedia pada iterasi berikutnya.
+		</div>
 	</div>
 {:else}
 	<EmptyState
