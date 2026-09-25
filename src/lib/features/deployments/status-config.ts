@@ -18,11 +18,9 @@ export function parseBannerStatus(
 const bannerStatusMap: Record<DeploymentStage, BannerStatus> = {
 	Queued: 'running',
 	Cloning: 'running',
-	Analyzing: 'running',
 	Building: 'running',
 	Deploying: 'running',
 	Routing: 'running',
-	HealthChecking: 'running',
 	Succeeded: 'success',
 	Failed: 'failed',
 	Cancelled: 'failed'
@@ -35,11 +33,9 @@ export function getBannerStatus(stage: DeploymentStage): BannerStatus {
 const deploymentStageLabel: Record<DeploymentStage, string> = {
 	Queued: 'Menunggu antrean',
 	Cloning: 'Menyalin repository',
-	Analyzing: 'Menganalisis project',
 	Building: 'Build project',
 	Deploying: 'Deploy project',
 	Routing: 'Menyiapkan routing',
-	HealthChecking: 'Memeriksa kesehatan aplikasi',
 	Succeeded: 'Selesai',
 	Failed: 'Gagal',
 	Cancelled: 'Dibatalkan'

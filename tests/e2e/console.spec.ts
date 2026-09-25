@@ -46,7 +46,7 @@ function makeDeployment(status: DeploymentStatus) {
 		effective_resources: null,
 		applied_resources: null,
 		finalization_deferred: false,
-		finalization_deferred_reason: '',
+		finalization_deferred_reason: null,
 		agent_node_id: null,
 		failure_code: null,
 		failure_summary: null,
@@ -114,7 +114,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 							{
 								sequence: 2,
 								level: 'info',
-								type: 'deployment.cloning',
+								type: 'deployment.checkout.started',
 								message: 'Cloning repository from main...',
 								metadata: null,
 								occurred_at: '2026-09-20T08:41:02Z'
@@ -122,15 +122,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 							{
 								sequence: 3,
 								level: 'info',
-								type: 'deployment.analyzing',
-								message: 'Analyzing project...',
-								metadata: null,
-								occurred_at: '2026-09-20T08:41:20Z'
-							},
-							{
-								sequence: 4,
-								level: 'info',
-								type: 'deployment.building',
+								type: 'deployment.build.started',
 								message: 'Building image...',
 								metadata: null,
 								occurred_at: '2026-09-20T08:41:35Z'
@@ -140,6 +132,38 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 						? [
 								{
 									sequence: 1,
+									level: 'info',
+									type: 'deployment.checkout.started',
+									message: 'Cloning repository...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:02Z'
+								},
+								{
+									sequence: 2,
+									level: 'info',
+									type: 'deployment.build.started',
+									message: 'Building image...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:20Z'
+								},
+								{
+									sequence: 3,
+									level: 'info',
+									type: 'deployment.container.started',
+									message: 'Deploying container...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:35Z'
+								},
+								{
+									sequence: 4,
+									level: 'info',
+									type: 'deployment.runtime.ready',
+									message: 'Runtime ready',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:45Z'
+								},
+								{
+									sequence: 5,
 									level: 'info',
 									type: 'deployment.succeeded',
 									message: 'Deployment is live',
@@ -159,7 +183,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 								{
 									sequence: 2,
 									level: 'info',
-									type: 'deployment.cloning',
+									type: 'deployment.checkout.started',
 									message: 'Cloning repository from main...',
 									metadata: null,
 									occurred_at: '2026-09-20T08:38:15Z'
@@ -167,7 +191,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 								{
 									sequence: 3,
 									level: 'info',
-									type: 'deployment.building',
+									type: 'deployment.build.started',
 									message: 'Building image...',
 									metadata: null,
 									occurred_at: '2026-09-20T08:38:30Z'
@@ -188,12 +212,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 				body: JSON.stringify({
 					data: events,
 					links: { first: null, last: null, prev: null, next: null },
-					meta: {
-						path: null,
-						per_page: 30,
-						next_cursor: null,
-						prev_cursor: null
-					}
+					meta: { path: null, per_page: 30, next_cursor: null, prev_cursor: null }
 				})
 			});
 			return;
@@ -356,7 +375,7 @@ test.describe('Deployment detail page', () => {
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
 		await page.waitForTimeout(2000);
-		await expect(page.getByText(/Tahap: Building image/)).toBeVisible();
+		await expect(page.getByText(/Tahap: Build project/)).toBeVisible();
 
 		const deploymentInfo = page.getByTestId('deployment-info');
 		await expect(deploymentInfo.getByText('Dimulai pada')).toBeVisible();
@@ -371,9 +390,9 @@ test.describe('Deployment detail page', () => {
 		await expect(page.getByTestId('deployment-branch')).toHaveText('main');
 		await expect(page.getByTestId('deployment-trigger')).toHaveText('Push');
 
-		await expect(page.getByText(/Cloning repository from main\.\.\./)).toBeVisible();
-		await expect(page.getByText('Sedang berjalan...')).toBeVisible();
-		await expect(page.getByText('Cloning repository from main...')).toBeVisible();
+		await expect(page.getByText('Build project', { exact: true })).toBeVisible();
+		await expect(page.getByText('Menyalin repository')).toBeVisible();
+		await expect(page.getByText('Menyiapkan routing')).toBeVisible();
 	});
 
 	test('shows success state', async ({ page }) => {
@@ -391,7 +410,7 @@ test.describe('Deployment detail page', () => {
 		);
 		await expect(page.getByTestId('deployment-trigger')).toHaveText('Manual redeploy');
 
-		await expect(page.getByText('Health check - live', { exact: true })).toBeVisible();
+		await expect(page.getByText('Menyiapkan routing')).toBeVisible();
 	});
 
 	test('shows failed state', async ({ page }) => {
@@ -408,7 +427,7 @@ test.describe('Deployment detail page', () => {
 			/^\d{2}[:.]\d{2}[:.]\d{2}$/
 		);
 
-		await expect(page.getByText('Building image - gagal')).toBeVisible();
+		await expect(page.getByText('Build project - gagal')).toBeVisible();
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
 	});
 });

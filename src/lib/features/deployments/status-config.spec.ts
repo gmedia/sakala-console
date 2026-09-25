@@ -31,11 +31,9 @@ describe('getDeploymentStageLabel', () => {
 	it.each([
 		['Queued', 'Menunggu antrean'],
 		['Cloning', 'Menyalin repository'],
-		['Analyzing', 'Menganalisis project'],
 		['Building', 'Build project'],
 		['Deploying', 'Deploy project'],
 		['Routing', 'Menyiapkan routing'],
-		['HealthChecking', 'Memeriksa kesehatan aplikasi'],
 		['Succeeded', 'Selesai'],
 		['Failed', 'Gagal'],
 		['Cancelled', 'Dibatalkan']
@@ -65,11 +63,9 @@ describe('getBannerStatus', () => {
 	it.each([
 		['Queued', 'running'],
 		['Cloning', 'running'],
-		['Analyzing', 'running'],
 		['Building', 'running'],
 		['Deploying', 'running'],
 		['Routing', 'running'],
-		['HealthChecking', 'running'],
 		['Succeeded', 'success'],
 		['Failed', 'failed'],
 		['Cancelled', 'failed']
@@ -262,20 +258,12 @@ describe('deriveBannerState', () => {
 	it.each([
 		['Queued', 'Menunggu antrean'],
 		['Cloning', 'Menyalin repository'],
-		['Analyzing', 'Menganalisis project'],
 		['Building', 'Build project'],
 		['Deploying', 'Deploy project'],
-		['Routing', 'Menyiapkan routing'],
-		['HealthChecking', 'Memeriksa kesehatan aplikasi']
+		['Routing', 'Menyiapkan routing']
 	] as const)('returns running for stage %s', (stage, expectedLabel) => {
-		const progress: DeploymentProgress = {
-			stage,
-			steps: [],
-			logs: []
-		};
-
+		const progress: DeploymentProgress = { stage, steps: [], logs: [] };
 		const result = deriveBannerState(progress, 10);
-
 		expect(result.status).toBe('running');
 		expect(result.currentStepLabel).toBe(expectedLabel);
 	});

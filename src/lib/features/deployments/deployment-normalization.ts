@@ -1,4 +1,5 @@
 import type { Deployment, DeploymentEvent } from '$lib/api/resources/deployment';
+import { getDeploymentStageLabel } from './status-config';
 import {
 	DEPLOYMENT_PIPELINE_STAGES,
 	type DeploymentPipelineStage,
@@ -7,26 +8,13 @@ import {
 } from './type';
 
 const EVENT_STAGE_MAP: Record<string, DeploymentStage> = {
-	'deployment.queued': 'Queued',
-	'deployment.cloning': 'Cloning',
-	'deployment.analyzing': 'Analyzing',
-	'deployment.building': 'Building',
-	'deployment.deploying': 'Deploying',
-	'deployment.routing': 'Routing',
-	'deployment.health_checking': 'HealthChecking',
+	'deployment.checkout.started': 'Cloning',
+	'deployment.build.started': 'Building',
+	'deployment.container.started': 'Deploying',
+	'deployment.runtime.ready': 'Routing',
 	'deployment.succeeded': 'Succeeded',
 	'deployment.failed': 'Failed',
 	'deployment.cancelled': 'Cancelled'
-};
-
-const STAGE_TITLE_MAP: Record<DeploymentPipelineStage, string> = {
-	Queued: 'Menunggu antrian',
-	Cloning: 'Cloning repository',
-	Analyzing: 'Menganalisis proyek',
-	Building: 'Building image',
-	Deploying: 'Deploy container',
-	Routing: 'Menyiapkan routing',
-	HealthChecking: 'Health check - live'
 };
 
 const TERMINAL_EVENT_TYPES = new Set([
@@ -74,7 +62,7 @@ export function normalizeDeploymentTimeline(
 
 		return {
 			key: stage,
-			title: STAGE_TITLE_MAP[stage],
+			title: getDeploymentStageLabel(stage),
 			status: getStepStatus(deployment, stage, currentStage),
 			timestamp: event?.occurred_at ?? undefined
 		};
@@ -90,16 +78,12 @@ function getCurrentStage(
 			return 'Queued';
 		case 'cloning':
 			return 'Cloning';
-		case 'analyzing':
-			return 'Analyzing';
 		case 'building':
 			return 'Building';
 		case 'deploying':
 			return 'Deploying';
 		case 'routing':
 			return 'Routing';
-		case 'health_checking':
-			return 'HealthChecking';
 	}
 
 	if (deployment.status === 'failed' || deployment.status === 'cancelled') {
@@ -146,15 +130,7 @@ function getStepStatus(
 }
 
 function isActiveDeployment(status: string): boolean {
-	return [
-		'queued',
-		'cloning',
-		'analyzing',
-		'building',
-		'deploying',
-		'routing',
-		'health_checking'
-	].includes(status);
+	return ['queued', 'cloning', 'building', 'deploying', 'routing'].includes(status);
 }
 
 function getCurrentStageIndex(currentStage: DeploymentPipelineStage | undefined): number {

@@ -29,12 +29,10 @@ type DeploymentStepConfig = {
 };
 
 const STEP_ORDER: DeploymentStepConfig[] = [
-	{ key: 'clone', title: 'Cloning repository', eventType: 'deployment.cloning' },
-	{ key: 'analyze', title: 'Menganalisis proyek', eventType: 'deployment.analyzing' },
-	{ key: 'build', title: 'Building image', eventType: 'deployment.building' },
-	{ key: 'deploy', title: 'Deploy container', eventType: 'deployment.deploying' },
-	{ key: 'routing', title: 'Menyiapkan routing', eventType: 'deployment.routing' },
-	{ key: 'health', title: 'Health check - live', eventType: 'deployment.health_checking' }
+	{ key: 'clone', title: 'Cloning repository', eventType: 'deployment.checkout.started' },
+	{ key: 'build', title: 'Building image', eventType: 'deployment.build.started' },
+	{ key: 'deploy', title: 'Deploy container', eventType: 'deployment.container.started' },
+	{ key: 'routing', title: 'Menyiapkan routing', eventType: 'deployment.runtime.ready' }
 ];
 
 function buildStep(
@@ -85,7 +83,7 @@ const successEvents: MockDeploymentEvent[] = [
 	{
 		sequence: 1,
 		level: 'info',
-		type: 'deployment.cloning',
+		type: 'deployment.checkout.started',
 		message: 'Cloning repository',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:02Z'
@@ -93,45 +91,29 @@ const successEvents: MockDeploymentEvent[] = [
 	{
 		sequence: 2,
 		level: 'info',
-		type: 'deployment.analyzing',
-		message: 'Menganalisis proyek',
-		metadata: null,
-		occurred_at: '2026-08-21T08:41:06Z'
-	},
-	{
-		sequence: 3,
-		level: 'info',
-		type: 'deployment.building',
+		type: 'deployment.build.started',
 		message: 'Building image',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:10Z'
 	},
 	{
-		sequence: 4,
+		sequence: 3,
 		level: 'info',
-		type: 'deployment.deploying',
+		type: 'deployment.container.started',
 		message: 'Deploy container',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:20Z'
 	},
 	{
-		sequence: 5,
+		sequence: 4,
 		level: 'info',
-		type: 'deployment.routing',
-		message: 'Menyiapkan routing',
+		type: 'deployment.runtime.ready',
+		message: 'Runtime siap, menyiapkan routing',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:25Z'
 	},
 	{
-		sequence: 6,
-		level: 'info',
-		type: 'deployment.health_checking',
-		message: 'Menjalankan health check',
-		metadata: null,
-		occurred_at: '2026-08-21T08:41:27Z'
-	},
-	{
-		sequence: 7,
+		sequence: 5,
 		level: 'info',
 		type: 'deployment.succeeded',
 		message: 'Deployment berhasil, container live',
@@ -144,7 +126,7 @@ const failedEvents: MockDeploymentEvent[] = [
 	{
 		sequence: 1,
 		level: 'info',
-		type: 'deployment.cloning',
+		type: 'deployment.checkout.started',
 		message: 'Cloning repository',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:02Z'
@@ -152,21 +134,13 @@ const failedEvents: MockDeploymentEvent[] = [
 	{
 		sequence: 2,
 		level: 'info',
-		type: 'deployment.analyzing',
-		message: 'Menganalisis proyek',
-		metadata: null,
-		occurred_at: '2026-08-21T08:41:06Z'
-	},
-	{
-		sequence: 3,
-		level: 'info',
-		type: 'deployment.building',
+		type: 'deployment.build.started',
 		message: 'Building image',
 		metadata: null,
 		occurred_at: '2026-08-21T08:41:10Z'
 	},
 	{
-		sequence: 4,
+		sequence: 3,
 		level: 'error',
 		type: 'deployment.failed',
 		message: "Cannot find module 'package.json'\nBuild failed with exit code 1",
@@ -271,18 +245,14 @@ const scenarioLogs: Record<DeployScenario, BackendLogLine[]> = {
 
 function getStageFromEvent(event: MockDeploymentEvent): DeploymentStage {
 	switch (event.type) {
-		case 'deployment.cloning':
+		case 'deployment.checkout.started':
 			return 'Cloning';
-		case 'deployment.analyzing':
-			return 'Analyzing';
-		case 'deployment.building':
+		case 'deployment.build.started':
 			return 'Building';
-		case 'deployment.deploying':
+		case 'deployment.container.started':
 			return 'Deploying';
-		case 'deployment.routing':
+		case 'deployment.runtime.ready':
 			return 'Routing';
-		case 'deployment.health_checking':
-			return 'HealthChecking';
 		case 'deployment.succeeded':
 			return 'Succeeded';
 		case 'deployment.failed':
@@ -297,10 +267,7 @@ function withRuntimeTimestamp(event: MockDeploymentEvent): MockDeploymentEvent {
 }
 
 function withRuntimeLogTimestamp(log: BackendLogLine): BackendLogLine {
-	return {
-		...log,
-		recorded_at: new Date().toISOString()
-	};
+	return { ...log, recorded_at: new Date().toISOString() };
 }
 
 export function resolveDeployScenario(successRate = 0.8): DeployScenario {
