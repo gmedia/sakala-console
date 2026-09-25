@@ -26,6 +26,12 @@ const requestedResourcesSchema = z.object({
 	pids_limit: z.number().nullable()
 });
 
+const appliedResourcesSchema = z.object({
+	memory_mb: z.number(),
+	cpu_millis: z.number(),
+	pids_limit: z.number()
+});
+
 const effectiveResourcesSchema = z.object({
 	resources: z.object({
 		memory_mb: z.number(),
@@ -44,6 +50,11 @@ const effectiveResourcesSchema = z.object({
 	})
 });
 
+const deploymentEventMetadataSchema = z.object({
+	builder: z.string(),
+	domain: z.string()
+});
+
 const deploymentSchema = z.object({
 	id: z.string(),
 	project_id: z.string(),
@@ -56,7 +67,7 @@ const deploymentSchema = z.object({
 	image_reference: z.string().nullable(),
 	requested_resources: requestedResourcesSchema.nullable(),
 	effective_resources: effectiveResourcesSchema.nullable(),
-	applied_resources: z.array(z.unknown()).nullable(),
+	applied_resources: appliedResourcesSchema.nullable(),
 	finalization_deferred: z.boolean(),
 	finalization_deferred_reason: z.enum(['grace_elapsed', 'runtime_error']).nullable(),
 	agent_node_id: z.string().nullable(),
@@ -75,7 +86,7 @@ const deploymentEventSchema = z.object({
 	level: z.enum(['info', 'warning', 'error']),
 	type: z.string().nullable(),
 	message: z.string(),
-	metadata: z.array(z.unknown()).nullable(),
+	metadata: deploymentEventMetadataSchema.nullable(),
 	occurred_at: z.string()
 }) satisfies z.ZodType<DeploymentEvent>;
 
@@ -119,10 +130,7 @@ export async function getDeployment(
 export async function getDeploymentEvents(
 	project: string,
 	deployment: string,
-	params?: {
-		cursor?: string;
-		per_page?: number;
-	}
+	params?: { cursor?: string; per_page?: number }
 ): Promise<DeploymentEventsResponse> {
 	const response = await apiRequest<unknown>(
 		`api/v1/app/projects/${project}/deployments/${deployment}/events`,

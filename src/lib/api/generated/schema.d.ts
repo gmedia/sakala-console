@@ -1014,10 +1014,14 @@ export interface components {
 		/** DeploymentEventResource */
 		DeploymentEventResource: {
 			sequence: number;
-			level: components['schemas']['DeploymentEventLevel'];
+			/** @enum {string} */
+			level: 'info' | 'warning' | 'error';
 			type: string | null;
 			message: string;
-			metadata: unknown[] | null;
+			metadata: {
+				builder: string;
+				domain: string;
+			} | null;
 			occurred_at: string;
 		};
 		/** DeploymentLogResource */
@@ -1060,7 +1064,11 @@ export interface components {
 					max_total_bytes: number;
 				};
 			} | null;
-			applied_resources: unknown[] | null;
+			applied_resources: {
+				memory_mb: number;
+				cpu_millis: number;
+				pids_limit: number;
+			} | null;
 			finalization_deferred: boolean;
 			/** @enum {string|null} */
 			finalization_deferred_reason: 'grace_elapsed' | 'runtime_error' | null;

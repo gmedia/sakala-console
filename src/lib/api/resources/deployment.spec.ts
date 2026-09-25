@@ -48,7 +48,11 @@ const validDeployment: Deployment = {
 			max_total_bytes: 10485760
 		}
 	},
-	applied_resources: null,
+	applied_resources: {
+		memory_mb: 512,
+		cpu_millis: 1000,
+		pids_limit: 128
+	},
 	finalization_deferred: false,
 	finalization_deferred_reason: null,
 	agent_node_id: null,
@@ -71,7 +75,7 @@ const validDeploymentEvent: DeploymentEvent = {
 	level: 'info',
 	type: 'build',
 	message: 'Building image',
-	metadata: [{ step: 'build' }],
+	metadata: { builder: 'docker', domain: 'example.com' },
 	occurred_at: '2024-01-01T00:00:00Z'
 };
 
@@ -127,6 +131,49 @@ describe('parseDeploymentResponse', () => {
 			cpu_millis: 500,
 			pids_limit: null
 		});
+	});
+
+	it('menerima applied_resources sebagai object', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				applied_resources: { memory_mb: 256, cpu_millis: 500, pids_limit: 64 }
+			}
+		});
+		expect(result.data.applied_resources).toEqual({
+			memory_mb: 256,
+			cpu_millis: 500,
+			pids_limit: 64
+		});
+	});
+
+	it('menerima applied_resources null', () => {
+		const result = parseDeploymentResponse({
+			data: { ...validDeployment, applied_resources: null }
+		});
+		expect(result.data.applied_resources).toBeNull();
+	});
+
+	it('melempar error jika applied_resources berbentuk array', () => {
+		expect(() =>
+			parseDeploymentResponse({
+				data: {
+					...validDeployment,
+					applied_resources: [{ memory_mb: 256 }]
+				}
+			})
+		).toThrow();
+	});
+
+	it('melempar error jika applied_resources object tidak lengkap', () => {
+		expect(() =>
+			parseDeploymentResponse({
+				data: {
+					...validDeployment,
+					applied_resources: { memory_mb: 256, cpu_millis: 500 }
+				}
+			})
+		).toThrow();
 	});
 
 	it('melempar error jika response deployment tidak valid', () => {
@@ -248,6 +295,50 @@ describe('parseDeploymentEventsResponse', () => {
 		});
 		expect(result.data[0].type).toBeNull();
 		expect(result.data[0].metadata).toBeNull();
+	});
+
+	it('menerima metadata event sebagai object', () => {
+		const result = parseDeploymentEventsResponse({
+			...validDeploymentEventsResponse,
+			data: [
+				{
+					...validDeploymentEvent,
+					metadata: { builder: 'nixpacks', domain: 'app.staging.sakala.dev' }
+				}
+			]
+		});
+		expect(result.data[0].metadata).toEqual({
+			builder: 'nixpacks',
+			domain: 'app.staging.sakala.dev'
+		});
+	});
+
+	it('melempar error jika metadata object tidak lengkap', () => {
+		expect(() =>
+			parseDeploymentEventsResponse({
+				...validDeploymentEventsResponse,
+				data: [
+					{
+						...validDeploymentEvent,
+						metadata: { builder: 'docker' }
+					}
+				]
+			})
+		).toThrow();
+	});
+
+	it('melempar error jika metadata berbentuk array', () => {
+		expect(() =>
+			parseDeploymentEventsResponse({
+				...validDeploymentEventsResponse,
+				data: [
+					{
+						...validDeploymentEvent,
+						metadata: [{ step: 'build' }]
+					}
+				]
+			})
+		).toThrow();
 	});
 });
 
