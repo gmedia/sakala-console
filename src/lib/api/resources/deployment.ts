@@ -13,6 +13,27 @@ type DeploymentResponse =
 export type DeploymentEventsResponse =
 	operations['deployment.events']['responses'][200]['content']['application/json'];
 
+export class DeploymentEventsTruncationError extends Error {
+	readonly name = 'DeploymentEventsTruncationError';
+	readonly isRetryable = false;
+
+	constructor(
+		readonly deploymentId: string,
+		readonly pagesFetched: number,
+		readonly eventsFetched: number,
+		readonly remainingCursor: string
+	) {
+		super(
+			`[getAllDeploymentEvents] Truncated at ${pagesFetched} pages ` +
+				`(${eventsFetched} events) for deployment ${deploymentId}; ` +
+				`next_cursor still present: ${remainingCursor}. ` +
+				`Increase MAX_EVENT_PAGES or add "since_sequence" on the backend.`
+		);
+	}
+}
+
+const MAX_EVENT_PAGES = 50;
+
 const deploymentFailureSchema = z.object({
 	code: z.string(),
 	category: z.string(),
@@ -50,11 +71,6 @@ const effectiveResourcesSchema = z.object({
 	})
 });
 
-const deploymentEventMetadataSchema = z.object({
-	builder: z.string(),
-	domain: z.string()
-});
-
 const deploymentSchema = z.object({
 	id: z.string(),
 	project_id: z.string(),
@@ -86,7 +102,7 @@ const deploymentEventSchema = z.object({
 	level: z.enum(['info', 'warning', 'error']),
 	type: z.string().nullable(),
 	message: z.string(),
-	metadata: deploymentEventMetadataSchema.nullable(),
+	metadata: z.record(z.string(), z.unknown()).nullable(),
 	occurred_at: z.string()
 }) satisfies z.ZodType<DeploymentEvent>;
 
@@ -138,6 +154,45 @@ export async function getDeploymentEvents(
 	);
 
 	return parseDeploymentEventsResponse(response);
+}
+
+export async function getAllDeploymentEvents(
+	project: string,
+	deployment: string
+): Promise<DeploymentEventsResponse> {
+	const allEvents: DeploymentEvent[] = [];
+	let cursor: string | undefined = undefined;
+	let pageCount = 0;
+	let lastResponse: DeploymentEventsResponse | null = null;
+
+	while (pageCount < MAX_EVENT_PAGES) {
+		pageCount++;
+		lastResponse = await getDeploymentEvents(project, deployment, { cursor });
+		allEvents.push(...lastResponse.data);
+
+		const nextCursor = lastResponse.meta.next_cursor;
+		if (!nextCursor) {
+			return {
+				data: allEvents,
+				links: lastResponse.links,
+				meta: {
+					path: lastResponse.meta.path,
+					per_page: allEvents.length,
+					next_cursor: null,
+					prev_cursor: null
+				}
+			};
+		}
+
+		cursor = nextCursor;
+	}
+
+	throw new DeploymentEventsTruncationError(
+		deployment,
+		pageCount,
+		allEvents.length,
+		lastResponse?.meta.next_cursor ?? 'unknown'
+	);
 }
 
 export function parseDeploymentResponse(response: unknown): DeploymentResponse {

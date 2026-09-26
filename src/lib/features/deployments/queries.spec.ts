@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-keys';
-import { getDeployment, getDeploymentEvents } from '$lib/api/resources/deployment';
+import {
+	getDeployment,
+	getAllDeploymentEvents,
+	DeploymentEventsTruncationError
+} from '$lib/api/resources/deployment';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 import { TERMINAL_STATUSES } from './deployment-presentation';
 import {
@@ -38,7 +42,19 @@ vi.mock('$lib/api/query-keys', () => ({
 
 vi.mock('$lib/api/resources/deployment', () => ({
 	getDeployment: vi.fn(),
-	getDeploymentEvents: vi.fn()
+	getAllDeploymentEvents: vi.fn(),
+	DeploymentEventsTruncationError: class DeploymentEventsTruncationError extends Error {
+		readonly name = 'DeploymentEventsTruncationError';
+		readonly isRetryable = false;
+		constructor(
+			public readonly deploymentId: string,
+			public readonly pagesFetched: number,
+			public readonly eventsFetched: number,
+			public readonly remainingCursor: string
+		) {
+			super('truncated');
+		}
+	}
 }));
 
 vi.mock('$lib/realtime/connection-state.svelte', () => ({
@@ -47,7 +63,7 @@ vi.mock('$lib/realtime/connection-state.svelte', () => ({
 
 const mockCreateQuery = vi.mocked(createQuery);
 const mockGetDeployment = vi.mocked(getDeployment);
-const mockGetDeploymentEvents = vi.mocked(getDeploymentEvents);
+const mockGetAllDeploymentEvents = vi.mocked(getAllDeploymentEvents);
 const mockRealtimeState = vi.mocked(realtimeState, true);
 
 function captureQueryConfig<T>(fn: () => unknown): T {
@@ -225,7 +241,7 @@ describe('createDeploymentEventsQuery', () => {
 		expect(config.queryKey).toEqual(['deployments', 'events', 'proj_1', 'dep_1']);
 	});
 
-	it('queryFn memanggil getDeploymentEvents(project, deployment)', () => {
+	it('queryFn memanggil getAllDeploymentEvents(project, deployment)', () => {
 		const config = captureQueryConfig<{ queryFn: () => unknown }>(() =>
 			createDeploymentEventsQuery(
 				() => 'proj_1',
@@ -235,7 +251,7 @@ describe('createDeploymentEventsQuery', () => {
 		);
 
 		config.queryFn();
-		expect(mockGetDeploymentEvents).toHaveBeenCalledWith('proj_1', 'dep_1');
+		expect(mockGetAllDeploymentEvents).toHaveBeenCalledWith('proj_1', 'dep_1');
 	});
 
 	it('enabled = true ketika project dan deployment terisi', () => {
@@ -266,6 +282,96 @@ describe('createDeploymentEventsQuery', () => {
 		);
 		expect(config1.enabled).toBe(false);
 		expect(config2.enabled).toBe(false);
+	});
+
+	describe('retry', () => {
+		type RetryFn = (failureCount: number, error: unknown) => boolean;
+
+		it('TIDAK retry ketika error adalah DeploymentEventsTruncationError', () => {
+			const config = captureQueryConfig<{ retry: RetryFn }>(() =>
+				createDeploymentEventsQuery(
+					() => 'p',
+					() => 'd',
+					() => false
+				)
+			);
+
+			const truncationError = new DeploymentEventsTruncationError('dep_1', 50, 300, 'cursor_x');
+
+			expect(config.retry(0, truncationError)).toBe(false);
+			expect(config.retry(1, truncationError)).toBe(false);
+			expect(config.retry(2, truncationError)).toBe(false);
+			expect(config.retry(3, truncationError)).toBe(false);
+		});
+
+		it('retry untuk error generik sampai 3x', () => {
+			const config = captureQueryConfig<{ retry: RetryFn }>(() =>
+				createDeploymentEventsQuery(
+					() => 'p',
+					() => 'd',
+					() => false
+				)
+			);
+
+			const networkError = new Error('Network error');
+
+			expect(config.retry(0, networkError)).toBe(true);
+			expect(config.retry(1, networkError)).toBe(true);
+			expect(config.retry(2, networkError)).toBe(true);
+			expect(config.retry(3, networkError)).toBe(false); // max 3
+		});
+
+		it('retry untuk ApiError 500 (transient)', () => {
+			const config = captureQueryConfig<{ retry: RetryFn }>(() =>
+				createDeploymentEventsQuery(
+					() => 'p',
+					() => 'd',
+					() => false
+				)
+			);
+
+			const serverError = new Error('500 Server Error');
+
+			expect(config.retry(0, serverError)).toBe(true);
+			expect(config.retry(2, serverError)).toBe(true);
+			expect(config.retry(3, serverError)).toBe(false);
+		});
+
+		it('retry untuk ZodError (mungkin transient jika data berubah)', () => {
+			const config = captureQueryConfig<{ retry: RetryFn }>(() =>
+				createDeploymentEventsQuery(
+					() => 'p',
+					() => 'd',
+					() => false
+				)
+			);
+
+			const zodError = new Error('ZodError: ...');
+
+			expect(config.retry(0, zodError)).toBe(true);
+			expect(config.retry(3, zodError)).toBe(false);
+		});
+
+		it('hanya TruncationError yang non-retryable, error lain tetap retry', () => {
+			const config = captureQueryConfig<{ retry: RetryFn }>(() =>
+				createDeploymentEventsQuery(
+					() => 'p',
+					() => 'd',
+					() => false
+				)
+			);
+
+			const truncationError = new DeploymentEventsTruncationError('d', 50, 300, 'cursor_x');
+			const networkError = new Error('Network error');
+
+			expect(config.retry(0, truncationError)).toBe(false);
+			expect(config.retry(1, truncationError)).toBe(false);
+
+			expect(config.retry(0, networkError)).toBe(true);
+			expect(config.retry(1, networkError)).toBe(true);
+			expect(config.retry(2, networkError)).toBe(true);
+			expect(config.retry(3, networkError)).toBe(false);
+		});
 	});
 
 	describe('refetchInterval', () => {

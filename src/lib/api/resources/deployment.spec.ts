@@ -3,8 +3,10 @@ import { apiRequest } from '../client';
 import {
 	getDeployment,
 	getDeploymentEvents,
+	getAllDeploymentEvents,
 	parseDeploymentResponse,
 	parseDeploymentEventsResponse,
+	DeploymentEventsTruncationError,
 	type Deployment,
 	type DeploymentEvent,
 	type DeploymentEventsResponse
@@ -94,6 +96,22 @@ const validDeploymentEventsResponse: DeploymentEventsResponse = {
 		prev_cursor: null
 	}
 };
+
+function makeEventPage(
+	events: DeploymentEvent[],
+	nextCursor: string | null
+): DeploymentEventsResponse {
+	return {
+		data: events,
+		links: { first: null, last: null, prev: null, next: null },
+		meta: {
+			path: null,
+			per_page: 6,
+			next_cursor: nextCursor,
+			prev_cursor: null
+		}
+	};
+}
 
 describe('parseDeploymentResponse', () => {
 	it('mengembalikan response deployment yang valid', () => {
@@ -313,18 +331,34 @@ describe('parseDeploymentEventsResponse', () => {
 		});
 	});
 
-	it('melempar error jika metadata object tidak lengkap', () => {
-		expect(() =>
-			parseDeploymentEventsResponse({
-				...validDeploymentEventsResponse,
-				data: [
-					{
-						...validDeploymentEvent,
-						metadata: { builder: 'docker' }
-					}
-				]
-			})
-		).toThrow();
+	it('menerima metadata event dengan key apapun', () => {
+		const result = parseDeploymentEventsResponse({
+			...validDeploymentEventsResponse,
+			data: [
+				{
+					...validDeploymentEvent,
+					metadata: { component: 'build', image: 'sha256:abc123', resources: { cpu: 500 } }
+				}
+			]
+		});
+		expect(result.data[0].metadata).toEqual({
+			component: 'build',
+			image: 'sha256:abc123',
+			resources: { cpu: 500 }
+		});
+	});
+
+	it('menerima metadata event sebagai empty object', () => {
+		const result = parseDeploymentEventsResponse({
+			...validDeploymentEventsResponse,
+			data: [
+				{
+					...validDeploymentEvent,
+					metadata: {}
+				}
+			]
+		});
+		expect(result.data[0].metadata).toEqual({});
 	});
 
 	it('melempar error jika metadata berbentuk array', () => {
@@ -408,5 +442,194 @@ describe('getDeploymentEvents', () => {
 		mockApiRequest.mockResolvedValueOnce({ data: [] });
 
 		await expect(getDeploymentEvents('proj_1', 'dep_1')).rejects.toThrow();
+	});
+});
+
+describe('getAllDeploymentEvents', () => {
+	beforeEach(() => {
+		mockApiRequest.mockReset();
+	});
+
+	function makeEventPage(
+		events: DeploymentEvent[],
+		nextCursor: string | null
+	): DeploymentEventsResponse {
+		return {
+			data: events,
+			links: { first: null, last: null, prev: null, next: null },
+			meta: {
+				path: null,
+				per_page: 6,
+				next_cursor: nextCursor,
+				prev_cursor: null
+			}
+		};
+	}
+
+	it('mengembalikan events dari single page tanpa loop tambahan', async () => {
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], null));
+
+		const result = await getAllDeploymentEvents('proj_1', 'dep_1');
+
+		expect(mockApiRequest).toHaveBeenCalledTimes(1);
+		expect(mockApiRequest).toHaveBeenCalledWith(
+			'api/v1/app/projects/proj_1/deployments/dep_1/events',
+			{ params: { cursor: undefined } }
+		);
+		expect(result.data).toEqual([validDeploymentEvent]);
+		expect(result.meta.next_cursor).toBeNull();
+	});
+
+	it('loop sampai next_cursor null dan merge semua page', async () => {
+		const e1: DeploymentEvent = { ...validDeploymentEvent, sequence: 1 };
+		const e2: DeploymentEvent = { ...validDeploymentEvent, sequence: 2 };
+		const e3: DeploymentEvent = { ...validDeploymentEvent, sequence: 3 };
+
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([e1, e2], 'cursor_a'));
+
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([e3], 'cursor_b'));
+
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([], null));
+
+		const result = await getAllDeploymentEvents('proj_1', 'dep_1');
+
+		expect(mockApiRequest).toHaveBeenCalledTimes(3);
+		expect(result.data).toEqual([e1, e2, e3]);
+		expect(result.meta.next_cursor).toBeNull();
+	});
+
+	it('mengirim cursor dari page sebelumnya pada request berikutnya', async () => {
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], 'cursor_next'));
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([], null));
+
+		await getAllDeploymentEvents('proj_1', 'dep_1');
+
+		expect(mockApiRequest).toHaveBeenNthCalledWith(
+			1,
+			'api/v1/app/projects/proj_1/deployments/dep_1/events',
+			{ params: { cursor: undefined } }
+		);
+
+		expect(mockApiRequest).toHaveBeenNthCalledWith(
+			2,
+			'api/v1/app/projects/proj_1/deployments/dep_1/events',
+			{ params: { cursor: 'cursor_next' } }
+		);
+	});
+
+	it('mempertahankan urutan sequence ascending setelah merge', async () => {
+		const e1: DeploymentEvent = { ...validDeploymentEvent, sequence: 1 };
+		const e2: DeploymentEvent = { ...validDeploymentEvent, sequence: 2 };
+		const e3: DeploymentEvent = { ...validDeploymentEvent, sequence: 3 };
+
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([e1, e2], 'c1'));
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([e3], null));
+
+		const result = await getAllDeploymentEvents('proj_1', 'dep_1');
+
+		expect(result.data.map((e) => e.sequence)).toEqual([1, 2, 3]);
+	});
+
+	it('merge events dari banyak page tanpa duplikasi', async () => {
+		const e1: DeploymentEvent = { ...validDeploymentEvent, sequence: 1 };
+		const e2: DeploymentEvent = { ...validDeploymentEvent, sequence: 2 };
+		const e3: DeploymentEvent = { ...validDeploymentEvent, sequence: 3 };
+		const e4: DeploymentEvent = { ...validDeploymentEvent, sequence: 4 };
+
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([e1, e2], 'c1'));
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([e3, e4], 'c2'));
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([], null));
+
+		const result = await getAllDeploymentEvents('proj_1', 'dep_1');
+
+		expect(result.data).toHaveLength(4);
+		expect(result.data.map((e) => e.sequence)).toEqual([1, 2, 3, 4]);
+	});
+
+	it('meneruskan error dari apiRequest di halaman manapun', async () => {
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], 'cursor_a'));
+		mockApiRequest.mockRejectedValueOnce(new Error('Network error'));
+
+		await expect(getAllDeploymentEvents('proj_1', 'dep_1')).rejects.toThrow('Network error');
+	});
+
+	it('throw TruncationError ketika cap tercapai tapi next_cursor masih ada', async () => {
+		for (let i = 0; i < 50; i++) {
+			mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], `cursor_${i}`));
+		}
+
+		await expect(getAllDeploymentEvents('proj_1', 'dep_1')).rejects.toThrow(
+			DeploymentEventsTruncationError
+		);
+
+		expect(mockApiRequest).toHaveBeenCalledTimes(50);
+	});
+
+	it('tidak throw kalau halaman ke-50 punya next_cursor null (data lengkap)', async () => {
+		for (let i = 0; i < 49; i++) {
+			mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], `cursor_${i}`));
+		}
+		mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], null));
+
+		const result = await getAllDeploymentEvents('proj_1', 'dep_1');
+
+		expect(result.data).toHaveLength(50);
+		expect(result.meta.next_cursor).toBeNull();
+	});
+});
+
+describe('DeploymentEventsTruncationError', () => {
+	it('isRetryable = false', () => {
+		const error = new DeploymentEventsTruncationError('dep_1', 50, 300, 'cursor_x');
+		expect(error.isRetryable).toBe(false);
+	});
+
+	it('punya info diagnostik lengkap', () => {
+		const error = new DeploymentEventsTruncationError('dep_abc', 50, 300, 'cursor_xyz');
+
+		expect(error.deploymentId).toBe('dep_abc');
+		expect(error.pagesFetched).toBe(50);
+		expect(error.eventsFetched).toBe(300);
+		expect(error.remainingCursor).toBe('cursor_xyz');
+	});
+
+	it('name-nya DeploymentEventsTruncationError', () => {
+		const error = new DeploymentEventsTruncationError('dep_1', 50, 300, 'cursor_x');
+		expect(error.name).toBe('DeploymentEventsTruncationError');
+	});
+
+	it('message mengandung info yang berguna untuk debugging', () => {
+		const error = new DeploymentEventsTruncationError('dep_abc', 50, 300, 'cursor_xyz');
+
+		expect(error.message).toContain('Truncated at 50 pages');
+		expect(error.message).toContain('300 events');
+		expect(error.message).toContain('dep_abc');
+		expect(error.message).toContain('cursor_xyz');
+	});
+
+	it('instanceof Error — supaya bisa di-catch oleh error handler generik', () => {
+		const error = new DeploymentEventsTruncationError('dep_1', 50, 300, 'cursor_x');
+		expect(error).toBeInstanceOf(Error);
+	});
+
+	it('error dari getAllDeploymentEvents membawa info diagnostik lengkap', async () => {
+		mockApiRequest.mockReset();
+
+		for (let i = 0; i < 50; i++) {
+			mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], `cursor_${i}`));
+		}
+
+		try {
+			await getAllDeploymentEvents('proj_1', 'dep_x');
+			expect.fail('should have thrown');
+		} catch (error) {
+			expect(error).toBeInstanceOf(DeploymentEventsTruncationError);
+			const e = error as DeploymentEventsTruncationError;
+			expect(e.deploymentId).toBe('dep_x');
+			expect(e.pagesFetched).toBe(50);
+			expect(e.eventsFetched).toBe(50);
+			expect(e.remainingCursor).toBe('cursor_49');
+			expect(e.isRetryable).toBe(false);
+		}
 	});
 });

@@ -1019,8 +1019,7 @@ export interface components {
 			type: string | null;
 			message: string;
 			metadata: {
-				builder: string;
-				domain: string;
+				[key: string]: unknown;
 			} | null;
 			occurred_at: string;
 		};

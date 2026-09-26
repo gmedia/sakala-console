@@ -1,6 +1,10 @@
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-keys';
-import { getDeployment, getDeploymentEvents } from '$lib/api/resources/deployment';
+import {
+	getDeployment,
+	getAllDeploymentEvents,
+	DeploymentEventsTruncationError
+} from '$lib/api/resources/deployment';
 import { TERMINAL_STATUSES } from './deployment-presentation';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 
@@ -42,9 +46,13 @@ export function createDeploymentEventsQuery(
 
 		return {
 			queryKey: queryKeys.deployments.events(project, deployment),
-			queryFn: () => getDeploymentEvents(project, deployment),
+			queryFn: () => getAllDeploymentEvents(project, deployment),
 			refetchInterval: () => resolveRefetchInterval(isTerminal()),
-			enabled: !!project && !!deployment
+			enabled: !!project && !!deployment,
+			retry: (failureCount: number, error: unknown) => {
+				if (error instanceof DeploymentEventsTruncationError) return false;
+				return failureCount < 3;
+			}
 		};
 	});
 }
