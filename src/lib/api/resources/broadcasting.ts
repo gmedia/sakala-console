@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
+import { publicConfig } from '$lib/config/public';
 
 const channelAuthorization = z.object({
 	auth: z.string(),
@@ -12,7 +13,10 @@ export async function authorizeChannel(
 	channelName: string,
 	socketId: string
 ): Promise<ChannelAuthorization> {
-	const response = await apiRequest<unknown>('broadcasting/auth', {
+	const origin = new URL(publicConfig.apiUrl).origin;
+	const url = `${origin}/broadcasting/auth`;
+
+	const response = await apiRequest<unknown>(url, {
 		method: 'POST',
 		json: { socket_id: socketId, channel_name: channelName }
 	});

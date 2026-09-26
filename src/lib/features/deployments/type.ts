@@ -15,11 +15,9 @@ export type DeploymentStatus =
 export type DeploymentStage =
 	| 'Queued'
 	| 'Cloning'
-	| 'Analyzing'
 	| 'Building'
 	| 'Deploying'
 	| 'Routing'
-	| 'HealthChecking'
 	| 'Succeeded'
 	| 'Failed'
 	| 'Cancelled';
@@ -27,12 +25,15 @@ export type DeploymentStage =
 export const DEPLOYMENT_PIPELINE_STAGES = [
 	'Queued',
 	'Cloning',
-	'Analyzing',
 	'Building',
 	'Deploying',
-	'Routing',
-	'HealthChecking'
-] as const satisfies readonly DeploymentStage[];
+	'Routing'
+] as const satisfies readonly DeploymentPipelineStage[];
+
+export type DeploymentPipelineStage = Extract<
+	DeploymentStage,
+	'Queued' | 'Cloning' | 'Building' | 'Deploying' | 'Routing'
+>;
 
 export type DeploymentStep = {
 	key: string;
@@ -44,16 +45,18 @@ export type DeploymentStep = {
 export type DeploymentEventLevel = 'info' | 'warning' | 'error';
 
 export type DeploymentEventType =
-	| 'deployment.cloning'
-	| 'deployment.analyzing'
-	| 'deployment.building'
-	| 'deployment.deploying'
-	| 'deployment.routing'
-	| 'deployment.health_checking'
+	| 'deployment.checkout.started'
+	| 'deployment.build.started'
+	| 'deployment.container.started'
+	| 'deployment.runtime.ready'
 	| 'deployment.succeeded'
-	| 'deployment.failed';
+	| 'deployment.failed'
+	| 'deployment.cancelled'
+	| 'deployment.cloning'
+	| 'deployment.building'
+	| null;
 
-export type DeploymentEvent = {
+export type MockDeploymentEvent = {
 	sequence: number;
 	level: DeploymentEventLevel;
 	type: DeploymentEventType;

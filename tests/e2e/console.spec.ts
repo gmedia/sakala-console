@@ -27,6 +27,205 @@ const validProject = {
 	created_at: '2026-01-01T00:00:00Z'
 };
 
+const PROJECT_ID = '01a0cd45-c5a6-7170-9f8d-8322191f231f';
+const DEPLOYMENT_ID = '01a0cd92-b2e0-7327-97a1-d688062f30fa';
+
+type DeploymentStatus = 'running' | 'succeeded' | 'failed';
+
+function makeDeployment(status: DeploymentStatus) {
+	const base = {
+		id: '12',
+		project_id: 'proj_1',
+		sequence: 1,
+		branch: 'main',
+		trigger: 'push',
+		commit_sha: 'a3f2c9d',
+		commit_message: 'feat: something',
+		image_reference: null,
+		requested_resources: null,
+		effective_resources: null,
+		applied_resources: null,
+		finalization_deferred: false,
+		finalization_deferred_reason: null,
+		agent_node_id: null,
+		failure_code: null,
+		failure_summary: null,
+		failure: null,
+		created_at: '2026-09-20T08:41:00Z',
+		updated_at: '2026-09-20T08:41:49Z'
+	};
+
+	if (status === 'running') {
+		return {
+			...base,
+			status: 'building',
+			trigger: 'webhook',
+			started_at: '2026-09-20T08:41:02Z',
+			finished_at: null,
+			cancelled_at: null
+		};
+	}
+
+	if (status === 'succeeded') {
+		return {
+			...base,
+			status: 'succeeded',
+			trigger: 'redeploy',
+			started_at: '2026-09-20T08:41:02Z',
+			finished_at: '2026-09-20T08:41:49Z',
+			cancelled_at: null
+		};
+	}
+
+	return {
+		...base,
+		status: 'failed',
+		started_at: '2026-09-20T08:38:00Z',
+		finished_at: '2026-09-20T08:39:12Z',
+		cancelled_at: null,
+		failure_code: 'runtime_build_failed',
+		failure_summary: 'Build failed: see step 5 output above',
+		failure: {
+			code: 'runtime_build_failed',
+			category: 'build',
+			summary: 'Build failed: see step 5 output above',
+			recovery_hint: 'Periksa konfigurasi build'
+		}
+	};
+}
+
+async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
+	await page.route('**/api/v1/app/projects/**', async (route) => {
+		const url = new URL(route.request().url());
+		const path = url.pathname;
+
+		if (/\/deployments\/[^/]+\/events\/?$/.test(path)) {
+			const events =
+				status === 'running'
+					? [
+							{
+								sequence: 1,
+								level: 'info',
+								type: 'deployment.checkout.started',
+								message: 'Cloning repository from main...',
+								metadata: null,
+								occurred_at: '2026-09-20T08:41:02Z'
+							},
+							{
+								sequence: 2,
+								level: 'info',
+								type: 'deployment.build.started',
+								message: 'Building image...',
+								metadata: null,
+								occurred_at: '2026-09-20T08:41:35Z'
+							}
+						]
+					: status === 'succeeded'
+						? [
+								{
+									sequence: 1,
+									level: 'info',
+									type: 'deployment.checkout.started',
+									message: 'Cloning repository...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:02Z'
+								},
+								{
+									sequence: 2,
+									level: 'info',
+									type: 'deployment.build.started',
+									message: 'Building image...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:20Z'
+								},
+								{
+									sequence: 3,
+									level: 'info',
+									type: 'deployment.container.started',
+									message: 'Deploying container...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:35Z'
+								},
+								{
+									sequence: 4,
+									level: 'info',
+									type: 'deployment.runtime.ready',
+									message: 'Runtime ready',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:45Z'
+								},
+								{
+									sequence: 5,
+									level: 'info',
+									type: 'deployment.succeeded',
+									message: 'Deployment is live',
+									metadata: null,
+									occurred_at: '2026-09-20T08:41:49Z'
+								}
+							]
+						: [
+								{
+									sequence: 1,
+									level: 'info',
+									type: 'deployment.checkout.started',
+									message: 'Cloning repository from main...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:38:15Z'
+								},
+								{
+									sequence: 2,
+									level: 'info',
+									type: 'deployment.build.started',
+									message: 'Building image...',
+									metadata: null,
+									occurred_at: '2026-09-20T08:38:30Z'
+								},
+								{
+									sequence: 3,
+									level: 'error',
+									type: 'deployment.failed',
+									message: 'Build failed: see step 5 output above',
+									metadata: null,
+									occurred_at: '2026-09-20T08:39:12Z'
+								}
+							];
+
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					data: events,
+					links: { first: null, last: null, prev: null, next: null },
+					meta: { path: null, per_page: 30, next_cursor: null, prev_cursor: null }
+				})
+			});
+			return;
+		}
+
+		if (/\/deployments\/[^/]+\/?$/.test(path)) {
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ data: makeDeployment(status) })
+			});
+			return;
+		}
+
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				data: {
+					id: 'proj_1',
+					name: 'Sakala Console',
+					slug: 'sakala-console',
+					default_domain: 'sakala-console.run.staging.sakala.dev'
+				}
+			})
+		});
+	});
+}
+
 function buildProjectsResponse(
 	overrides: Partial<{
 		data: (typeof validProject)[];
@@ -155,53 +354,85 @@ test('does NOT render protected content while current user is still pending', as
 test.describe('Deployment detail page', () => {
 	test('shows running state', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
-		await page.goto('/projects/sakala-console/deployments/12?status=running');
+		await mockDeploymentDetail(page, 'running');
+		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
-		await expect(page.getByText(/Tahap: Building image/)).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Logs' })).toBeVisible();
+		await expect(
+			page.getByText('Log deployment akan tersedia pada iterasi berikutnya.')
+		).toBeVisible();
+		await page.waitForTimeout(2000);
+		await expect(page.getByText(/Tahap: Build project/)).toBeVisible();
 
 		const deploymentInfo = page.getByTestId('deployment-info');
-
 		await expect(deploymentInfo.getByText('Dimulai pada')).toBeVisible();
-		await expect(deploymentInfo.getByText('08:41:02')).toBeVisible();
-		await expect(deploymentInfo.getByText('main', { exact: true })).toBeVisible();
-		await expect(deploymentInfo.getByText('Push', { exact: true })).toBeVisible();
-		await expect(deploymentInfo.getByText('a3f2c9d', { exact: true })).toBeVisible();
+		await expect(page.getByTestId('deployment-primary-time')).toHaveText(
+			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+		);
+		await expect(page.getByTestId('deployment-updated-time')).toHaveText(
+			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+		);
 
-		await expect(page.getByText('Cloning repository', { exact: true })).toBeVisible();
-		await expect(page.getByText('Sedang berjalan...')).toBeVisible();
-		await expect(page.getByText('Cloning repository from main...')).toBeVisible();
+		await expect(page.getByTestId('deployment-commit')).toHaveText('a3f2c9d');
+		await expect(page.getByTestId('deployment-branch')).toHaveText('main');
+		await expect(page.getByTestId('deployment-trigger')).toHaveText('Push');
+
+		await expect(page.getByText('Build project', { exact: true })).toBeVisible();
+		await expect(page.getByText('Menyalin repository')).toBeVisible();
+		await expect(page.getByText('Menyiapkan routing')).toBeVisible();
 	});
 
 	test('shows success state', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
-		await page.goto('/projects/sakala-console/deployments/12?status=success');
+		await mockDeploymentDetail(page, 'succeeded');
+		await page.goto('/projects/sakala-console/deployments/12');
 
 		await expect(page.getByText('Deployment berhasil')).toBeVisible();
 
 		const deploymentInfo = page.getByTestId('deployment-info');
 
 		await expect(deploymentInfo.getByText('Selesai pada')).toBeVisible();
-		await expect(deploymentInfo.getByText('08:41:49')).toBeVisible();
-		await expect(deploymentInfo.getByText('Manual redeploy', { exact: true })).toBeVisible();
+		await expect(page.getByTestId('deployment-primary-time')).toHaveText(
+			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+		);
+		await expect(page.getByTestId('deployment-trigger')).toHaveText('Manual redeploy');
 
-		await expect(page.getByText('Health check', { exact: true })).toBeVisible();
-		await expect(page.getByText('Deployment is live')).toBeVisible();
+		await expect(page.getByText('Menyiapkan routing')).toBeVisible();
 	});
 
 	test('shows failed state', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
-		await page.goto('/projects/sakala-console/deployments/12?status=failed');
+		await mockDeploymentDetail(page, 'failed');
+		await page.goto('/projects/sakala-console/deployments/12');
 
 		await expect(page.getByText('Deployment gagal')).toBeVisible();
 
 		const deploymentInfo = page.getByTestId('deployment-info');
 
 		await expect(deploymentInfo.getByText('Gagal pada')).toBeVisible();
-		await expect(deploymentInfo.getByText('08:39:12')).toBeVisible();
+		await expect(page.getByTestId('deployment-primary-time')).toHaveText(
+			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+		);
 
-		await expect(page.getByText('Building image - gagal')).toBeVisible();
+		await expect(page.getByText('Build project - gagal')).toBeVisible();
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
+	});
+
+	test('shows failed state and "Lihat detail error" CTA scrolls to failure summary', async ({
+		page
+	}) => {
+		await mockCurrentUserSuccess(page);
+		await mockDeploymentDetail(page, 'failed');
+		await page.goto('/projects/sakala-console/deployments/12');
+
+		await expect(page.getByText('Deployment gagal')).toBeVisible();
+
+		const cta = page.getByRole('button', { name: /lihat detail error/i });
+		await expect(cta).toBeVisible();
+
+		await cta.click();
+		await expect(page.locator('#failure-summary')).toBeInViewport();
 	});
 });
 
@@ -539,14 +770,16 @@ test.describe('Projects list page', () => {
 		page
 	}) => {
 		await mockCurrentUserSuccess(page);
-		await mockProjects(page, () =>
-			buildProjectsResponse({
-				data: [],
-				meta: { total: 0 }
-			})
-		);
+		await mockProjects(page, () => buildProjectsResponse({ data: [], meta: { total: 0 } }));
+
+		await page.route('**/sanctum/csrf-cookie', async (route) => {
+			await route.fulfill({ status: 204 });
+		});
+
+		let logoutIntercepted = false;
 
 		await page.route('**/api/v1/auth/logout', async (route) => {
+			logoutIntercepted = true;
 			await route.fulfill({
 				status: 500,
 				contentType: 'application/json',
@@ -560,18 +793,18 @@ test.describe('Projects list page', () => {
 		await expect(profileTrigger).toBeVisible();
 		await profileTrigger.click();
 
-		const logoutMenuItem = page.getByRole('button', { name: 'Keluar' });
-		await expect(logoutMenuItem).toBeVisible();
-		await logoutMenuItem.click();
+		await page.getByRole('button', { name: 'Keluar' }).click();
 
 		const logoutDialog = page.getByRole('dialog');
 		await expect(logoutDialog).toBeVisible();
 
-		const confirmButton = page.getByRole('button', { name: 'Iya' });
-		await confirmButton.click();
+		await logoutDialog.getByRole('button', { name: 'Iya' }).click();
 
-		await expect(logoutDialog).toBeVisible();
-		await expect(page.getByText('Gagal keluar akun. Silakan coba lagi.')).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Coba Lagi' })).toBeVisible();
+		await expect.poll(() => logoutIntercepted, { timeout: 5_000 }).toBe(true);
+
+		await expect(logoutDialog.getByRole('button', { name: 'Coba Lagi' })).toBeVisible({
+			timeout: 5_000
+		});
+		await expect(logoutDialog.getByText('Gagal keluar akun. Silakan coba lagi.')).toBeVisible();
 	});
 });

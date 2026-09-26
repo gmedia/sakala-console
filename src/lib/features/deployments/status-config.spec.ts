@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+	isBannerStatus,
+	getBannerStatus,
+	getDeploymentStageLabel,
+	getBannerStatusFromDeploymentStatus,
 	getStatusDisplay,
 	getTimelineItemDisplay,
 	getTimeLabel,
@@ -7,14 +11,77 @@ import {
 	parseBannerStatus,
 	deriveLiveInfoTimestamp
 } from './status-config';
-import type { DeploymentProgress, DeploymentStep } from './type';
+import type { DeploymentProgress } from './type';
+
+describe('isBannerStatus', () => {
+	it('returns true for supported statuses', () => {
+		expect(isBannerStatus('running')).toBe(true);
+		expect(isBannerStatus('success')).toBe(true);
+		expect(isBannerStatus('failed')).toBe(true);
+	});
+
+	it('returns false for unsupported statuses and null', () => {
+		expect(isBannerStatus('pending')).toBe(false);
+		expect(isBannerStatus('foo')).toBe(false);
+		expect(isBannerStatus(null)).toBe(false);
+	});
+});
+
+describe('getDeploymentStageLabel', () => {
+	it.each([
+		['Queued', 'Menunggu antrean'],
+		['Cloning', 'Menyalin repository'],
+		['Building', 'Build project'],
+		['Deploying', 'Deploy project'],
+		['Routing', 'Menyiapkan routing'],
+		['Succeeded', 'Selesai'],
+		['Failed', 'Gagal'],
+		['Cancelled', 'Dibatalkan']
+	] as const)('maps %s -> %s', (stage, expected) => {
+		expect(getDeploymentStageLabel(stage)).toBe(expected);
+	});
+});
+
+describe('getBannerStatusFromDeploymentStatus', () => {
+	it('maps succeeded -> success', () => {
+		expect(getBannerStatusFromDeploymentStatus('succeeded')).toBe('success');
+	});
+
+	it.each(['failed', 'cancelled'])('maps %s -> failed', (status) => {
+		expect(getBannerStatusFromDeploymentStatus(status)).toBe('failed');
+	});
+
+	it.each(['running', 'queued', 'pending', 'unknown'])(
+		'maps %s -> running (fallback)',
+		(status) => {
+			expect(getBannerStatusFromDeploymentStatus(status)).toBe('running');
+		}
+	);
+});
+
+describe('getBannerStatus', () => {
+	it.each([
+		['Queued', 'running'],
+		['Cloning', 'running'],
+		['Building', 'running'],
+		['Deploying', 'running'],
+		['Routing', 'running'],
+		['Succeeded', 'success'],
+		['Failed', 'failed'],
+		['Cancelled', 'failed']
+	] as const)('maps %s -> %s', (stage, expected) => {
+		expect(getBannerStatus(stage)).toBe(expected);
+	});
+});
 
 describe('getStatusDisplay', () => {
 	it('show running status message with currentStepLabel', () => {
 		const result = getStatusDisplay({ status: 'running', currentStepLabel: 'Building image' });
 
 		expect(result.title).toBe('Deployment sedang berjalan');
-		expect(result.desc).toBe('Tahap: Building image, perkiraan selesai dalam beberapa detik');
+		expect(result.desc).toBe(
+			'Tahap: Building image. Kamu dapat meninggalkan halaman ini dan kembali lagi nanti untuk melihat progresnya.'
+		);
 		expect(result.bannerBgClass).toBe('bg-warning/10');
 		expect(result.iconColorClass).toBe('bg-warning-dark text-white');
 	});
@@ -22,7 +89,7 @@ describe('getStatusDisplay', () => {
 	it('fallback to "-" when currentStepLabel is not provided', () => {
 		const result = getStatusDisplay({ status: 'running' });
 
-		expect(result.desc).toContain('Tahap: -,');
+		expect(result.desc).toContain('Tahap: -.');
 	});
 
 	it('show success status message with durationLabel', () => {
@@ -159,6 +226,19 @@ describe('deriveBannerState', () => {
 		expect(result.failedStepLabel).toBe('Building image');
 	});
 
+	it('returns failed when stage is Cancelled', () => {
+		const progress: DeploymentProgress = {
+			stage: 'Cancelled',
+			steps: [{ key: 'build', title: 'Building image', status: 'failed', timestamp: '08:41:15' }],
+			logs: []
+		};
+
+		const result = deriveBannerState(progress, 10);
+
+		expect(result.status).toBe('failed');
+		expect(result.failedStepLabel).toBe('Building image');
+	});
+
 	it('returns success when stage is Succeeded', () => {
 		const progress: DeploymentProgress = {
 			stage: 'Succeeded',
@@ -178,20 +258,12 @@ describe('deriveBannerState', () => {
 	it.each([
 		['Queued', 'Menunggu antrean'],
 		['Cloning', 'Menyalin repository'],
-		['Analyzing', 'Menganalisis project'],
 		['Building', 'Build project'],
 		['Deploying', 'Deploy project'],
-		['Routing', 'Menyiapkan routing'],
-		['HealthChecking', 'Memeriksa kesehatan aplikasi']
+		['Routing', 'Menyiapkan routing']
 	] as const)('returns running for stage %s', (stage, expectedLabel) => {
-		const progress: DeploymentProgress = {
-			stage,
-			steps: [],
-			logs: []
-		};
-
+		const progress: DeploymentProgress = { stage, steps: [], logs: [] };
 		const result = deriveBannerState(progress, 10);
-
 		expect(result.status).toBe('running');
 		expect(result.currentStepLabel).toBe(expectedLabel);
 	});
@@ -265,37 +337,54 @@ describe('parseBannerStatus', () => {
 });
 
 describe('deriveLiveInfoTimestamp', () => {
-	it('running: pakai jam mulai simulasi', () => {
+	it('running: pakai startedAtLabel', () => {
 		const result = deriveLiveInfoTimestamp({
 			status: 'running',
-			steps: [],
 			startedAtLabel: '08:41:00'
 		});
 		expect(result).toBe('08:41:00');
 	});
 
-	it('success: pakai timestamp step terakhir, bukan "-"', () => {
-		const steps: DeploymentStep[] = [
-			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
-			{ key: 'health', title: 'Health check', status: 'success', timestamp: '08:41:30' }
-		];
+	it('running: abaikan finishedAtLabel walau disediakan', () => {
 		const result = deriveLiveInfoTimestamp({
-			status: 'success',
-			steps,
-			startedAtLabel: '08:41:00'
+			status: 'running',
+			startedAtLabel: '08:41:00',
+			finishedAtLabel: '08:41:49'
 		});
-		expect(result).toBe('08:41:30');
-		expect(result).not.toBe('-');
+		expect(result).toBe('08:41:00');
 	});
 
-	it('failed: pakai timestamp step yang gagal, bukan "-"', () => {
-		const steps: DeploymentStep[] = [
-			{ key: 'clone', title: 'Cloning repository', status: 'success', timestamp: '08:41:02' },
-			{ key: 'build', title: 'Building image', status: 'failed', timestamp: '08:41:15' },
-			{ key: 'deploy', title: 'Deploy container', status: 'pending' }
-		];
-		const result = deriveLiveInfoTimestamp({ status: 'failed', steps, startedAtLabel: '08:41:00' });
-		expect(result).toBe('08:41:15');
-		expect(result).not.toBe('-');
+	it('success: pakai finishedAtLabel', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'success',
+			startedAtLabel: '08:41:00',
+			finishedAtLabel: '08:41:49'
+		});
+		expect(result).toBe('08:41:49');
+	});
+
+	it('success: return "-" jika finishedAtLabel undefined', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'success',
+			startedAtLabel: '08:41:00'
+		});
+		expect(result).toBe('-');
+	});
+
+	it('failed: pakai finishedAtLabel', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'failed',
+			startedAtLabel: '08:41:00',
+			finishedAtLabel: '08:39:12'
+		});
+		expect(result).toBe('08:39:12');
+	});
+
+	it('failed: return "-" jika finishedAtLabel undefined', () => {
+		const result = deriveLiveInfoTimestamp({
+			status: 'failed',
+			startedAtLabel: '08:41:00'
+		});
+		expect(result).toBe('-');
 	});
 });

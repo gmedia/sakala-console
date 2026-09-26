@@ -1,4 +1,4 @@
-import type { DeploymentProgress, DeploymentStage, DeploymentStep, StatusDeployment } from './type';
+import type { DeploymentProgress, DeploymentStage, StatusDeployment } from './type';
 
 export type BannerStatus = Exclude<StatusDeployment, 'pending'>;
 
@@ -18,11 +18,9 @@ export function parseBannerStatus(
 const bannerStatusMap: Record<DeploymentStage, BannerStatus> = {
 	Queued: 'running',
 	Cloning: 'running',
-	Analyzing: 'running',
 	Building: 'running',
 	Deploying: 'running',
 	Routing: 'running',
-	HealthChecking: 'running',
 	Succeeded: 'success',
 	Failed: 'failed',
 	Cancelled: 'failed'
@@ -35,11 +33,9 @@ export function getBannerStatus(stage: DeploymentStage): BannerStatus {
 const deploymentStageLabel: Record<DeploymentStage, string> = {
 	Queued: 'Menunggu antrean',
 	Cloning: 'Menyalin repository',
-	Analyzing: 'Menganalisis project',
 	Building: 'Build project',
 	Deploying: 'Deploy project',
 	Routing: 'Menyiapkan routing',
-	HealthChecking: 'Memeriksa kesehatan aplikasi',
 	Succeeded: 'Selesai',
 	Failed: 'Gagal',
 	Cancelled: 'Dibatalkan'
@@ -54,6 +50,9 @@ export interface StatusDisplayInput {
 	currentStepLabel?: string;
 	durationLabel?: string;
 	failedStepLabel?: string;
+	failureCode?: string;
+	failureSummary?: string;
+	recoveryHint?: string;
 }
 
 export interface TimelineItemDisplayInput {
@@ -110,38 +109,29 @@ const timeLabelMap: Record<BannerStatus, string> = {
 
 export interface LiveInfoTimestampInput {
 	status: BannerStatus;
-	steps: DeploymentStep[];
 	startedAtLabel: string;
+	finishedAtLabel?: string;
 }
-
 export function deriveLiveInfoTimestamp({
 	status,
-	steps,
-	startedAtLabel
+	startedAtLabel,
+	finishedAtLabel
 }: LiveInfoTimestampInput): string {
-	if (status === 'running') {
-		return startedAtLabel;
-	}
-
-	if (status === 'failed') {
-		const failedStep = steps.find((s) => s.status === 'failed');
-		return failedStep?.timestamp ?? '-';
-	}
-
-	const lastTimestamped = [...steps].reverse().find((s) => s.timestamp);
-	return lastTimestamped?.timestamp ?? '-';
+	if (status === 'running') return startedAtLabel;
+	return finishedAtLabel ?? '-';
 }
 
 export function getStatusDisplay({
 	status,
 	currentStepLabel,
 	durationLabel,
-	failedStepLabel
+	failedStepLabel,
+	recoveryHint
 }: StatusDisplayInput) {
 	const messages = {
 		running: {
 			title: 'Deployment sedang berjalan',
-			desc: `Tahap: ${currentStepLabel ?? '-'}, perkiraan selesai dalam beberapa detik`
+			desc: `Tahap: ${currentStepLabel ?? '-'}. Kamu dapat meninggalkan halaman ini dan kembali lagi nanti untuk melihat progresnya.`
 		},
 		success: {
 			title: 'Deployment berhasil',
@@ -155,6 +145,7 @@ export function getStatusDisplay({
 
 	return {
 		...messages[status],
+		recoveryHint: status === 'failed' ? recoveryHint : undefined,
 		bannerBgClass: bannerBgMap[status],
 		iconColorClass: bannerIconColorMap[status]
 	};
@@ -188,5 +179,19 @@ export function deriveBannerState(
 				status,
 				currentStepLabel: getDeploymentStageLabel(progress.stage)
 			};
+	}
+}
+
+export function getBannerStatusFromDeploymentStatus(status: string): BannerStatus {
+	switch (status) {
+		case 'succeeded':
+			return 'success';
+
+		case 'failed':
+		case 'cancelled':
+			return 'failed';
+
+		default:
+			return 'running';
 	}
 }
