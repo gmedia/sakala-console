@@ -3,7 +3,7 @@
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
+	import SakalaLogo from '$lib/assets/sakala-logo-green.svg';
 	import { cn } from '$lib/utils/cn';
 	import {
 		SquaresFour,
@@ -286,8 +286,10 @@
 <aside
 	class="relative hidden h-[calc(100vh-48px)] w-66 flex-col rounded-2xl border border-border bg-surface shadow-xs md:flex"
 >
-	<div class="mt-7 ml-3 mr-16.5 mb-12">
-		<SakalaLogo class="h-9.25 w-40.5" />
+	<div class="mt-7 mb-10 px-6">
+		<a href={`${base}/projects`} class="inline-block" aria-label="Sakala">
+			<img src={SakalaLogo} alt="Sakala Logo" class="h-10 w-auto object-contain" />
+		</a>
 	</div>
 
 	<nav class="flex-1 space-y-1 px-6" aria-label="Navigasi utama">
@@ -329,8 +331,10 @@
 		class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col rounded-2xl border border-border bg-surface p-6 shadow-xl md:hidden"
 		aria-label="Navigasi mobile"
 	>
-		<div class="mb-6 flex h-12 items-center">
-			<SakalaLogo class="h-9.25 w-40.5" />
+		<div class="mt-2 mb-10">
+			<a href={`${base}/projects`} onclick={onCloseMobile} class="inline-block" aria-label="Sakala">
+				<img src={SakalaLogo} alt="Sakala Logo" class="h-10 w-auto object-contain" />
+			</a>
 		</div>
 		<div class="flex flex-col gap-1 pb-20">
 			{#each navigation as item (item.href)}

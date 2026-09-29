@@ -1,16 +1,19 @@
 <script lang="ts">
-	import { Bell, List } from 'phosphor-svelte';
+	import { List } from 'phosphor-svelte';
 	import { page } from '$app/state';
 	import { createUnreadNotificationCountQuery } from '$lib/features/notifications/queries';
+	import NotificationPopover from '$lib/features/notifications/components/NotificationPopover.svelte';
+	import type { NotificationItem } from '$lib/features/notifications/types';
 	import { createProjectQuery } from '$lib/features/projects/queries';
 
 	type Props = {
 		onToggleMobile?: () => void;
 		hasUnread?: boolean;
 		unreadCount?: number;
+		notifications?: NotificationItem[];
 	};
 
-	let { onToggleMobile, hasUnread, unreadCount }: Props = $props();
+	let { onToggleMobile, hasUnread, unreadCount, notifications }: Props = $props();
 
 	const notificationQuery = createUnreadNotificationCountQuery();
 
@@ -27,6 +30,7 @@
 
 	const pageTitle = $derived.by(() => {
 		const path = page.url.pathname;
+		if (path.startsWith('/notifications')) return 'Notifikasi';
 		if (path.startsWith('/profile')) return 'Akun / Profil Saya';
 		if (path.startsWith('/settings')) return 'Akun / Pengaturan';
 		if (path.startsWith('/projects')) return 'Projects';
@@ -58,19 +62,7 @@
 		</div>
 
 		<div class="flex items-center gap-4">
-			<button
-				type="button"
-				class="relative flex size-10 items-center justify-center rounded-lg bg-white shadow-xs transition-colors hover:bg-white/90"
-				aria-label="Buka notifikasi"
-			>
-				<Bell size={24} class="size-6 text-black" />
-				{#if isUnread}
-					<span
-						class="absolute top-2 right-2 size-2 rounded-full bg-error ring-2 ring-white"
-						aria-hidden="true"
-					></span>
-				{/if}
-			</button>
+			<NotificationPopover hasUnread={isUnread} {notifications} />
 		</div>
 	</div>
 </header>
