@@ -4,9 +4,23 @@ import {
 	deriveCurrentStepLabel,
 	deriveDurationLabel,
 	deriveFailedStepLabel,
+	deriveLastUpdateTimestamp,
 	formatDeploymentTime,
 	getDeploymentTriggerLabel
 } from './deployment-presentation';
+import type { DeploymentEvent } from '$lib/api/resources/deployment';
+
+function createEvent(overrides: Partial<DeploymentEvent> = {}): DeploymentEvent {
+	return {
+		sequence: 1,
+		level: 'info',
+		type: 'deployment.checkout.started',
+		message: 'Event',
+		metadata: null,
+		occurred_at: '2026-09-20T10:00:00Z',
+		...overrides
+	};
+}
 
 describe('getDeploymentTriggerLabel', () => {
 	it.each([
@@ -104,6 +118,103 @@ describe('deriveFailedStepLabel', () => {
 
 	it('returns undefined for an empty step list', () => {
 		expect(deriveFailedStepLabel([])).toBeUndefined();
+	});
+});
+
+describe('deriveLastUpdateTimestamp', () => {
+	it('pakai latest event timestamp saat events ada', () => {
+		const events = [
+			createEvent({ sequence: 1, occurred_at: '2026-09-20T10:00:00Z' }),
+			createEvent({ sequence: 2, occurred_at: '2026-09-20T10:05:00Z' })
+		];
+
+		const result = deriveLastUpdateTimestamp(events);
+
+		expect(result).not.toBe('-');
+		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+	});
+
+	it('fallback ke finished_at kalau events kosong & deployment selesai', () => {
+		const result = deriveLastUpdateTimestamp([], {
+			created_at: '2026-09-20T09:00:00Z',
+			started_at: '2026-09-20T09:05:00Z',
+			finished_at: '2026-09-20T09:10:00Z'
+		});
+
+		expect(result).not.toBe('-');
+		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+	});
+
+	it('fallback ke cancelled_at kalau events kosong & deployment cancelled', () => {
+		const result = deriveLastUpdateTimestamp([], {
+			created_at: '2026-09-20T09:00:00Z',
+			started_at: '2026-09-20T09:05:00Z',
+			finished_at: null,
+			cancelled_at: '2026-09-20T09:07:00Z'
+		});
+
+		expect(result).not.toBe('-');
+		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+	});
+
+	it('fallback ke started_at kalau events kosong & deployment running', () => {
+		const result = deriveLastUpdateTimestamp([], {
+			created_at: '2026-09-20T09:00:00Z',
+			started_at: '2026-09-20T09:05:00Z',
+			finished_at: null,
+			cancelled_at: null
+		});
+
+		expect(result).not.toBe('-');
+		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+	});
+
+	it('fallback ke created_at kalau events kosong & deployment belum mulai', () => {
+		const result = deriveLastUpdateTimestamp([], {
+			created_at: '2026-09-20T09:00:00Z',
+			started_at: null,
+			finished_at: null,
+			cancelled_at: null
+		});
+
+		expect(result).not.toBe('-');
+		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+	});
+
+	it('kembalikan "-" kalau events kosong & semua lifecycle null', () => {
+		const result = deriveLastUpdateTimestamp([], {
+			created_at: null,
+			started_at: null,
+			finished_at: null,
+			cancelled_at: null
+		});
+
+		expect(result).toBe('-');
+	});
+
+	it('kembalikan "-" kalau events kosong & lifecycle tidak di-pass', () => {
+		expect(deriveLastUpdateTimestamp([])).toBe('-');
+	});
+
+	it('prioritaskan event meskipun lifecycle lebih baru', () => {
+		const events = [createEvent({ occurred_at: '2026-09-20T10:00:00Z' })];
+
+		const result = deriveLastUpdateTimestamp(events, {
+			finished_at: '2026-09-20T11:00:00Z'
+		});
+
+		expect(result).not.toBe('-');
+	});
+
+	it('abaikan event dengan sequence duplikat (tetap pakai yang pertama)', () => {
+		const events = [
+			createEvent({ sequence: 1, occurred_at: '2026-09-20T10:00:00Z' }),
+			createEvent({ sequence: 1, occurred_at: '2026-09-20T11:00:00Z' })
+		];
+
+		const result = deriveLastUpdateTimestamp(events);
+
+		expect(result).not.toBe('-');
 	});
 });
 

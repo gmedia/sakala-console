@@ -43,6 +43,51 @@ describe('createProjectWizardState', () => {
 		expect(wizard.projectName).toBe('bar');
 	});
 
+	it('sets selectedBranch to validated repo default_branch and updates selectedRepository', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/my-org/my-app';
+
+		wizard.confirmGitUrl({
+			id: '123456',
+			name: 'my-app',
+			full_name: 'my-org/my-app',
+			clone_url: 'https://github.com/my-org/my-app',
+			default_branch: 'production',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		expect(wizard.selectedBranch).toBe('production');
+		expect(wizard.projectName).toBe('my-app');
+		expect(wizard.selectedRepository?.default_branch).toBe('production');
+		expect(wizard.selectedRepository?.id).toBe('123456');
+	});
+
+	it('retains validated repository and non-main default_branch when user input gitUrl lacks .git but backend clone_url has .git', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		// User input without .git
+		wizard.gitUrl = 'https://github.com/my-org/my-app';
+
+		// Backend returns clone_url with .git and non-main default branch
+		wizard.confirmGitUrl({
+			id: '123456',
+			name: 'my-app',
+			full_name: 'my-org/my-app',
+			clone_url: 'https://github.com/my-org/my-app.git',
+			default_branch: 'production',
+			pushed_at: '2026-03-01T00:00:00Z',
+			private: false
+		});
+
+		expect(wizard.selectedBranch).toBe('production');
+		expect(wizard.projectName).toBe('my-app');
+		expect(wizard.selectedRepository?.default_branch).toBe('production');
+		expect(wizard.selectedRepository?.clone_url).toBe('https://github.com/my-org/my-app.git');
+		expect(wizard.selectedRepository?.id).toBe('123456');
+	});
+
 	it('does not overwrite manually set selectedBranch when git url changes but the repo identity stays the same', () => {
 		const wizard = createProjectWizardState();
 		wizard.repositorySource = 'git-url';

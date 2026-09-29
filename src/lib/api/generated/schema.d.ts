@@ -89,6 +89,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/agent/v1/node-state': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Return the desired lifecycle state the agent must restore at bootstrap */
+		get: operations['agent.nodeState'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/agent/v1/commands': {
 		parameters: {
 			query?: never;
@@ -117,6 +134,26 @@ export interface paths {
 		put?: never;
 		/** Atomically claim a pending command for execution */
 		post: operations['agent.claimCommand'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/commands/{command}/repository-credential': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Lease a short-lived, read-only repository credential to the agent that
+		 *     owns a claimed command with `repository_access = temporary_credential`
+		 */
+		post: operations['agent.leaseRepositoryCredential'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -185,6 +222,57 @@ export interface paths {
 		put?: never;
 		/** Mark a claimed or running command as failed */
 		post: operations['agent.failCommand'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/agents/{agent}/drain': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Stop offering workload to a node and ask it to drain */
+		post: operations['agentNodeControl.drain'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/agents/{agent}/resume': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Return a drained node to active duty */
+		post: operations['agentNodeControl.resume'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/agent/v1/agents/{agent}/cleanup': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Ask a node to reclaim stale workspaces, images, or routes */
+		post: operations['agentNodeControl.cleanup'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -534,6 +622,22 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/admin/metrics/pilot-validation': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['admin.pilotValidationMetrics'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/app/profile': {
 		parameters: {
 			query?: never;
@@ -621,6 +725,55 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/admin/projects/{project}/reconcile': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Ask the serving node to reconcile the project's workload */
+		post: operations['projectControl.reconcile'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/register': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.register'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/email/verification-notification': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.email.verification-notification'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1': {
 		parameters: {
 			query?: never;
@@ -641,6 +794,22 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/admin/signals': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['admin.usageSignals'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -652,7 +821,11 @@ export interface components {
 			status: string;
 			project_id: string | null;
 			deployment_id: string | null;
-			payload: unknown[];
+			payload:
+				| {
+						[key: string]: unknown;
+				  }
+				| Record<string, never>;
 		};
 		/** AgentHeartbeatRequest */
 		AgentHeartbeatRequest: {
@@ -669,13 +842,18 @@ export interface components {
 				runtime_driver: string;
 				lifecycle_state: string;
 				uptime_seconds: number | null;
-				detail_counts: {
-					unhealthy_details: number;
-					recovered_workloads: number;
-					orphans: number;
-					stale_routes: number;
-					stale_images: number;
-					compatibility_issues: number;
+				/**
+				 * @description Sent since agent v0.2.0 so the API can tell when detail arrays
+				 *     were truncated to 50 items; v0.1.0 omits it. Optional, but
+				 *     complete when present.
+				 */
+				detail_counts?: {
+					unhealthy_details?: number;
+					recovered_workloads?: number;
+					orphans?: number;
+					stale_routes?: number;
+					stale_images?: number;
+					compatibility_issues?: number;
 				};
 				resources: {
 					cpu_total: number | null;
@@ -720,9 +898,23 @@ export interface components {
 					recovered_execution_records: number;
 					recovered_workloads: string[];
 					orphans: string[];
-					stale_routes: string[];
+					stale_routes: {
+						/**
+						 * @description Stale route items: `deployment_id` is sent since v0.2.0 and is
+						 *     null for a legacy route generation; v0.1.0 items omit it.
+						 */
+						path: string;
+						/** Format: uuid */
+						project_id?: string | null;
+						/** Format: uuid */
+						deployment_id?: string | null;
+					}[];
 					stale_images: string[];
-					compatibility_issues: string[];
+					/**
+					 * @description The v0.1.0 documented payload omits this list even though the
+					 *     binary sends it; accept both.
+					 */
+					compatibility_issues?: string[];
 				};
 			};
 		};
@@ -741,6 +933,21 @@ export interface components {
 			/** Format: date-time */
 			last_seen_at: string | null;
 		};
+		/** AgentNodeControlResource */
+		AgentNodeControlResource: {
+			agent_node_id: string;
+			status: string;
+			desired_state: string;
+			command: {
+				id: string;
+				type: string;
+				status: string;
+			};
+		};
+		/** AgentNodeStateResource */
+		AgentNodeStateResource: {
+			desired_state: string;
+		};
 		/** AgentReportAcknowledgementResource */
 		AgentReportAcknowledgementResource: {
 			accepted_count: number;
@@ -757,8 +964,18 @@ export interface components {
 			token_prefix: string | null;
 			auth_status: string;
 			status: string;
+			desired_state: string;
+			protocol_version: number | null;
+			last_seen_at: string;
 			created_at: string;
 			updated_at: string;
+		};
+		/** CleanupAgentNodeRequest */
+		CleanupAgentNodeRequest: {
+			reason: string;
+			/** @description The approval gate is decided by the control plane, never by the client. */
+			approved?: string;
+			targets: components['schemas']['RuntimeCleanupTarget'][];
 		};
 		/** CompleteAgentCommandRequest */
 		CompleteAgentCommandRequest: {
@@ -768,13 +985,25 @@ export interface components {
 		CreateProjectResource: {
 			id: string;
 			name: string;
-			repository_full_name: string;
+			repository_full_name: string | null;
 			/** @enum {string} */
 			repository_source: 'public_url' | 'github_installation';
-			github_installation_id: string;
-			github_repository_id: string;
+			github_installation_id: string | null;
+			github_repository_id: number | null;
 			branch: string;
-			runtime_status: string;
+			runtime_status: components['schemas']['RuntimeStatus'];
+			preview_status: string;
+			inspection: {
+				repository_url: string | null;
+				commit_sha: string | null;
+				dockerfile_found: boolean;
+				env_example_found: boolean;
+				compose_found: boolean;
+				manifests: unknown[];
+				package_manager: string | null;
+				inspected_at: string;
+			} | null;
+			inspection_error_code: string | null;
 			created_at: string;
 		};
 		/**
@@ -785,10 +1014,13 @@ export interface components {
 		/** DeploymentEventResource */
 		DeploymentEventResource: {
 			sequence: number;
-			level: components['schemas']['DeploymentEventLevel'];
+			/** @enum {string} */
+			level: 'info' | 'warning' | 'error';
 			type: string | null;
 			message: string;
-			metadata: unknown[] | null;
+			metadata: {
+				[key: string]: unknown;
+			} | null;
 			occurred_at: string;
 		};
 		/** DeploymentLogResource */
@@ -809,15 +1041,60 @@ export interface components {
 			commit_sha: string | null;
 			commit_message: string | null;
 			image_reference: string | null;
-			requested_resources: unknown[] | null;
-			effective_resources: unknown[] | null;
-			started_at: string;
+			requested_resources: {
+				memory_mb: number | null;
+				cpu_millis: number | null;
+				pids_limit: number | null;
+			} | null;
+			effective_resources: {
+				resources: {
+					memory_mb: number;
+					cpu_millis: number;
+					pids_limit: number;
+				};
+				timeouts: {
+					build_timeout_seconds: number;
+					start_timeout_seconds: number;
+					command_timeout_seconds: number;
+				};
+				log_bounds: {
+					max_line_length: number;
+					max_batch_lines: number;
+					max_total_bytes: number;
+				};
+			} | null;
+			applied_resources: {
+				memory_mb: number;
+				cpu_millis: number;
+				pids_limit: number;
+			} | null;
+			finalization_deferred: boolean;
+			/** @enum {string|null} */
+			finalization_deferred_reason: 'grace_elapsed' | 'runtime_error' | null;
+			agent_node_id: string | null;
+			started_at: string | null;
 			finished_at: string | null;
 			cancelled_at: string | null;
 			failure_code: string | null;
 			failure_summary: string | null;
+			failure: {
+				code: string;
+				category: string;
+				summary: string;
+				recovery_hint: string;
+			} | null;
 			created_at: string | null;
 			updated_at: string | null;
+		};
+		/**
+		 * DesiredWorkloadState
+		 * @description Values must match `sakala-agent-protocol::DesiredWorkloadState` (protocol revision 4).
+		 * @enum {string}
+		 */
+		DesiredWorkloadState: 'running' | 'stopped' | 'missing';
+		/** DrainAgentNodeRequest */
+		DrainAgentNodeRequest: {
+			reason: string;
 		};
 		/** EnvironmentVariableRequest */
 		EnvironmentVariableRequest: {
@@ -850,15 +1127,15 @@ export interface components {
 		GetCollectionProjectResource: {
 			id: string;
 			name: string;
-			repository_full_name: string;
+			repository_full_name: string | null;
 			/** @enum {string} */
 			repository_source: 'public_url' | 'github_installation';
-			github_installation_id: string;
-			github_repository_id: string;
+			github_installation_id: string | null;
+			github_repository_id: number | null;
 			branch: string;
-			thumbnail_url: string;
-			runtime_status: string;
-			last_deployed_at: string;
+			thumbnail_url: string | null;
+			runtime_status: components['schemas']['RuntimeStatus'];
+			last_deployed_at: string | null;
 			created_at: string;
 		};
 		/** GithubBranchResource */
@@ -886,7 +1163,13 @@ export interface components {
 			private: boolean;
 		};
 		/**
-		 * OnboardingProfileLogStream
+		 * LeaseRepositoryCredentialRequest
+		 * @description The agent sends an empty JSON object; ownership and command state are
+		 *     enforced by the action, not by request rules.
+		 */
+		LeaseRepositoryCredentialRequest: Record<string, never>;
+		/**
+		 * LogStream
 		 * @enum {string}
 		 */
 		LogStream: 'stdout' | 'stderr' | 'system';
@@ -945,6 +1228,17 @@ export interface components {
 				max_request_bytes: number;
 			};
 		};
+		/** PilotValidationMetricsResource */
+		PilotValidationMetricsResource: {
+			from: string;
+			to: string;
+			activated_users: number;
+			successful_deployments: number;
+			unique_deployers: number;
+			repeat_deployers: number;
+			failure_categories: unknown[];
+			pilot_feedback_count: number;
+		};
 		/** ProjectResource */
 		ProjectResource: {
 			id: string;
@@ -960,12 +1254,50 @@ export interface components {
 			github_repository_id: number | null;
 			branch: string;
 			default_domain: string;
-			status: string;
-			runtime_status: string;
+			status: components['schemas']['ProjectStatus'];
+			runtime_status: components['schemas']['RuntimeStatus'];
 			detected_port: number | null;
-			last_deployed_at: string;
+			preview_status: string;
+			inspection: {
+				repository_url: string | null;
+				commit_sha: string | null;
+				dockerfile_found: boolean;
+				env_example_found: boolean;
+				compose_found: boolean;
+				manifests: unknown[];
+				package_manager: string | null;
+				inspected_at: string;
+			} | null;
+			inspection_error_code: string | null;
+			last_deployed_at: string | null;
 			created_at: string;
 			updated_at: string;
+		};
+		/**
+		 * ProjectStatus
+		 * @enum {string}
+		 */
+		ProjectStatus: 'draft' | 'active' | 'failed' | 'suspended';
+		/** ReconcileProjectRequest */
+		ReconcileProjectRequest: {
+			reason: string;
+			desired_state: components['schemas']['DesiredWorkloadState'];
+			/** @description Empty means "report drift only"; mutations must be listed explicitly. */
+			actions: components['schemas']['ReconcileWorkloadAction'][];
+		};
+		/**
+		 * ReconcileWorkloadAction
+		 * @description Values must match `sakala-agent-protocol::ReconcileWorkloadAction` (protocol revision 4).
+		 * @enum {string}
+		 */
+		ReconcileWorkloadAction: 'restart_log_follower' | 'cleanup_failed_candidate' | 'restore_route';
+		/** RegisterRequest */
+		RegisterRequest: {
+			name: string;
+			/** Format: email */
+			email: string;
+			password: string;
+			password_confirmation: string;
 		};
 		/** ReportDeploymentEventRequest */
 		ReportDeploymentEventRequest: {
@@ -989,6 +1321,31 @@ export interface components {
 				recorded_at: string;
 			}[];
 		};
+		/** RepositoryCredentialResource */
+		RepositoryCredentialResource: {
+			username: string;
+			token: string;
+		};
+		/** ResendVerificationNotificationRequest */
+		ResendVerificationNotificationRequest: {
+			/** Format: email */
+			email: string;
+		};
+		/** ResumeAgentNodeRequest */
+		ResumeAgentNodeRequest: {
+			reason: string;
+		};
+		/**
+		 * RuntimeCleanupTarget
+		 * @description Values must match `sakala-agent-protocol::RuntimeCleanupTarget` (protocol revision 4).
+		 * @enum {string}
+		 */
+		RuntimeCleanupTarget: 'stale_workspaces' | 'stale_images' | 'stale_routes';
+		/**
+		 * RuntimeStatus
+		 * @enum {string}
+		 */
+		RuntimeStatus: 'not_deployed' | 'deploying' | 'running' | 'stopped' | 'failed' | 'crashed';
 		/** ServiceStatusResource */
 		ServiceStatusResource: {
 			service: string;
@@ -1065,6 +1422,12 @@ export interface components {
 			/** Format: uri */
 			thumbnail_url?: string | null;
 			branch?: string;
+		};
+		/** UsageSignalsResource */
+		UsageSignalsResource: {
+			from: string;
+			to: string;
+			signals: unknown[];
 		};
 		/** UserResource */
 		UserResource: {
@@ -1311,6 +1674,28 @@ export interface operations {
 			422: components['responses']['ValidationException'];
 		};
 	};
+	'agent.nodeState': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AgentNodeStateResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentNodeStateResource'];
+					};
+				};
+			};
+		};
+	};
 	'agent.pollCommands': {
 		parameters: {
 			query?: never;
@@ -1350,6 +1735,35 @@ export interface operations {
 					'application/json': {
 						data: components['schemas']['AgentCommandResource'];
 					};
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agent.leaseRepositoryCredential': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				command: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['LeaseRepositoryCredentialRequest'] & {
+					agent?: string;
+				};
+			};
+		};
+		responses: {
+			/** @description `RepositoryCredentialResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RepositoryCredentialResource'];
 				};
 			};
 			422: components['responses']['ValidationException'];
@@ -1478,6 +1892,123 @@ export interface operations {
 					'application/json': Record<string, never>;
 				};
 			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agentNodeControl.drain': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry the drain request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The agent ID */
+				agent: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['DrainAgentNodeRequest'];
+			};
+		};
+		responses: {
+			/** @description `AgentNodeControlResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentNodeControlResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agentNodeControl.resume': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry the resume request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The agent ID */
+				agent: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResumeAgentNodeRequest'];
+			};
+		};
+		responses: {
+			/** @description `AgentNodeControlResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentNodeControlResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'agentNodeControl.cleanup': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry the cleanup request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The agent ID */
+				agent: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['CleanupAgentNodeRequest'];
+			};
+		};
+		responses: {
+			/** @description `AgentNodeControlResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AgentNodeControlResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
 			422: components['responses']['ValidationException'];
 		};
 	};
@@ -2261,6 +2792,34 @@ export interface operations {
 			401: components['responses']['AuthenticationException'];
 		};
 	};
+	'admin.pilotValidationMetrics': {
+		parameters: {
+			query?: {
+				from?: string | null;
+				to?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `PilotValidationMetricsResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['PilotValidationMetricsResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.app.profile.update': {
 		parameters: {
 			query?: never;
@@ -2532,6 +3091,90 @@ export interface operations {
 			422: components['responses']['ValidationException'];
 		};
 	};
+	'projectControl.reconcile': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry the reconciliation request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ReconcileProjectRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.auth.register': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['RegisterRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 201;
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.auth.email.verification-notification': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResendVerificationNotificationRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 202;
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.status': {
 		parameters: {
 			query?: never;
@@ -2552,6 +3195,34 @@ export interface operations {
 					};
 				};
 			};
+		};
+	};
+	'admin.usageSignals': {
+		parameters: {
+			query?: {
+				from?: string | null;
+				to?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `UsageSignalsResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UsageSignalsResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
 		};
 	};
 }

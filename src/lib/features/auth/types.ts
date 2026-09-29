@@ -3,6 +3,7 @@ import type { OnboardingSource } from '../onboarding/types';
 export type User = {
 	id: number;
 	name: string;
+	username: string;
 	email: string;
 	avatar_url?: string | null;
 	role: string;

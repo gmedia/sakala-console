@@ -4,6 +4,7 @@
 	import { createUnreadNotificationCountQuery } from '$lib/features/notifications/queries';
 	import NotificationPopover from '$lib/features/notifications/components/NotificationPopover.svelte';
 	import type { NotificationItem } from '$lib/features/notifications/types';
+	import { createProjectQuery } from '$lib/features/projects/queries';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -23,13 +24,18 @@
 				(unreadCount ?? 0) > 0)
 	);
 
-	const pageTitle = $derived(
-		page.url.pathname.startsWith('/notifications')
-			? 'Notifikasi'
-			: page.url.pathname.startsWith('/settings')
-				? 'Pengaturan'
-				: 'Projects'
-	);
+	const projectQuery = createProjectQuery(() => page.params.id ?? '');
+	const currentProject = $derived(page.params.id ? projectQuery.data : null);
+	const projectName = $derived(currentProject?.name ?? currentProject?.project_name ?? '');
+
+	const pageTitle = $derived.by(() => {
+		const path = page.url.pathname;
+		if (path.startsWith('/notifications')) return 'Notifikasi';
+		if (path.startsWith('/profile')) return 'Akun / Profil Saya';
+		if (path.startsWith('/settings')) return 'Akun / Pengaturan';
+		if (path.startsWith('/projects')) return 'Projects';
+		return 'Projects';
+	});
 </script>
 
 <header class="mb-8 flex items-center justify-between bg-transparent">
@@ -44,8 +50,14 @@
 				<List size={20} />
 			</button>
 
-			<h1 class="font-sans text-lg font-semibold tracking-tight text-foreground">
-				{pageTitle}
+			<h1 class="font-sans text-lg tracking-tight flex items-center gap-1.5">
+				{#if page.params.id}
+					<span class="text-muted font-medium">Projects</span>
+					<span class="text-foreground font-medium">/</span>
+					<span class="font-semibold text-foreground">{projectName || '...'}</span>
+				{:else}
+					<span class="font-semibold text-foreground">{pageTitle}</span>
+				{/if}
 			</h1>
 		</div>
 

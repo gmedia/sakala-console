@@ -2,22 +2,43 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import RepositoryList from '../repository/RepositoryList.svelte';
+	import RepositoryListSkeleton from '../repository/RepositoryListSkeleton.svelte';
 	import RepositorySourceTab from '../repository/RepositorySourceTab.svelte';
 	import GitUrlForm from '../repository/GitUrlForm.svelte';
 	import { searchRepositories } from '../../filters';
 	import type { Repository } from '../../type';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
-	import { GithubLogoIcon, ArrowRightIcon } from 'phosphor-svelte';
+	import {
+		GithubLogoIcon,
+		ArrowRightIcon,
+		WarningCircleIcon,
+		CircleNotchIcon
+	} from 'phosphor-svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 
 	type Props = {
 		repositories: Repository[];
 		githubConnected: boolean;
+		loading?: boolean;
+		errorMessage?: string | null;
+		onRetry?: () => void;
 		onNext: () => void;
 		onConnectGithub: () => void;
+		onSelectRepository?: (id: string, repo: Repository) => void;
+		onValidateGitUrl?: (url: string) => Promise<Repository>;
 	};
 
-	let { repositories, githubConnected, onNext, onConnectGithub }: Props = $props();
+	let {
+		repositories,
+		githubConnected,
+		loading = false,
+		errorMessage = null,
+		onRetry,
+		onNext,
+		onConnectGithub,
+		onSelectRepository,
+		onValidateGitUrl
+	}: Props = $props();
 
 	const wizard = getCreateProjectContext();
 
@@ -26,21 +47,62 @@
 
 	let isGitUrlValid = $state(false);
 	let gitUrlTouched = $state(false);
+	let gitUrlApiError = $state<string | null>(null);
+	let isValidating = $state(false);
 
 	const isDisabled = $derived(
 		wizard.repositorySource === 'github'
-			? githubConnected
-				? wizard.selectedRepositoryId === null
-				: true
-			: false
+			? loading || Boolean(errorMessage) || !githubConnected
+				? true
+				: wizard.selectedRepositoryId === null
+			: !isGitUrlValid || wizard.gitUrl.trim() === '' || isValidating
 	);
 
-	function handleNext() {
+	async function handleNext() {
 		if (wizard.repositorySource === 'git-url') {
 			if (!isGitUrlValid) {
 				gitUrlTouched = true;
 				return;
 			}
+			gitUrlApiError = null;
+
+			if (onValidateGitUrl) {
+				const targetUrl = wizard.gitUrl.trim();
+				isValidating = true;
+				try {
+					const validatedRepo = await onValidateGitUrl(targetUrl);
+					if (wizard.gitUrl.trim() !== targetUrl) {
+						return;
+					}
+					wizard.confirmGitUrl(validatedRepo);
+					onNext();
+				} catch (err: unknown) {
+					if (wizard.gitUrl.trim() !== targetUrl) {
+						return;
+					}
+					gitUrlTouched = true;
+					const anyErr = err as {
+						isValidationError?: boolean;
+						errors?: Record<string, string[]>;
+						message?: string;
+					};
+					if (anyErr?.isValidationError && anyErr?.errors) {
+						gitUrlApiError =
+							anyErr.errors.repository_url?.[0] ||
+							anyErr.message ||
+							'Repository GitHub publik tidak valid atau tidak ditemukan.';
+					} else if (anyErr?.message) {
+						gitUrlApiError = anyErr.message;
+					} else {
+						gitUrlApiError =
+							'Gagal memvalidasi repository GitHub. Silakan periksa kembali URL atau koneksi kamu.';
+					}
+				} finally {
+					isValidating = false;
+				}
+				return;
+			}
+
 			wizard.confirmGitUrl();
 		}
 		onNext();
@@ -60,6 +122,11 @@
 		void searchQuery;
 		wizard.currentPage = 1;
 	});
+
+	$effect(() => {
+		void wizard.gitUrl;
+		gitUrlApiError = null;
+	});
 </script>
 
 <div class="flex flex-col mt-3 gap-4">
@@ -71,8 +138,29 @@
 	<RepositorySourceTab bind:value={wizard.repositorySource} />
 
 	{#if wizard.repositorySource === 'github'}
-		<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
-		{#if !githubConnected}
+		{#if loading}
+			<div class="flex flex-col overflow-hidden rounded-xl border border-muted/40">
+				{#each [0, 1, 2, 3, 4] as index (index)}
+					<RepositoryListSkeleton />
+				{/each}
+			</div>
+		{:else if errorMessage}
+			<div class="flex flex-col items-center justify-center py-6">
+				<EmptyState
+					icon={WarningCircleIcon}
+					tone="failed"
+					title="Gagal Memuat Repository"
+					description={errorMessage}
+					class="bg-background border-none shadow-none sm:py-4"
+				>
+					{#snippet action()}
+						{#if onRetry}
+							<Button variant="outline" onclick={onRetry}>Coba Lagi</Button>
+						{/if}
+					{/snippet}
+				</EmptyState>
+			</div>
+		{:else if !githubConnected}
 			<div class="flex flex-col items-center justify-center pb-6 border-b border-muted">
 				<EmptyState
 					icon={GithubLogoIcon}
@@ -91,12 +179,17 @@
 				</p>
 			</div>
 		{:else}
+			<SearchInput bind:value={searchQuery} placeholder="Cari repository.." class="w-full px-2" />
 			<RepositoryList
 				repositories={filteredRepositories}
 				loading={false}
 				selectedId={wizard.selectedRepositoryId}
 				onSelect={(id) => {
 					wizard.selectedRepositoryId = id;
+					const found = repositories.find((r) => String(r.id) === String(id));
+					if (found && onSelectRepository) {
+						onSelectRepository(id, found);
+					}
 				}}
 				currentPage={wizard.currentPage}
 				perPage={wizard.perPage}
@@ -107,6 +200,8 @@
 		<GitUrlForm
 			bind:value={wizard.gitUrl}
 			bind:touched={gitUrlTouched}
+			disabled={isValidating}
+			apiErrorMessage={gitUrlApiError}
 			onValidityChange={(isValid) => (isGitUrlValid = isValid)}
 		/>
 	{/if}
@@ -117,7 +212,12 @@
 		disabled={isDisabled}
 		onclick={handleNext}
 	>
-		Lanjut
-		<ArrowRightIcon class="h-5 w-5" />
+		{#if isValidating}
+			<CircleNotchIcon class="h-5 w-5 animate-spin" />
+			Memvalidasi...
+		{:else}
+			Lanjut
+			<ArrowRightIcon class="h-5 w-5" />
+		{/if}
 	</Button>
 </div>

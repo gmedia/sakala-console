@@ -13,9 +13,8 @@
 	let containerRef: HTMLDivElement | null = $state(null);
 
 	const dateOptions: { label: string; value: DateFilterValue }[] = [
-		{ label: '7 hari terakhir', value: '7d' },
-		{ label: '30 hari terakhir', value: '30d' },
-		{ label: '90 hari terakhir', value: '90d' },
+		{ label: '7 hari terakhir', value: '7_days' },
+		{ label: '30 hari terakhir', value: '30_days' },
 		{ label: 'Semua waktu', value: 'all' }
 	];
 
@@ -42,7 +41,6 @@
 <svelte:window onclick={handleWindowClick} />
 
 <div bind:this={containerRef} class="relative inline-block">
-	<!-- Trigger Button (w-43.75 / 175px, h-8 / 32px, rounded-2xl, gap-2 / 8px) -->
 	<button
 		type="button"
 		class="flex h-8 w-43.75 items-center justify-between gap-2 rounded-2xl border border-primary bg-primary/10 px-3 font-sans text-xs font-semibold text-primary transition-colors hover:bg-primary/15"

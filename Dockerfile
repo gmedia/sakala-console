@@ -11,14 +11,21 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# These values are public browser configuration and must be supplied by the
-# deployment build. They are deliberately not defaulted to a production origin.
-ARG PUBLIC_API_URL
-ARG PUBLIC_APP_URL
-ENV PUBLIC_API_URL=$PUBLIC_API_URL
-ENV PUBLIC_APP_URL=$PUBLIC_APP_URL
-
-RUN pnpm build
+# Public browser configuration (PUBLIC_API_URL, PUBLIC_APP_URL, PUBLIC_REVERB_*)
+# is read by $env/static/public at build time from a single env file that the
+# deployment passes as the BuildKit secret `frontend_env`. One file per target
+# environment; nothing is defaulted to a production origin. The secret is a
+# mount, so it never lands in an image layer, but compiled PUBLIC_* values are
+# visible in the browser bundle by design. The Reverb app secret is not a
+# PUBLIC_* value and must never be in this file.
+#
+# BuildKit secret contents do not take part in the cache key, so the
+# deployment hashes the exact env file and passes it as FRONTEND_ENV_SHA; it is
+# consumed in the same RUN as the build so a changed file always rebuilds.
+ARG FRONTEND_ENV_SHA
+RUN --mount=type=secret,id=frontend_env,target=/app/.env.production,required=true \
+    test -n "$FRONTEND_ENV_SHA" \
+    && pnpm build
 
 FROM caddy:2.10-alpine AS runtime
 

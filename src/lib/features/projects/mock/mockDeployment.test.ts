@@ -57,33 +57,31 @@ describe('streamDeploymentProgress', () => {
 		expect(finalProgress.logs.length).toBeGreaterThan(0);
 	});
 
-	it('scenario success: yields exactly one progress per event (7 events)', async () => {
+	it('scenario success: yields exactly one progress per event (5 events)', async () => {
 		const progressList = await collectAllProgress('success');
-		expect(progressList.length).toBe(7);
+		expect(progressList.length).toBe(5);
 	});
 
-	it('scenario failed: build step fails, deploy and health remain pending', async () => {
+	it('scenario failed: build step fails, deploy and routing remain pending', async () => {
 		const progressList = await collectAllProgress('failed');
 		const finalProgress = progressList[progressList.length - 1];
 
 		const buildStep = finalProgress.steps.find((s) => s.key === 'build');
 		const deployStep = finalProgress.steps.find((s) => s.key === 'deploy');
-		const healthStep = finalProgress.steps.find((s) => s.key === 'health');
+		const routingStep = finalProgress.steps.find((s) => s.key === 'routing');
 
 		expect(buildStep?.status).toBe('failed');
 		expect(deployStep?.status).toBe('pending');
-		expect(healthStep?.status).toBe('pending');
+		expect(routingStep?.status).toBe('pending');
 	});
 
-	it('scenario failed: clone and analyze steps remain success before the failing step', async () => {
+	it('scenario failed: clone step remains success before the failing step', async () => {
 		const progressList = await collectAllProgress('failed');
 		const finalProgress = progressList[progressList.length - 1];
 
 		const cloneStep = finalProgress.steps.find((s) => s.key === 'clone');
-		const analyzeStep = finalProgress.steps.find((s) => s.key === 'analyze');
 
 		expect(cloneStep?.status).toBe('success');
-		expect(analyzeStep?.status).toBe('success');
 	});
 
 	it('scenario failed: error message shown in last yielded progress', async () => {
@@ -95,7 +93,7 @@ describe('streamDeploymentProgress', () => {
 
 	it('scenario failed: stops right after deployment.failed event', async () => {
 		const progressList = await collectAllProgress('failed');
-		expect(progressList.length).toBe(4);
+		expect(progressList.length).toBe(3);
 	});
 
 	it('scenario failed: all logs including stderr lines are shown by the end', async () => {
