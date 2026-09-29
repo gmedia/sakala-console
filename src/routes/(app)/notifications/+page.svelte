@@ -19,21 +19,19 @@
 
 	type FilterTab = 'all' | 'unread';
 
-	let activeFilter = $state<FilterTab>('all');
-	let searchQuery = $state('');
-	let currentPage = $state(1);
 	const pageSize = 8;
 
-	let targetId = $derived(page.url.searchParams.get('id'));
+	function getTargetPage(id: string | null): number {
+		if (!id) return 1;
+		const index = notificationStore.all.findIndex((item) => item.id === id);
+		return index !== -1 ? Math.floor(index / pageSize) + 1 : 1;
+	}
 
-	$effect(() => {
-		const id = targetId;
-		if (id) {
-			untrack(() => {
-				notificationStore.markAsRead(id);
-			});
-		}
-	});
+	let activeFilter = $state<FilterTab>('all');
+	let searchQuery = $state('');
+	let currentPage = $state(getTargetPage(page.url.searchParams.get('id')));
+
+	let targetId = $derived(page.url.searchParams.get('id'));
 
 	const allItems = $derived(notificationStore.all);
 
@@ -50,6 +48,29 @@
 		}
 
 		return result;
+	});
+
+	$effect(() => {
+		const id = targetId;
+		if (id) {
+			untrack(() => {
+				notificationStore.markAsRead(id);
+
+				let index = filteredItems.findIndex((item) => item.id === id);
+				if (index === -1) {
+					const inAll = allItems.findIndex((item) => item.id === id);
+					if (inAll !== -1) {
+						activeFilter = 'all';
+						searchQuery = '';
+						index = inAll;
+					}
+				}
+
+				if (index !== -1) {
+					currentPage = Math.floor(index / pageSize) + 1;
+				}
+			});
+		}
 	});
 
 	const totalPages = $derived(Math.ceil(filteredItems.length / pageSize) || 1);
