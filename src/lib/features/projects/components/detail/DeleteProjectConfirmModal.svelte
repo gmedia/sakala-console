@@ -57,7 +57,7 @@
 		role="presentation"
 	>
 		<div
-			class="relative w-142.5 max-w-[calc(100vw-32px)] min-h-134 rounded-2xl bg-surface border border-border shadow-2xl p-8 flex flex-col justify-between animate-in zoom-in-95 duration-150"
+			class="relative w-full max-w-lg 2xl:max-w-[570px] max-h-[90vh] overflow-y-auto rounded-2xl bg-surface border border-border shadow-2xl p-6 sm:p-8 flex flex-col justify-between animate-in zoom-in-95 duration-150"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="delete-project-title"
@@ -65,25 +65,28 @@
 		>
 			<div class="flex flex-col">
 				<div
-					class="w-16 h-16 rounded-full bg-error-50 text-error flex items-center justify-center mb-6 shrink-0"
+					class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-error-50 text-error flex items-center justify-center mb-6 shrink-0"
 				>
 					<Trash size={32} weight="regular" />
 				</div>
 
 				<h2
 					id="delete-project-title"
-					class="font-montserrat-semibold font-bold text-[28px] text-foreground leading-tight mb-3 break-all"
+					class="font-montserrat-semibold font-bold text-xl sm:text-2xl 2xl:text-[28px] text-foreground leading-tight mb-3 break-words"
 				>
 					Hapus proyek <span class="font-jetbrains-mono-semibold font-bold">{projectName}</span>?
 				</h2>
 
-				<p class="font-montserrat text-[20px] text-muted-2 leading-relaxed mb-6">
+				<p
+					id="delete-project-desc"
+					class="font-montserrat text-sm sm:text-base 2xl:text-[20px] text-muted-2 leading-snug mb-6"
+				>
 					Tindakan ini <strong class="font-bold text-foreground">permanen</strong> dan tidak bisa dibatalkan.
 					Semua data berikut akan ikut terhapus:
 				</p>
 
 				<ul
-					class="list-disc list-inside space-y-1 font-montserrat text-[20px] text-muted-2 leading-relaxed mb-6"
+					class="list-disc list-inside space-y-1 font-montserrat text-sm sm:text-base 2xl:text-[20px] text-muted-2 leading-snug mb-6"
 				>
 					<li>
 						Semua riwayat deployment {deploymentCount > 0 ? `(${deploymentCount} deployment)` : ''}
@@ -95,8 +98,12 @@
 				</ul>
 
 				<div class="flex flex-col mb-8">
-					<label for="confirmInput" class="font-montserrat text-[20px] text-foreground mb-2">
-						Ketik <strong class="font-jetbrains-mono-semibold font-bold text-[20px] text-foreground"
+					<label
+						for="confirmInput"
+						class="font-montserrat text-sm sm:text-base 2xl:text-[20px] text-foreground leading-snug mb-2"
+					>
+						Ketik <strong
+							class="font-jetbrains-mono-semibold font-bold text-sm sm:text-base 2xl:text-[20px] text-foreground"
 							>{projectName}</strong
 						> untuk konfirmasi
 					</label>
@@ -106,17 +113,17 @@
 						bind:value={confirmInput}
 						placeholder="contoh: nama-project"
 						disabled={isLoading}
-						class="w-126.5 max-w-full h-13.25 rounded-lg border border-border bg-background px-4 py-4 font-jetbrains-mono-regular text-[16px] text-foreground outline-none focus:border-primary transition-colors disabled:opacity-50"
+						class="w-full h-12 rounded-lg border border-border bg-background px-4 font-jetbrains-mono-regular text-sm sm:text-base text-foreground outline-none focus:border-primary transition-colors disabled:opacity-50"
 					/>
 				</div>
 			</div>
 
-			<div class="flex items-center gap-3">
+			<div class="flex flex-col-reverse sm:flex-row items-center gap-3 w-full">
 				<button
 					type="button"
 					onclick={handleClose}
 					disabled={isLoading}
-					class="w-42.5 h-12 rounded-lg border border-black bg-surface text-foreground font-montserrat-semibold text-base flex items-center justify-center hover:bg-surface-elevated transition-colors cursor-pointer disabled:opacity-50"
+					class="w-full sm:w-36 2xl:w-42.5 h-12 rounded-lg border border-black bg-surface text-foreground font-montserrat-semibold text-sm sm:text-base flex items-center justify-center hover:bg-surface-elevated transition-colors cursor-pointer disabled:opacity-50"
 				>
 					Batal
 				</button>
@@ -125,7 +132,7 @@
 					type="button"
 					onclick={handleConfirm}
 					disabled={!canDelete || isLoading}
-					class="w-[288px] h-12 rounded-lg border-none font-montserrat-semibold text-base flex items-center justify-center gap-2 transition-colors {canDelete &&
+					class="w-full sm:flex-1 2xl:w-[288px] h-12 rounded-lg border-none font-montserrat-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-colors {canDelete &&
 					!isLoading
 						? 'bg-error text-white hover:bg-error-dark cursor-pointer'
 						: 'bg-black/5 text-muted cursor-not-allowed'}"

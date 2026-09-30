@@ -185,9 +185,9 @@
 		<div
 			class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2.5 px-4 bg-background rounded-lg border border-border/80"
 		>
-			<div class="flex items-center gap-3 overflow-hidden">
-				<Link size={20} class="text-primary" weight="bold" />
-				<span class="text-primary font-semibold text-sm tracking-wide font-mono">
+			<div class="flex items-center gap-3 overflow-hidden min-w-0">
+				<Link size={20} class="text-primary shrink-0" weight="bold" />
+				<span class="text-primary font-semibold text-sm tracking-wide font-mono truncate">
 					{project.default_domain || 'Menunggu URL Publik...'}
 				</span>
 			</div>

@@ -31,8 +31,8 @@
 		<ProjectHeaderBanner project={projectQuery.data} />
 	{/if}
 
-	<div class="border-b border-border mb-2">
-		<nav class="-mb-px flex space-x-8" aria-label="Tabs">
+	<div class="border-b border-border mb-2 overflow-x-auto no-scrollbar min-w-0 w-full">
+		<nav class="-mb-px flex space-x-6 sm:space-x-8 min-w-max px-1" aria-label="Tabs">
 			<a
 				href={resolveRoute('/(app)/projects/[id]/deployments', { id: projectId || '' })}
 				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors

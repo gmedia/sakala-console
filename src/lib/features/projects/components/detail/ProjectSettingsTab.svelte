@@ -65,7 +65,7 @@
 	}
 </script>
 
-<div class="flex flex-col w-280 max-w-full">
+<div class="flex flex-col w-full max-w-full 2xl:max-w-280">
 	{#if projectQuery.isLoading}
 		<div class="p-6 text-center text-sm font-montserrat text-muted">Memuat pengaturan...</div>
 	{:else if projectQuery.isError}
@@ -75,9 +75,9 @@
 	{:else if projectQuery.data}
 		<form
 			onsubmit={(e) => e.preventDefault()}
-			class="flex w-280 max-w-full h-61 rounded-lg border border-border bg-surface pt-6 pb-6 shadow-none"
+			class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full rounded-lg border border-border bg-surface p-4 sm:p-6 shadow-none"
 		>
-			<div class="ml-6 w-132 flex flex-col">
+			<div class="flex flex-col">
 				<div class="flex flex-col mb-4">
 					<label for="projectName" class="font-montserrat-medium text-xs text-foreground mb-2">
 						Nama Proyek
@@ -87,7 +87,7 @@
 						id="projectName"
 						bind:value={name}
 						placeholder="Nama Proyek"
-						class="w-132 h-7.75 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
+						class="w-full h-9 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
 						required
 					/>
 				</div>
@@ -101,7 +101,7 @@
 						id="branch"
 						bind:value={branch}
 						placeholder="main"
-						class="w-132 h-7.75 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
+						class="w-full h-9 rounded-lg border border-border bg-background px-3 font-montserrat text-sm outline-none focus:border-primary transition-colors"
 						required
 					/>
 				</div>
@@ -119,14 +119,12 @@
 						bind:value={rootDirectory}
 						disabled
 						placeholder="Belum tersedia"
-						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
+						class="w-full h-9 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 			</div>
 
-			<div class="w-4 shrink-0"></div>
-
-			<div class="mr-6 w-132 flex flex-col">
+			<div class="flex flex-col">
 				<div class="flex flex-col mb-4">
 					<div class="flex items-center gap-1.5 mb-2">
 						<label for="subdomain" class="font-montserrat-medium text-xs text-foreground">
@@ -140,7 +138,7 @@
 						bind:value={subdomain}
 						disabled
 						placeholder="subdomain"
-						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
+						class="w-full h-9 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 
@@ -157,7 +155,7 @@
 						bind:value={port}
 						disabled
 						placeholder="Belum terdeteksi"
-						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
+						class="w-full h-9 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 
@@ -174,7 +172,7 @@
 						bind:value={buildCommand}
 						disabled
 						placeholder="Belum tersedia"
-						class="w-132 h-7.75 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
+						class="w-full h-9 rounded-lg border border-border bg-surface-elevated/50 text-muted px-3 font-montserrat text-sm outline-none cursor-not-allowed"
 					/>
 				</div>
 			</div>
@@ -187,13 +185,13 @@
 		</p>
 
 		<div
-			class="w-280 max-w-full h-20 rounded-lg border border-error/50 bg-error-50 mt-6 flex items-center justify-between shadow-none"
+			class="w-full max-w-full rounded-lg border border-error/50 bg-error-50 mt-6 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-none"
 		>
-			<div class="ml-4 flex flex-col justify-center">
-				<h3 class="font-montserrat-semibold text-base text-error mb-2 leading-none">
+			<div class="flex flex-col justify-center min-w-0">
+				<h3 class="font-montserrat-semibold text-base text-error mb-1.5 leading-none">
 					Hapus Proyek
 				</h3>
-				<p class="font-montserrat text-base text-error leading-none">
+				<p class="font-montserrat text-sm sm:text-base text-error leading-relaxed">
 					Tindakan ini permanen dan tidak bisa dibatalkan.
 				</p>
 			</div>
@@ -202,9 +200,9 @@
 				type="button"
 				onclick={handleOpenDelete}
 				disabled={deleteMutation.isPending}
-				class="w-42 h-10 rounded-lg border border-error/50 bg-error-50 mr-4 flex items-center justify-between px-4 text-error hover:bg-error/10 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+				class="w-full sm:w-auto h-10 rounded-lg border border-error/50 bg-error-50 flex items-center justify-center sm:justify-between gap-2 px-4 text-error hover:bg-error/10 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
 			>
-				<Trash size={24} weight="regular" />
+				<Trash size={20} weight="regular" />
 				<span class="font-montserrat-semibold text-sm">Hapus Proyek</span>
 			</button>
 		</div>

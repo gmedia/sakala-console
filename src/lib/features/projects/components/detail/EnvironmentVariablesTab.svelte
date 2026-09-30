@@ -141,9 +141,9 @@
 	}
 </script>
 
-<div class="flex flex-col w-280 max-w-full">
+<div class="flex flex-col w-full max-w-full 2xl:max-w-280">
 	<div
-		class="w-280 max-w-full rounded-lg border border-border bg-surface overflow-hidden shadow-none"
+		class="w-full max-w-full rounded-lg border border-border bg-surface overflow-hidden shadow-none"
 	>
 		{#if query.isLoading}
 			<div class="p-6 text-center text-sm font-montserrat text-muted">
@@ -161,30 +161,68 @@
 			{:else}
 				<div class="flex flex-col w-full divide-y divide-border">
 					{#each query.data as env (env.id)}
-						<div class="flex items-center w-280 max-w-full h-18 bg-surface">
-							<div class="ml-6 w-58 mr-10 shrink-0">
-								<span
-									class="font-jetbrains-mono-semibold font-bold text-base text-foreground break-all"
-								>
-									{env.key}
-								</span>
+						<div
+							class="flex flex-col md:flex-row md:items-center w-full min-h-18 p-4 md:px-6 md:py-0 md:h-18 bg-surface gap-2 md:gap-0"
+						>
+							<div class="flex items-center justify-between md:contents">
+								<div class="md:w-58 md:mr-10 shrink-0 min-w-0 pr-2">
+									<span
+										class="font-jetbrains-mono-semibold font-bold text-sm md:text-base text-foreground break-all"
+									>
+										{env.key}
+									</span>
+								</div>
+
+								<!-- Action buttons on mobile -->
+								<div class="flex items-center gap-3 shrink-0 md:hidden">
+									<button
+										type="button"
+										class="text-muted hover:text-foreground transition-colors cursor-pointer p-1 disabled:opacity-50"
+										onclick={() => toggleReveal(env.id)}
+										disabled={loadingRevealIds.has(env.id)}
+										title={visibleIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
+									>
+										{#if loadingRevealIds.has(env.id)}
+											<CircleNotch size={18} weight="bold" class="animate-spin text-primary" />
+										{:else if visibleIds.has(env.id)}
+											<EyeSlash size={20} weight="regular" />
+										{:else}
+											<Eye size={20} weight="regular" />
+										{/if}
+									</button>
+
+									<button
+										type="button"
+										class="font-montserrat-medium text-xs text-muted hover:text-error transition-colors cursor-pointer p-1"
+										onclick={() => handlePromptDelete(env)}
+										disabled={deleteMutation.isPending}
+									>
+										Hapus
+									</button>
+								</div>
 							</div>
 
-							<div class="w-107.25 h-10 flex items-center overflow-hidden mr-4 shrink-0">
+							<!-- Value container -->
+							<div
+								class="w-full md:w-107.25 h-7 md:h-10 flex items-center overflow-hidden md:mr-4 shrink-0"
+							>
 								{#if visibleIds.has(env.id)}
-									<span class="font-montserrat-semibold text-base text-muted truncate">
+									<span
+										class="font-montserrat-semibold text-xs md:text-base text-muted truncate select-all"
+									>
 										{revealedValues[env.id] ?? ''}
 									</span>
 								{:else}
 									<span
-										class="font-montserrat-semibold text-base text-muted tracking-widest truncate select-none"
+										class="font-montserrat-semibold text-xs md:text-base text-muted tracking-widest truncate select-none"
 									>
 										••••••••••••
 									</span>
 								{/if}
 							</div>
 
-							<div class="flex items-center shrink-0">
+							<!-- Action buttons on desktop -->
+							<div class="hidden md:flex items-center shrink-0">
 								<button
 									type="button"
 									class="text-muted hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
@@ -202,11 +240,11 @@
 								</button>
 							</div>
 
-							<div class="flex-1"></div>
+							<div class="hidden md:block flex-1"></div>
 
 							<button
 								type="button"
-								class="font-montserrat-medium text-sm text-muted hover:text-error transition-colors mr-6 cursor-pointer"
+								class="hidden md:block font-montserrat-medium text-sm text-muted hover:text-error transition-colors cursor-pointer"
 								onclick={() => handlePromptDelete(env)}
 								disabled={deleteMutation.isPending}
 							>
@@ -220,17 +258,17 @@
 
 		{#if isAdding}
 			<div
-				class="flex flex-col justify-center w-280 max-w-full min-h-21 bg-primary-50/50 border-t border-border py-4"
+				class="flex flex-col justify-center w-full min-h-21 bg-primary-50/50 border-t border-border p-4 md:px-6 md:py-4"
 			>
-				<div class="flex items-center">
+				<div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-0">
 					<input
 						type="text"
 						placeholder="NAMA_VARIABEL"
 						value={newKey}
 						oninput={handleKeyInput}
-						class="ml-6 w-58 h-13 rounded-lg bg-surface border {errorMessage
+						class="w-full md:w-58 h-11 md:h-13 rounded-lg bg-surface border {errorMessage
 							? 'border-error-dark focus:border-error-dark'
-							: 'border-border focus:border-primary'} pl-4 pr-3 font-montserrat text-base text-foreground outline-none uppercase placeholder:normal-case placeholder:font-montserrat placeholder:text-muted shrink-0 transition-colors"
+							: 'border-border focus:border-primary'} px-4 font-montserrat text-sm md:text-base text-foreground outline-none uppercase placeholder:normal-case placeholder:font-montserrat placeholder:text-muted shrink-0 transition-colors"
 					/>
 
 					<input
@@ -238,33 +276,35 @@
 						placeholder="Isi value"
 						bind:value={newValue}
 						oninput={handleValueInput}
-						class="ml-2 w-176 h-13 rounded-lg bg-surface border {errorMessage
+						class="w-full md:ml-2 md:w-176 h-11 md:h-13 rounded-lg bg-surface border {errorMessage
 							? 'border-error-dark focus:border-error-dark'
-							: 'border-border focus:border-primary'} pl-4 pr-3 font-montserrat text-base text-foreground outline-none placeholder:font-montserrat placeholder:text-muted shrink-0 transition-colors"
+							: 'border-border focus:border-primary'} px-4 font-montserrat text-sm md:text-base text-foreground outline-none placeholder:font-montserrat placeholder:text-muted shrink-0 transition-colors"
 					/>
 
-					<button
-						type="button"
-						class="ml-10 w-10 h-12 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-						onclick={handleSave}
-						disabled={addMutation.isPending}
-						title="Simpan"
-					>
-						<Check size={24} weight="bold" />
-					</button>
+					<div class="flex items-center justify-end gap-2 md:gap-0 md:contents">
+						<button
+							type="button"
+							class="md:ml-10 w-11 md:w-10 h-11 md:h-12 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+							onclick={handleSave}
+							disabled={addMutation.isPending}
+							title="Simpan"
+						>
+							<Check size={20} weight="bold" />
+						</button>
 
-					<button
-						type="button"
-						class="ml-2 mr-6 w-10 h-12 rounded-lg bg-transparent text-muted hover:text-foreground flex items-center justify-center hover:bg-black/5 transition-colors shrink-0 cursor-pointer"
-						onclick={handleCancelAdd}
-						title="Batal"
-					>
-						<X size={24} weight="regular" />
-					</button>
+						<button
+							type="button"
+							class="md:ml-2 w-11 md:w-10 h-11 md:h-12 rounded-lg bg-transparent text-muted hover:text-foreground flex items-center justify-center hover:bg-black/5 transition-colors shrink-0 cursor-pointer"
+							onclick={handleCancelAdd}
+							title="Batal"
+						>
+							<X size={20} weight="regular" />
+						</button>
+					</div>
 				</div>
 
 				{#if errorMessage}
-					<span class="ml-6 mt-2 font-montserrat text-xs text-error-dark">
+					<span class="mt-2 font-montserrat text-xs text-error-dark">
 						{errorMessage}
 					</span>
 				{/if}
@@ -282,7 +322,7 @@
 		<button
 			type="button"
 			onclick={handleOpenAdd}
-			class="mt-4 flex items-center justify-center w-280 max-w-full h-12 rounded-lg border border-dashed border-black bg-surface text-foreground font-montserrat-semibold text-base gap-3 hover:bg-surface-elevated transition-colors cursor-pointer"
+			class="mt-4 flex items-center justify-center w-full max-w-full 2xl:max-w-280 h-12 rounded-lg border border-dashed border-black bg-surface text-foreground font-montserrat-semibold text-base gap-3 hover:bg-surface-elevated transition-colors cursor-pointer"
 		>
 			<Plus size={24} weight="regular" />
 			<span>Tambah Variabel</span>
