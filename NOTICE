@@ -7,9 +7,10 @@ This product includes software developed as part of the Sakala developer deploym
 
 Sakala is licensed under the Apache License, Version 2.0.
 
-The name "Sakala" and the Sakala logo and mark (static/logo.svg,
-static/favicon.svg, src/lib/assets/sakala-logo.svg, and
-src/lib/assets/favicon.svg) identify the Sakala project. The Apache License 2.0
+The name "Sakala" and the Sakala logo and mark (static/favicon.svg,
+src/lib/assets/favicon.svg, src/lib/assets/sakala-logo.svg,
+src/lib/assets/sakala-wordmark.svg, and src/lib/assets/sakala-wordmark-white.svg)
+identify the Sakala project. The Apache License 2.0
 does not grant permission to use them as trademarks (section 6 of the
 licence). Their permitted use is described in the project governance:
 https://sakala.dev/docs/proyek/governance
