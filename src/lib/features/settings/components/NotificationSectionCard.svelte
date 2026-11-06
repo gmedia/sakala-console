@@ -13,7 +13,7 @@
 
 <div class="overflow-hidden rounded-2xl border border-border/70 bg-white shadow-xs">
 	<div
-		class="flex items-center gap-2 border-b border-border/60 bg-[#F1F7F4] px-6 py-3 font-sans text-sm font-semibold text-primary-dark"
+		class="flex items-center gap-2 border-b border-border/60 bg-surface-tint px-6 py-3 font-sans text-sm font-semibold text-primary-dark"
 	>
 		{#if Icon}
 			<Icon size={18} />

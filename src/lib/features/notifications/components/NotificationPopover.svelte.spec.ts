@@ -1,127 +1,147 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { goto } from '$app/navigation';
+import {
+	listNotifications,
+	markNotificationRead,
+	type Notification
+} from '$lib/api/resources/notifications';
+import { NetworkError } from '$lib/api/errors';
+import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import NotificationPopover from './NotificationPopover.svelte';
-import type { NotificationItem } from '../types';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn().mockResolvedValue(undefined)
 }));
 
-const testNotifications: NotificationItem[] = [
-	{
-		id: 'notif-1',
-		message: 'Deployment production berhasil untuk repositori sakala-console.',
-		timestamp: '19.00',
-		is_read: false,
-		type: 'deployment'
-	},
-	{
-		id: 'notif-2',
-		message: 'Selamat datang di Sakala Console! Hubungkan GitHub kamu.',
-		timestamp: '18.30',
-		is_read: true,
-		type: 'welcome'
-	}
-];
+vi.mock('$lib/api/resources/notifications', () => ({
+	getNotificationPreferences: vi.fn(),
+	getUnreadNotificationCount: vi.fn(),
+	listNotifications: vi.fn(),
+	markAllNotificationsRead: vi.fn(),
+	markNotificationRead: vi.fn(),
+	updateNotificationPreferences: vi.fn()
+}));
+
+const unread: Notification = {
+	id: 'n-1',
+	category: 'deployment_failure',
+	title: 'Deployment gagal',
+	message: 'Build sakala-console gagal.',
+	project_id: 'p1',
+	deployment_id: 'd1',
+	read_at: null,
+	created_at: '2026-10-01T00:00:00+00:00'
+};
+
+const read: Notification = {
+	...unread,
+	id: 'n-2',
+	category: 'account_security',
+	title: 'Kata sandi diganti',
+	message: 'Kata sandi akun kamu diperbarui.',
+	project_id: null,
+	deployment_id: null,
+	read_at: '2026-10-01T01:00:00+00:00'
+};
+
+function respondWith(items: Notification[]) {
+	vi.mocked(listNotifications).mockResolvedValue({
+		data: items,
+		meta: { current_page: 1, last_page: 1, total: items.length }
+	});
+}
+
+function renderPopover(props: Record<string, unknown> = {}) {
+	return render(QueryTestHost, { props: { component: NotificationPopover, props } });
+}
+
+beforeEach(() => {
+	vi.mocked(listNotifications).mockReset();
+	vi.mocked(markNotificationRead).mockReset().mockResolvedValue(undefined);
+	vi.mocked(goto).mockClear();
+});
 
 describe('NotificationPopover', () => {
-	it('menampilkan ikon lonceng dan membuka popover saat diklik', async () => {
-		render(NotificationPopover, {
-			notifications: testNotifications
-		});
-
-		const trigger = page.getByRole('button', { name: 'Buka notifikasi' });
-		await expect.element(trigger).toBeVisible();
-
-		await trigger.click();
-
-		const heading = page.getByRole('heading', { name: 'Notifikasi' });
-		await expect.element(heading).toBeVisible();
-
-		const searchInput = page.getByPlaceholder('Cari...');
-		await expect.element(searchInput).toBeVisible();
-
-		const seeAllLink = page.getByRole('link', { name: 'Lihat Semua' });
-		await expect.element(seeAllLink).toBeVisible();
-		await expect.element(seeAllLink).toHaveAttribute('href', '/notifications');
-	});
-
-	it('menampilkan daftar notifikasi dengan pesan, jam, dan status unread', async () => {
-		render(NotificationPopover, {
-			notifications: testNotifications,
-			open: true
-		});
-
-		const item1 = page.getByText('Deployment production berhasil untuk repositori sakala-console.');
-		await expect.element(item1).toBeVisible();
-
-		const item2 = page.getByText('Selamat datang di Sakala Console! Hubungkan GitHub kamu.');
-		await expect.element(item2).toBeVisible();
-
-		const unreadIndicator = page.getByTestId('unread-dot');
-		await expect.element(unreadIndicator).toBeInTheDocument();
-	});
-
-	it('dapat memfilter notifikasi dengan input pencarian', async () => {
-		render(NotificationPopover, {
-			notifications: testNotifications,
-			open: true
-		});
-
-		const searchInput = page.getByPlaceholder('Cari...');
-		await searchInput.fill('production');
+	it('shows the unread dot only when the API count says so (U-09)', async () => {
+		respondWith([]);
+		renderPopover({ unreadCount: 3 });
 
 		await expect
-			.element(page.getByText('Deployment production berhasil untuk repositori sakala-console.'))
+			.element(page.getByRole('button', { name: 'Buka notifikasi, 3 belum dibaca' }))
 			.toBeVisible();
+		await expect.element(page.getByTestId('bell-unread-dot')).toBeInTheDocument();
+	});
+
+	it('shows no dot when the count is zero', async () => {
+		respondWith([]);
+		renderPopover({ unreadCount: 0 });
+
+		await expect.element(page.getByRole('button', { name: 'Buka notifikasi' })).toBeVisible();
+		await expect.element(page.getByTestId('bell-unread-dot')).not.toBeInTheDocument();
+	});
+
+	it('does not fetch the list until it is opened', async () => {
+		respondWith([unread]);
+		renderPopover();
+
+		await page.getByRole('button', { name: 'Buka notifikasi' }).click();
+
+		await expect.element(page.getByText('Build sakala-console gagal.')).toBeVisible();
+		expect(listNotifications).toHaveBeenCalledWith({ page: 1, perPage: 10 });
+	});
+
+	it('lists what the API returned, with the unread state', async () => {
+		respondWith([unread, read]);
+		renderPopover({ open: true });
+
+		await expect.element(page.getByText('Deployment gagal')).toBeVisible();
+		await expect.element(page.getByText('Kata sandi diganti')).toBeVisible();
+		await expect.element(page.getByTestId('unread-dot')).toBeInTheDocument();
 		await expect
-			.element(page.getByText('Selamat datang di Sakala Console! Hubungkan GitHub kamu.'))
-			.not.toBeInTheDocument();
+			.element(page.getByRole('link', { name: 'Lihat Semua' }))
+			.toHaveAttribute('href', '/notifications');
 	});
 
-	it('menampilkan status kosong saat pencarian tidak menemukan hasil', async () => {
-		render(NotificationPopover, {
-			notifications: testNotifications,
-			open: true
-		});
+	it('shows the empty state from Figma when there is nothing', async () => {
+		respondWith([]);
+		renderPopover({ open: true });
 
-		const searchInput = page.getByPlaceholder('Cari...');
-		await searchInput.fill('kata kunci yang tidak ada sama sekali');
-
-		const emptyNotice = page.getByText('Tidak ada notifikasi yang sesuai');
-		await expect.element(emptyNotice).toBeVisible();
+		await expect.element(page.getByText('Tidak Ada Notifikasi')).toBeVisible();
 	});
 
-	it('menampilkan empty state jika daftar notifikasi kosong', async () => {
-		render(NotificationPopover, {
-			notifications: [],
-			open: true
-		});
+	it('explains a failed load and can retry, rather than reading as empty', async () => {
+		vi.mocked(listNotifications).mockRejectedValueOnce(new NetworkError());
+		renderPopover({ open: true });
 
-		const emptyNotice = page.getByText('Tidak ada Notifikasi');
-		await expect.element(emptyNotice).toBeVisible();
+		await expect.element(page.getByText('Sakala API tidak dapat dijangkau.')).toBeVisible();
+		await expect.element(page.getByText('Tidak Ada Notifikasi')).not.toBeInTheDocument();
+
+		respondWith([read]);
+		await page.getByRole('button', { name: 'Coba lagi' }).click();
+
+		await expect.element(page.getByText('Kata sandi diganti')).toBeVisible();
 	});
 
-	it('memanggil callback onSelectNotification dan menandai item sebagai sudah dibaca', async () => {
-		const onSelectNotification = vi.fn();
+	it('marks an unread item as read and opens what it is about', async () => {
+		respondWith([unread]);
+		renderPopover({ open: true });
 
-		render(NotificationPopover, {
-			notifications: testNotifications,
-			open: true,
-			onSelectNotification
-		});
+		await page.getByText('Build sakala-console gagal.').click();
 
-		const itemButton = page.getByText(
-			'Deployment production berhasil untuk repositori sakala-console.'
-		);
-		await itemButton.click();
+		await vi.waitFor(() => expect(markNotificationRead).toHaveBeenCalled());
+		expect(vi.mocked(markNotificationRead).mock.calls[0][0]).toBe('n-1');
+		expect(goto).toHaveBeenCalledWith('/projects/p1/deployments/d1');
+	});
 
-		expect(onSelectNotification).toHaveBeenCalledTimes(1);
-		expect(onSelectNotification).toHaveBeenCalledWith(
-			expect.objectContaining({
-				id: 'notif-1'
-			})
-		);
+	it('does not send a read request for an item already read', async () => {
+		respondWith([read]);
+		renderPopover({ open: true });
+
+		await page.getByText('Kata sandi akun kamu diperbarui.').click();
+
+		await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/notifications'));
+		expect(markNotificationRead).not.toHaveBeenCalled();
 	});
 });

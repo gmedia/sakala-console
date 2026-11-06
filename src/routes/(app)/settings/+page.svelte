@@ -29,7 +29,7 @@
 	<div>
 		<h2 class="font-sans text-2xl font-bold text-foreground">Pengaturan</h2>
 		<p class="mt-1 font-sans text-sm text-muted">
-			Kelola profil, keamanan, notifikasi, dan akses API akunmu.
+			Kelola email, kata sandi, dan notifikasi akunmu.
 		</p>
 	</div>
 

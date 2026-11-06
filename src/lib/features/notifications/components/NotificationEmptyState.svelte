@@ -3,7 +3,7 @@
 		message?: string;
 	};
 
-	let { message = 'Tidak ada Notifikasi' }: Props = $props();
+	let { message = 'Tidak Ada Notifikasi' }: Props = $props();
 </script>
 
 <div class="flex flex-col items-center justify-center py-10 text-center">
