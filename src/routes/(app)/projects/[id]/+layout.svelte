@@ -11,59 +11,68 @@
 	let currentPath = $derived($page.url.pathname);
 	let projectId = $derived($page.params.id as string);
 
-	initProjectDetailContext();
-	const projectQuery = createProjectQuery(() => projectId);
+	const detailState = initProjectDetailContext();
+
+	// This layout stays mounted across projects, and a draft belongs to one project.
+	let draftProjectId: string | undefined;
+	$effect.pre(() => {
+		if (draftProjectId !== undefined && projectId !== draftProjectId) detailState.resetDraft();
+		draftProjectId = projectId;
+	});
+
+	const projectQuery = createProjectQuery(() => projectId, { poll: true });
 </script>
 
-<div class="flex flex-col gap-6 w-full max-w-7xl mx-auto">
+<div class="flex w-full min-w-0 flex-col gap-4">
 	{#if projectQuery.isLoading}
-		<div class="flex flex-col gap-4 mb-4 animate-pulse">
-			<div class="h-10 bg-surface-elevated/80 rounded-lg w-1/3"></div>
-			<div class="h-12 bg-surface-elevated/50 rounded-lg w-full"></div>
+		<div class="flex flex-col gap-4 mb-4">
+			<div class="skeleton h-10 w-1/3"></div>
+			<div class="skeleton h-12 w-full"></div>
 		</div>
 	{:else if projectQuery.isError}
-		<div
-			class="p-4 rounded-lg border border-error/50 bg-error-50 text-error font-montserrat text-sm mb-4"
-		>
+		<div class="p-4 rounded-control border border-error/50 bg-error-50 text-error text-sm mb-4">
 			Gagal memuat detail proyek. Proyek mungkin tidak ditemukan atau terjadi kesalahan server.
 		</div>
 	{:else if projectQuery.data}
 		<ProjectHeaderBanner project={projectQuery.data} />
 	{/if}
 
-	<div class="border-b border-border mb-2">
-		<nav class="-mb-px flex space-x-8" aria-label="Tabs">
+	<div class="w-full min-w-0 border-b border-border">
+		<nav class="-mb-px flex gap-x-6 overflow-x-auto sm:gap-x-8" aria-label="Bagian proyek">
 			<a
 				href={resolveRoute('/(app)/projects/[id]/deployments', { id: projectId || '' })}
-				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+				aria-current={currentPath.includes('/deployments') ? 'page' : undefined}
+				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/deployments')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Riwayat Deployment
+				Riwayat
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/environments', { id: projectId || '' })}
-				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+				aria-current={currentPath.includes('/environments') ? 'page' : undefined}
+				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/environments')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Environment Variables
+				Variabel
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/settings', { id: projectId || '' })}
-				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+				aria-current={currentPath.includes('/settings') ? 'page' : undefined}
+				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/settings')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Settings
+				Pengaturan
 			</a>
 		</nav>
 	</div>
 
-	<div class="mt-2 w-full">
+	<div class="w-full">
 		{@render children()}
 	</div>
 </div>

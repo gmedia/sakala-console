@@ -1,241 +1,189 @@
 <script lang="ts">
+	import Button from '$lib/components/ui/Button.svelte';
 	import type { Project } from '$lib/features/projects/type';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import { resolveRoute } from '$app/paths';
+	import ProjectStatusNotice from './ProjectStatusNotice.svelte';
+	import ArrowSquareOut from 'phosphor-svelte/lib/ArrowSquareOut';
+	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
+	import Copy from 'phosphor-svelte/lib/Copy';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
+	import Check from 'phosphor-svelte/lib/Check';
+	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
+	import { ABUSE_EMAIL } from '$lib/config/project';
+	import { formatRelativeTime } from '$lib/utils/date';
+	import { useProjectLiveStatus } from '$lib/features/projects/detail/use-project-live-status.svelte';
+	import { useProjectRedeploy } from '$lib/features/projects/detail/use-project-redeploy.svelte';
 	import {
-		ArrowSquareOut,
-		ArrowsClockwise,
-		Copy,
-		Link,
-		CircleNotch,
-		Plus,
-		WarningCircle,
-		Check
-	} from 'phosphor-svelte';
-	import {
-		createRedeployMutation,
-		createUpdateProjectMutation
-	} from '$lib/features/projects/mutations';
-	import { getProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
-	import { executeRedeployFlow } from '$lib/features/projects/detail/redeploy';
-	import { runtimeStatusPresentation, toRuntimeStatus } from '$lib/features/projects/presentation';
+		getPortDisplay,
+		getProjectPublicUrl,
+		getPublicUrlLabel
+	} from '$lib/features/projects/presentation';
 
 	type Props = {
 		project: Project;
 	};
 
 	let { project }: Props = $props();
-	const detailState = getProjectDetailContext();
+
+	const live = useProjectLiveStatus(() => project);
+	const redeploy = useProjectRedeploy(() => project);
+
+	const header = $derived(live.header);
+	const publicUrl = $derived(getProjectPublicUrl(project));
+	const port = $derived(getPortDisplay(project));
+	const showUrl = $derived(header.serving || header.showUrl === true);
+	const isBusy = $derived(redeploy.isProcessing || header.redeployBusy);
+	const hasFacts = $derived(header.kind !== 'not_deployed' && header.kind !== 'failed');
+
+	const suspensionReason = $derived(project.suspension?.reason ?? null);
 
 	let isCopied = $state(false);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 	function handleCopyUrl() {
-		if (!project.default_domain) return;
-		const url = project.default_domain.startsWith('http')
-			? project.default_domain
-			: `https://${project.default_domain}`;
-		navigator.clipboard?.writeText(url);
+		if (!publicUrl) return;
+		navigator.clipboard?.writeText(publicUrl);
 		isCopied = true;
 		clearTimeout(copyTimer);
 		copyTimer = setTimeout(() => {
 			isCopied = false;
 		}, 2000);
 	}
-
-	const runtimeStatus = $derived(toRuntimeStatus(project.runtime_status));
-
-	const runtimePresentation = $derived(
-		runtimeStatus
-			? runtimeStatusPresentation[runtimeStatus]
-			: {
-					label: 'Lainnya',
-					variant: 'neutral' as const
-				}
-	);
-
-	const badgeTone = $derived.by(() => {
-		if (project.status === 'failed') return 'error';
-		if (project.status === 'suspended') return 'warning';
-		if (project.status === 'draft') return 'neutral';
-
-		return runtimePresentation.variant;
-	});
-
-	const displayStatus = $derived.by(() => {
-		if (project.status === 'failed') return 'Gagal';
-		if (project.status === 'suspended') return 'Suspended';
-		if (project.status === 'draft') return 'Draft';
-
-		return runtimePresentation.label;
-	});
-
-	const redeploy = createRedeployMutation();
-	const updateProjectMutation = createUpdateProjectMutation();
-
-	let isProcessing = $derived(redeploy.isPending || updateProjectMutation.isPending);
-
-	async function handleRedeploy() {
-		if (isProcessing) return;
-
-		try {
-			await executeRedeployFlow({
-				project,
-				detailState,
-				updateProject: (payload) => updateProjectMutation.mutateAsync(payload),
-				triggerRedeploy: (payload) => {
-					redeploy.mutate(payload, {
-						onError: (error) => {
-							alert(error.message || 'Gagal melakukan redeploy. Silakan coba lagi.');
-						}
-					});
-				}
-			});
-		} catch (error) {
-			const message =
-				error instanceof Error
-					? error.message
-					: 'Gagal menyimpan perubahan pengaturan sebelum redeploy.';
-			alert(message);
-		}
-	}
-
-	function formatRelativeTime(dateString: string) {
-		const date = new Date(dateString);
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMins / 60);
-		const diffDays = Math.floor(diffHours / 24);
-
-		if (diffMins < 1) return 'Baru saja';
-		if (diffMins < 60) return `${diffMins} menit lalu`;
-		if (diffHours < 24) return `${diffHours} jam lalu`;
-		if (diffDays < 7) return `${diffDays} hari lalu`;
-
-		return new Intl.DateTimeFormat('id-ID', {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		}).format(date);
-	}
 </script>
 
-<div class="flex flex-col gap-8 mb-8">
-	<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-		<div class="flex flex-col gap-1.5">
-			<div class="flex items-center gap-3">
-				<h1 class="text-[22px] font-sans font-semibold tracking-tight text-foreground leading-none">
-					{project.name ?? project.project_name ?? 'Project'}
-				</h1>
-				<Badge tone={badgeTone} label={displayStatus} class="capitalize px-2 py-0.5"
-					>{displayStatus}</Badge
-				>
+<div class="flex flex-col gap-3">
+	<div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+		<div class="flex min-w-0 flex-1 basis-72 flex-col gap-2">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+				<Badge tone={header.badge.variant}>
+					{header.badge.label}
+				</Badge>
+				{#if showUrl && publicUrl}
+					<div class="flex min-w-0 items-center gap-1.5">
+						<a
+							href={publicUrl}
+							target="_blank"
+							rel="external noopener noreferrer"
+							class="min-w-0 font-mono text-base font-medium wrap-anywhere text-primary-dark underline underline-offset-2 sm:text-xl"
+							data-testid="project-public-url"
+						>
+							<BreakableUrl text={getPublicUrlLabel(publicUrl)} />
+						</a>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onclick={handleCopyUrl}
+							aria-label="Salin URL"
+							title={isCopied ? 'URL berhasil disalin' : 'Salin URL'}
+						>
+							{#if isCopied}
+								<Check size={16} class="text-success" aria-hidden="true" />
+							{:else}
+								<Copy size={16} aria-hidden="true" />
+							{/if}
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							externalHref={publicUrl}
+							aria-label="Buka situs"
+							title="Buka situs"
+						>
+							<ArrowSquareOut size={16} aria-hidden="true" />
+						</Button>
+					</div>
+				{:else if showUrl}
+					<span class="text-sm text-muted">URL publik belum tersedia</span>
+				{:else if hasFacts && header.kind !== 'suspended'}
+					<span class="text-sm text-muted">Situs belum bisa dibuka</span>
+				{/if}
 			</div>
-			<div class="flex items-center gap-2 text-sm text-foreground/80 font-mono mt-1">
-				<span>{project.repository_full_name || 'Repository'}</span>
-				<span>&bull;</span>
-				<span>{project.branch || 'main'}</span>
-			</div>
+
+			<dl class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-muted">
+				<div class="flex min-w-0 items-baseline gap-1.5">
+					<dt class="sr-only">Repository</dt>
+					<dd class="min-w-0 font-mono wrap-anywhere">
+						{project.repository_full_name || 'Repository'}
+					</dd>
+				</div>
+				<div class="flex min-w-0 items-baseline gap-1.5">
+					<dt>Branch</dt>
+					<dd class="min-w-0 font-mono wrap-anywhere text-foreground">
+						{project.branch || 'main'}
+					</dd>
+				</div>
+				{#if hasFacts}
+					<div class="flex items-baseline gap-1.5">
+						<dt>Port</dt>
+						<dd class="text-foreground tabular-nums">
+							<span>{port.current}</span>
+							{#if port.next !== null}
+								<span class="text-xs text-muted">({port.next} berlaku di deploy berikutnya)</span>
+							{/if}
+						</dd>
+					</div>
+					<div class="flex items-baseline gap-1.5">
+						<dt>Deploy terakhir</dt>
+						<dd class="text-foreground">
+							{project.last_deployed_at
+								? formatRelativeTime(project.last_deployed_at)
+								: 'Belum pernah'}
+						</dd>
+					</div>
+				{/if}
+			</dl>
 		</div>
 
-		<div class="flex items-center">
-			<button
-				onclick={handleRedeploy}
-				disabled={isProcessing}
-				class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white h-10 px-4 rounded-lg font-medium transition-colors shadow-sm text-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-			>
-				{#if isProcessing}
-					<CircleNotch size={18} weight="bold" class="animate-spin" />
-				{:else if project.runtime_status === 'not_deployed'}
-					<Plus size={18} weight="bold" />
+		{#if header.showRedeploy}
+			<Button class="max-sm:w-full" onclick={redeploy.trigger} disabled={isBusy}>
+				{#if isBusy}
+					<CircleNotch
+						size={18}
+						weight="bold"
+						class="animate-spin motion-reduce:animate-none"
+						aria-hidden="true"
+					/>
 				{:else}
-					<ArrowsClockwise size={18} weight="bold" />
+					<ArrowsClockwise size={18} weight="bold" aria-hidden="true" />
 				{/if}
-				{project.runtime_status === 'not_deployed' ? 'Deploy sekarang' : 'Redeploy'}
-			</button>
-		</div>
+				{#if header.redeployBusy}
+					Sedang men-deploy
+				{:else if header.kind === 'not_deployed'}
+					Deploy sekarang
+				{:else}
+					Redeploy
+				{/if}
+			</Button>
+		{/if}
 	</div>
 
-	{#if project.runtime_status === 'not_deployed'}
-		<div
-			class="flex items-center gap-2.5 py-3.5 px-4 bg-white rounded-lg border border-border/80 text-sm text-muted shadow-sm"
+	{#if redeploy.errorMessage}
+		<p
+			role="alert"
+			class="rounded-control border border-error/30 bg-error-50 px-4 py-2.5 text-sm text-error-dark"
 		>
-			<Link size={18} class="text-foreground" />
-			<span>Belum ada deployment. Jalankan deploy pertamamu untuk mendapatkan URL publik.</span>
-		</div>
-	{:else if project.runtime_status === 'failed' || project.status === 'failed'}
-		<div
-			class="flex flex-col md:flex-row md:items-center justify-between py-3 px-4 bg-white rounded-lg border border-border/80 text-foreground"
-		>
-			<div class="flex items-center gap-2">
-				<WarningCircle size={24} class="text-error" weight="regular" />
-				<span class="font-montserrat text-sm">
-					Deploy gagal, belum ada URL publik yang aktif. Cek log build untuk lihat penyebabnya.
-				</span>
-			</div>
-			<a
-				href={resolveRoute('/(app)/projects/[id]/deployments', { id: project.id })}
-				class="flex items-center justify-center px-3 h-8 bg-white border border-border rounded-lg hover:bg-muted/10 transition-colors font-montserrat-semibold text-xs whitespace-nowrap text-foreground"
-			>
-				Lihat riwayat
-			</a>
-		</div>
-	{:else}
-		<div
-			class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2.5 px-4 bg-background rounded-lg border border-border/80"
-		>
-			<div class="flex items-center gap-3 overflow-hidden">
-				<Link size={20} class="text-primary" weight="bold" />
-				<span class="text-primary font-semibold text-sm tracking-wide font-mono">
-					{project.default_domain || 'Menunggu URL Publik...'}
-				</span>
-			</div>
+			{redeploy.errorMessage}
+		</p>
+	{/if}
 
-			<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
-				<div class="flex items-center gap-1.5">
-					<span>Port</span>
-					<span class="text-foreground font-semibold">
-						{project.detected_port ? project.detected_port : 'Belum terdeteksi'}
-					</span>
-				</div>
-				<div class="flex items-center gap-1.5">
-					<span>Deploy terakhir</span>
-					<span class="text-foreground font-semibold">
-						{project.last_deployed_at
-							? formatRelativeTime(project.last_deployed_at)
-							: 'Belum pernah'}
-					</span>
-				</div>
-
-				<div class="flex items-center gap-2 md:ml-4">
-					<button
-						type="button"
-						onclick={handleCopyUrl}
-						disabled={!project.default_domain}
-						class="flex items-center justify-center size-8 rounded-md border border-border/80 bg-white text-muted hover:text-foreground transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-						aria-label="Copy URL"
-						title={isCopied ? 'URL berhasil disalin' : 'Salin URL'}
-					>
-						{#if isCopied}
-							<Check size={16} class="text-success" />
-						{:else}
-							<Copy size={16} />
-						{/if}
-					</button>
+	{#if header.notice}
+		<ProjectStatusNotice projectId={project.id} notice={header.notice}>
+			{#if header.kind === 'suspended'}
+				<p data-testid="suspension-reason" class="wrap-anywhere">
+					{#if suspensionReason}
+						Alasannya: {suspensionReason}
+					{:else}
+						Alasannya tertulis di notifikasi dan email yang dikirim ke pemilik proyek.
+					{/if}
+				</p>
+				<p>
+					Kalau menurutmu keputusan ini keliru, kirim email ke
 					<a
-						href="https://{project.default_domain}"
-						target="_blank"
-						rel="noreferrer"
-						class="flex items-center justify-center size-8 rounded-md border border-border/80 bg-white text-muted hover:text-foreground transition-colors shadow-sm {project.default_domain
-							? ''
-							: 'pointer-events-none opacity-50'}"
-						aria-label="Open external link"
-					>
-						<ArrowSquareOut size={16} />
-					</a>
-				</div>
-			</div>
-		</div>
+						href={`mailto:${ABUSE_EMAIL}`}
+						class="font-medium text-primary-dark underline underline-offset-2">{ABUSE_EMAIL}</a
+					>.
+				</p>
+			{/if}
+		</ProjectStatusNotice>
 	{/if}
 </div>

@@ -20,6 +20,8 @@ SvelteKit memakai `adapter-static` dengan fallback `index.html`, `ssr = false`, 
 
 Hosting wajib mengarahkan unknown browser route ke `index.html` agar deep link seperti `/projects/{id}` tetap dapat dibuka.
 
+Header keamanan ada di image, bukan di aplikasi: `docker/Caddyfile` mengirimnya, dan `docker/security-headers.mjs` menulis `Content-Security-Policy` saat build dari env publik dan HTML hasil build. Script inline milik SvelteKit diizinkan lewat hash, bukan `unsafe-inline`. `style-src` tetap memakai `unsafe-inline`, karena transisi Svelte dan posisi menu memasang style inline.
+
 ## Layering
 
 ```text
@@ -74,10 +76,13 @@ src/routes/(public)
   -> halaman publik seperti login
 
 src/routes/(app)
-  -> halaman console yang nanti membutuhkan session user
+  -> halaman console yang membutuhkan session user, di dalam AppShell
+
+src/routes/(onboarding)
+  -> onboarding: butuh session user, tanpa AppShell
 ```
 
-Nama route group tidak ikut muncul di URL. Contoh `src/routes/(app)/dashboard/+page.svelte` tetap menjadi `/dashboard`.
+Nama route group tidak ikut muncul di URL. Contoh `src/routes/(app)/projects/+page.svelte` tetap menjadi `/projects`.
 
 ## Components
 
@@ -88,7 +93,7 @@ components/ui
   -> primitive kecil seperti Button, Card, Badge
 
 components/layout
-  -> shell, sidebar, topbar, page container
+  -> shell, sidebar, header, page container
 
 components/feedback
   -> empty state, loading state, error block, alert
@@ -100,7 +105,7 @@ components/brand
 Rule praktisnya:
 
 - `Button`, `Card`, `Badge` masuk `components/ui`.
-- `AppShell`, sidebar, topbar masuk `components/layout`.
+- `AppShell`, sidebar, header masuk `components/layout`.
 - `EmptyState` dan error/loading reusable masuk `components/feedback`.
 - `ProjectCard`, `DeploymentTimeline`, `AgentStatusBadge` tidak masuk `components/ui`; itu masuk `features/<domain>/components`.
 
@@ -119,8 +124,10 @@ features/projects
 features/deployments
 features/agents
 features/settings
+features/profile
+features/notifications
+features/feedback
 features/admin
-features/system
 ```
 
 Struktur feature yang disarankan:
@@ -139,11 +146,11 @@ features/projects/
 Contoh yang sudah ada sekarang:
 
 ```text
-features/system/components/ApiStatusCard.svelte
-features/system/queries.ts
+features/projects/components/create/PilotQuotaNotice.svelte
+features/projects/queries.ts
 ```
 
-`ApiStatusCard` tidak tahu detail URL API. Dia hanya memakai query dari feature. Query tersebut memanggil resource `src/lib/api/resources/system.ts`. Ini pattern yang perlu dipakai untuk feature lain.
+`PilotQuotaNotice` tidak tahu detail URL API. Halaman memberinya data dari `createPilotLimitsQuery()`, dan query itu memanggil resource `src/lib/api/resources/pilot-limits.ts`. Ini pattern yang perlu dipakai untuk feature lain.
 
 ## API Layer
 
@@ -155,9 +162,6 @@ api/client.ts
 
 api/csrf.ts
   -> pembacaan XSRF token untuk request unsafe
-
-api/envelope.ts
-  -> helper untuk response envelope { data }
 
 api/errors.ts
   -> ApiError, NetworkError, validation error helpers
@@ -178,8 +182,8 @@ api/generated/schema.d.ts
 Resource API adalah satu-satunya tempat yang boleh tahu path endpoint. Contoh:
 
 ```ts
-getServiceStatus()
-  -> apiRequest('/api/v1')
+getPilotLimits()
+  -> apiRequest('/api/v1/app/pilot-limits')
 ```
 
 Kalau nanti ada endpoint project:
@@ -203,7 +207,7 @@ Contoh pattern:
 ```ts
 import type { components } from '$lib/api/generated/schema';
 
-export type ServiceStatus = components['schemas']['ServiceStatusResource'];
+export type NotificationPreferences = components['schemas']['NotificationPreferenceResource'];
 ```
 
 Dengan pattern ini, frontend tidak perlu menebak-nebak response API. Backend tetap menjadi sumber kebenaran melalui OpenAPI/Scramble, lalu console mengonsumsi hasil generate-nya.
@@ -300,16 +304,16 @@ Form component
   -> invalidate query yang relevan
 ```
 
-Contoh create project nanti:
+Contoh create project:
 
 ```text
 /projects/new page
-  -> CreateProjectForm
-  -> createCreateProjectMutation()
+  -> CreateProjectWizard
+  -> createProjectMutation()
   -> createProject(payload)
   -> POST /api/v1/app/projects
-  -> invalidate queryKeys.projects.list()
-  -> goto /projects/{id}
+  -> invalidate projectKeys.all
+  -> simpan env, lalu tampilkan Auto Detect
 ```
 
 Jangan menaruh `goto`, invalidation, dan parsing error tersebar di banyak component. Untuk flow domain, simpan di mutation feature agar behavior konsisten.
@@ -337,9 +341,9 @@ Pola yang disarankan:
 
 ## Realtime
 
-Laravel Echo dan Pusher client belum menjadi dependency. Keduanya ditambahkan setelah API menyediakan Reverb configuration, private channel authorization, event names, dan reconnect behavior yang dapat diuji.
+Laravel Echo dan Pusher client menangani koneksi ke Reverb. Boundary-nya ada di `src/lib/realtime`, dan feature berlangganan lewat `usePrivateChannel()`.
 
-Realtime nanti dipakai untuk hal seperti:
+Realtime dipakai untuk hal seperti:
 
 - streaming deployment logs;
 - status deployment berubah;
@@ -350,63 +354,59 @@ Ketika realtime masuk, jangan langsung menaruh Echo setup di page. Tempatkan bou
 
 ## Example Flows
 
-### API Status Card
-
-Flow yang sudah ada sekarang:
+### Pilot Limits
 
 ```text
-/dashboard page
-  -> ApiStatusCard
-  -> createServiceStatusQuery()
-  -> getServiceStatus()
-  -> apiRequest('/api/v1')
+/projects page
+  -> createPilotLimitsQuery()
+  -> getPilotLimits()
+  -> apiRequest('/api/v1/app/pilot-limits')
   -> parse { data }
   -> TanStack Query cache
-  -> render status API
+  -> PilotQuotaNotice
 ```
 
 Ini contoh paling kecil dari arsitektur console: page menyusun tampilan, feature mengelola query, resource mengelola endpoint, client mengelola HTTP.
 
-### Future Project Creation
-
-Flow yang diharapkan saat fitur project dibuat:
+### Project Creation
 
 ```text
 /projects/new page
-  -> CreateProjectForm
-  -> createCreateProjectMutation()
-  -> createProject(payload)
-  -> POST /api/v1/app/projects
-  -> sakala-api creates project
-  -> invalidate projects list
-  -> redirect ke detail project
+  -> CreateProjectWizard
+  -> RepositoryStep: installation, repository per halaman, search di server
+  -> ConfigureProjectStep: branch, domain preview, konfigurasi build, env
+  -> POST /api/v1/app/projects, lalu POST environment-variables satu per satu
+  -> AutoDetectStep: baca preview_status sampai selesai
+  -> POST deployments, lalu buka /projects/{id}/deployments/{deploymentId}
 ```
 
-Console tidak menentukan domain final project, resource policy, deployment command, atau agent target. Itu urusan `sakala-api`.
+Console tidak menentukan domain final project, resource policy, deployment command, atau agent target. Itu urusan `sakala-api`. Rincian perilakunya ada di [API Client](docs/API_CLIENT.md#wizard-create-project).
 
-### Future Deployment Logs
-
-Flow awal tanpa realtime:
+### Deployment Logs
 
 ```text
-project detail page
+deployment detail page
   -> DeploymentLogPanel
-  -> deployment logs query
-  -> GET /api/v1/app/deployments/{id}/logs
+  -> useDeploymentLogs()
+  -> createDeploymentLogsQuery(), infinite query, halaman terbaru dulu
+  -> GET /api/v1/app/projects/{project}/deployments/{deployment}/logs?order=desc&per_page=200
   -> render log history
 ```
 
-Flow setelah Reverb siap:
+Baris baru masuk ke cache yang sama:
 
 ```text
-initial logs query
-  -> subscribe private deployment channel
-  -> receive new log event
-  -> append/update TanStack Query cache
+event deployment.log.created
+  -> applyRealtimeLogLine(), dedupe lewat log_sequence
+  -> update cache TanStack Query
   -> component rerender
+
+log_sequence melompat, deployment selesai, atau realtime terputus
+  -> refreshDeploymentLogsTail()
+  -> merge halaman terbaru ke cache
 ```
 
-Realtime menambah kecepatan update, bukan mengganti API contract utama.
+Realtime menambah kecepatan update, bukan mengganti API contract utama. Detail batasannya ada di [docs/API_CLIENT.md](docs/API_CLIENT.md).
 
 ## Practical Placement Rules
 

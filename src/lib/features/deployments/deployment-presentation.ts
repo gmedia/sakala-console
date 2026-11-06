@@ -1,12 +1,13 @@
 import { ApiError, NetworkError } from '$lib/api/errors';
-import type { DeploymentEvent } from '$lib/api/resources/deployment';
+import { formatClockTime, formatDateTime, formatDuration } from '$lib/utils/date';
+import type { Deployment, DeploymentEvent } from '$lib/api/resources/deployment';
 import { sortUniqueEvents } from './deployment-normalization';
 import type { DeploymentStep } from './type';
 
 const triggerLabels: Record<string, string> = {
 	manual: 'Manual',
 	redeploy: 'Manual redeploy',
-	webhook: 'Push',
+	webhook: 'Auto-deploy dari push',
 	system: 'System'
 };
 
@@ -67,6 +68,39 @@ export function getDeploymentErrorConfig(error: unknown): DeploymentErrorConfig 
 	};
 }
 
+/**
+ * True only when this is provably the first deployment of the project to succeed. `recent` holds the
+ * newest few, so with an older history out of reach this says false, and the page stays calm.
+ */
+export function isFirstSuccessfulDeployment(
+	current: Pick<Deployment, 'sequence' | 'status'>,
+	recent: readonly Pick<Deployment, 'sequence' | 'status'>[]
+): boolean {
+	if (current.status !== 'succeeded') return false;
+	if (current.sequence === 1) return true;
+
+	const earlier = recent.filter((deployment) => deployment.sequence < current.sequence);
+	return (
+		earlier.some((deployment) => deployment.sequence === 1) &&
+		earlier.every((deployment) => deployment.status !== 'succeeded')
+	);
+}
+
+/** Only GitHub's commit address is known here, so any other host gets no link rather than a guess. */
+export function getCommitUrl(
+	repositoryUrl: string | null | undefined,
+	commitSha: string | null | undefined
+): string | null {
+	if (!repositoryUrl || !commitSha) return null;
+	try {
+		const url = new URL(repositoryUrl);
+		if (url.protocol !== 'https:' || url.hostname !== 'github.com') return null;
+		return `${url.origin}${url.pathname.replace(/\.git$/, '').replace(/\/$/, '')}/commit/${encodeURIComponent(commitSha)}`;
+	} catch {
+		return null;
+	}
+}
+
 export function getDeploymentTriggerLabel(trigger: string): string {
 	return triggerLabels[trigger] ?? trigger;
 }
@@ -85,8 +119,23 @@ export function deriveDurationLabel(
 ): string | undefined {
 	if (!startedAt || !finishedAt) return undefined;
 	const durationMs = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-	const durationSeconds = Math.round(durationMs / 1000);
-	return `${durationSeconds} detik`;
+	return formatDuration(Math.round(durationMs / 1000));
+}
+
+/** What the deployment ran with, or was going to, for reading a resource failure against. */
+export function formatResourceLimit(
+	deployment: Pick<Deployment, 'applied_resources' | 'effective_resources'>
+): string | null {
+	const limits = deployment.applied_resources ?? deployment.effective_resources?.resources;
+	if (!limits) return null;
+
+	const parts: string[] = [];
+	if (limits.memory_mb) parts.push(`${limits.memory_mb} MB memori`);
+	if (limits.cpu_millis) {
+		const cores = (limits.cpu_millis / 1000).toLocaleString('id-ID');
+		parts.push(`${cores} CPU`);
+	}
+	return parts.length > 0 ? parts.join(', ') : null;
 }
 
 export function deriveLastUpdateTimestamp(
@@ -108,12 +157,12 @@ export function deriveLastUpdateTimestamp(
 	return fallback ? formatDeploymentTime(fallback) : '-';
 }
 
-export function formatDeploymentTime(iso: string | null | undefined): string {
-	if (!iso) return '-';
-	return new Date(iso).toLocaleTimeString('id-ID', {
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
-		hour12: false
-	});
+/** A time on a deployment: the clock today, with the date in front when it is from another day. */
+export function formatDeploymentTime(iso: string | null | undefined, now = new Date()): string {
+	return iso ? formatDateTime(iso, now) : '-';
+}
+
+/** A log line's time. The panel names the day already, so every line would repeat it. */
+export function formatLogTime(iso: string | null | undefined): string {
+	return iso ? formatClockTime(iso) : '-';
 }

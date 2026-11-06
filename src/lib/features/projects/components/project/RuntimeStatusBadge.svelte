@@ -22,7 +22,7 @@
 </script>
 
 <span data-testid="runtime-status-badge">
-	<Badge tone={presentation.variant} label={presentation.label} class="tracking-wide">
+	<Badge tone={presentation.variant}>
 		{presentation.label}
 	</Badge>
 </span>

@@ -1,11 +1,11 @@
-import type { Project, Repository } from './type';
+import type { ProjectBase } from './type';
 
-export type DateFilterValue = '7_days' | '30_days' | 'all';
+export type DateFilterValue = '7_days' | '30_days' | '90_days' | 'all';
 
-export function filterProjects(
-	projects: Project[],
+export function filterProjects<T extends ProjectBase>(
+	projects: T[],
 	options: { search: string; date: DateFilterValue }
-): Project[] {
+): T[] {
 	if (!projects?.length) return [];
 	const now = Date.now();
 	const searchLower = options.search.toLowerCase();
@@ -26,9 +26,4 @@ export function filterProjects(
 		}
 		return true;
 	});
-}
-
-export function searchRepositories(repositories: Repository[], search: string): Repository[] {
-	const searchLower = search.toLowerCase();
-	return repositories.filter((repo) => repo.full_name.toLowerCase().includes(searchLower));
 }

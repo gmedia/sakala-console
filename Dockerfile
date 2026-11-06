@@ -22,14 +22,19 @@ COPY . .
 # BuildKit secret contents do not take part in the cache key, so the
 # deployment hashes the exact env file and passes it as FRONTEND_ENV_SHA; it is
 # consumed in the same RUN as the build so a changed file always rebuilds.
+#
+# The same RUN writes the Content-Security-Policy, which needs that env file for
+# the API and Reverb origins and the built HTML for the hash of its inline script.
 ARG FRONTEND_ENV_SHA
 RUN --mount=type=secret,id=frontend_env,target=/app/.env.production,required=true \
     test -n "$FRONTEND_ENV_SHA" \
-    && pnpm build
+    && pnpm build \
+    && node docker/security-headers.mjs .env.production build /app/security-headers.caddy
 
 FROM caddy:2.10-alpine AS runtime
 
 COPY docker/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/security-headers.caddy /etc/caddy/security-headers.caddy
 COPY --from=build /app/build /srv
 
 RUN addgroup --system sakala \

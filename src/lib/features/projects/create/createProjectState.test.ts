@@ -1,304 +1,210 @@
 import { describe, expect, it } from 'vitest';
 import { createProjectWizardState } from './createProjectState.svelte';
-import { mockRepositories } from '../mock/mock';
+import type { Repository } from '../type';
 
-describe('createProjectWizardState', () => {
-	it('start step 1 with substep select-repository', () => {
+const repo = (overrides: Partial<Repository> = {}): Repository => ({
+	id: '101',
+	name: 'toko-kopi',
+	full_name: 'rani/toko-kopi',
+	clone_url: 'https://github.com/rani/toko-kopi.git',
+	default_branch: 'main',
+	pushed_at: '2026-09-20T00:00:00Z',
+	private: false,
+	...overrides
+});
+
+describe('createProjectWizardState: steps', () => {
+	it('starts on the repository step, with nothing to warn about', () => {
 		const wizard = createProjectWizardState();
+
 		expect(wizard.currentStep).toBe(1);
-		expect(wizard.repositorySubstep).toBe('select-repository');
+		expect(wizard.hasUnsavedProgress).toBe(false);
+		expect(wizard.createdProjectId).toBeNull();
 	});
 
-	it('should set to prepare-deployment when goToPrepareDeployment is called', () => {
+	it('moves to configuration and back, keeping what was entered', () => {
 		const wizard = createProjectWizardState();
+		wizard.selectGithubRepository('inst-1', repo());
 		wizard.goToPrepareDeployment();
-		expect(wizard.repositorySubstep).toBe('prepare-deployment');
+		wizard.projectName = 'nama-sendiri';
+
+		expect(wizard.currentStep).toBe(2);
+		expect(wizard.hasUnsavedProgress).toBe(true);
+
+		wizard.backToSelectRepository();
+
+		expect(wizard.currentStep).toBe(1);
+		expect(wizard.projectName).toBe('nama-sendiri');
+		expect(wizard.selectedRepository?.id).toBe('101');
 	});
 
-	it('selectedBranch should be set default_branch when selectedRepository is set', () => {
+	it('moves to auto detect once the project exists', () => {
 		const wizard = createProjectWizardState();
-		wizard.selectedRepositoryId = mockRepositories[0].id;
-		expect(wizard.selectedBranch).toBe(mockRepositories[0].default_branch);
+
+		wizard.markProjectCreated({ id: 'p-1', name: 'toko-kopi' });
+
+		expect(wizard.currentStep).toBe(3);
+		expect(wizard.createdProjectId).toBe('p-1');
+		expect(wizard.createdProjectName).toBe('toko-kopi');
 	});
 
-	it('selectedBranch should reset to new repository default_branch when repository changes', () => {
+	it('resumes on auto detect after a reload, without the form', () => {
 		const wizard = createProjectWizardState();
 
-		wizard.selectedRepositoryId = mockRepositories[0].id;
-		expect(wizard.selectedBranch).toBe(mockRepositories[0].default_branch);
+		wizard.resumeCreatedProject('p-1');
 
-		wizard.selectedRepositoryId = mockRepositories[2].id;
-		expect(wizard.selectedBranch).toBe(mockRepositories[2].default_branch);
-		expect(wizard.selectedBranch).not.toBe(mockRepositories[0].default_branch);
+		expect(wizard.currentStep).toBe(3);
+		expect(wizard.createdProjectId).toBe('p-1');
+	});
+});
+
+describe('createProjectWizardState: GitHub repository', () => {
+	it('applies the default branch and name of the selected repository', () => {
+		const wizard = createProjectWizardState();
+
+		wizard.selectGithubRepository('inst-1', repo({ default_branch: 'trunk' }));
+
+		expect(wizard.selectedInstallationId).toBe('inst-1');
+		expect(wizard.selectedRepositoryId).toBe('101');
+		expect(wizard.selectedBranch).toBe('trunk');
+		expect(wizard.projectName).toBe('toko-kopi');
 	});
 
-	it('sets selectedBranch and projectName when a valid git url is confirmed', () => {
+	it('follows a new repository, except for a name the user typed', () => {
 		const wizard = createProjectWizardState();
-		wizard.repositorySource = 'git-url';
-		wizard.gitUrl = 'https://github.com/foo/bar';
+		wizard.selectGithubRepository('inst-1', repo());
+		wizard.projectName = 'nama-sendiri';
 
-		wizard.confirmGitUrl();
+		wizard.selectGithubRepository(
+			'inst-1',
+			repo({ id: '102', full_name: 'rani/lain', default_branch: 'develop' })
+		);
 
-		expect(wizard.selectedBranch).toBe('main');
-		expect(wizard.projectName).toBe('bar');
+		expect(wizard.selectedBranch).toBe('develop');
+		expect(wizard.projectName).toBe('nama-sendiri');
 	});
 
-	it('sets selectedBranch to validated repo default_branch and updates selectedRepository', () => {
+	it('does not reset a chosen branch when the same repository is selected again', () => {
 		const wizard = createProjectWizardState();
-		wizard.repositorySource = 'git-url';
-		wizard.gitUrl = 'https://github.com/my-org/my-app';
-
-		wizard.confirmGitUrl({
-			id: '123456',
-			name: 'my-app',
-			full_name: 'my-org/my-app',
-			clone_url: 'https://github.com/my-org/my-app',
-			default_branch: 'production',
-			pushed_at: '2026-03-01T00:00:00Z',
-			private: false
-		});
-
-		expect(wizard.selectedBranch).toBe('production');
-		expect(wizard.projectName).toBe('my-app');
-		expect(wizard.selectedRepository?.default_branch).toBe('production');
-		expect(wizard.selectedRepository?.id).toBe('123456');
-	});
-
-	it('retains validated repository and non-main default_branch when user input gitUrl lacks .git but backend clone_url has .git', () => {
-		const wizard = createProjectWizardState();
-		wizard.repositorySource = 'git-url';
-		// User input without .git
-		wizard.gitUrl = 'https://github.com/my-org/my-app';
-
-		// Backend returns clone_url with .git and non-main default branch
-		wizard.confirmGitUrl({
-			id: '123456',
-			name: 'my-app',
-			full_name: 'my-org/my-app',
-			clone_url: 'https://github.com/my-org/my-app.git',
-			default_branch: 'production',
-			pushed_at: '2026-03-01T00:00:00Z',
-			private: false
-		});
-
-		expect(wizard.selectedBranch).toBe('production');
-		expect(wizard.projectName).toBe('my-app');
-		expect(wizard.selectedRepository?.default_branch).toBe('production');
-		expect(wizard.selectedRepository?.clone_url).toBe('https://github.com/my-org/my-app.git');
-		expect(wizard.selectedRepository?.id).toBe('123456');
-	});
-
-	it('does not overwrite manually set selectedBranch when git url changes but the repo identity stays the same', () => {
-		const wizard = createProjectWizardState();
-		wizard.repositorySource = 'git-url';
-		wizard.gitUrl = 'https://github.com/foo/bar';
-		wizard.confirmGitUrl();
-
+		wizard.selectGithubRepository('inst-1', repo());
 		wizard.selectedBranch = 'develop';
 
-		wizard.gitUrl = 'https://github.com/foo/bar.git';
-		wizard.confirmGitUrl();
+		wizard.selectGithubRepository('inst-1', repo());
 
 		expect(wizard.selectedBranch).toBe('develop');
 	});
 
-	it('resets selectedBranch to the new repo default when the repo identity actually changes', () => {
+	it('forgets the repository when another installation is chosen, since it belongs to the old one', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectGithubRepository('inst-1', repo());
+
+		wizard.selectedInstallationId = 'inst-2';
+
+		expect(wizard.selectedRepositoryId).toBeNull();
+		expect(wizard.selectedRepository).toBeNull();
+	});
+});
+
+describe('createProjectWizardState: public URL', () => {
+	it('knows no repository until the API has validated it, and invents no default branch', () => {
 		const wizard = createProjectWizardState();
 		wizard.repositorySource = 'git-url';
-		wizard.gitUrl = 'https://github.com/foo/bar';
-		wizard.confirmGitUrl();
-		wizard.selectedBranch = 'develop';
+		wizard.gitUrl = 'https://github.com/my-org/my-app';
 
-		wizard.gitUrl = 'https://github.com/foo/baz';
-		wizard.confirmGitUrl();
-
-		expect(wizard.selectedBranch).toBe('main');
+		expect(wizard.selectedRepository).toBeNull();
+		expect(wizard.selectedBranch).toBe('');
 	});
 
-	it('github and git-url flows apply defaults consistently based on repo identity', () => {
-		const wizardA = createProjectWizardState();
-		wizardA.selectedRepositoryId = mockRepositories[0].id;
-		expect(wizardA.selectedBranch).toBe(mockRepositories[0].default_branch);
+	it('takes branch and name from the validated repository', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/my-org/my-app';
 
-		const wizardB = createProjectWizardState();
-		wizardB.repositorySource = 'git-url';
-		wizardB.gitUrl = 'https://github.com/foo/bar';
-		wizardB.confirmGitUrl();
-		expect(wizardB.selectedBranch).toBe('main');
+		wizard.confirmGitUrl(
+			repo({ id: '123456', full_name: 'my-org/my-app', default_branch: 'production' })
+		);
+
+		expect(wizard.selectedBranch).toBe('production');
+		expect(wizard.projectName).toBe('my-app');
+		expect(wizard.selectedRepository?.id).toBe('123456');
+	});
+
+	it('keeps the validated repository when the same URL is typed without .git', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/my-org/my-app.git';
+		wizard.confirmGitUrl(repo({ id: '123456', full_name: 'my-org/my-app' }));
+
+		wizard.gitUrl = 'https://github.com/my-org/my-app';
+
+		expect(wizard.selectedRepository?.id).toBe('123456');
+	});
+
+	it('drops the validated repository when the URL points somewhere else', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'https://github.com/my-org/my-app';
+		wizard.confirmGitUrl(repo({ id: '123456', full_name: 'my-org/my-app' }));
+
+		wizard.gitUrl = 'https://github.com/my-org/other';
+
+		expect(wizard.selectedRepository).toBeNull();
+	});
+
+	it('switching source clears what belonged to the other one', () => {
+		const wizard = createProjectWizardState();
+		wizard.selectGithubRepository('inst-1', repo());
+
+		wizard.repositorySource = 'git-url';
+		expect(wizard.selectedRepositoryId).toBeNull();
+
+		wizard.gitUrl = 'https://github.com/a/b';
+		wizard.repositorySource = 'github';
+		expect(wizard.gitUrl).toBe('');
 	});
 });
 
-describe('createProjectWizardState - createProjectPayload', () => {
-	it('should return null when no repository is selected', () => {
+describe('createProjectWizardState: environment variables', () => {
+	it('adds and removes variables', () => {
 		const wizard = createProjectWizardState();
-		const payload = wizard.createProjectPayload;
-		expect(payload).toEqual({
-			project_name: '',
-			repository_url: '',
-			branch: ''
-		});
+
+		wizard.addEnvVar('APP_ENV', 'production', false);
+		wizard.addEnvVar('API_KEY', 'abc', true);
+		expect(wizard.envVars.map((env) => env.key)).toEqual(['APP_ENV', 'API_KEY']);
+
+		wizard.removeEnvVar(wizard.envVars[0].id);
+		expect(wizard.envVars.map((env) => env.key)).toEqual(['API_KEY']);
 	});
 
-	it('should fill repository_url and branch when a repository is selected', () => {
+	it('forgets the values once all are stored', () => {
 		const wizard = createProjectWizardState();
-		const repo = mockRepositories[0];
+		wizard.addEnvVar('API_KEY', 'abc', true);
 
-		wizard.selectedRepositoryId = repo.id;
+		wizard.startEnvSave();
+		expect(wizard.envSaveStatus).toBe('saving');
+		wizard.markEnvSaved();
+		wizard.finishEnvSave([]);
 
-		const payload = wizard.createProjectPayload;
-
-		expect(payload.repository_url).toBe(repo.clone_url);
-		expect(payload.branch).toBe(repo.default_branch);
-		expect(payload.project_name).toBe(repo.full_name.split('/')[1]);
+		expect(wizard.envSaveStatus).toBe('done');
+		expect(wizard.envSavedCount).toBe(1);
+		expect(wizard.envVars).toEqual([]);
 	});
 
-	it('it should not replace project_name if it was manually set when a repository is selected', () => {
+	it('keeps what failed so it can be retried, and drops it when the user moves on', () => {
 		const wizard = createProjectWizardState();
-		const repo = mockRepositories[0];
+		wizard.addEnvVar('API_KEY', 'abc', true);
+		const [env] = wizard.envVars;
 
-		wizard.projectName = 'custom-project-name';
-		wizard.selectedRepositoryId = repo.id;
+		wizard.startEnvSave();
+		wizard.finishEnvSave([{ env, message: 'Gagal' }]);
 
-		expect(wizard.createProjectPayload.project_name).toBe('custom-project-name');
-	});
+		expect(wizard.envSaveStatus).toBe('partial');
+		expect(wizard.envFailures).toHaveLength(1);
 
-	it('repository_url change follows repository that is selected', () => {
-		const wizard = createProjectWizardState();
-		if (mockRepositories.length < 2) {
-			return;
-		}
+		wizard.dismissEnvFailures();
 
-		const [firstRepo, secondRepo] = mockRepositories;
-
-		wizard.selectedRepositoryId = firstRepo.id;
-		expect(wizard.createProjectPayload.repository_url).toBe(firstRepo.clone_url);
-
-		wizard.selectedRepositoryId = secondRepo.id;
-		expect(wizard.createProjectPayload.repository_url).toBe(secondRepo.clone_url);
-	});
-
-	it('repository_url should empty when selectedRepositoryId is not found', () => {
-		const wizard = createProjectWizardState();
-		wizard.selectedRepositoryId = 'non-existent-id';
-		expect(wizard.createProjectPayload.repository_url).toBe('');
-	});
-});
-
-describe('createProjectWizardState - autoDetect / domain handling', () => {
-	it('projectDomain should start empty string', () => {
-		const wizard = createProjectWizardState();
-		expect(wizard.projectDomain).toBe('');
-	});
-
-	it('goToAutoDetect should save result data, set domain, and change step to 2', () => {
-		const wizard = createProjectWizardState();
-		const mockResult = {
-			id: 'mock-uuid-123',
-			project_name: 'My Cool App',
-			domain: 'my-cool-app.run.sakala.dev'
-		};
-
-		wizard.goToAutoDetect(mockResult);
-		expect(wizard.createdProject).toEqual(mockResult);
-		expect(wizard.currentStep).toBe(2);
-		expect(wizard.projectDomain).toBe('my-cool-app.run.sakala.dev');
-	});
-
-	it('changing projectName should not alter projectDomain before gotoAutoDetect', () => {
-		const wizard = createProjectWizardState();
-		wizard.projectName = 'Manual Project Name';
-		expect(wizard.projectDomain).toBe('');
-	});
-});
-
-describe('scan state', () => {
-	it('starts as idle with no builder detected', () => {
-		const wizard = createProjectWizardState();
-		expect(wizard.scanning).toBe(false);
-		expect(wizard.scanFailed).toBe(false);
-		expect(wizard.builderDetected).toBeNull();
-	});
-
-	it('sets scanning true and resets builderDetected on startScan', () => {
-		const wizard = createProjectWizardState();
-		wizard.startScan();
-		expect(wizard.scanning).toBe(true);
-		expect(wizard.scanFailed).toBe(false);
-		expect(wizard.builderDetected).toBeNull();
-	});
-
-	it('sets scanning, scanFailed to false and builderDetected true on completeScan(true)', () => {
-		const wizard = createProjectWizardState();
-		wizard.startScan();
-		wizard.completeScan(true);
-
-		expect(wizard.scanning).toBe(false);
-		expect(wizard.scanFailed).toBe(false);
-		expect(wizard.builderDetected).toBe(true);
-	});
-
-	it('sets scanning false and builderDetected false on completeScan(false)', () => {
-		const wizard = createProjectWizardState();
-		wizard.startScan();
-		wizard.completeScan(false);
-
-		expect(wizard.scanning).toBe(false);
-		expect(wizard.builderDetected).toBe(false);
-	});
-
-	it('sets scanFailed true and scanning false on failScan', () => {
-		const wizard = createProjectWizardState();
-		wizard.startScan();
-		wizard.failScan();
-
-		expect(wizard.scanning).toBe(false);
-		expect(wizard.scanFailed).toBe(true);
-		expect(wizard.builderDetected).toBeNull();
-	});
-
-	it('clears scanFailed when a retry scan starts', () => {
-		const wizard = createProjectWizardState();
-		wizard.startScan();
-		wizard.failScan();
-
-		wizard.startScan();
-
-		expect(wizard.scanFailed).toBe(false);
-		expect(wizard.scanning).toBe(true);
-	});
-
-	it('goToDeploy sets currentStep to 3', () => {
-		const wizard = createProjectWizardState();
-		wizard.goToDeploy();
-		expect(wizard.currentStep).toBe(3);
-	});
-});
-
-describe('createProjecctWizardState - scan attempt', () => {
-	it('increments scanAttempt on each startScan call', () => {
-		const wizard = createProjectWizardState();
-		wizard.startScan();
-		expect(wizard.scanAttempt).toBe(1);
-		wizard.startScan();
-		expect(wizard.scanAttempt).toBe(2);
-	});
-
-	it('resets scanAttempt when a different repository is selected', () => {
-		const wizard = createProjectWizardState();
-		wizard.selectedRepositoryId = mockRepositories[0].id;
-		wizard.startScan();
-		wizard.startScan();
-		expect(wizard.scanAttempt).toBe(2);
-
-		wizard.selectedRepositoryId = mockRepositories[1].id;
-		expect(wizard.scanAttempt).toBe(0);
-	});
-
-	it('does not reset scanAttempt when the same repository is re-selected', () => {
-		const wizard = createProjectWizardState();
-		wizard.selectedRepositoryId = mockRepositories[0].id;
-		wizard.startScan();
-		wizard.selectedRepositoryId = mockRepositories[0].id;
-		expect(wizard.scanAttempt).toBe(1);
+		expect(wizard.envSaveStatus).toBe('done');
+		expect(wizard.envFailures).toEqual([]);
+		expect(wizard.envVars).toEqual([]);
 	});
 });

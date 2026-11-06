@@ -6,7 +6,11 @@ import {
 	deriveFailedStepLabel,
 	deriveLastUpdateTimestamp,
 	formatDeploymentTime,
-	getDeploymentTriggerLabel
+	formatLogTime,
+	formatResourceLimit,
+	getDeploymentTriggerLabel,
+	getCommitUrl,
+	isFirstSuccessfulDeployment
 } from './deployment-presentation';
 import type { DeploymentEvent } from '$lib/api/resources/deployment';
 
@@ -26,7 +30,7 @@ describe('getDeploymentTriggerLabel', () => {
 	it.each([
 		['manual', 'Manual'],
 		['redeploy', 'Manual redeploy'],
-		['webhook', 'Push'],
+		['webhook', 'Auto-deploy dari push'],
 		['system', 'System']
 	])('maps %s to %s', (trigger, expected) => {
 		expect(getDeploymentTriggerLabel(trigger)).toBe(expected);
@@ -42,7 +46,7 @@ describe('deriveCurrentStepLabel', () => {
 		const steps: DeploymentStep[] = [
 			{
 				key: 'build',
-				title: 'Build project',
+				title: 'Build proyek',
 				status: 'success',
 				timestamp: '08:41:10'
 			},
@@ -61,7 +65,7 @@ describe('deriveCurrentStepLabel', () => {
 		const steps: DeploymentStep[] = [
 			{
 				key: 'build',
-				title: 'Build project',
+				title: 'Build proyek',
 				status: 'success',
 				timestamp: '08:41:10'
 			},
@@ -85,7 +89,7 @@ describe('deriveFailedStepLabel', () => {
 		const steps: DeploymentStep[] = [
 			{
 				key: 'build',
-				title: 'Build project',
+				title: 'Build proyek',
 				status: 'failed',
 				timestamp: '08:41:10'
 			},
@@ -96,14 +100,14 @@ describe('deriveFailedStepLabel', () => {
 			}
 		];
 
-		expect(deriveFailedStepLabel(steps)).toBe('Build project');
+		expect(deriveFailedStepLabel(steps)).toBe('Build proyek');
 	});
 
 	it('returns undefined when there is no failed step', () => {
 		const steps: DeploymentStep[] = [
 			{
 				key: 'build',
-				title: 'Build project',
+				title: 'Build proyek',
 				status: 'success'
 			},
 			{
@@ -131,7 +135,7 @@ describe('deriveLastUpdateTimestamp', () => {
 		const result = deriveLastUpdateTimestamp(events);
 
 		expect(result).not.toBe('-');
-		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+		expect(result).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 	});
 
 	it('fallback ke finished_at kalau events kosong & deployment selesai', () => {
@@ -142,7 +146,7 @@ describe('deriveLastUpdateTimestamp', () => {
 		});
 
 		expect(result).not.toBe('-');
-		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+		expect(result).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 	});
 
 	it('fallback ke cancelled_at kalau events kosong & deployment cancelled', () => {
@@ -154,7 +158,7 @@ describe('deriveLastUpdateTimestamp', () => {
 		});
 
 		expect(result).not.toBe('-');
-		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+		expect(result).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 	});
 
 	it('fallback ke started_at kalau events kosong & deployment running', () => {
@@ -166,7 +170,7 @@ describe('deriveLastUpdateTimestamp', () => {
 		});
 
 		expect(result).not.toBe('-');
-		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+		expect(result).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 	});
 
 	it('fallback ke created_at kalau events kosong & deployment belum mulai', () => {
@@ -178,7 +182,7 @@ describe('deriveLastUpdateTimestamp', () => {
 		});
 
 		expect(result).not.toBe('-');
-		expect(result).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+		expect(result).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 	});
 
 	it('kembalikan "-" kalau events kosong & semua lifecycle null', () => {
@@ -237,15 +241,114 @@ describe('deriveDurationLabel', () => {
 });
 
 describe('formatDeploymentTime', () => {
-	it('formats timestamp with hours, minutes, and seconds', () => {
+	const now = new Date(2026, 8, 13, 12, 0, 0);
+
+	it('shows only the clock for a time from today, with colons', () => {
 		const timestamp = new Date(2026, 8, 13, 8, 41, 2).toISOString();
 
-		expect(formatDeploymentTime(timestamp)).toBe('08.41.02');
+		expect(formatDeploymentTime(timestamp, now)).toBe('08:41:02');
 	});
 
 	it('pads single-digit time values', () => {
 		const timestamp = new Date(2026, 8, 13, 8, 1, 2).toISOString();
 
-		expect(formatDeploymentTime(timestamp)).toBe('08.01.02');
+		expect(formatDeploymentTime(timestamp, now)).toBe('08:01:02');
+	});
+
+	it('puts the date in front of a time from another day', () => {
+		const timestamp = new Date(2026, 8, 12, 23, 59, 59).toISOString();
+
+		expect(formatDeploymentTime(timestamp, now)).toBe('12 Sep 2026 23:59:59');
+	});
+
+	it('has a placeholder for a missing time', () => {
+		expect(formatDeploymentTime(null, now)).toBe('-');
+	});
+});
+
+describe('formatLogTime', () => {
+	it('leaves the date out, because the panel already names the day', () => {
+		expect(formatLogTime(new Date(2020, 0, 2, 8, 41, 2).toISOString())).toBe('08:41:02');
+	});
+});
+
+describe('formatResourceLimit', () => {
+	const resources = { memory_mb: 512, cpu_millis: 500, pids_limit: 128 };
+
+	it('prefers what was applied over what was planned', () => {
+		expect(
+			formatResourceLimit({
+				applied_resources: { memory_mb: 256, cpu_millis: 1000, pids_limit: 128 },
+				effective_resources: {
+					resources,
+					timeouts: {
+						build_timeout_seconds: 1,
+						start_timeout_seconds: 1,
+						command_timeout_seconds: 1
+					},
+					log_bounds: { max_line_length: 1, max_batch_lines: 1, max_total_bytes: 1 }
+				}
+			})
+		).toBe('256 MB memori, 1 CPU');
+	});
+
+	it('says nothing when the API reports no limit', () => {
+		expect(formatResourceLimit({ applied_resources: null, effective_resources: null })).toBeNull();
+		expect(
+			formatResourceLimit({
+				applied_resources: { memory_mb: null, cpu_millis: null, pids_limit: null },
+				effective_resources: null
+			})
+		).toBeNull();
+	});
+});
+
+describe('isFirstSuccessfulDeployment', () => {
+	const done = (sequence: number, status = 'succeeded') => ({ sequence, status }) as never;
+
+	it('is the first deployment of a project when it succeeded', () => {
+		expect(isFirstSuccessfulDeployment(done(1), [done(1)])).toBe(true);
+	});
+
+	it('counts earlier failures, since nothing was live before this', () => {
+		const recent = [done(3), done(2, 'failed'), done(1, 'cancelled')];
+		expect(isFirstSuccessfulDeployment(done(3), recent)).toBe(true);
+	});
+
+	it('stays calm once something succeeded before', () => {
+		expect(isFirstSuccessfulDeployment(done(2), [done(2), done(1)])).toBe(false);
+	});
+
+	it('stays calm when the history does not reach back to the first deployment', () => {
+		const recent = [8, 7, 6, 5, 4, 3].map((sequence) =>
+			done(sequence, sequence === 8 ? 'succeeded' : 'failed')
+		);
+		expect(isFirstSuccessfulDeployment(done(8), recent)).toBe(false);
+	});
+
+	it('says nothing about a deployment that did not succeed', () => {
+		expect(isFirstSuccessfulDeployment(done(1, 'failed'), [])).toBe(false);
+		expect(isFirstSuccessfulDeployment(done(1, 'building'), [])).toBe(false);
+	});
+});
+
+describe('getCommitUrl', () => {
+	it('links a commit on GitHub, with or without .git', () => {
+		expect(getCommitUrl('https://github.com/rani/toko.git', 'a3f2c9d')).toBe(
+			'https://github.com/rani/toko/commit/a3f2c9d'
+		);
+		expect(getCommitUrl('https://github.com/rani/toko', 'a3f2c9d')).toBe(
+			'https://github.com/rani/toko/commit/a3f2c9d'
+		);
+	});
+
+	it.each([
+		['another host', 'https://gitlab.com/rani/toko', 'a3f2c9d'],
+		['a host that only looks like GitHub', 'https://github.com.evil.test/rani/toko', 'a3f2c9d'],
+		['a script address', 'javascript:alert(1)', 'a3f2c9d'],
+		['no address', null, 'a3f2c9d'],
+		['no commit', 'https://github.com/rani/toko', null]
+	])('gives no link for %s', (_name, url, sha) => {
+		expect(getCommitUrl(url, sha)).toBeNull();
 	});
 });

@@ -1,6 +1,7 @@
 import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { ApiError } from '$lib/api/errors';
 import RepositoryStepTestHost from './RepositoryStepTestHost.svelte';
 import type { Repository } from '../../type';
 import type { ProjectWizardState } from '../../create/createProjectState.svelte';
@@ -22,7 +23,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			githubConnected: true
 		});
 
-		const emptyTitle = page.getByText('Tidak menemukan repository');
+		const emptyTitle = page.getByText('Belum ada repository yang bisa dipilih');
 		await expect.element(emptyTitle).toBeVisible();
 
 		const mockTitle1 = page.getByText('sakala-dashboard');
@@ -40,7 +41,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			onRetry
 		});
 
-		const errorTitle = page.getByText('Gagal Memuat Repository');
+		const errorTitle = page.getByText('Gagal memuat repository');
 		await expect.element(errorTitle).toBeVisible();
 
 		const errorDesc = page.getByText(/Gagal memuat daftar repository GitHub/i);
@@ -64,7 +65,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			onRetry
 		});
 
-		const errorTitle = page.getByText('Gagal Memuat Repository');
+		const errorTitle = page.getByText('Gagal memuat repository');
 		await expect.element(errorTitle).toBeVisible();
 
 		const errorDesc = page.getByText(/Gagal memuat instalasi GitHub/i);
@@ -139,12 +140,11 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 
 	it('pada tab Public Git URL, menampilkan error API jika validasi backend gagal dan tidak memanggil onNext', async () => {
 		const onNext = vi.fn();
-		const onValidateGitUrl = vi.fn().mockRejectedValue({
-			isValidationError: true,
-			errors: {
+		const onValidateGitUrl = vi.fn().mockRejectedValue(
+			new ApiError('Data tidak valid', 422, {
 				repository_url: ['Repository GitHub tidak ditemukan atau bersifat private.']
-			}
-		});
+			})
+		);
 
 		await render(RepositoryStepTestHost, {
 			repositories: [],
@@ -299,5 +299,144 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 
 		expect(onNext).not.toHaveBeenCalled();
 		expect(wizardInstance?.selectedRepository?.id).not.toBe('111');
+	});
+});
+
+const installation = (id: string, login: string, status = 'active') => ({
+	id,
+	account_login: login,
+	account_type: 'User',
+	repository_selection: 'all',
+	status,
+	created_at: '2026-01-01T00:00:00Z',
+	updated_at: '2026-01-01T00:00:00Z'
+});
+
+describe('RepositoryStep: repository list from the API', () => {
+	it('shows the true count from the API, not the size of the page', async () => {
+		await render(RepositoryStepTestHost, {
+			repositories: [mockRepo1],
+			total: 12,
+			currentPage: 1,
+			lastPage: 3
+		});
+
+		await expect.element(page.getByRole('status')).toHaveTextContent(/Menampilkan\s*1\s*dari\s*12/);
+	});
+
+	it('asks for the next page instead of slicing what it has', async () => {
+		const onPageChange = vi.fn();
+		await render(RepositoryStepTestHost, {
+			repositories: [mockRepo1],
+			total: 12,
+			currentPage: 1,
+			lastPage: 3,
+			onPageChange
+		});
+
+		await page.getByRole('button', { name: 'Halaman 2' }).click();
+
+		expect(onPageChange).toHaveBeenCalledWith(2);
+	});
+
+	it('sends the search to the API, and does not filter the page itself', async () => {
+		const onSearch = vi.fn();
+		await render(RepositoryStepTestHost, { repositories: [mockRepo1], onSearch });
+
+		await page.getByPlaceholder('Cari repository...').fill('tidak-cocok');
+
+		await vi.waitFor(() => expect(onSearch).toHaveBeenCalledWith('tidak-cocok'));
+		await expect.element(page.getByText('org/real-api-repo')).toBeVisible();
+	});
+
+	it('tells zero repositories apart from no search hits', async () => {
+		const configureUrl = 'http://api.test/auth/github/installations/i1/configure';
+		const screen = await render(RepositoryStepTestHost, {
+			repositories: [],
+			total: 0,
+			installationId: 'i1',
+			installations: [installation('i1', 'rani')],
+			configureUrl
+		});
+
+		await expect.element(page.getByText('Belum ada repository yang bisa dipilih')).toBeVisible();
+		await expect.element(page.getByText(/repository mana pun di rani/)).toBeVisible();
+		await expect
+			.element(page.getByRole('link', { name: 'Atur akses repository' }))
+			.toHaveAttribute('href', configureUrl);
+
+		await page.getByPlaceholder('Cari repository...').fill('kopi');
+
+		await expect.element(page.getByText('Tidak ada repository yang cocok')).toBeVisible();
+		await expect
+			.element(page.getByText('Belum ada repository yang bisa dipilih'))
+			.not.toBeInTheDocument();
+
+		await page.getByRole('button', { name: 'Hapus pencarian' }).click();
+
+		await expect.element(page.getByText('Belum ada repository yang bisa dipilih')).toBeVisible();
+		screen.unmount();
+	});
+
+	it('offers a switcher only when there is more than one installation', async () => {
+		const onInstallationChange = vi.fn();
+		const screen = await render(RepositoryStepTestHost, {
+			repositories: [mockRepo1],
+			installationId: 'i1',
+			installations: [installation('i1', 'rani')],
+			onInstallationChange
+		});
+		await expect.element(page.getByLabelText('Akun GitHub')).not.toBeInTheDocument();
+		screen.unmount();
+
+		await render(RepositoryStepTestHost, {
+			repositories: [mockRepo1],
+			installationId: 'i1',
+			installations: [installation('i1', 'rani'), installation('i2', 'kopi-org', 'suspended')],
+			onInstallationChange
+		});
+
+		const switcher = page.getByLabelText('Akun GitHub');
+		await expect.element(switcher).toHaveValue('i1');
+		await expect
+			.element(page.getByRole('option', { name: 'kopi-org (tidak aktif)' }))
+			.toBeInTheDocument();
+		await switcher.selectOptions('i2');
+
+		expect(onInstallationChange).toHaveBeenCalledWith('i2');
+	});
+
+	it('offers a real reconnect link when the installation is inactive', async () => {
+		const reconnectUrl = 'http://api.test/auth/github/installations/i1/configure';
+		await render(RepositoryStepTestHost, {
+			repositories: [],
+			errorMessage: 'Instalasi GitHub rani sudah tidak aktif.',
+			reconnectUrl,
+			installationId: 'i1',
+			installations: [installation('i1', 'rani', 'suspended'), installation('i2', 'kopi-org')]
+		});
+
+		const link = page.getByRole('link', { name: 'Hubungkan ulang GitHub' });
+		await expect.element(link).toHaveAttribute('href', reconnectUrl);
+		// Same tab, because GitHub sends the user back to this wizard.
+		await expect.element(link).not.toHaveAttribute('target');
+		// The other account stays reachable.
+		await expect.element(page.getByLabelText('Akun GitHub')).toBeVisible();
+	});
+
+	it('"Gunakan Public Git URL" is a real control that switches the source', async () => {
+		await render(RepositoryStepTestHost, { repositories: [], githubConnected: false });
+
+		await page.getByRole('button', { name: 'Gunakan Public Git URL' }).click();
+
+		await expect.element(page.getByLabelText('URL repository publik')).toBeVisible();
+	});
+
+	it('does not move on when the pilot quota is used up', async () => {
+		await render(RepositoryStepTestHost, { repositories: [mockRepo1], blocked: true });
+
+		await page.getByRole('radio').click();
+
+		await expect.element(page.getByRole('button', { name: /lanjut/i })).toBeDisabled();
 	});
 });

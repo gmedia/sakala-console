@@ -1,5 +1,7 @@
 <script lang="ts">
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
+	import { cn } from '$lib/utils/cn';
+	import { formatDuration } from '$lib/utils/date';
 	import { formatDeploymentTime } from '../deployment-presentation';
 	import { getTimelineItemDisplay } from '../status-config';
 	import type { StatusDeployment } from '../type';
@@ -8,37 +10,43 @@
 		status: StatusDeployment;
 		title?: string;
 		timestamp?: string;
-		showSubtitle?: boolean;
-		emphasizeRunning?: boolean;
+		durationSeconds?: number;
+		last?: boolean;
 	};
 
-	let {
-		status,
-		title = '',
-		timestamp,
-		showSubtitle = true,
-		emphasizeRunning = false
-	}: Props = $props();
+	let { status, title = '', timestamp, durationSeconds, last = false }: Props = $props();
 
-	let displayTimestamp = $derived(timestamp ? formatDeploymentTime(timestamp) : undefined);
 	let display = $derived(
-		getTimelineItemDisplay({ status, title, timestamp: displayTimestamp, showSubtitle })
+		getTimelineItemDisplay({
+			status,
+			title,
+			timestamp: timestamp ? formatDeploymentTime(timestamp) : undefined,
+			duration: durationSeconds === undefined ? undefined : formatDuration(durationSeconds)
+		})
 	);
-	let isRunningEmphasized = $derived(emphasizeRunning && status === 'running');
 </script>
 
-<div class="flex items-center gap-1">
-	<StatusIndicator
-		{status}
-		size="lg"
-		showLabel={false}
-		colorClassOverride={isRunningEmphasized ? 'bg-warning-dark text-white' : undefined}
-		showIcon={!isRunningEmphasized}
-	/>
-	<div class="ml-4 flex flex-col gap-1">
-		<span class="text-md font-montserrat-medium">{display.title}</span>
+<li
+	class={cn('relative flex gap-3', !last && 'pb-3')}
+	aria-current={status === 'running' ? 'step' : undefined}
+>
+	{#if !last}
+		<span class="absolute top-6 bottom-0.5 left-2.5 w-px bg-border-strong/40" aria-hidden="true"
+		></span>
+	{/if}
+	<StatusIndicator {status} size="sm" showLabel={false} />
+	<div class="flex min-w-0 flex-col">
+		<span
+			class={cn(
+				'text-sm font-medium',
+				status === 'pending' ? 'text-muted' : 'text-foreground',
+				status === 'failed' && 'text-error'
+			)}
+		>
+			{display.title}
+		</span>
 		{#if display.subtitle}
-			<span class="text-sm text-muted font-montserrat">{display.subtitle}</span>
+			<span class="text-xs text-muted tabular-nums">{display.subtitle}</span>
 		{/if}
 	</div>
-</div>
+</li>

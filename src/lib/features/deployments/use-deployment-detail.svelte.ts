@@ -1,10 +1,20 @@
+import { useQueryClient } from '@tanstack/svelte-query';
+import { createCoalescedTask } from '$lib/features/realtime/coalesced-task';
 import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
 import { SequenceGuard } from '$lib/features/realtime/sequence-guard';
-import { createDeploymentQuery, createDeploymentEventsQuery } from './queries';
+import { realtimeState } from '$lib/realtime/connection-state.svelte';
+import { isRateLimitError } from '$lib/api/rate-limit';
+import {
+	applyRealtimeDeploymentEvent,
+	applyRealtimeDeploymentUpdate,
+	createDeploymentQuery,
+	createDeploymentEventsQuery
+} from './queries';
 import { normalizeDeploymentTimeline } from './deployment-normalization';
 import {
 	getBannerStatusFromDeploymentStatus,
 	deriveLiveInfoTimestamp,
+	type ServingState,
 	type StatusDisplayInput
 } from './status-config';
 import {
@@ -16,13 +26,13 @@ import {
 	deriveLastUpdateTimestamp,
 	formatDeploymentTime
 } from './deployment-presentation';
-import { createQuery } from '@tanstack/svelte-query';
-import { getProject } from '$lib/features/projects/api';
-import { queryKeys } from '$lib/api/query-keys';
+import { getProjectPublicUrl, isProjectServing } from '$lib/features/projects/presentation';
+import { createProjectQuery, requestProjectRefresh } from '$lib/features/projects/queries';
 
 type RealtimePayload = { sequence?: number };
 
 export function useDeploymentDetail(projectId: () => string, deploymentId: () => string) {
+	const client = useQueryClient();
 	const deploymentQuery = createDeploymentQuery(projectId, deploymentId);
 	const isTerminal = () => {
 		const status = deploymentQuery.data?.data.status;
@@ -44,32 +54,73 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		eventsGuard = new SequenceGuard();
 	});
 
+	// Reads overlapping the one in flight join it, instead of cancelling it and starting over.
+	const deploymentRefresh = createCoalescedTask(() => {
+		void deploymentQuery.refetch({ cancelRefetch: false });
+	});
+	const eventsRefresh = createCoalescedTask(() => {
+		void deploymentEventsQuery.refetch({ cancelRefetch: false });
+	});
+
+	$effect(() => () => {
+		deploymentRefresh.dispose();
+		eventsRefresh.dispose();
+	});
+
 	usePrivateChannel(() => `deployment.${deploymentId()}`, {
 		'.deployment.event.created': (payload: unknown) => {
 			const seq = (payload as RealtimePayload).sequence;
 			if (typeof seq !== 'number' || !eventsGuard.accept(seq)) return;
-			deploymentEventsQuery.refetch();
+			if (!applyRealtimeDeploymentEvent(client, projectId(), deploymentId(), payload)) {
+				eventsRefresh.request();
+			}
 		},
 		'.deployment.updated': (payload: unknown) => {
 			const seq = (payload as RealtimePayload).sequence;
 			if (typeof seq !== 'number' || !deploymentGuard.accept(seq)) return;
-			deploymentQuery.refetch();
+			if (!applyRealtimeDeploymentUpdate(client, projectId(), deploymentId(), payload)) {
+				deploymentRefresh.request();
+				eventsRefresh.request();
+			}
 		}
 	});
 
-	const projectQuery = createQuery(() => ({
-		queryKey: queryKeys.projects.detail(projectId()),
-		queryFn: () => getProject(projectId()),
-		enabled: !!projectId()
-	}));
-
-	const publicUrl = $derived.by(() => {
-		const domain = projectQuery.data?.default_domain;
-		if (!domain) return null;
-		return domain.startsWith('http') ? domain : `https://${domain}`;
+	// Broadcasts sent while the socket was down never arrive.
+	let wasDisconnected = false;
+	$effect(() => {
+		const connected = realtimeState.status === 'connected';
+		if (connected && wasDisconnected) {
+			deploymentRefresh.request();
+			eventsRefresh.request();
+		}
+		if (!connected && realtimeState.status !== 'idle') wasDisconnected = true;
+		if (connected) wasDisconnected = false;
 	});
 
+	const projectQuery = createProjectQuery(projectId);
+
+	const publicUrl = $derived(getProjectPublicUrl(projectQuery.data));
+
+	const project = $derived(projectQuery.data ?? null);
 	const deployment = $derived(deploymentQuery.data?.data);
+
+	// Finishing changes what the project serves, and the cached copy would still say otherwise.
+	let lastStatus: string | undefined;
+	$effect(() => {
+		const status = deployment?.status;
+		if (lastStatus && status && status !== lastStatus && TERMINAL_STATUSES.has(status)) {
+			requestProjectRefresh(client, projectId());
+		}
+		lastStatus = status;
+	});
+
+	const servingState = $derived.by<ServingState>(() => {
+		if (!deployment?.is_active) {
+			return deploymentQuery.data?.servingUnconfirmed ? 'unconfirmed' : 'superseded';
+		}
+		if (project?.runtime_status === 'crashed') return 'crash_looping';
+		return project && !isProjectServing(project) ? 'not_serving' : 'live';
+	});
 	const events = $derived(deploymentEventsQuery.data?.data ?? []);
 	const steps = $derived(deployment ? normalizeDeploymentTimeline(deployment, events) : []);
 
@@ -91,9 +142,15 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 					currentStepLabel: deriveCurrentStepLabel(steps),
 					durationLabel: deriveDurationLabel(deployment.started_at, deployment.finished_at),
 					failedStepLabel: deriveFailedStepLabel(steps),
+					failureCategory: deployment.failure?.category,
 					failureCode: deployment.failure_code ?? undefined,
 					failureSummary: deployment.failure?.summary ?? deployment.failure_summary ?? undefined,
-					recoveryHint: deployment.failure?.recovery_hint ?? undefined
+					failureDetail: deployment.failure?.detail ?? undefined,
+					userFixable: deployment.failure?.user_fixable,
+					recoveryHint: deployment.failure?.recovery_hint ?? undefined,
+					servingState,
+					queueState: deployment.queue_state,
+					cancelRequested: Boolean(deployment.cancel_requested_at)
 				}
 			: { status: 'running' }
 	);
@@ -103,9 +160,10 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 			? deriveLiveInfoTimestamp({
 					status: bannerInput.status,
 					startedAtLabel: formatDeploymentTime(deployment.started_at),
-					finishedAtLabel: deployment.finished_at
-						? formatDeploymentTime(deployment.finished_at)
-						: undefined
+					finishedAtLabel:
+						(deployment.finished_at ?? deployment.cancelled_at)
+							? formatDeploymentTime(deployment.finished_at ?? deployment.cancelled_at)
+							: undefined
 				})
 			: '-'
 	);
@@ -115,6 +173,9 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		deploymentEventsQuery,
 		get deployment() {
 			return deployment;
+		},
+		get project() {
+			return project;
 		},
 		get publicUrl() {
 			return publicUrl;
@@ -137,8 +198,14 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		get deploymentError() {
 			return deploymentQuery.isError ? getDeploymentErrorConfig(deploymentQuery.error) : null;
 		},
+		get isWaitingForRateLimit() {
+			return (
+				isRateLimitError(deploymentQuery.error) || isRateLimitError(deploymentEventsQuery.error)
+			);
+		},
 		get eventsError() {
-			return deploymentEventsQuery.isError
+			// Events already on screen stay there: a failed refresh does not make them wrong.
+			return deploymentEventsQuery.isError && events.length === 0
 				? getDeploymentErrorConfig(deploymentEventsQuery.error)
 				: null;
 		}

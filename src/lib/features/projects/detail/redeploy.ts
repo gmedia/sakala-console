@@ -1,15 +1,16 @@
+import type { UpdateProjectPayload } from '../type';
+
 export interface ExecuteRedeployParams {
 	project: { id: string; branch?: string | null };
 	detailState?: {
 		draftName?: string | null;
 		draftBranch?: string | null;
 		isDirty?: boolean;
+		basicsDirty?: boolean;
+		configPayload?: () => UpdateProjectPayload;
 		resetDraft: () => void;
 	} | null;
-	updateProject: (payload: {
-		id: string;
-		data: { name?: string; branch?: string };
-	}) => Promise<unknown>;
+	updateProject: (payload: { id: string; data: UpdateProjectPayload }) => Promise<unknown>;
 	triggerRedeploy: (payload: {
 		projectId: string;
 		branch: string;
@@ -25,12 +26,23 @@ export async function executeRedeployFlow({
 }: ExecuteRedeployParams): Promise<void> {
 	const activeBranch = detailState?.draftBranch || project.branch || 'main';
 
-	if (detailState?.isDirty && (detailState.draftName || detailState.draftBranch)) {
+	// Throws before anything is sent when a build field is invalid, and redeploy does not run.
+	const configPayload = detailState?.configPayload?.() ?? {};
+	const hasConfigChange = Object.keys(configPayload).length > 0;
+
+	if (
+		detailState?.isDirty &&
+		(detailState.draftName || detailState.draftBranch || hasConfigChange)
+	) {
 		await updateProject({
 			id: project.id,
 			data: {
-				name: detailState.draftName || undefined,
-				branch: detailState.draftBranch || undefined
+				// A configuration-only draft must not resend the name and branch it did not change.
+				...(detailState.basicsDirty !== false && {
+					name: detailState.draftName || undefined,
+					branch: detailState.draftBranch || undefined
+				}),
+				...configPayload
 			}
 		});
 		detailState.resetDraft();

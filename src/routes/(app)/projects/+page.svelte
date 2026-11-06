@@ -1,15 +1,21 @@
 <script lang="ts">
+	import { pageTitle } from '$lib/utils/page-title';
+	import Plus from 'phosphor-svelte/lib/Plus';
+	import { resolve } from '$app/paths';
+	import Button from '$lib/components/ui/Button.svelte';
 	import CreateProjectHeroCard from '$lib/features/projects/components/create/CreateProjectHeroCard.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import ProjectList from '$lib/features/projects/components/project/ProjectList.svelte';
 	import ProjectFilter from '$lib/features/projects/components/project/ProjectFilter.svelte';
-	import type { ProjectsQueryParams } from '$lib/api/resources/projects';
-	import { createListProjectsQuery } from '$lib/features/projects/queries';
+	import type { DateFilterValue } from '$lib/features/projects/filters';
+	import PilotQuotaNotice from '$lib/features/projects/components/create/PilotQuotaNotice.svelte';
+	import { createListProjectsQuery, createPilotLimitsQuery } from '$lib/features/projects/queries';
+
+	const perPage = 6;
 
 	let search = $state('');
-	let filter = $state<NonNullable<ProjectsQueryParams['filter']>>('30_days');
+	let filter = $state<DateFilterValue>('all');
 	let currentPage = $state(1);
-	const perPage = 6;
 
 	$effect(() => {
 		void search;
@@ -17,12 +23,15 @@
 		currentPage = 1;
 	});
 
-	const projectsQuery = createListProjectsQuery(() => ({
-		page: currentPage,
-		per_page: perPage,
-		search: search.trim() || undefined,
-		filter
-	}));
+	const projectsQuery = createListProjectsQuery(
+		() => ({
+			page: currentPage,
+			per_page: perPage,
+			search: search.trim() || undefined,
+			filter
+		}),
+		() => ({ poll: true })
+	);
 
 	const isCurrentResultEmpty = $derived(
 		!projectsQuery.isPending && (projectsQuery.data?.projects.length ?? 0) === 0
@@ -34,36 +43,56 @@
 	);
 
 	const isTrulyEmpty = $derived(isCurrentResultEmpty && hasAnyProjectQuery.data?.meta.total === 0);
+
+	// A few projects all fit on one page. Controls appear once there is something to narrow down,
+	// and stay while a search or filter is on, or the way back would be gone.
+	const showControls = $derived(
+		Boolean(search.trim()) || filter !== 'all' || (projectsQuery.data?.meta.total ?? 0) > perPage
+	);
+
+	const pilotLimitsQuery = createPilotLimitsQuery();
 </script>
 
-<svelte:head><title>Projects | Sakala Console</title></svelte:head>
-<main class="flex flex-col gap-8">
-	<CreateProjectHeroCard />
-
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
-		<div class="flex items-center justify-between sm:justify-normal gap-4 w-full sm:flex-1">
-			<h2 class="text-2xl font-semibold font-montserrat-semibold whitespace-nowrap">
-				Recent Projects
-			</h2>
-			<ProjectFilter bind:value={filter} />
+<svelte:head><title>{pageTitle('Proyek')}</title></svelte:head>
+<div class="flex flex-col gap-6">
+	{#if isTrulyEmpty}
+		<CreateProjectHeroCard />
+		<PilotQuotaNotice limits={pilotLimitsQuery.data} />
+	{:else}
+		<div class="flex flex-wrap items-center justify-between gap-4">
+			<div class="min-w-0 flex-1 basis-64">
+				<PilotQuotaNotice limits={pilotLimitsQuery.data} />
+			</div>
+			<Button href={resolve('/projects/new')}>
+				<Plus size={16} weight="bold" aria-hidden="true" />
+				Buat proyek
+			</Button>
 		</div>
-		<div class="relative w-full sm:max-w-max sm:flex-2">
-			<SearchInput bind:value={search} placeholder="Cari.." />
-		</div>
-	</div>
 
-	<ProjectList
-		projects={projectsQuery.data?.projects ?? []}
-		isAccountEmpty={isTrulyEmpty}
-		isCheckingEmptyState={isCurrentResultEmpty && hasAnyProjectQuery.isPending}
-		currentPage={projectsQuery.data?.meta.current_page ?? currentPage}
-		totalPages={projectsQuery.data?.meta.last_page ?? 1}
-		isLoading={projectsQuery.isPending}
-		isFetching={projectsQuery.isFetching}
-		isError={projectsQuery.error}
-		onRetry={() => {
-			projectsQuery.refetch();
-		}}
-		onPageChange={(page) => (currentPage = page)}
-	/>
-</main>
+		{#if showControls}
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<ProjectFilter bind:value={filter} />
+				<SearchInput
+					class="w-full sm:w-64"
+					placeholder="Cari proyek"
+					debounce={300}
+					onSearch={(value) => (search = value)}
+				/>
+			</div>
+		{/if}
+
+		<ProjectList
+			projects={projectsQuery.data?.projects ?? []}
+			isCheckingEmptyState={isCurrentResultEmpty && hasAnyProjectQuery.isPending}
+			currentPage={projectsQuery.data?.meta.current_page ?? currentPage}
+			totalPages={projectsQuery.data?.meta.last_page ?? 1}
+			isLoading={projectsQuery.isPending}
+			isFetching={projectsQuery.isFetching}
+			isError={projectsQuery.error}
+			onRetry={() => {
+				projectsQuery.refetch();
+			}}
+			onPageChange={(page) => (currentPage = page)}
+		/>
+	{/if}
+</div>

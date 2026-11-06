@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { pageTitle } from '$lib/utils/page-title';
+	import Button from '$lib/components/ui/Button.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import {
 		redirectToGithubAuth,
 		redirectToGoogleAuth,
@@ -11,17 +13,29 @@
 		type AuthProviderId
 	} from '$lib/features/auth/utils/oauth';
 	import { resolve } from '$app/paths';
-	import AuthBranding from '$lib/features/auth/components/AuthBranding.svelte';
+	import FormField from '$lib/components/ui/FormField.svelte';
+	import AuthSplitLayout from '$lib/features/auth/components/AuthSplitLayout.svelte';
 	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
-	import { Eye, EyeSlash } from 'phosphor-svelte';
+	import ResendVerification from '$lib/features/auth/components/ResendVerification.svelte';
+	import AuthOptionsSkeleton from '$lib/features/auth/components/AuthOptionsSkeleton.svelte';
+	import EmailDeliveryNotice from '$lib/features/auth/components/EmailDeliveryNotice.svelte';
+	import {
+		loginProviders,
+		loginUnavailableMessage,
+		resolveAuthAvailability
+	} from '$lib/features/auth/availability';
+	import { useAuthOptions } from '$lib/features/auth/queries';
 	import { useLogin } from '$lib/features/auth/mutations';
+	import {
+		consumeAccountDeletedNotice,
+		consumeSessionEndedNotice
+	} from '$lib/features/auth/session-notice';
 	import { ApiError, NetworkError } from '$lib/api/errors';
 
 	let authMethod = $derived(page.url.searchParams.get('method') === 'email' ? 'email' : 'choice');
 
 	let email = $state('');
 	let password = $state('');
-	let showPassword = $state(false);
 	let lastProvider = $state<AuthProviderId | null>(null);
 	let showAllProviders = $state(false);
 	let errors = $state({
@@ -30,22 +44,30 @@
 		general: ''
 	});
 
-	const loginMutation = useLogin();
+	/** Set only after the API confirmed the password, so it reveals nothing about the email. */
+	let unverifiedEmail = $state<string | null>(null);
+	let generalErrorRef = $state<HTMLElement | null>(null);
 
-	const authProviders: { id: AuthProviderId; name: string }[] = [
-		{ id: 'github', name: 'Github' },
-		{ id: 'google', name: 'Google' },
-		{ id: 'email', name: 'Email' }
-	];
+	const loginMutation = useLogin();
+	const sessionEnded = consumeSessionEndedNotice();
+	const accountDeleted = consumeAccountDeletedNotice();
+
+	const authOptions = useAuthOptions();
+	const availability = $derived(resolveAuthAvailability(authOptions));
+	const authProviders = $derived(loginProviders(availability));
+	/** A provider remembered on this browser may no longer be configured. */
+	const offeredLastProvider = $derived(
+		authProviders.some((provider) => provider.id === lastProvider) ? lastProvider : null
+	);
 
 	function providerName(id: AuthProviderId): string {
 		switch (id) {
 			case 'github':
-				return 'Github';
+				return 'GitHub';
 			case 'google':
 				return 'Google';
 			case 'email':
-				return 'Email';
+				return 'email';
 		}
 	}
 
@@ -60,13 +82,13 @@
 			localStorage.removeItem('return_url');
 			switch (errorParam) {
 				case 'google_access_denied':
-					errors.general = 'Anda membatalkan izin masuk dengan Google.';
+					errors.general = 'Kamu membatalkan izin masuk dengan Google.';
 					break;
 				case 'google_email_conflict':
-					errors.general = 'Email Google Anda sudah terdaftar dengan metode login lain.';
+					errors.general = 'Email Google kamu sudah terdaftar dengan metode login lain.';
 					break;
 				case 'google_email_unavailable':
-					errors.general = 'Email publik tidak ditemukan di akun Google Anda.';
+					errors.general = 'Email publik tidak ditemukan di akun Google kamu.';
 					break;
 				case 'google_invalid_state':
 					errors.general = 'Sesi login tidak valid. Silakan coba lagi.';
@@ -75,13 +97,13 @@
 					errors.general = 'Gagal terhubung dengan Google. Silakan coba beberapa saat lagi.';
 					break;
 				case 'github_access_denied':
-					errors.general = 'Anda membatalkan izin masuk dengan GitHub.';
+					errors.general = 'Kamu membatalkan izin masuk dengan GitHub.';
 					break;
 				case 'github_email_conflict':
-					errors.general = 'Email GitHub Anda sudah terdaftar dengan metode login lain.';
+					errors.general = 'Email GitHub kamu sudah terdaftar dengan metode login lain.';
 					break;
 				case 'github_email_unavailable':
-					errors.general = 'Email publik tidak ditemukan di akun GitHub Anda.';
+					errors.general = 'Email publik tidak ditemukan di akun GitHub kamu.';
 					break;
 				case 'github_invalid_state':
 					errors.general = 'Sesi login tidak valid. Silakan coba lagi.';
@@ -114,7 +136,7 @@
 	function handleEmailInput() {
 		if (errors.email) {
 			if (!email.trim()) {
-				errors.email = 'Anda belum memasukan Email';
+				errors.email = 'Kamu belum memasukkan email.';
 			} else if (!email.includes('@')) {
 				errors.email = 'Format email tidak valid.';
 			} else {
@@ -126,7 +148,7 @@
 	function handlePasswordInput() {
 		if (errors.password) {
 			if (!password) {
-				errors.password = 'Anda belum memasukan Kata Sandi';
+				errors.password = 'Kamu belum memasukkan kata sandi.';
 			} else {
 				errors.password = '';
 			}
@@ -136,24 +158,35 @@
 	function validateLogin() {
 		let isValid = true;
 		errors = { email: '', password: '', general: '' };
+		unverifiedEmail = null;
 
 		if (!email.trim()) {
-			errors.email = 'Anda belum memasukan Email';
+			errors.email = 'Kamu belum memasukkan email.';
 			isValid = false;
 		} else if (!email.includes('@')) {
 			errors.email = 'Format email tidak valid.';
 			isValid = false;
 		}
 		if (!password) {
-			errors.password = 'Anda belum memasukan Kata Sandi';
+			errors.password = 'Kamu belum memasukkan kata sandi.';
 			isValid = false;
 		}
 		return isValid;
 	}
 
+	async function focusFirstError() {
+		await tick();
+		if (errors.email) document.getElementById('email')?.focus();
+		else if (errors.password) document.getElementById('password')?.focus();
+		else generalErrorRef?.focus();
+	}
+
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		if (!validateLogin()) return;
+		if (!validateLogin()) {
+			await focusFirstError();
+			return;
+		}
 
 		try {
 			await loginMutation.mutateAsync({
@@ -168,182 +201,185 @@
 				goto(resolve('/projects'));
 			}
 		} catch (err) {
-			if (err instanceof ApiError) {
-				if (err.status === 401 || err.status === 422) {
-					errors.general = 'Email atau kata sandi salah.';
-				} else {
-					errors.general = err.message || 'Gagal masuk. Silakan periksa kembali data Anda.';
-				}
+			if (err instanceof ApiError && err.status === 401) {
+				errors.general = 'Email atau kata sandi salah.';
+			} else if (err instanceof ApiError && err.code === 'email_not_verified') {
+				errors.general = err.message;
+				unverifiedEmail = email.trim();
+			} else if (err instanceof ApiError && err.isValidationError) {
+				errors.email = err.errors.email?.[0] ?? '';
+				errors.password = err.errors.password?.[0] ?? '';
+				if (!errors.email && !errors.password) errors.general = err.message;
+			} else if (err instanceof ApiError) {
+				errors.general = err.message || 'Gagal masuk. Silakan periksa kembali data kamu.';
 			} else if (err instanceof NetworkError) {
-				errors.general = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+				errors.general = 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu.';
 			} else {
 				errors.general = 'Terjadi kesalahan saat masuk. Silakan coba lagi.';
 			}
+			await focusFirstError();
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Masuk | Sakala Console</title>
+	<title>{pageTitle('Masuk')}</title>
 </svelte:head>
 
-<main class="min-h-screen grid grid-cols-1 lg:grid-cols-10">
-	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-4">
-		<div class="w-full max-w-lg space-y-8">
-			<div class="space-y-2">
-				<h2 class="text-4xl font-semibold text-zinc-950 tracking-tight">Selamat Datang</h2>
-				<p class="text-sm text-zinc-500 font-normal">Masuk ke dashboard Anda untuk melanjutkan.</p>
-			</div>
+<AuthSplitLayout title="Selamat datang" description="Masuk ke dashboard kamu untuk melanjutkan.">
+	<div class="space-y-6">
+		{#if accountDeleted}
+			<p
+				class="rounded-control border border-primary/30 bg-primary-50 p-3 text-sm font-medium text-foreground"
+				role="status"
+			>
+				Akunmu sudah dihapus. Terima kasih sudah mencoba Sakala.
+			</p>
+		{/if}
 
-			<div class="space-y-6">
-				{#if authMethod === 'choice'}
-					{#if errors.general}
-						<div
-							class="p-3 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg"
+		{#if sessionEnded}
+			<p
+				class="rounded-control border border-primary/30 bg-primary-50 p-3 text-sm font-medium text-foreground"
+				role="status"
+			>
+				Sesi kamu berakhir, silakan masuk lagi.
+			</p>
+		{/if}
+
+		{#if availability.emailDeliveryOff}
+			<EmailDeliveryNotice message={loginUnavailableMessage(availability)} />
+		{/if}
+
+		{#if authMethod === 'choice'}
+			{#if errors.general}
+				<div
+					class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error"
+					role="alert"
+				>
+					{errors.general}
+				</div>
+			{/if}
+
+			{#if availability.isLoading}
+				<AuthOptionsSkeleton />
+			{:else if offeredLastProvider && !showAllProviders}
+				<div class="space-y-4">
+					<Button
+						variant="secondary"
+						size="lg"
+						class="w-full justify-between"
+						onclick={() => handleProviderClick(offeredLastProvider)}
+					>
+						<span class="flex items-center gap-2.5">
+							<SocialLogo name={offeredLastProvider} />
+							<span>Masuk dengan {providerName(offeredLastProvider)}</span>
+						</span>
+						<span
+							class="rounded-full border border-primary/30 bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-dark"
 						>
-							{errors.general}
-						</div>
-					{/if}
+							Terakhir dipakai
+						</span>
+					</Button>
 
-					{#if lastProvider && !showAllProviders}
-						<div class="space-y-4">
-							<button
-								onclick={() => handleProviderClick(lastProvider!)}
-								type="button"
-								class="w-full bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-between transition-all duration-200 hover:shadow-sm cursor-pointer"
-							>
-								<div class="flex items-center gap-2.5">
-									<SocialLogo name={lastProvider} />
-									<span>Masuk akun dengan {providerName(lastProvider)}</span>
-								</div>
-								<span
-									class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-[#0F766E] border border-teal-200/80"
-								>
-									Terakhir Digunakan &rarr;
-								</span>
-							</button>
+					<div class="flex items-center gap-3 text-xs text-muted">
+						<span class="h-px flex-1 bg-border"></span>
+						atau
+						<span class="h-px flex-1 bg-border"></span>
+					</div>
 
-							<div class="relative flex items-center justify-center my-4">
-								<div class="w-full border-t border-zinc-200"></div>
-								<span
-									class="absolute bg-white px-3 text-xs text-zinc-400 font-medium uppercase tracking-wider"
-									>Atau</span
-								>
-							</div>
-
-							<button
-								onclick={() => (showAllProviders = true)}
-								type="button"
-								class="w-full bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-700 font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-sm cursor-pointer text-sm"
-							>
-								Masuk dengan profil lainnya
-							</button>
-						</div>
-					{:else}
-						<div class="space-y-4">
-							{#each authProviders as provider (provider.id)}
-								<button
-									onclick={() => handleProviderClick(provider.id)}
-									type="button"
-									class="w-full bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2.5 transition-all duration-200 hover:shadow-sm cursor-pointer"
-								>
-									<SocialLogo name={provider.id} />
-									<span>Masuk akun dengan {provider.name}</span>
-								</button>
-							{/each}
-						</div>
-					{/if}
-				{:else}
-					<form class="space-y-4" onsubmit={handleSubmit} novalidate>
-						{#if errors.general}
-							<div
-								class="p-3 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg"
-							>
-								{errors.general}
-							</div>
-						{/if}
-						<div class="space-y-1.5 flex flex-col">
-							<label for="email" class="text-sm font-semibold text-zinc-700">Email</label>
-							<input
-								id="email"
-								type="email"
-								placeholder="example@gmail.com"
-								bind:value={email}
-								oninput={handleEmailInput}
-								class="w-full rounded-lg border border-[#0F766E] bg-white px-4 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors {errors.email
-									? 'border-red-400 bg-red-50/20 text-red-500 placeholder-red-300 focus:border-red-500'
-									: 'border-[#0F766E] bg-white text-zinc-800 placeholder-zinc-400 focus:border-[#0e6b64]'}"
-								required
-							/>
-							{#if errors.email}
-								<p class="text-xs text-red-500 mt-1">{errors.email}</p>
-							{/if}
-						</div>
-
-						<div class="space-y-1.5 flex flex-col">
-							<div class="flex justify-between items-center w-full">
-								<label for="password" class="text-sm font-semibold text-zinc-700">Kata Sandi</label>
-							</div>
-							<div class="relative flex items-center">
-								<input
-									id="password"
-									type={showPassword ? 'text' : 'password'}
-									placeholder="Masukkan Kata Sandi Anda"
-									bind:value={password}
-									oninput={handlePasswordInput}
-									class="w-full rounded-lg border border-[#0F766E] bg-white pl-4 pr-11 py-3 text-sm font-medium placeholder-zinc-400 focus:border-[#0e6b64] focus:ring-1 focus:ring-[#0e6b64] focus:outline-none transition-colors
-                  {errors.password
-										? 'border-red-400 bg-red-50/20 text-red-500 placeholder-red-300 focus:border-red-500'
-										: 'border-[#0F766E] bg-white text-zinc-800 placeholder-zinc-400 focus:border-[#0e6b64]'}"
-									required
-								/>
-								<button
-									type="button"
-									onclick={() => (showPassword = !showPassword)}
-									class="absolute right-3.5 text-[#0F766E] hover:text-[#0e6b64] p-1 cursor-pointer"
-									aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-								>
-									{#if showPassword}
-										<EyeSlash size={20} />
-									{:else}
-										<Eye size={20} />
-									{/if}
-								</button>
-							</div>
-							{#if errors.password}
-								<p class="text-xs text-red-500 mt-1">{errors.password}</p>
-							{/if}
-						</div>
-
-						<a href={resolve('/')} class="text-xs font-semibold text-[#0e6b64] hover:underline">
-							Lupa Kata Sandi?
-						</a>
-
-						<button
-							type="submit"
-							disabled={loginMutation.isPending}
-							class="w-full bg-[#0F766E] hover:bg-[#0e6b64] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2.5 transition-all duration-200 hover:shadow-sm cursor-pointer mt-2"
+					<Button
+						variant="ghost"
+						size="lg"
+						class="w-full"
+						onclick={() => (showAllProviders = true)}
+					>
+						Pilih cara masuk lain
+					</Button>
+				</div>
+			{:else}
+				<div class="space-y-3">
+					{#each authProviders as provider (provider.id)}
+						<Button
+							variant="secondary"
+							size="lg"
+							class="w-full"
+							onclick={() => handleProviderClick(provider.id)}
 						>
-							{#if loginMutation.isPending}
-								<div
-									class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
-								></div>
-								<span>Memproses...</span>
-							{:else}
-								<span>Lanjutkan dengan Email</span>
-							{/if}
-						</button>
-					</form>
+							<SocialLogo name={provider.id} />
+							<span>Masuk dengan {provider.name}</span>
+						</Button>
+					{/each}
+				</div>
+			{/if}
+		{:else}
+			<form class="space-y-4" onsubmit={handleSubmit} novalidate>
+				{#if errors.general}
+					<div
+						bind:this={generalErrorRef}
+						class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error focus:outline-none"
+						role="alert"
+						tabindex="-1"
+					>
+						{errors.general}
+					</div>
+				{/if}
+				{#if unverifiedEmail}
+					<ResendVerification email={unverifiedEmail} />
+				{/if}
+				<FormField
+					id="email"
+					label="Email"
+					type="email"
+					autocomplete="email"
+					placeholder="nama@contoh.com"
+					required
+					bind:value={email}
+					oninput={handleEmailInput}
+					error={errors.email}
+				/>
+
+				<FormField
+					id="password"
+					label="Kata sandi"
+					type="password"
+					autocomplete="current-password"
+					placeholder="Kata sandi"
+					required
+					bind:value={password}
+					oninput={handlePasswordInput}
+					error={errors.password}
+				/>
+
+				{#if availability.emailActionsAvailable}
+					<a
+						href={resolve('/forgot-password')}
+						class="inline-flex min-h-6 items-center text-sm font-semibold text-primary-dark hover:underline"
+					>
+						Lupa kata sandi?
+					</a>
 				{/if}
 
-				<p class="text-center text-sm text-zinc-500">
-					Belum Punya Akun?
-					<a href={resolve('/register')} class="text-[#0e6b64] font-semibold hover:underline ml-1">
-						Daftar
-					</a>
-				</p>
-			</div>
-		</div>
+				<Button type="submit" size="lg" disabled={loginMutation.isPending} class="w-full">
+					{#if loginMutation.isPending}
+						<span
+							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+						></span>
+						<span>Memproses...</span>
+					{:else}
+						<span>Masuk</span>
+					{/if}
+				</Button>
+			</form>
+		{/if}
+
+		<p class="text-center text-sm text-muted">
+			Belum punya akun?
+			<a
+				href={resolve('/register')}
+				class="ml-1 inline-flex min-h-6 items-center font-semibold text-primary-dark hover:underline"
+			>
+				Daftar
+			</a>
+		</p>
 	</div>
-	<AuthBranding mode="login" />
-</main>
+</AuthSplitLayout>

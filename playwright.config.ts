@@ -13,6 +13,8 @@ export default defineConfig({
 	webServer: {
 		command: 'pnpm build && pnpm preview --host 127.0.0.1',
 		url: 'http://127.0.0.1:4173',
-		reuseExistingServer: !process.env.CI
+		reuseExistingServer: !process.env.CI,
+		// A cold production build alone takes about 92 s here; the 60 s default never lets it finish.
+		timeout: 300_000
 	}
 });

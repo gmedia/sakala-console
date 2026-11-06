@@ -1,5 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseCurrentUserResponse, login, register } from './auth';
+import {
+	parseCurrentUserResponse,
+	login,
+	register,
+	changePassword,
+	forgotPassword,
+	getAuthOptions,
+	requestEmailChange,
+	resendVerificationEmail,
+	resetPassword,
+	acceptLegalDocuments,
+	deleteAccount,
+	exportAccountData
+} from './auth';
 import { apiRequest } from '../client';
 
 vi.mock('../client', () => ({ apiRequest: vi.fn() }));
@@ -22,7 +35,11 @@ describe('Auth Resource', () => {
 				onboarding_source: 'github',
 				onboarding_role: 'developer',
 				onboarding_completed_at: '2026-08-25T10:00:00Z',
-				last_login_at: '2026-08-25T10:00:00Z'
+				last_login_at: '2026-08-25T10:00:00Z',
+				has_password: true,
+				legal_acceptance_required: false,
+				pending_email: null,
+				created_at: '2026-01-01T00:00:00Z'
 			}
 		};
 
@@ -49,7 +66,11 @@ describe('Auth Resource', () => {
 				onboarding_source: null,
 				onboarding_role: 'developer',
 				onboarding_completed_at: null,
-				last_login_at: null
+				last_login_at: null,
+				has_password: true,
+				legal_acceptance_required: false,
+				pending_email: null,
+				created_at: '2026-01-01T00:00:00Z'
 			}
 		};
 
@@ -86,7 +107,11 @@ describe('Auth Resource', () => {
 				onboarding_source: null,
 				onboarding_role: null,
 				onboarding_completed_at: null,
-				last_login_at: null
+				last_login_at: null,
+				has_password: true,
+				legal_acceptance_required: false,
+				pending_email: null,
+				created_at: '2026-01-01T00:00:00Z'
 			}
 		};
 		mockedApiRequest.mockResolvedValue(userPayload);
@@ -108,7 +133,10 @@ describe('Auth Resource', () => {
 			name: 'Budi Santoso',
 			email: 'budi@example.com',
 			password: 'password123',
-			password_confirmation: 'password123'
+			password_confirmation: 'password123',
+			accept_terms: true,
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1'
 		});
 
 		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/register', {
@@ -117,8 +145,185 @@ describe('Auth Resource', () => {
 				name: 'Budi Santoso',
 				email: 'budi@example.com',
 				password: 'password123',
-				password_confirmation: 'password123'
+				password_confirmation: 'password123',
+				accept_terms: true,
+				terms_version: 'syarat-v1',
+				acceptable_use_version: 'penggunaan-wajar-v1'
 			}
+		});
+	});
+});
+
+describe('account security endpoints', () => {
+	const user = {
+		id: 1,
+		name: 'Rani',
+		username: 'rani',
+		email: 'rani@sakala.local',
+		avatar_url: null,
+		role: 'user',
+		onboarding_source: null,
+		onboarding_role: null,
+		onboarding_completed_at: null,
+		last_login_at: null,
+		has_password: true,
+		legal_acceptance_required: false,
+		pending_email: 'baru@sakala.local',
+		created_at: null
+	};
+
+	it('resends verification with only the email, without a session', async () => {
+		mockedApiRequest.mockResolvedValue({ data: { request_accepted: true } });
+
+		await resendVerificationEmail('rani@sakala.local');
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/email/verification-notification', {
+			method: 'POST',
+			json: { email: 'rani@sakala.local' }
+		});
+	});
+
+	it('requests a reset link', async () => {
+		mockedApiRequest.mockResolvedValue({ data: { request_accepted: true } });
+
+		await forgotPassword('rani@sakala.local');
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/forgot-password', {
+			method: 'POST',
+			json: { email: 'rani@sakala.local' }
+		});
+	});
+
+	it('sends the reset token in the body, not the URL', async () => {
+		mockedApiRequest.mockResolvedValue(undefined);
+		const payload = {
+			token: 'rahasia',
+			email: 'rani@sakala.local',
+			password: 'kata-sandi-baru',
+			password_confirmation: 'kata-sandi-baru'
+		};
+
+		await resetPassword(payload);
+
+		const [path, options] = mockedApiRequest.mock.calls[0];
+		expect(path).toBe('api/v1/auth/reset-password');
+		expect(path).not.toContain('rahasia');
+		expect(options?.json).toEqual(payload);
+	});
+
+	it('changes the password with PUT and returns the user', async () => {
+		mockedApiRequest.mockResolvedValue({ data: user });
+
+		const result = await changePassword({
+			password: 'kata-sandi-baru',
+			password_confirmation: 'kata-sandi-baru'
+		});
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/password', {
+			method: 'PUT',
+			json: { password: 'kata-sandi-baru', password_confirmation: 'kata-sandi-baru' }
+		});
+		expect(result.id).toBe(1);
+	});
+
+	it('requests an email change and returns pending_email', async () => {
+		mockedApiRequest.mockResolvedValue({ data: user });
+
+		const result = await requestEmailChange({
+			email: 'baru@sakala.local',
+			current_password: 'kata-sandi'
+		});
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/email/change', {
+			method: 'POST',
+			json: { email: 'baru@sakala.local', current_password: 'kata-sandi' }
+		});
+		expect(result.pending_email).toBe('baru@sakala.local');
+	});
+});
+
+describe('getAuthOptions', () => {
+	const options = {
+		email_delivery_enabled: false,
+		providers: { github: true, google: false },
+		legal: {
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1',
+			privacy_notice_version: 'privasi-v1'
+		}
+	};
+
+	it('reads the public options', async () => {
+		mockedApiRequest.mockResolvedValue({ data: options });
+
+		await expect(getAuthOptions()).resolves.toEqual(options);
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/options');
+	});
+
+	it('rejects a body it cannot trust, so the page falls back instead of guessing', async () => {
+		mockedApiRequest.mockResolvedValue({ data: { email_delivery_enabled: 'no' } });
+
+		await expect(getAuthOptions()).rejects.toThrow();
+	});
+});
+
+describe('legal acceptance and account actions', () => {
+	const user = {
+		id: 1,
+		name: 'Rani',
+		username: 'rani',
+		email: 'rani@example.com',
+		avatar_url: null,
+		role: 'user',
+		onboarding_source: null,
+		onboarding_role: null,
+		onboarding_completed_at: null,
+		last_login_at: null,
+		has_password: false,
+		legal_acceptance_required: false,
+		pending_email: null,
+		created_at: null
+	};
+
+	it('accepts the versions the form showed and returns the updated user', async () => {
+		mockedApiRequest.mockResolvedValue({ data: user });
+		const payload = {
+			accept_terms: true,
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1'
+		};
+
+		await expect(acceptLegalDocuments(payload)).resolves.toMatchObject({
+			legal_acceptance_required: false
+		});
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/legal-acceptance', {
+			method: 'POST',
+			json: payload
+		});
+	});
+
+	it('leaves the password out for an account without one', async () => {
+		mockedApiRequest.mockResolvedValue(undefined);
+		await deleteAccount({ email: 'rani@example.com' });
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/account', {
+			method: 'DELETE',
+			json: { email: 'rani@example.com' }
+		});
+	});
+
+	it('keeps the export whole and outside the shared read limit', async () => {
+		const data = {
+			exported_at: '2026-11-06T00:00:00+00:00',
+			max_items_per_collection: 1000,
+			truncated: ['deployments'],
+			account: { email: 'rani@example.com' },
+			projects: []
+		};
+		mockedApiRequest.mockResolvedValue({ data });
+
+		await expect(exportAccountData()).resolves.toEqual(data);
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/account/export', {
+			separateRateLimit: true
 		});
 	});
 });

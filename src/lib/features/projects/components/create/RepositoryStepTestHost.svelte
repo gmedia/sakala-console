@@ -3,6 +3,7 @@
 	import { initCreateProjectContext } from '../../create/createProjectContext';
 	import type { Repository } from '../../type';
 
+	import type { GithubInstallation } from '$lib/api/resources/github';
 	import type { ProjectWizardState } from '../../create/createProjectState.svelte';
 
 	type Props = {
@@ -16,6 +17,18 @@
 		onSelectRepository?: (id: string, repo: Repository) => void;
 		onValidateGitUrl?: (url: string) => Promise<Repository>;
 		onReady?: (wizard: ProjectWizardState) => void;
+		installations?: GithubInstallation[];
+		installationId?: string | null;
+		onInstallationChange?: (id: string) => void;
+		configureUrl?: string | null;
+		addAccountUrl?: string | null;
+		reconnectUrl?: string | null;
+		total?: number;
+		currentPage?: number;
+		lastPage?: number;
+		onPageChange?: (page: number) => void;
+		onSearch?: (search: string) => void;
+		blocked?: boolean;
 	};
 
 	let {
@@ -27,8 +40,9 @@
 		onNext = () => {},
 		onConnectGithub = () => {},
 		onSelectRepository,
-		onValidateGitUrl,
-		onReady
+		onValidateGitUrl = () => Promise.reject(new Error('not used')),
+		onReady,
+		...rest
 	}: Props = $props();
 
 	const wizard = initCreateProjectContext();
@@ -47,4 +61,5 @@
 	{onConnectGithub}
 	{onSelectRepository}
 	{onValidateGitUrl}
+	{...rest}
 />

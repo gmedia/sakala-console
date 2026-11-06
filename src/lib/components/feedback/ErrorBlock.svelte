@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { CellSignalSlashIcon, ArrowCounterClockwiseIcon } from 'phosphor-svelte';
+	import CellSignalSlashIcon from 'phosphor-svelte/lib/CellSignalSlashIcon';
+	import ArrowCounterClockwiseIcon from 'phosphor-svelte/lib/ArrowCounterClockwiseIcon';
 	import Card from '../ui/Card.svelte';
 	import Button from '../ui/Button.svelte';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import type { Component } from 'svelte';
+	import type { ResolvedPathname } from '$app/types';
 
 	type Props = {
 		title?: string;
@@ -12,68 +14,89 @@
 		icon?: Component<{ size?: number; class?: string; 'aria-hidden'?: 'true' }>;
 		iconClass?: string;
 		iconText?: string;
+		iconTextClass?: string;
 		iconBackgroundClass?: string;
 		statusIndicator?: string;
 		statusIndicatorClass?: string;
 		buttonIcon?: Component<{ size?: number; class?: string; 'aria-hidden'?: 'true' }>;
 		buttonText?: string;
 		onRetry?: () => void;
+		/** Ways out of this screen, for errors that retrying alone cannot solve. */
+		links?: { label: string; href: ResolvedPathname }[];
+		/** A full-page error owns the page's main heading. */
+		headingTag?: 'h1' | 'h2';
 	};
 
 	let {
 		title = 'Terjadi kesalahan',
 		titleClass,
-		description = 'Gagal memuat data. Silakan periksa koneksi anda dan coba lagi.',
+		description = 'Gagal memuat data. Silakan periksa koneksi kamu dan coba lagi.',
 		icon: Icon = CellSignalSlashIcon,
 		iconText,
+		iconTextClass = 'text-error-base',
 		iconClass = 'text-error-base',
-		iconBackgroundClass = 'bg-error/20',
+		iconBackgroundClass = 'bg-error/10',
 		statusIndicator,
 		statusIndicatorClass = 'text-muted',
 		buttonIcon: ButtonIcon = ArrowCounterClockwiseIcon,
 		buttonText,
-		onRetry
+		onRetry,
+		links = [],
+		headingTag = 'h2'
 	}: Props = $props();
 </script>
 
 <div>
 	<div class="flex justify-center mb-6">
-		<SakalaLogo class="h-9.25 w-40.5" />
+		<SakalaLogo class="h-10" />
 	</div>
 	<Card class="sm:py-1">
 		<div
-			class="flex flex-col items-center justify-center gap-2 p-8 text-center rounded-xl max-w-md w-full mx-auto"
+			class="mx-auto flex w-full max-w-md flex-col items-center justify-center gap-2 p-4 text-center"
 			role="alert"
 			aria-live="assertive"
 		>
 			{#if Icon}
-				<div class={`w-12 h-12 flex items-center p-2 rounded-full ${iconBackgroundClass}`}>
-					<Icon size={42} aria-hidden="true" class={iconClass} />
+				<div class={`flex size-12 items-center justify-center rounded-full ${iconBackgroundClass}`}>
+					<Icon size={28} aria-hidden="true" class={iconClass} />
 				</div>
-				<p class="text-base font-montserrat-semibold text-error-base">{iconText}</p>
+				<p class={`text-base font-semibold ${iconTextClass}`}>{iconText}</p>
 			{/if}
 
-			<h2 class={`text-base font-montserrat-semibold ${titleClass || ''}`}>{title}</h2>
+			<svelte:element this={headingTag} class={`text-xl ${titleClass || ''}`}>
+				{title}
+			</svelte:element>
 
 			{#if description}
-				<p class="mt-1 text-md font-montserrat-light">{description}</p>
+				<p class="mt-1 text-sm text-foreground">{description}</p>
 			{/if}
 
 			{#if statusIndicator}
 				<div class="flex items-center gap-2">
 					<span class="h-2 w-2 rounded-full bg-error-dark"></span>
-					<p class={`text-sm font-montserrat-medium ${statusIndicatorClass}`}>
+					<p class={`text-sm font-medium ${statusIndicatorClass}`}>
 						{statusIndicator}
 					</p>
 				</div>
 			{/if}
 
 			{#if onRetry && buttonText && ButtonIcon}
-				<Button class="mt-4 w-full py-3" variant="primary" onclick={onRetry}>
+				<Button size="lg" class="mt-4 w-full" onclick={onRetry}>
 					<ButtonIcon class="w-5 h-5" />
 					{buttonText}
 				</Button>
 			{/if}
+
+			{#each links as link, index (link.href)}
+				<Button
+					size="lg"
+					class="mt-2 w-full"
+					variant={index === 0 && !onRetry ? 'primary' : 'secondary'}
+					href={link.href}
+				>
+					{link.label}
+				</Button>
+			{/each}
 		</div>
 	</Card>
 </div>

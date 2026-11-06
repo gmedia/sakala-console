@@ -1,21 +1,27 @@
 <script lang="ts">
 	import { createDeploymentsQuery } from '../../queries';
 	import type { DeploymentFilter } from '../../type';
-	import {
-		CircleNotch,
-		WarningCircle,
-		List,
-		MagnifyingGlass,
-		Empty,
-		CaretLeft,
-		CaretRight
-	} from 'phosphor-svelte';
-	import DeploymentCard from './DeploymentCard.svelte';
+	import ClockCounterClockwise from 'phosphor-svelte/lib/ClockCounterClockwise';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
+	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Pagination from '$lib/components/ui/Pagination.svelte';
+	import SearchInput from '$lib/components/ui/SearchInput.svelte';
+	import ProjectFilter from '../project/ProjectFilter.svelte';
+	import DeploymentRow from './DeploymentRow.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
-	const filterOptions: DeploymentFilter[] = ['30_days', '7_days', 'all'];
-	let selectedFilter = $state<DeploymentFilter>('30_days');
+	const PER_PAGE = 6;
+
+	const filterOptions: { label: string; value: DeploymentFilter }[] = [
+		{ label: 'Semua waktu', value: 'all' },
+		{ label: '7 hari terakhir', value: '7_days' },
+		{ label: '30 hari terakhir', value: '30_days' }
+	];
+
+	let selectedFilter = $state<DeploymentFilter>('all');
 	let searchQuery = $state('');
 	let currentPage = $state(1);
 
@@ -23,147 +29,113 @@
 		() => projectId,
 		() => ({
 			page: currentPage,
-			per_page: 6,
+			per_page: PER_PAGE,
 			search: searchQuery.trim() || undefined,
 			filter: selectedFilter
 		})
 	);
 
-	function toggleFilter() {
-		const currentIndex = filterOptions.indexOf(selectedFilter);
-		const nextIndex = (currentIndex + 1) % filterOptions.length;
-		selectedFilter = filterOptions[nextIndex];
+	function changeFilter(next: DeploymentFilter) {
+		selectedFilter = next;
 		currentPage = 1;
 	}
 
-	const filterLabels: Record<DeploymentFilter, string> = {
-		'7_days': '7 hari terakhir',
-		'30_days': '30 hari terakhir',
-		all: 'Semua waktu'
-	};
-
-	const filterText = $derived(filterLabels[selectedFilter]);
-
 	const deployments = $derived(query.data?.data ?? []);
 	const totalPages = $derived(query.data?.meta.last_page ?? 1);
-
-	function getPaginationRange(current: number, total: number) {
-		if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-
-		if (current <= 3) return [1, 2, 3, 4, '...', total];
-		if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
-
-		return [1, '...', current - 1, current, current + 1, '...', total];
-	}
-
-	const paginationRange = $derived(getPaginationRange(currentPage, totalPages));
+	const narrowed = $derived(Boolean(searchQuery.trim()) || selectedFilter !== 'all');
+	// A few deployments fit on one page. Controls appear when there is something to narrow down, and
+	// stay while narrowing, or the way back would be gone.
+	const showControls = $derived(narrowed || totalPages > 1);
 </script>
 
-<div class="flex flex-col gap-6 w-full">
-	<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-		<button
-			type="button"
-			onclick={toggleFilter}
-			class="flex items-center min-w-35.75 h-6 px-3 rounded-none bg-primary-50 text-primary transition-colors hover:bg-primary-100 cursor-pointer"
-		>
-			<span class="py-1">
-				<List size={16} />
-			</span>
-			<span class="pl-2 text-[12px] font-montserrat-semibold">{filterText}</span>
-		</button>
+<div class="flex w-full flex-col gap-4">
+	{#if showControls}
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<ProjectFilter
+				bind:value={() => selectedFilter, changeFilter}
+				options={filterOptions}
+				name="Filter waktu"
+			/>
 
-		<div class="relative w-54 h-10">
-			<MagnifyingGlass size={16} class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-			<input
-				type="text"
-				placeholder="Search..."
-				value={searchQuery}
-				oninput={(e) => {
-					searchQuery = e.currentTarget.value;
+			<SearchInput
+				class="w-full sm:w-64"
+				placeholder="Cari deployment"
+				debounce={300}
+				onSearch={(value) => {
+					searchQuery = value;
 					currentPage = 1;
 				}}
-				class="w-full h-full bg-surface border border-border rounded-lg pl-11 pr-4 py-2 text-sm outline-none focus:border-primary transition-colors"
 			/>
 		</div>
-	</div>
+	{/if}
 
 	{#if query.isPending}
-		<div class="flex items-center justify-center p-24">
-			<CircleNotch size={32} class="animate-spin text-muted" />
-		</div>
+		<ul class="surface-card divide-y divide-border" role="status">
+			<span class="sr-only">Memuat riwayat deployment...</span>
+			{#each [1, 2, 3, 4] as item (item)}
+				<li class="flex items-center gap-3 px-4 py-3" aria-hidden="true">
+					<div class="skeleton size-5 rounded-full"></div>
+					<div class="skeleton h-4 flex-1"></div>
+					<div class="skeleton h-4 w-20"></div>
+				</li>
+			{/each}
+		</ul>
 	{:else if query.isError}
 		<div
-			class="p-6 bg-error/5 text-error rounded-xl flex items-center gap-3 border border-error/20"
+			role="alert"
+			class="flex flex-wrap items-center gap-3 rounded-card border border-error/20 bg-error/5 p-4 text-error"
 		>
-			<WarningCircle size={24} weight="fill" />
-			<p class="font-medium text-sm">Gagal memuat riwayat deployment. Silakan coba lagi.</p>
-		</div>
-	{:else if deployments.length === 0 && !searchQuery.trim()}
-		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
-			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
-				<Empty size={32} weight="regular" />
-			</div>
-			<p class="text-foreground text-[20px] font-montserrat-light">
-				Belum ada riwayat deployment untuk proyek ini.
+			<WarningCircle size={24} weight="fill" aria-hidden="true" />
+			<p class="min-w-0 flex-1 text-sm font-medium">
+				Gagal memuat riwayat deployment. Riwayatnya sendiri tidak hilang.
 			</p>
+			<Button variant="secondary" onclick={() => query.refetch()} disabled={query.isFetching}>
+				{query.isFetching ? 'Memuat...' : 'Coba lagi'}
+			</Button>
 		</div>
 	{:else if deployments.length === 0 && searchQuery.trim()}
-		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
-			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
-				<MagnifyingGlass size={32} weight="regular" />
-			</div>
-			<p class="text-foreground text-[20px] font-montserrat-light">
-				Tidak ada deployment yang sesuai dengan pencarian.
-			</p>
-		</div>
+		<EmptyState
+			icon={MagnifyingGlass}
+			title="Tidak ada yang cocok"
+			description="Tidak ada deployment yang sesuai dengan pencarian."
+		/>
+	{:else if deployments.length === 0 && selectedFilter !== 'all'}
+		<EmptyState
+			icon={ClockCounterClockwise}
+			title="Tidak ada deployment"
+			description={`Tidak ada deployment dalam ${filterOptions.find((option) => option.value === selectedFilter)?.label}.`}
+		>
+			{#snippet action()}
+				<Button variant="secondary" onclick={() => changeFilter('all')}>Lihat semua waktu</Button>
+			{/snippet}
+		</EmptyState>
+	{:else if deployments.length === 0}
+		<EmptyState
+			icon={ClockCounterClockwise}
+			title="Belum ada riwayat"
+			description="Proyek ini belum pernah di-deploy. Jalankan deploy pertamanya lewat tombol di atas, dan hasilnya muncul di sini."
+		/>
 	{:else}
-		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-			{#each deployments as deployment (deployment.id)}
-				<DeploymentCard {deployment} />
-			{/each}
+		<div class="@container surface-card overflow-hidden">
+			<div
+				aria-hidden="true"
+				class="hidden gap-x-3 border-b border-border px-4 py-2 text-xs text-muted @3xl:grid @3xl:grid-cols-[6.5rem_2.5rem_minmax(0,1fr)_4.5rem_5rem_6.5rem_6.5rem]"
+			>
+				<span>Status</span>
+				<span>Nomor</span>
+				<span>Commit</span>
+				<span>SHA</span>
+				<span>Branch</span>
+				<span>Waktu</span>
+				<span class="text-right">Durasi</span>
+			</div>
+			<ul class="divide-y divide-border">
+				{#each deployments as deployment (deployment.id)}
+					<DeploymentRow {deployment} />
+				{/each}
+			</ul>
 		</div>
 
-		{#if totalPages > 1}
-			<div class="flex items-center justify-center gap-2 mt-4 mb-8">
-				<button
-					type="button"
-					onclick={() => currentPage > 1 && (currentPage -= 1)}
-					disabled={currentPage === 1}
-					class="flex items-center justify-center w-14 h-12 rounded-lg bg-white text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
-				>
-					<CaretLeft size={16} weight="bold" />
-				</button>
-
-				{#each paginationRange as pageNum (pageNum)}
-					{#if pageNum === '...'}
-						<div
-							class="flex items-center justify-center w-10.5 h-12 rounded-lg bg-white text-muted font-bold tracking-widest text-sm"
-						>
-							...
-						</div>
-					{:else}
-						<button
-							type="button"
-							onclick={() => (currentPage = Number(pageNum))}
-							class="flex items-center justify-center h-12 rounded-lg text-sm font-semibold transition-colors cursor-pointer {currentPage ===
-							pageNum
-								? 'bg-primary text-white w-9.75'
-								: 'bg-white text-muted hover:bg-muted/10 w-10.5'}"
-						>
-							{pageNum}
-						</button>
-					{/if}
-				{/each}
-
-				<button
-					type="button"
-					onclick={() => currentPage < totalPages && (currentPage += 1)}
-					disabled={currentPage === totalPages}
-					class="flex items-center justify-center w-14 h-12 rounded-lg bg-white text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
-				>
-					<CaretRight size={16} weight="bold" />
-				</button>
-			</div>
-		{/if}
+		<Pagination {currentPage} {totalPages} onPageChange={(next) => (currentPage = next)} />
 	{/if}
 </div>

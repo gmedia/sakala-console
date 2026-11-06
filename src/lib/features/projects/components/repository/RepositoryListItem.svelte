@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
 	import { formatDate } from '$lib/utils/date';
-	import { GlobeIcon, LockSimpleIcon, DotIcon, GithubLogoIcon } from 'phosphor-svelte';
+	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
+	import LockSimpleIcon from 'phosphor-svelte/lib/LockSimpleIcon';
+	import DotIcon from 'phosphor-svelte/lib/DotIcon';
 	import type { Repository } from '../../type';
 
 	type Props = {
@@ -34,30 +36,28 @@
 	onclick={handleClick}
 	onkeydown={handleKeydown}
 	class={cn(
-		'flex cursor-pointer items-center bg-white border border-muted/40 gap-4 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-primary',
+		'flex cursor-pointer items-center gap-3 border border-border bg-surface p-3 transition-colors sm:gap-4 sm:p-4 focus-visible:outline-2 focus-visible:outline-primary',
 		disabled && 'cursor-not-allowed opacity-50'
 	)}
 >
-	<GithubLogoIcon class="h-12 w-12 shrink-0 rounded-lg bg-muted/20 p-2" />
-
 	<div class="min-w-0 flex-1">
 		<div class="flex gap-2">
-			<p class="truncate text-left font-montserrat-semibold font-medium">
+			<p class="min-w-0 text-left font-semibold wrap-anywhere">
 				{repository.full_name}
 			</p>
 			{#if repository.private}
-				<LockSimpleIcon class="h-5 w-5 text-muted-foreground" />
+				<LockSimpleIcon class="h-5 w-5 shrink-0" aria-label="Repository privat" />
 			{:else}
-				<GlobeIcon class="h-5 w-5 text-muted-foreground" />
+				<GlobeIcon class="h-5 w-5 shrink-0" aria-label="Repository publik" />
 			{/if}
 		</div>
-		<div class="mt-1 flex items-center gap-2 text-sm text-muted">
+		<div class="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-foreground/70">
 			<span
 				>{repository.pushed_at
 					? `Diperbarui ${formatDate(repository.pushed_at)}`
 					: 'Belum ada info update'}</span
 			>
-			<DotIcon class="h-6 w-6 fill-current text-muted-foreground" />
+			<DotIcon class="hidden h-6 w-6 fill-current sm:block" aria-hidden="true" />
 			<span>{repository.default_branch}</span>
 		</div>
 	</div>
@@ -65,7 +65,7 @@
 	<span
 		class={cn(
 			'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-			selected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+			selected ? 'border-primary bg-primary' : 'border-muted'
 		)}
 	></span>
 </div>

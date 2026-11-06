@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import { cn } from '$lib/utils/cn';
+	import Button from './Button.svelte';
+	import { buttonClasses } from './button-classes';
 	import type { Snippet } from 'svelte';
 
 	type Variants = 'default' | 'destructive';
@@ -8,8 +10,10 @@
 
 	type Props = {
 		open: boolean;
-		title: string;
-		description?: string;
+		title: string | Snippet;
+		description?: string | Snippet;
+		/** Shown above the title, for example the trash icon on delete confirmations. */
+		icon?: Snippet;
 		confirmLabel?: string;
 		cancelLabel?: string;
 		onConfirm: () => void;
@@ -17,7 +21,15 @@
 		loading?: boolean;
 		variant?: Variants;
 		emphasis?: Emphasis;
+		confirmDisabled?: boolean;
+		/** Where focus lands on open. Defaults to the emphasised button, but never a destructive confirm. */
+		initialFocus?: Emphasis | (() => HTMLElement | null | undefined);
+		/** Where focus goes on close, for a dialog opened from something that is gone by then. */
+		returnFocus?: () => HTMLElement | null | undefined;
 		class?: string;
+		titleClass?: string;
+		descriptionClass?: string;
+		footerClass?: string;
 		children?: Snippet;
 	};
 
@@ -25,6 +37,7 @@
 		open = $bindable(),
 		title,
 		description,
+		icon,
 		confirmLabel = 'Konfirmasi',
 		cancelLabel = 'Batal',
 		onConfirm,
@@ -32,17 +45,20 @@
 		loading = false,
 		variant = 'default',
 		emphasis = 'confirm',
+		confirmDisabled = false,
+		initialFocus,
+		returnFocus,
 		class: className,
+		titleClass,
+		descriptionClass,
+		footerClass,
 		children
 	}: Props = $props();
 
-	const variants: Record<Variants, string> = {
-		default: 'bg-primary hover:bg-primary/90',
-		destructive: 'bg-error-base hover:bg-error-dark/90'
-	};
+	const emphasised = $derived(variant === 'destructive' ? 'danger' : 'primary');
 
-	let confirmButtonEl: HTMLButtonElement | null = $state(null);
-	let cancelButtonEl: HTMLButtonElement | null = $state(null);
+	let confirmButtonEl: HTMLElement | null = $state(null);
+	let cancelButtonEl: HTMLElement | null = $state(null);
 
 	function handleOpenChange(next: boolean) {
 		if (loading && !next) return;
@@ -53,35 +69,64 @@
 	}
 
 	function handleConfirm() {
-		if (loading) return;
+		if (loading || confirmDisabled) return;
 		onConfirm();
+	}
+
+	function handleCloseAutoFocus(event: Event) {
+		const target = returnFocus?.();
+		if (!target) return;
+		event.preventDefault();
+		target.focus();
 	}
 
 	function handleAutoFocus(event: Event) {
 		event.preventDefault();
-		const target = emphasis === 'cancel' ? cancelButtonEl : confirmButtonEl;
+		if (typeof initialFocus === 'function') {
+			initialFocus()?.focus();
+			return;
+		}
+		const fallback = variant === 'destructive' ? 'cancel' : emphasis;
+		const target = (initialFocus ?? fallback) === 'cancel' ? cancelButtonEl : confirmButtonEl;
 		target?.focus();
 	}
 </script>
 
-<DialogPrimitive.Root {open} onOpenChange={handleOpenChange}>
+<!-- Function binding keeps this controlled: bits-ui must not close itself while `loading` refuses. -->
+<DialogPrimitive.Root bind:open={() => open, handleOpenChange}>
 	<DialogPrimitive.Portal>
-		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/50" />
+		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-scrim/50" />
 		<DialogPrimitive.Content
 			onOpenAutoFocus={handleAutoFocus}
+			onCloseAutoFocus={handleCloseAutoFocus}
 			class={cn(
-				'fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2',
-				'rounded-xl border border-border-strong bg-surface p-6 shadow-lg',
+				'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
+				'max-h-[calc(100dvh-2rem)] overflow-y-auto',
+				'rounded-overlay border border-border bg-surface p-6 shadow-overlay',
 				className
 			)}
 		>
-			<DialogPrimitive.Title class="text-lg font-montserrat-semibold text-foreground">
-				{title}
+			{#if icon}
+				{@render icon()}
+			{/if}
+
+			<DialogPrimitive.Title
+				class={cn('font-display text-xl font-semibold wrap-anywhere text-foreground', titleClass)}
+			>
+				{#if typeof title === 'string'}
+					{title}
+				{:else}
+					{@render title()}
+				{/if}
 			</DialogPrimitive.Title>
 
 			{#if description}
-				<DialogPrimitive.Description class="mt-2 text-sm font-montserrat">
-					{description}
+				<DialogPrimitive.Description class={cn('mt-2 text-sm', descriptionClass)}>
+					{#if typeof description === 'string'}
+						{description}
+					{:else}
+						{@render description()}
+					{/if}
 				</DialogPrimitive.Description>
 			{/if}
 
@@ -91,39 +136,29 @@
 				</div>
 			{/if}
 
-			<div class="mt-6 flex justify-center w-full gap-2">
+			<div class={cn('mt-6 flex justify-center w-full gap-2', footerClass)}>
 				<DialogPrimitive.Close
 					bind:ref={cancelButtonEl}
 					disabled={loading}
-					class={cn(
-						'inline-flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-montserrat-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
-						emphasis === 'cancel'
-							? cn('text-white', variants[variant])
-							: 'border bg-surface text-foreground hover:bg-background-soft'
-					)}
+					class={buttonClasses(emphasis === 'cancel' ? emphasised : 'secondary', 'md', 'w-full')}
 				>
 					{cancelLabel}
 				</DialogPrimitive.Close>
 
-				<button
-					bind:this={confirmButtonEl}
-					type="button"
+				<Button
+					bind:ref={confirmButtonEl}
+					variant={emphasis === 'confirm' ? emphasised : 'secondary'}
+					class="w-full"
 					onclick={handleConfirm}
-					disabled={loading}
-					class={cn(
-						'inline-flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-montserrat-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
-						emphasis === 'confirm'
-							? cn('text-white', variants[variant])
-							: 'border bg-surface text-foreground hover:bg-background-soft'
-					)}
+					disabled={loading || confirmDisabled}
 				>
 					{#if loading}
 						<span
-							class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+							class="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current"
 						></span>
 					{/if}
 					{confirmLabel}
-				</button>
+				</Button>
 			</div>
 		</DialogPrimitive.Content>
 	</DialogPrimitive.Portal>
