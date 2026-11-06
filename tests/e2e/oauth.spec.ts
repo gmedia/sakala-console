@@ -11,6 +11,9 @@ type UserMock = {
 	onboarding_role: string | null;
 	onboarding_completed_at: string | null;
 	last_login_at: string | null;
+	has_password: boolean;
+	pending_email: string | null;
+	created_at: string | null;
 };
 
 const userCompletedOnboarding: UserMock = {
@@ -23,7 +26,10 @@ const userCompletedOnboarding: UserMock = {
 	onboarding_source: 'github',
 	onboarding_role: 'developer',
 	onboarding_completed_at: new Date().toISOString(),
-	last_login_at: new Date().toISOString()
+	last_login_at: new Date().toISOString(),
+	has_password: true,
+	pending_email: null,
+	created_at: '2026-01-01T00:00:00Z'
 };
 
 const userPendingOnboarding: UserMock = {
@@ -115,7 +121,7 @@ test('shows error message when provider returns error query parameter', async ({
 	const heading = page.getByRole('heading', { name: 'Gagal Masuk' });
 	await expect(heading).toBeVisible();
 	await expect(heading).toBeFocused();
-	await expect(page.getByText('Anda membatalkan izin masuk dengan GitHub.')).toBeVisible();
+	await expect(page.getByText('Kamu membatalkan izin masuk dengan GitHub.')).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Coba Lagi' })).toBeVisible();
 });
 
@@ -140,7 +146,7 @@ test('shows re-login button for unauthenticated 401 response', async ({ page }) 
 	const heading = page.getByRole('heading', { name: 'Autentikasi Gagal' });
 	await expect(heading).toBeVisible({ timeout: 15000 });
 	await expect(heading).toBeFocused();
-	await expect(page.getByRole('link', { name: 'Kembali ke Login' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Kembali ke halaman masuk' })).toBeVisible();
 });
 
 test('shows "Terakhir Digunakan" badge when last_login_provider exists in localStorage', async ({
@@ -295,7 +301,7 @@ test('does not set last_login_provider when Google login is cancelled or fails',
 
 	await page.goto('/login?error=google_access_denied');
 
-	await expect(page.getByText('Anda membatalkan izin masuk dengan Google.')).toBeVisible();
+	await expect(page.getByText('Kamu membatalkan izin masuk dengan Google.')).toBeVisible();
 	await expect(page.getByText(/Terakhir Digunakan/)).not.toBeVisible();
 
 	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
