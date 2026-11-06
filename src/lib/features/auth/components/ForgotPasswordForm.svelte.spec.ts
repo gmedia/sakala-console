@@ -10,6 +10,9 @@ vi.mock('$lib/config/public', () => ({
 	publicConfig: { apiUrl: 'http://api.test', appUrl: 'http://app.test' }
 }));
 vi.mock('$lib/api/resources/auth', () => ({
+	acceptLegalDocuments: vi.fn(),
+	deleteAccount: vi.fn(),
+	exportAccountData: vi.fn(),
 	changePassword: vi.fn(),
 	forgotPassword: vi.fn(),
 	getAuthOptions: vi.fn(),
@@ -24,7 +27,12 @@ vi.mock('$lib/api/resources/auth', () => ({
 
 const options = (email_delivery_enabled: boolean) => ({
 	email_delivery_enabled,
-	providers: { github: true, google: false }
+	providers: { github: true, google: false },
+	legal: {
+		terms_version: 'syarat-v1',
+		acceptable_use_version: 'penggunaan-wajar-v1',
+		privacy_notice_version: 'privasi-v1'
+	}
 });
 const renderForm = () => render(QueryTestHost, { props: { component: ForgotPasswordForm } });
 const submit = () => page.getByRole('button', { name: 'Kirim tautan reset' });

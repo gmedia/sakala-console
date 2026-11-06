@@ -14,6 +14,7 @@
 	import { noteSessionEnded, rememberSession } from '$lib/features/auth/session-notice';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import LoadingSkeleton from '$lib/components/feedback/LoadingSkeleton.svelte';
+	import LegalAcceptanceScreen from './LegalAcceptanceScreen.svelte';
 	import CellSignalSlashIcon from 'phosphor-svelte/lib/CellSignalSlashIcon';
 	import ClockIcon from 'phosphor-svelte/lib/ClockIcon';
 	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
@@ -42,6 +43,8 @@
 			}
 			const user = currentUser.data;
 			const currentPath = page.url.pathname;
+			// Accepting comes first. Onboarding follows once this re-runs with the updated user.
+			if (user.legal_acceptance_required) return;
 			if (!user.onboarding_completed_at) {
 				if (currentPath !== '/onboarding') {
 					goto(resolve('/onboarding'), { replaceState: true });
@@ -51,6 +54,12 @@
 			}
 		}
 	});
+
+	// Settings stays open: exporting data and deleting the account do not wait for an acceptance.
+	const needsLegalAcceptance = $derived(
+		currentUser.data?.legal_acceptance_required === true &&
+			!page.url.pathname.startsWith('/settings')
+	);
 
 	// The limit passes by itself, so this waits it out instead of asking the user to reload into it.
 	let retryIn = $state(0);
@@ -174,6 +183,8 @@
 			<ErrorBlock {...errorConfig} headingTag="h1" />
 		</main>
 	{/if}
+{:else if needsLegalAcceptance}
+	<LegalAcceptanceScreen />
 {:else if currentUser.data}
 	{@render children()}
 {/if}

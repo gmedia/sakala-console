@@ -26,7 +26,10 @@
 	} from '$lib/features/auth/availability';
 	import { useAuthOptions } from '$lib/features/auth/queries';
 	import { useLogin } from '$lib/features/auth/mutations';
-	import { consumeSessionEndedNotice } from '$lib/features/auth/session-notice';
+	import {
+		consumeAccountDeletedNotice,
+		consumeSessionEndedNotice
+	} from '$lib/features/auth/session-notice';
 	import { ApiError, NetworkError } from '$lib/api/errors';
 
 	let authMethod = $derived(page.url.searchParams.get('method') === 'email' ? 'email' : 'choice');
@@ -47,6 +50,7 @@
 
 	const loginMutation = useLogin();
 	const sessionEnded = consumeSessionEndedNotice();
+	const accountDeleted = consumeAccountDeletedNotice();
 
 	const authOptions = useAuthOptions();
 	const availability = $derived(resolveAuthAvailability(authOptions));
@@ -224,6 +228,15 @@
 
 <AuthSplitLayout title="Selamat datang" description="Masuk ke dashboard kamu untuk melanjutkan.">
 	<div class="space-y-6">
+		{#if accountDeleted}
+			<p
+				class="rounded-control border border-primary/30 bg-primary-50 p-3 text-sm font-medium text-foreground"
+				role="status"
+			>
+				Akunmu sudah dihapus. Terima kasih sudah mencoba Sakala.
+			</p>
+		{/if}
+
 		{#if sessionEnded}
 			<p
 				class="rounded-control border border-primary/30 bg-primary-50 p-3 text-sm font-medium text-foreground"

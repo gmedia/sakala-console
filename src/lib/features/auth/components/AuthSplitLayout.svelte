@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
+	import { LEGAL_LINKS } from '$lib/config/project';
 	import AuthBranding from './AuthBranding.svelte';
+	import LegalLink from './LegalLink.svelte';
 
 	type Props = {
 		title: string;
@@ -30,6 +32,13 @@
 				{/if}
 			</div>
 			{@render children()}
+			<p
+				class="flex flex-wrap gap-x-4 text-xs text-muted [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center"
+			>
+				<LegalLink href={LEGAL_LINKS.terms}>Syarat Layanan</LegalLink>
+				<LegalLink href={LEGAL_LINKS.acceptableUse}>Penggunaan Wajar</LegalLink>
+				<LegalLink href={LEGAL_LINKS.privacy}>Privasi</LegalLink>
+			</p>
 		</div>
 	</div>
 	<AuthBranding {mode} />

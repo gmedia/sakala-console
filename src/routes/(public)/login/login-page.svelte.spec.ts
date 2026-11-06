@@ -21,6 +21,9 @@ vi.mock('$lib/config/public', () => ({
 	publicConfig: { apiUrl: 'http://api.test', appUrl: 'http://app.test' }
 }));
 vi.mock('$lib/api/resources/auth', () => ({
+	acceptLegalDocuments: vi.fn(),
+	deleteAccount: vi.fn(),
+	exportAccountData: vi.fn(),
 	changePassword: vi.fn(),
 	forgotPassword: vi.fn(),
 	getAuthOptions: vi.fn(),
@@ -39,7 +42,12 @@ const renderPage = (search = '') => {
 };
 const options = (email_delivery_enabled: boolean, github = true, google = false) => ({
 	email_delivery_enabled,
-	providers: { github, google }
+	providers: { github, google },
+	legal: {
+		terms_version: 'syarat-v1',
+		acceptable_use_version: 'penggunaan-wajar-v1',
+		privacy_notice_version: 'privasi-v1'
+	}
 });
 const provider = (name: string) => page.getByRole('button', { name: `Masuk dengan ${name}` });
 const forgotLink = () => page.getByRole('link', { name: 'Lupa kata sandi?' });

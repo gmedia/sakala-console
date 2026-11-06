@@ -15,6 +15,17 @@
 	import ResendVerification from '$lib/features/auth/components/ResendVerification.svelte';
 	import AuthOptionsSkeleton from '$lib/features/auth/components/AuthOptionsSkeleton.svelte';
 	import EmailDeliveryNotice from '$lib/features/auth/components/EmailDeliveryNotice.svelte';
+	import LegalConsentField from '$lib/features/auth/components/LegalConsentField.svelte';
+	import LegalLink from '$lib/features/auth/components/LegalLink.svelte';
+	import {
+		CONSENT_REQUIRED_MESSAGE,
+		isOutdatedLegalVersion,
+		LEGAL_VERSIONS_UNAVAILABLE_MESSAGE,
+		legalConsentError
+	} from '$lib/features/auth/legal-consent';
+	import { LEGAL_LINKS } from '$lib/config/project';
+	import { queryKeys } from '$lib/api/query-keys';
+	import { useQueryClient } from '@tanstack/svelte-query';
 	import {
 		registerProviders,
 		registrationUnavailableMessage,
@@ -24,7 +35,9 @@
 	import { useRegister } from '$lib/features/auth/mutations';
 	import { ApiError } from '$lib/api/errors';
 
+	const client = useQueryClient();
 	const authOptions = useAuthOptions();
+	const legal = $derived(authOptions.data?.legal);
 	const availability = $derived(resolveAuthAvailability(authOptions));
 	const authProviders = $derived(registerProviders(availability));
 
@@ -39,12 +52,14 @@
 	let name = $state('');
 	let password = $state('');
 	let confirmPass = $state('');
+	let acceptedTerms = $state(false);
 	let isRegistered = $state(false);
 	let errors = $state({
 		email: '',
 		name: '',
 		password: '',
 		confirmPass: '',
+		consent: '',
 		general: ''
 	});
 
@@ -125,6 +140,7 @@
 			name: '',
 			password: '',
 			confirmPass: '',
+			consent: '',
 			general: ''
 		};
 
@@ -157,19 +173,27 @@
 			isValid = false;
 		}
 
+		if (!acceptedTerms) {
+			errors.consent = CONSENT_REQUIRED_MESSAGE;
+			isValid = false;
+		}
+
 		return isValid;
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
-		if (!validateRegister()) return;
+		if (!validateRegister() || !legal) return;
 
 		try {
 			await registerMutation.mutateAsync({
 				name: name.trim(),
 				email: email.trim(),
 				password,
-				password_confirmation: confirmPass
+				password_confirmation: confirmPass,
+				accept_terms: true,
+				terms_version: legal.terms_version,
+				acceptable_use_version: legal.acceptable_use_version
 			});
 			isRegistered = true;
 		} catch (err) {
@@ -179,6 +203,11 @@
 				if (err.errors.password?.[0]) errors.password = err.errors.password[0];
 				if (err.errors.password_confirmation?.[0]) {
 					errors.confirmPass = err.errors.password_confirmation[0];
+				}
+				errors.consent = legalConsentError(err) ?? '';
+				if (isOutdatedLegalVersion(err)) {
+					acceptedTerms = false;
+					void client.invalidateQueries({ queryKey: queryKeys.auth.options });
 				}
 			} else if (err instanceof ApiError) {
 				errors.general = err.message;
@@ -292,7 +321,32 @@
 					error={errors.confirmPass}
 				/>
 
-				<Button type="submit" size="lg" disabled={registerMutation.isPending} class="w-full">
+				{#if legal}
+					<LegalConsentField
+						id="accept-terms"
+						bind:checked={acceptedTerms}
+						error={errors.consent}
+						onchange={() => (errors.consent = '')}
+					/>
+				{:else}
+					<div class="space-y-3" role="alert">
+						<p class="text-sm text-foreground">{LEGAL_VERSIONS_UNAVAILABLE_MESSAGE}</p>
+						<Button
+							variant="secondary"
+							disabled={authOptions.isFetching}
+							onclick={() => authOptions.refetch()}
+						>
+							{authOptions.isFetching ? 'Memuat...' : 'Coba lagi'}
+						</Button>
+					</div>
+				{/if}
+
+				<Button
+					type="submit"
+					size="lg"
+					disabled={registerMutation.isPending || !legal}
+					class="w-full"
+				>
 					{#if registerMutation.isPending}
 						<span
 							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
@@ -315,10 +369,10 @@
 			</a>
 		</p>
 
-		{#if !availability.emailDeliveryOff}
-			<p class="text-center text-xs text-muted">
-				Sakala belum memiliki Ketentuan Layanan dan Kebijakan Privasi tertulis. Nama, email, dan
-				kata sandi yang kamu isi dipakai untuk membuat akun dan mengirim email verifikasi.
+		{#if authMethod === 'choice' && !availability.isLoading}
+			<p class="text-center text-sm text-muted">
+				Baca <LegalLink href={LEGAL_LINKS.privacy}>Pemberitahuan Privasi</LegalLink> untuk tahu bagaimana
+				datamu diproses. Syarat Layanan kamu setujui setelah masuk.
 			</p>
 		{/if}
 	</div>
