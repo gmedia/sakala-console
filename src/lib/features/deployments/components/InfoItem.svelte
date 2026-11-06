@@ -2,7 +2,9 @@
 	let { label, value, testId }: { label: string; value: string; testId?: string } = $props();
 </script>
 
-<div class="min-w-0 flex items-center justify-center gap-2">
-	<p class="text-sm text-muted-foreground font-montserrat">{label}</p>
-	<p class="text-md truncate font-semibold font-montserrat" data-testid={testId}>{value}</p>
+<div class="flex min-w-0 flex-wrap items-baseline justify-center gap-x-2">
+	<p class="text-sm font-montserrat">{label}</p>
+	<p class="min-w-0 text-base wrap-anywhere font-semibold font-montserrat" data-testid={testId}>
+		{value}
+	</p>
 </div>

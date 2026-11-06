@@ -1,12 +1,13 @@
 import { ApiError, NetworkError } from '$lib/api/errors';
-import type { DeploymentEvent } from '$lib/api/resources/deployment';
+import { formatClockTime, formatDateTime, formatDuration } from '$lib/utils/date';
+import type { Deployment, DeploymentEvent } from '$lib/api/resources/deployment';
 import { sortUniqueEvents } from './deployment-normalization';
 import type { DeploymentStep } from './type';
 
 const triggerLabels: Record<string, string> = {
 	manual: 'Manual',
 	redeploy: 'Manual redeploy',
-	webhook: 'Push',
+	webhook: 'Auto-deploy dari push',
 	system: 'System'
 };
 
@@ -85,8 +86,23 @@ export function deriveDurationLabel(
 ): string | undefined {
 	if (!startedAt || !finishedAt) return undefined;
 	const durationMs = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-	const durationSeconds = Math.round(durationMs / 1000);
-	return `${durationSeconds} detik`;
+	return formatDuration(Math.round(durationMs / 1000));
+}
+
+/** What the deployment ran with, or was going to, for reading a resource failure against. */
+export function formatResourceLimit(
+	deployment: Pick<Deployment, 'applied_resources' | 'effective_resources'>
+): string | null {
+	const limits = deployment.applied_resources ?? deployment.effective_resources?.resources;
+	if (!limits) return null;
+
+	const parts: string[] = [];
+	if (limits.memory_mb) parts.push(`${limits.memory_mb} MB memori`);
+	if (limits.cpu_millis) {
+		const cores = (limits.cpu_millis / 1000).toLocaleString('id-ID');
+		parts.push(`${cores} CPU`);
+	}
+	return parts.length > 0 ? parts.join(', ') : null;
 }
 
 export function deriveLastUpdateTimestamp(
@@ -108,12 +124,12 @@ export function deriveLastUpdateTimestamp(
 	return fallback ? formatDeploymentTime(fallback) : '-';
 }
 
-export function formatDeploymentTime(iso: string | null | undefined): string {
-	if (!iso) return '-';
-	return new Date(iso).toLocaleTimeString('id-ID', {
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
-		hour12: false
-	});
+/** A time on a deployment: the clock today, with the date in front when it is from another day. */
+export function formatDeploymentTime(iso: string | null | undefined, now = new Date()): string {
+	return iso ? formatDateTime(iso, now) : '-';
+}
+
+/** A log line's time. The panel names the day already, so every line would repeat it. */
+export function formatLogTime(iso: string | null | undefined): string {
+	return iso ? formatClockTime(iso) : '-';
 }

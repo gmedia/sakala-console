@@ -36,7 +36,7 @@
 		showIcon={!isRunningEmphasized}
 	/>
 	<div class="ml-4 flex flex-col gap-1">
-		<span class="text-md font-montserrat-medium">{display.title}</span>
+		<span class="text-base font-montserrat-medium">{display.title}</span>
 		{#if display.subtitle}
 			<span class="text-sm text-muted font-montserrat">{display.subtitle}</span>
 		{/if}

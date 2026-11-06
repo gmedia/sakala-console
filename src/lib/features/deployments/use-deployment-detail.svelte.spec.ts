@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { flushSync } from 'svelte';
 import { useDeploymentDetail } from './use-deployment-detail.svelte';
 import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
-import { createDeploymentQuery, createDeploymentEventsQuery } from './queries';
-import { createQuery } from '@tanstack/svelte-query';
+import {
+	applyRealtimeDeploymentEvent,
+	applyRealtimeDeploymentUpdate,
+	createDeploymentQuery,
+	createDeploymentEventsQuery
+} from './queries';
+import { createProjectQuery, requestProjectRefresh } from '$lib/features/projects/queries';
 import { ApiError, NetworkError } from '$lib/api/errors';
 
 const { mockGuardAccept } = vi.hoisted(() => ({
@@ -36,31 +42,26 @@ vi.mock('$lib/features/realtime/sequence-guard', () => ({
 	}
 }));
 
+vi.mock('@tanstack/svelte-query', () => ({
+	useQueryClient: () => ({})
+}));
+
 vi.mock('./queries', () => ({
 	createDeploymentQuery: vi.fn(),
-	createDeploymentEventsQuery: vi.fn()
+	createDeploymentEventsQuery: vi.fn(),
+	applyRealtimeDeploymentEvent: vi.fn(() => false),
+	applyRealtimeDeploymentUpdate: vi.fn(() => false)
 }));
 
-vi.mock('@tanstack/svelte-query', () => ({
-	createQuery: vi.fn((factory) => factory())
-}));
-
-vi.mock('$lib/features/projects/api', () => ({
-	getProject: vi.fn()
-}));
-
-vi.mock('$lib/api/query-keys', () => ({
-	queryKeys: {
-		projects: {
-			detail: vi.fn((id: string) => ['projects', 'detail', id])
-		}
-	}
+vi.mock('$lib/features/projects/queries', () => ({
+	createProjectQuery: vi.fn(),
+	requestProjectRefresh: vi.fn()
 }));
 
 const mockUsePrivateChannel = vi.mocked(usePrivateChannel);
 const mockCreateDeploymentQuery = vi.mocked(createDeploymentQuery);
 const mockCreateDeploymentEventsQuery = vi.mocked(createDeploymentEventsQuery);
-const mockCreateQuery = vi.mocked(createQuery);
+const mockCreateProjectQuery = vi.mocked(createProjectQuery);
 
 function makeDeploymentQuery(overrides = {}) {
 	return {
@@ -90,6 +91,9 @@ function makeDeployment(overrides = {}) {
 		finalization_deferred: false,
 		finalization_deferred_reason: '',
 		agent_node_id: null,
+		is_active: true,
+		cancel_requested_at: null,
+		queue_state: null,
 		started_at: '2026-09-20T10:00:00Z',
 		finished_at: '2026-09-20T10:01:00Z',
 		cancelled_at: null,
@@ -107,6 +111,9 @@ function makeProject(overrides = {}) {
 		id: 'proj_1',
 		name: 'Test',
 		slug: 'test',
+		status: 'active',
+		runtime_status: 'running',
+		active_deployment_id: 'dep_1',
 		default_domain: 'test.run.staging.sakala.dev',
 		...overrides
 	};
@@ -143,7 +150,7 @@ beforeEach(() => {
 
 	mockCreateDeploymentQuery.mockReturnValue(makeDeploymentQuery() as never);
 	mockCreateDeploymentEventsQuery.mockReturnValue(makeDeploymentQuery() as never);
-	mockCreateQuery.mockReturnValue({ data: undefined } as never);
+	mockCreateProjectQuery.mockReturnValue({ data: undefined } as never);
 });
 
 afterEach(() => {
@@ -223,32 +230,20 @@ describe('useDeploymentDetail', () => {
 	});
 
 	describe('publicUrl', () => {
-		it('menambahkan https:// ketika default_domain belum ada protokol', () => {
-			mockCreateQuery.mockReturnValue({
-				data: makeProject({ default_domain: 'test.run.staging.sakala.dev' })
+		it('memakai public_url dari API, termasuk scheme dan port-nya', () => {
+			mockCreateProjectQuery.mockReturnValue({
+				data: makeProject({ public_url: 'http://test.apps.localhost:8080' })
 			} as never);
 
 			const { detail, destroy } = runComposable();
 
-			expect(detail.publicUrl).toBe('https://test.run.staging.sakala.dev');
-
-			destroy();
-		});
-
-		it('tidak double-protocol ketika default_domain sudah https://', () => {
-			mockCreateQuery.mockReturnValue({
-				data: makeProject({ default_domain: 'https://test.run.staging.sakala.dev' })
-			} as never);
-
-			const { detail, destroy } = runComposable();
-
-			expect(detail.publicUrl).toBe('https://test.run.staging.sakala.dev');
+			expect(detail.publicUrl).toBe('http://test.apps.localhost:8080');
 
 			destroy();
 		});
 
 		it('null ketika project belum tersedia', () => {
-			mockCreateQuery.mockReturnValue({ data: undefined } as never);
+			mockCreateProjectQuery.mockReturnValue({ data: undefined } as never);
 
 			const { detail, destroy } = runComposable();
 
@@ -257,9 +252,9 @@ describe('useDeploymentDetail', () => {
 			destroy();
 		});
 
-		it('null ketika default_domain kosong', () => {
-			mockCreateQuery.mockReturnValue({
-				data: makeProject({ default_domain: '' })
+		it('null ketika API tidak mengirim public_url, walaupun ada default_domain', () => {
+			mockCreateProjectQuery.mockReturnValue({
+				data: makeProject({ public_url: null, default_domain: 'test.run.staging.sakala.dev' })
 			} as never);
 
 			const { detail, destroy } = runComposable();
@@ -386,32 +381,75 @@ describe('useDeploymentDetail', () => {
 	});
 
 	describe('realtime handlers', () => {
-		it('.deployment.updated → refetch deploymentQuery', () => {
+		it('.deployment.updated yang sudah masuk cache tidak butuh request', () => {
+			vi.useFakeTimers();
+			vi.mocked(applyRealtimeDeploymentUpdate).mockReturnValueOnce(true);
+			const refetch = vi.fn();
+			mockCreateDeploymentQuery.mockReturnValue(makeDeploymentQuery({ refetch }) as never);
+
+			const { destroy } = runComposable();
+
+			capturedHandlers['.deployment.updated']?.({ sequence: 5, status: 'building' });
+			vi.advanceTimersByTime(5_000);
+
+			expect(mockGuardAccept).toHaveBeenCalledWith(5);
+			expect(refetch).not.toHaveBeenCalled();
+
+			destroy();
+			vi.useRealTimers();
+		});
+
+		it('banyak .deployment.updated yang butuh baca ulang hanya memicu satu request', () => {
+			vi.useFakeTimers();
 			const refetch = vi.fn();
 			mockCreateDeploymentQuery.mockReturnValue(makeDeploymentQuery({ refetch }) as never);
 
 			const { destroy } = runComposable();
 
 			capturedHandlers['.deployment.updated']?.({ sequence: 5 });
+			capturedHandlers['.deployment.updated']?.({ sequence: 6 });
+			capturedHandlers['.deployment.updated']?.({ sequence: 7 });
+			vi.advanceTimersByTime(1_000);
 
-			expect(mockGuardAccept).toHaveBeenCalledWith(5);
 			expect(refetch).toHaveBeenCalledTimes(1);
+			expect(refetch).toHaveBeenCalledWith({ cancelRefetch: false });
 
 			destroy();
+			vi.useRealTimers();
 		});
 
-		it('.deployment.event.created → refetch deploymentEventsQuery', () => {
+		it('.deployment.event.created yang sudah masuk cache tidak butuh request', () => {
+			vi.useFakeTimers();
+			vi.mocked(applyRealtimeDeploymentEvent).mockReturnValueOnce(true);
 			const refetch = vi.fn();
 			mockCreateDeploymentEventsQuery.mockReturnValue(makeDeploymentQuery({ refetch }) as never);
 
 			const { destroy } = runComposable();
 
 			capturedHandlers['.deployment.event.created']?.({ sequence: 5 });
+			vi.advanceTimersByTime(5_000);
 
-			expect(mockGuardAccept).toHaveBeenCalledWith(5);
+			expect(refetch).not.toHaveBeenCalled();
+
+			destroy();
+			vi.useRealTimers();
+		});
+
+		it('.deployment.event.created sebelum daftar termuat membaca ulang sekali', () => {
+			vi.useFakeTimers();
+			const refetch = vi.fn();
+			mockCreateDeploymentEventsQuery.mockReturnValue(makeDeploymentQuery({ refetch }) as never);
+
+			const { destroy } = runComposable();
+
+			capturedHandlers['.deployment.event.created']?.({ sequence: 5 });
+			capturedHandlers['.deployment.event.created']?.({ sequence: 6 });
+			vi.advanceTimersByTime(1_000);
+
 			expect(refetch).toHaveBeenCalledTimes(1);
 
 			destroy();
+			vi.useRealTimers();
 		});
 
 		it('tidak refetch ketika sequence bukan number', () => {
@@ -465,7 +503,7 @@ describe('useDeploymentDetail', () => {
 				}) as never
 			);
 			const { detail, destroy } = runComposable();
-			expect(detail.infoTimestamp).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+			expect(detail.infoTimestamp).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 			destroy();
 		});
 
@@ -478,7 +516,7 @@ describe('useDeploymentDetail', () => {
 				}) as never
 			);
 			const { detail, destroy } = runComposable();
-			expect(detail.infoTimestamp).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+			expect(detail.infoTimestamp).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 			destroy();
 		});
 
@@ -489,7 +527,7 @@ describe('useDeploymentDetail', () => {
 				}) as never
 			);
 			const { detail, destroy } = runComposable();
-			expect(detail.infoTimestamp).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+			expect(detail.infoTimestamp).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 			destroy();
 		});
 	});
@@ -538,9 +576,154 @@ describe('useDeploymentDetail', () => {
 			const { detail, destroy } = runComposable();
 
 			expect(detail.lastUpdateTimestamp).not.toBe('-');
-			expect(detail.lastUpdateTimestamp).toMatch(/^\d{2}[:.]\d{2}[:.]\d{2}$/);
+			expect(detail.lastUpdateTimestamp).toMatch(/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/);
 
 			destroy();
 		});
+	});
+});
+
+describe('useDeploymentDetail - new contract fields', () => {
+	function bannerFor(deployment: object, project: object = makeProject()) {
+		mockCreateDeploymentQuery.mockReturnValue(
+			makeDeploymentQuery({ data: { data: makeDeployment(deployment) } }) as never
+		);
+		mockCreateProjectQuery.mockReturnValue({ data: project, refetch: vi.fn() } as never);
+		const { detail, destroy } = runComposable();
+		const input = detail.bannerInput;
+		destroy();
+		return input;
+	}
+
+	const failure = {
+		code: 'runtime_health_check_failed',
+		category: 'health',
+		summary: 'Aplikasi tidak menjawab.',
+		recovery_hint: 'Pastikan aplikasi membaca PORT.',
+		user_fixable: false,
+		detail: 'connection refused',
+		stage: 'health_checking'
+	};
+
+	it('reads the failed stage from failure.stage, with no events at all (U-21)', () => {
+		const input = bannerFor({ status: 'failed', failure });
+
+		expect(input.failedStepLabel).toBe('Mengecek aplikasi');
+		expect(input.failureDetail).toBe('connection refused');
+		expect(input.userFixable).toBe(false);
+	});
+
+	it('marks a cancelled deployment as cancelled', () => {
+		expect(bannerFor({ status: 'cancelled' }).status).toBe('cancelled');
+	});
+
+	it.each([
+		['the active deployment on a serving project', { is_active: true }, {}, 'live'],
+		['a superseded deployment', { is_active: false }, {}, 'superseded'],
+		[
+			'the active deployment of a stopped project',
+			{},
+			{ runtime_status: 'stopped' },
+			'not_serving'
+		],
+		[
+			'the active deployment of a crashed project',
+			{},
+			{ runtime_status: 'crashed' },
+			'crash_looping'
+		],
+		['the active deployment of a suspended project', {}, { status: 'suspended' }, 'not_serving']
+	])('%s reads as %s (U-20)', (_name, deployment, project, expected) => {
+		expect(
+			bannerFor({ status: 'succeeded', ...deployment }, makeProject(project)).servingState
+		).toBe(expected);
+	});
+
+	it('waits for the read before calling the newest deployment superseded', () => {
+		const query = $state({
+			...makeDeploymentQuery(),
+			data: {
+				servingUnconfirmed: true,
+				data: makeDeployment({ status: 'succeeded', is_active: false })
+			}
+		});
+		mockCreateDeploymentQuery.mockReturnValue(query as never);
+		mockCreateProjectQuery.mockReturnValue({ data: makeProject(), refetch: vi.fn() } as never);
+
+		const { detail, destroy } = runComposable();
+		expect(detail.bannerInput.servingState).toBe('unconfirmed');
+
+		// What the read returns replaces the patched copy: this one did become the active deployment.
+		query.data = { data: makeDeployment({ status: 'succeeded', is_active: true }) } as never;
+		flushSync();
+		expect(detail.bannerInput.servingState).toBe('live');
+
+		destroy();
+	});
+
+	it('still reports superseded once the read confirms is_active is false', () => {
+		mockCreateDeploymentQuery.mockReturnValue(
+			makeDeploymentQuery({
+				data: { data: makeDeployment({ status: 'succeeded', is_active: false }) }
+			}) as never
+		);
+		mockCreateProjectQuery.mockReturnValue({ data: makeProject(), refetch: vi.fn() } as never);
+
+		const { detail, destroy } = runComposable();
+		expect(detail.bannerInput.servingState).toBe('superseded');
+
+		destroy();
+	});
+
+	it('passes the queue state and a requested cancel on (U-22, U-51)', () => {
+		const input = bannerFor({
+			status: 'queued',
+			queue_state: 'waiting_for_node',
+			cancel_requested_at: '2026-09-20T10:00:00Z'
+		});
+
+		expect(input.queueState).toBe('waiting_for_node');
+		expect(input.cancelRequested).toBe(true);
+	});
+
+	it('dates a cancelled deployment from cancelled_at', () => {
+		mockCreateDeploymentQuery.mockReturnValue(
+			makeDeploymentQuery({
+				data: {
+					data: makeDeployment({
+						status: 'cancelled',
+						finished_at: null,
+						cancelled_at: '2026-09-20T10:05:00Z'
+					})
+				}
+			}) as never
+		);
+		mockCreateProjectQuery.mockReturnValue({ data: makeProject(), refetch: vi.fn() } as never);
+
+		const { detail, destroy } = runComposable();
+
+		expect(detail.infoTimestamp).not.toBe('-');
+		destroy();
+	});
+
+	it('re-reads the project when the deployment finishes', () => {
+		vi.mocked(requestProjectRefresh).mockClear();
+		const refetch = vi.fn();
+		const query = $state({
+			...makeDeploymentQuery(),
+			data: { data: makeDeployment({ status: 'building' }) }
+		});
+		mockCreateDeploymentQuery.mockReturnValue(query as never);
+		mockCreateProjectQuery.mockReturnValue({ data: makeProject(), refetch } as never);
+
+		const { destroy } = runComposable();
+		flushSync();
+		expect(requestProjectRefresh).not.toHaveBeenCalled();
+
+		query.data = { data: makeDeployment({ status: 'succeeded' }) };
+		flushSync();
+
+		expect(requestProjectRefresh).toHaveBeenCalledTimes(1);
+		destroy();
 	});
 });

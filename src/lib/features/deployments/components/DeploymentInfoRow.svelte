@@ -8,7 +8,8 @@
 		trigger,
 		status,
 		timestamp,
-		lastUpdate
+		lastUpdate,
+		resourceLimit = null
 	}: {
 		commitSha: string;
 		branch: string;
@@ -16,6 +17,7 @@
 		status: BannerStatus;
 		timestamp: string;
 		lastUpdate: string;
+		resourceLimit?: string | null;
 	} = $props();
 
 	let shortHash = $derived(commitSha.slice(0, 7));
@@ -24,11 +26,14 @@
 
 <div
 	data-testid="deployment-info"
-	class="w-full bg-white px-3 py-5 rounded-lg flex items-center justify-around gap-6 mt-6"
+	class="w-full bg-white px-3 py-5 rounded-lg flex flex-wrap items-center justify-around gap-x-6 gap-y-3 mt-6"
 >
 	<InfoItem label="Commit" value={shortHash} testId="deployment-commit" />
 	<InfoItem label="Branch" value={branch} testId="deployment-branch" />
 	<InfoItem label="Trigger" value={trigger} testId="deployment-trigger" />
 	<InfoItem label={timeLabel} value={timestamp} testId="deployment-primary-time" />
 	<InfoItem label="Update terakhir" value={lastUpdate} testId="deployment-updated-time" />
+	{#if resourceLimit}
+		<InfoItem label="Batas resource" value={resourceLimit} testId="deployment-resources" />
+	{/if}
 </div>

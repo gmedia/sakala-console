@@ -8,13 +8,16 @@ import {
 } from '$lib/api/resources/deployment';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 import { TERMINAL_STATUSES } from './deployment-presentation';
+import { ApiError } from '$lib/api/errors';
 import {
+	applyRealtimeDeploymentEvent,
+	applyRealtimeDeploymentUpdate,
 	createDeploymentQuery,
 	createDeploymentEventsQuery,
 	resolveRefetchInterval
 } from './queries';
 
-const REALTIME_CONNECTED_SAFETY_POLL_MS = 10_000;
+const REALTIME_CONNECTED_SAFETY_POLL_MS = 60_000;
 const FALLBACK_POLLING_INTERVAL_MS = 5_000;
 
 vi.mock('@tanstack/svelte-query', () => ({
@@ -173,7 +176,7 @@ describe('createDeploymentQuery', () => {
 			expect(result).toBe(false);
 		});
 
-		it('mengembalikan safety poll (10s) ketika realtime terhubung & non-terminal', () => {
+		it('mengembalikan safety poll (60s) ketika realtime terhubung & non-terminal', () => {
 			mockRealtimeState.status = 'connected';
 			const config = captureQueryConfig<{ refetchInterval: RefetchFn }>(() =>
 				createDeploymentQuery(
@@ -212,7 +215,7 @@ describe('createDeploymentQuery', () => {
 			expect(result).toBe(FALLBACK_POLLING_INTERVAL_MS);
 		});
 
-		it('mengembalikan safety poll (10s) ketika data belum ada tapi realtime connected', () => {
+		it('mengembalikan safety poll (60s) ketika data belum ada tapi realtime connected', () => {
 			mockRealtimeState.status = 'connected';
 			const config = captureQueryConfig<{ refetchInterval: RefetchFn }>(() =>
 				createDeploymentQuery(
@@ -375,7 +378,7 @@ describe('createDeploymentEventsQuery', () => {
 	});
 
 	describe('refetchInterval', () => {
-		type RefetchFn = () => number | false;
+		type RefetchFn = (query: { state: object }) => number | false;
 
 		it('mengembalikan false ketika isTerminal() = true', () => {
 			const config = captureQueryConfig<{ refetchInterval: RefetchFn }>(() =>
@@ -386,10 +389,10 @@ describe('createDeploymentEventsQuery', () => {
 				)
 			);
 
-			expect(config.refetchInterval()).toBe(false);
+			expect(config.refetchInterval({ state: {} })).toBe(false);
 		});
 
-		it('mengembalikan safety poll (10s) ketika realtime terhubung & belum terminal', () => {
+		it('mengembalikan safety poll (60s) ketika realtime terhubung & belum terminal', () => {
 			mockRealtimeState.status = 'connected';
 			const config = captureQueryConfig<{ refetchInterval: RefetchFn }>(() =>
 				createDeploymentEventsQuery(
@@ -399,7 +402,7 @@ describe('createDeploymentEventsQuery', () => {
 				)
 			);
 
-			expect(config.refetchInterval()).toBe(REALTIME_CONNECTED_SAFETY_POLL_MS);
+			expect(config.refetchInterval({ state: {} })).toBe(REALTIME_CONNECTED_SAFETY_POLL_MS);
 		});
 
 		it('mengembalikan fallback poll (5s) ketika belum terminal & realtime disconnected', () => {
@@ -412,7 +415,7 @@ describe('createDeploymentEventsQuery', () => {
 				)
 			);
 
-			expect(config.refetchInterval()).toBe(FALLBACK_POLLING_INTERVAL_MS);
+			expect(config.refetchInterval({ state: {} })).toBe(FALLBACK_POLLING_INTERVAL_MS);
 		});
 
 		it('mengembalikan false ketika terminal walaupun realtime connected', () => {
@@ -425,7 +428,7 @@ describe('createDeploymentEventsQuery', () => {
 				)
 			);
 
-			expect(config.refetchInterval()).toBe(false);
+			expect(config.refetchInterval({ state: {} })).toBe(false);
 		});
 
 		it('memanggil isTerminal() setiap kali refetchInterval dievaluasi', () => {
@@ -438,9 +441,9 @@ describe('createDeploymentEventsQuery', () => {
 				)
 			);
 
-			config.refetchInterval();
-			config.refetchInterval();
-			config.refetchInterval();
+			config.refetchInterval({ state: {} });
+			config.refetchInterval({ state: {} });
+			config.refetchInterval({ state: {} });
 
 			expect(isTerminal).toHaveBeenCalledTimes(3);
 		});
@@ -454,7 +457,7 @@ describe('createDeploymentEventsQuery', () => {
 			}
 		});
 
-		it('mengembalikan safety poll (10s) hanya saat realtime connected', () => {
+		it('mengembalikan safety poll (60s) hanya saat realtime connected', () => {
 			mockRealtimeState.status = 'connected';
 			expect(resolveRefetchInterval(false)).toBe(REALTIME_CONNECTED_SAFETY_POLL_MS);
 		});
@@ -466,5 +469,143 @@ describe('createDeploymentEventsQuery', () => {
 				expect(resolveRefetchInterval(false)).toBe(FALLBACK_POLLING_INTERVAL_MS);
 			}
 		);
+	});
+});
+
+describe('resolveRefetchInterval while rate limited', () => {
+	const tooMany = new ApiError('x', 429, {}, undefined, { retryAfterSeconds: 42 });
+
+	it('waits as long as Retry-After says', () => {
+		expect(resolveRefetchInterval(false, tooMany)).toBe(42_000);
+	});
+
+	it('still comes back for a finished deployment, because the refused read holds its final state', () => {
+		expect(resolveRefetchInterval(true, tooMany)).toBe(42_000);
+	});
+});
+
+describe('realtime payloads reach the cache without a request', () => {
+	const store = (entries: [unknown, unknown][]) => {
+		const data = new Map(entries.map(([key, value]) => [JSON.stringify(key), value]));
+		return {
+			getQueryData: (key: unknown) => data.get(JSON.stringify(key)),
+			setQueryData: (key: unknown, value: unknown) => data.set(JSON.stringify(key), value),
+			data
+		};
+	};
+
+	it('a step forward patches the deployment, and needs no read', () => {
+		const key = queryKeys.deployments.detail('p', 'd');
+		const client = store([[key, { data: { status: 'cloning', queue_state: 'assigned' } }]]);
+
+		const done = applyRealtimeDeploymentUpdate(client as never, 'p', 'd', {
+			status: 'building',
+			started_at: '2026-11-06T00:00:00Z'
+		});
+
+		expect(done).toBe(true);
+		expect(client.getQueryData(key)).toMatchObject({
+			data: { status: 'building', started_at: '2026-11-06T00:00:00Z', queue_state: null }
+		});
+	});
+
+	it('the end shows at once, but asks for the read that brings failure and is_active', () => {
+		const key = queryKeys.deployments.detail('p', 'd');
+		const client = store([[key, { data: { status: 'building' } }]]);
+
+		expect(applyRealtimeDeploymentUpdate(client as never, 'p', 'd', { status: 'failed' })).toBe(
+			false
+		);
+		expect(client.getQueryData(key)).toMatchObject({ data: { status: 'failed' } });
+	});
+
+	it('marks is_active as unconfirmed at the end, and the read that follows clears it', async () => {
+		const key = queryKeys.deployments.detail('p', 'd');
+		// A real client, because the read merges into the old entry through structural sharing.
+		const { QueryClient } =
+			await vi.importActual<typeof import('@tanstack/svelte-query')>('@tanstack/svelte-query');
+		const client = new QueryClient();
+		client.setQueryData(key, { data: { status: 'building', is_active: false } });
+
+		applyRealtimeDeploymentUpdate(client, 'p', 'd', { status: 'succeeded' });
+		expect(client.getQueryData(key)).toMatchObject({
+			servingUnconfirmed: true,
+			data: { status: 'succeeded', is_active: false }
+		});
+
+		client.setQueryData(key, { data: { status: 'succeeded', is_active: true } });
+		expect(client.getQueryData(key)).not.toHaveProperty('servingUnconfirmed');
+	});
+
+	it('leaves is_active alone while the deployment is still running', () => {
+		const key = queryKeys.deployments.detail('p', 'd');
+		const client = store([[key, { data: { status: 'queued', is_active: false } }]]);
+
+		applyRealtimeDeploymentUpdate(client as never, 'p', 'd', { status: 'building' });
+
+		expect(client.getQueryData(key)).not.toHaveProperty('servingUnconfirmed');
+	});
+
+	it('asks for a read when there is nothing to patch, or the payload is unknown', () => {
+		const client = store([]);
+
+		expect(applyRealtimeDeploymentUpdate(client as never, 'p', 'd', { status: 'building' })).toBe(
+			false
+		);
+		expect(applyRealtimeDeploymentUpdate(client as never, 'p', 'd', { nope: 1 })).toBe(false);
+	});
+
+	const event = {
+		level: 'info',
+		type: 'deployment.build.started',
+		message: 'Building',
+		occurred_at: '2026-11-06T00:00:00.000000Z'
+	};
+
+	it('adds an event to the timeline', () => {
+		const key = queryKeys.deployments.events('p', 'd');
+		const client = store([
+			[
+				key,
+				{ data: [{ sequence: 4, type: 'x', message: 'y', occurred_at: '2026-11-05T00:00:00Z' }] }
+			]
+		]);
+
+		expect(
+			applyRealtimeDeploymentEvent(client as never, 'p', 'd', { ...event, sequence: 99 })
+		).toBe(true);
+
+		const { data } = client.getQueryData(key) as { data: { sequence: number; type: string }[] };
+		expect(data).toHaveLength(2);
+		// Its own position in the list, because `sequence` in the payload counts every broadcast.
+		expect(data[1]).toMatchObject({
+			sequence: 5,
+			type: 'deployment.build.started',
+			metadata: null
+		});
+	});
+
+	it('does not add an event the list already holds, whatever its timestamp format', () => {
+		const key = queryKeys.deployments.events('p', 'd');
+		const client = store([
+			[
+				key,
+				{
+					data: [
+						{ ...event, sequence: 1, occurred_at: '2026-11-06T00:00:00+00:00', metadata: null }
+					]
+				}
+			]
+		]);
+
+		expect(applyRealtimeDeploymentEvent(client as never, 'p', 'd', { ...event, sequence: 9 })).toBe(
+			true
+		);
+
+		expect((client.getQueryData(key) as { data: unknown[] }).data).toHaveLength(1);
+	});
+
+	it('asks for a read before the first list has arrived', () => {
+		expect(applyRealtimeDeploymentEvent(store([]) as never, 'p', 'd', event)).toBe(false);
 	});
 });

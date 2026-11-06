@@ -1,4 +1,4 @@
-export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed';
+export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 
 export type DeploymentStatus =
 	| 'queued'
@@ -15,24 +15,29 @@ export type DeploymentStatus =
 export type DeploymentStage =
 	| 'Queued'
 	| 'Cloning'
+	| 'Analyzing'
 	| 'Building'
 	| 'Deploying'
+	| 'HealthChecking'
 	| 'Routing'
 	| 'Succeeded'
 	| 'Failed'
 	| 'Cancelled';
 
+/** Health comes before routing: the agent only activates the route for an app that answered. */
 export const DEPLOYMENT_PIPELINE_STAGES = [
 	'Queued',
 	'Cloning',
+	'Analyzing',
 	'Building',
 	'Deploying',
+	'HealthChecking',
 	'Routing'
 ] as const satisfies readonly DeploymentPipelineStage[];
 
 export type DeploymentPipelineStage = Extract<
 	DeploymentStage,
-	'Queued' | 'Cloning' | 'Building' | 'Deploying' | 'Routing'
+	'Queued' | 'Cloning' | 'Analyzing' | 'Building' | 'Deploying' | 'HealthChecking' | 'Routing'
 >;
 
 export type DeploymentStep = {
@@ -55,15 +60,6 @@ export type DeploymentEventType =
 	| 'deployment.cloning'
 	| 'deployment.building'
 	| null;
-
-export type MockDeploymentEvent = {
-	sequence: number;
-	level: DeploymentEventLevel;
-	type: DeploymentEventType;
-	message: string;
-	metadata: Record<string, unknown> | null;
-	occurred_at: string;
-};
 
 export type LogStream = 'stdout' | 'stderr' | 'system';
 

@@ -19,6 +19,9 @@ function createDeployment(overrides: Partial<Deployment> = {}): Deployment {
 		finalization_deferred: false,
 		finalization_deferred_reason: null,
 		agent_node_id: null,
+		is_active: false,
+		cancel_requested_at: null,
+		queue_state: null,
 		started_at: '2026-09-20T10:00:00Z',
 		finished_at: null,
 		cancelled_at: null,
@@ -44,16 +47,40 @@ function createEvent(overrides: Partial<DeploymentEvent> = {}): DeploymentEvent 
 }
 
 describe('normalizeDeploymentTimeline', () => {
-	it('returns exactly 5 pipeline stages (Analyzing & HealthChecking removed)', () => {
-		const deployment = createDeployment({ status: 'queued' });
-		const result = normalizeDeploymentTimeline(deployment, []);
+	it('shows when the failed step stopped, not when it began (U-77)', () => {
+		const result = normalizeDeploymentTimeline(
+			createDeployment({ status: 'failed', finished_at: '2026-09-20T10:09:00Z' }),
+			[
+				createEvent({
+					sequence: 1,
+					type: 'deployment.checkout.started',
+					occurred_at: '2026-09-20T10:01:00Z'
+				}),
+				createEvent({
+					sequence: 2,
+					type: 'deployment.build.started',
+					occurred_at: '2026-09-20T10:02:00Z'
+				})
+			]
+		);
 
-		expect(result).toHaveLength(5);
+		expect(result.find((step) => step.key === 'Cloning')?.timestamp).toBe('2026-09-20T10:01:00Z');
+		expect(result.find((step) => step.key === 'Building')).toMatchObject({
+			status: 'failed',
+			timestamp: '2026-09-20T10:09:00Z'
+		});
+	});
+
+	it('lists every real stage while queued, health before routing', () => {
+		const result = normalizeDeploymentTimeline(createDeployment({ status: 'queued' }), []);
+
 		expect(result.map((s) => s.key)).toEqual([
 			'Queued',
 			'Cloning',
+			'Analyzing',
 			'Building',
 			'Deploying',
+			'HealthChecking',
 			'Routing'
 		]);
 	});
@@ -126,21 +153,83 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(deploying?.status).toBe('running');
 	});
 
-	it('maps deployment.runtime.ready to Routing stage', () => {
-		const deployment = createDeployment({ status: 'routing' });
+	it.each([
+		['deployment.analysis.started', 'analyzing', 'Analyzing'],
+		['deployment.health.started', 'health_checking', 'HealthChecking'],
+		['deployment.route.started', 'routing', 'Routing']
+	] as const)('maps %s to its own stage (U-23)', (type, status, key) => {
+		const events = [createEvent({ sequence: 1, type, occurred_at: '2026-09-20T10:03:00Z' })];
+
+		const result = normalizeDeploymentTimeline(createDeployment({ status }), events);
+
+		expect(result.find((s) => s.key === key)).toMatchObject({
+			status: 'running',
+			timestamp: '2026-09-20T10:03:00Z'
+		});
+	});
+
+	it('does not read deployment.runtime.ready as routing (U-23)', () => {
+		const events = [createEvent({ sequence: 1, type: 'deployment.runtime.ready' })];
+
+		const result = normalizeDeploymentTimeline(createDeployment({ status: 'succeeded' }), events);
+
+		expect(result).toEqual([]);
+	});
+
+	it('drops a stage the agent passed without reporting it, instead of calling it done (U-23)', () => {
 		const events = [
-			createEvent({
-				sequence: 1,
-				type: 'deployment.runtime.ready',
-				occurred_at: '2026-09-20T10:03:00Z'
-			})
+			createEvent({ sequence: 1, type: 'deployment.checkout.started' }),
+			createEvent({ sequence: 2, type: 'deployment.build.started' }),
+			createEvent({ sequence: 3, type: 'deployment.container.started' })
 		];
 
-		const result = normalizeDeploymentTimeline(deployment, events);
-		const routing = result.find((s) => s.key === 'Routing');
+		const result = normalizeDeploymentTimeline(createDeployment({ status: 'succeeded' }), events);
 
-		expect(routing?.timestamp).toBe('2026-09-20T10:03:00Z');
-		expect(routing?.status).toBe('running');
+		expect(result.map((s) => s.key)).toEqual(['Queued', 'Cloning', 'Building', 'Deploying']);
+		expect(result.every((s) => s.status === 'success')).toBe(true);
+	});
+
+	it('shows no stage after the one a deployment failed at (U-23)', () => {
+		const events = [
+			createEvent({ sequence: 1, type: 'deployment.checkout.started' }),
+			createEvent({ sequence: 2, type: 'deployment.build.started' })
+		];
+
+		const result = normalizeDeploymentTimeline(createDeployment({ status: 'failed' }), events);
+
+		expect(result.map((s) => s.key)).toEqual(['Queued', 'Cloning', 'Building']);
+		expect(result.at(-1)?.status).toBe('failed');
+	});
+
+	it('trusts failure.stage over the events (U-21)', () => {
+		const deployment = createDeployment({
+			status: 'failed',
+			failure: {
+				code: 'runtime_health_check_failed',
+				category: 'health',
+				summary: 'x',
+				recovery_hint: 'y',
+				user_fixable: true,
+				detail: null,
+				stage: 'health_checking'
+			}
+		});
+
+		const result = normalizeDeploymentTimeline(deployment, []);
+
+		expect(result.at(-1)).toMatchObject({ key: 'HealthChecking', status: 'failed' });
+	});
+
+	it('claims nothing when a started deployment has no stage record left (U-21)', () => {
+		expect(normalizeDeploymentTimeline(createDeployment({ status: 'failed' }), [])).toEqual([]);
+	});
+
+	it('places a failure that never started in the queue (U-21)', () => {
+		const deployment = createDeployment({ status: 'failed', started_at: null });
+
+		expect(normalizeDeploymentTimeline(deployment, [])).toEqual([
+			expect.objectContaining({ key: 'Queued', status: 'failed' })
+		]);
 	});
 
 	it('marks previous stages as success and current stage as running (Agent v4)', () => {
@@ -165,6 +254,7 @@ describe('normalizeDeploymentTimeline', () => {
 			'success',
 			'running',
 			'pending',
+			'pending',
 			'pending'
 		]);
 
@@ -173,25 +263,6 @@ describe('normalizeDeploymentTimeline', () => {
 			status: 'running',
 			timestamp: '2026-09-20T10:01:00Z'
 		});
-	});
-
-	it('marks all 5 pipeline stages as success when deployment succeeds', () => {
-		const deployment = createDeployment({
-			status: 'succeeded',
-			finished_at: '2026-09-20T10:10:00Z'
-		});
-
-		const events = [
-			createEvent({ sequence: 1, type: 'deployment.checkout.started' }),
-			createEvent({ sequence: 2, type: 'deployment.build.started' }),
-			createEvent({ sequence: 3, type: 'deployment.container.started' }),
-			createEvent({ sequence: 4, type: 'deployment.runtime.ready' })
-		];
-
-		const result = normalizeDeploymentTimeline(deployment, events);
-
-		expect(result).toHaveLength(5);
-		expect(result.every((s) => s.status === 'success')).toBe(true);
 	});
 
 	it('marks the latest known pipeline stage as failed (Agent v4, failed at build)', () => {
@@ -209,13 +280,7 @@ describe('normalizeDeploymentTimeline', () => {
 
 		const result = normalizeDeploymentTimeline(deployment, events);
 
-		expect(result.map((s) => s.status)).toEqual([
-			'success',
-			'success',
-			'failed',
-			'pending',
-			'pending'
-		]);
+		expect(result.map((s) => s.status)).toEqual(['success', 'success', 'failed']);
 
 		expect(result[2]).toMatchObject({
 			key: 'Building',
@@ -252,7 +317,7 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(failedStep?.key).toBe('Cloning');
 	});
 
-	it('treats cancelled the same as failed for the current stage', () => {
+	it('marks the stage a deployment was cancelled at as cancelled, not failed', () => {
 		const deployment = createDeployment({ status: 'cancelled' });
 		const events = [
 			createEvent({ sequence: 1, type: 'deployment.checkout.started' }),
@@ -264,7 +329,7 @@ describe('normalizeDeploymentTimeline', () => {
 
 		expect(result[2]).toMatchObject({
 			key: 'Building',
-			status: 'failed'
+			status: 'cancelled'
 		});
 	});
 
@@ -282,6 +347,7 @@ describe('normalizeDeploymentTimeline', () => {
 			'success',
 			'success',
 			'running',
+			'pending',
 			'pending',
 			'pending'
 		]);
@@ -309,13 +375,6 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(cloning?.timestamp).toBe('2026-09-20T10:00:00Z');
 	});
 
-	it('keeps all stages pending when a failed deployment has no pipeline events', () => {
-		const deployment = createDeployment({ status: 'failed' });
-		const result = normalizeDeploymentTimeline(deployment, []);
-
-		expect(result.every((s) => s.status === 'pending')).toBe(true);
-	});
-
 	it('ignores unknown event types without breaking the timeline', () => {
 		const deployment = createDeployment({ status: 'building' });
 
@@ -341,20 +400,5 @@ describe('normalizeDeploymentTimeline', () => {
 
 		expect(result[0].timestamp).toBeUndefined();
 		expect(cloning?.status).toBe('running');
-	});
-
-	it('falls back to all-pending for legacy unrecognized status (analyzing)', () => {
-		const deployment = createDeployment({ status: 'analyzing' });
-		const result = normalizeDeploymentTimeline(deployment, []);
-
-		expect(() => normalizeDeploymentTimeline(deployment, [])).not.toThrow();
-		expect(result.every((s) => s.status === 'pending')).toBe(true);
-	});
-
-	it('falls back to all-pending for legacy unrecognized status (health_checking)', () => {
-		const deployment = createDeployment({ status: 'health_checking' });
-		const result = normalizeDeploymentTimeline(deployment, []);
-
-		expect(result.every((s) => s.status === 'pending')).toBe(true);
 	});
 });
