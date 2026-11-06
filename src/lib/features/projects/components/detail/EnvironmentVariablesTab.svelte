@@ -1,12 +1,24 @@
 <script lang="ts">
-	import { Eye, EyeSlash, Check, X, Plus, CircleNotch } from 'phosphor-svelte';
-	import { SvelteSet } from 'svelte/reactivity';
-	import { createEnvironmentVariablesQuery } from '../../queries';
+	import Button from '$lib/components/ui/Button.svelte';
+	import { tick } from 'svelte';
+	import Eye from 'phosphor-svelte/lib/Eye';
+	import EyeSlash from 'phosphor-svelte/lib/EyeSlash';
+	import Check from 'phosphor-svelte/lib/Check';
+	import X from 'phosphor-svelte/lib/X';
+	import Plus from 'phosphor-svelte/lib/Plus';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+	import { ApiError, getErrorMessage } from '$lib/api/errors';
+	import { createEnvironmentVariablesQuery, createProjectQuery } from '../../queries';
 	import {
 		createAddEnvironmentVariableMutation,
-		createDeleteEnvironmentVariableMutation
+		createDeleteEnvironmentVariableMutation,
+		createUpdateEnvironmentVariableMutation
 	} from '../../mutations';
+	import { useProjectRedeploy } from '../../detail/use-project-redeploy.svelte';
+	import type { EnvironmentVariable } from '../../type';
 	import { getEnvironmentVariableValue } from '../../api';
+	import { ENV_KEY_REGEX, normalizeEnvKey } from '../../validation/environmentVariable';
 	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
 
 	let { projectId }: { projectId: string } = $props();
@@ -15,23 +27,52 @@
 	const query = createEnvironmentVariablesQuery(() => projectId);
 	const addMutation = createAddEnvironmentVariableMutation();
 	const deleteMutation = createDeleteEnvironmentVariableMutation();
+	const updateMutation = createUpdateEnvironmentVariableMutation();
+	const projectQuery = createProjectQuery(() => projectId);
+	const redeploy = useProjectRedeploy(() => ({
+		id: projectId,
+		branch: projectQuery.data?.branch ?? ''
+	}));
 
 	// Local State
-	let revealedValues = $state<Record<string, string>>({});
-	const visibleIds = new SvelteSet<string>();
-	const loadingRevealIds = new SvelteSet<string>();
+	let revealedValues = $state<Record<number, string>>({});
+	const visibleIds = new SvelteSet<number>();
+	const loadingRevealIds = new SvelteSet<number>();
+	const revealErrors = new SvelteMap<number, string>();
 
 	let isAdding = $state(false);
 	let newKey = $state('');
 	let newValue = $state('');
-	let errorMessage = $state('');
+	// Secret unless the user says otherwise, the same default as the API.
+	let newIsSecret = $state(true);
+	let keyError = $state('');
+	let valueError = $state('');
+	let formError = $state('');
 
-	let deletingEnv = $state<{ id: string; key: string } | null>(null);
+	let deletingEnv = $state<{ id: number; key: string } | null>(null);
+	let deleteError = $state('');
 
-	const KEY_REGEX = /^[A-Z_][A-Z0-9_]*$/;
+	let editingEnv = $state<EnvironmentVariable | null>(null);
+	let editValue = $state('');
+	let editIsSecret = $state(true);
+	let editValueError = $state('');
+	let editFormError = $state('');
+	let editValueInput = $state<HTMLInputElement>();
+
+	let keyInput = $state<HTMLInputElement>();
+	let valueInput = $state<HTMLInputElement>();
+	let addButton = $state<HTMLButtonElement>();
+
+	function clearFormErrors() {
+		keyError = '';
+		valueError = '';
+		formError = '';
+	}
 
 	// Handlers
-	async function toggleReveal(id: string) {
+	async function toggleReveal(id: number) {
+		revealErrors.delete(id);
+
 		if (visibleIds.has(id)) {
 			visibleIds.delete(id);
 			return;
@@ -48,8 +89,10 @@
 			revealedValues[id] = res.data.value;
 			visibleIds.add(id);
 		} catch (error) {
-			console.error('Failed to reveal env var value', error);
-			alert('Gagal mengambil nilai variabel.');
+			revealErrors.set(
+				id,
+				getErrorMessage(error, 'Nilai variabel belum bisa diambil. Silakan coba lagi.')
+			);
 		} finally {
 			loadingRevealIds.delete(id);
 		}
@@ -57,75 +100,193 @@
 
 	function handleKeyInput(e: Event) {
 		const target = e.target as HTMLInputElement;
-		newKey = target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
-		if (errorMessage) errorMessage = '';
+		newKey = normalizeEnvKey(target.value);
+		keyError = '';
+		formError = '';
 	}
 
 	function handleValueInput() {
-		if (errorMessage) errorMessage = '';
+		valueError = '';
+		formError = '';
 	}
 
-	function handleOpenAdd() {
+	async function handleOpenAdd() {
 		isAdding = true;
-		errorMessage = '';
+		clearFormErrors();
+		await tick();
+		keyInput?.focus();
 	}
 
-	function handleCancelAdd() {
+	async function handleCancelAdd() {
 		newKey = '';
 		newValue = '';
-		errorMessage = '';
+		newIsSecret = true;
+		clearFormErrors();
 		isAdding = false;
+		await tick();
+		addButton?.focus();
 	}
 
-	function handleSave() {
+	function validateForm(key: string, value: string): boolean {
+		clearFormErrors();
+
+		if (!key) {
+			keyError = 'Isi nama variabel, misalnya DATABASE_URL.';
+		} else if (!ENV_KEY_REGEX.test(key)) {
+			keyError = 'Nama variabel harus diawali huruf atau underscore, misalnya APP_ENV.';
+		} else if (query.data?.some((env) => env.key === key)) {
+			keyError = `Variabel ${key} sudah ada. Pakai tombol Ubah di barisnya untuk mengganti nilainya.`;
+		}
+
+		if (!value) valueError = 'Isi nilai variabel. Aplikasi membacanya saat redeploy berikutnya.';
+
+		return !keyError && !valueError;
+	}
+
+	// `isPending` updates a tick after mutate(), which is too late for a double click.
+	let saving = false;
+	let deleting = false;
+
+	function handleSave(event: SubmitEvent) {
+		event.preventDefault();
+		if (saving) return;
+
 		const trimmedKey = newKey.trim();
 		const trimmedVal = newValue.trim();
 
-		if (!trimmedKey || !trimmedVal) {
-			errorMessage = 'Nama variabel dan value tidak boleh kosong.';
+		if (!validateForm(trimmedKey, trimmedVal)) {
+			if (keyError) keyInput?.focus();
+			else valueInput?.focus();
 			return;
 		}
 
-		if (!KEY_REGEX.test(trimmedKey)) {
-			errorMessage =
-				'Key harus diawali huruf/underscore dan hanya boleh huruf kapital, angka, atau underscore.';
-			return;
-		}
-
+		saving = true;
 		addMutation.mutate(
 			{
 				projectId,
 				data: {
 					key: trimmedKey,
 					value: trimmedVal,
-					is_secret: true
+					is_secret: newIsSecret
 				}
 			},
 			{
 				onSuccess: () => {
-					newKey = '';
-					newValue = '';
-					errorMessage = '';
-					isAdding = false;
+					void handleCancelAdd();
 				},
 				onError: (err) => {
-					errorMessage = err instanceof Error ? err.message : 'Gagal menambahkan variabel.';
+					if (err instanceof ApiError && err.isValidationError) {
+						keyError = err.errors.key?.[0] ?? '';
+						valueError = err.errors.value?.[0] ?? '';
+						if (keyError || valueError) return;
+					}
+					formError = getErrorMessage(err, 'Variabel belum bisa disimpan. Silakan coba lagi.');
+				},
+				onSettled: () => {
+					saving = false;
 				}
 			}
 		);
 	}
 
-	function handlePromptDelete(env: { id: string; key: string }) {
+	function handleFormKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && !addMutation.isPending) {
+			event.preventDefault();
+			void handleCancelAdd();
+		}
+	}
+
+	async function handleOpenEdit(env: EnvironmentVariable) {
+		editingEnv = env;
+		editValue = env.value ?? '';
+		editIsSecret = env.is_secret;
+		editValueError = '';
+		editFormError = '';
+		await tick();
+		editValueInput?.focus();
+	}
+
+	async function handleCancelEdit() {
+		const id = editingEnv?.id;
+		editingEnv = null;
+		await tick();
+		if (id !== undefined) document.getElementById(`env-edit-button-${id}`)?.focus();
+	}
+
+	// `isPending` updates a tick after mutate(), which is too late for a double click.
+	let updating = false;
+
+	function handleSaveEdit(event: SubmitEvent) {
+		event.preventDefault();
+		if (!editingEnv || updating) return;
+
+		const env = editingEnv;
+		const value = editValue.trim();
+		// A secret's value is never sent to the browser, so empty here means "keep the current one".
+		const keepsValue = env.is_secret && !value;
+
+		if (!value && !keepsValue) {
+			editValueError = 'Isi nilai variabel. Aplikasi membacanya saat redeploy berikutnya.';
+			editValueInput?.focus();
+			return;
+		}
+		if (keepsValue && editIsSecret === env.is_secret) {
+			void handleCancelEdit();
+			return;
+		}
+
+		updating = true;
+		editValueError = '';
+		editFormError = '';
+		updateMutation.mutate(
+			{
+				projectId,
+				id: env.id,
+				data: { ...(keepsValue ? {} : { value }), is_secret: editIsSecret }
+			},
+			{
+				onSuccess: () => {
+					// What was revealed before may no longer be the current value.
+					delete revealedValues[env.id];
+					visibleIds.delete(env.id);
+					void handleCancelEdit();
+				},
+				onError: (err) => {
+					if (err instanceof ApiError && err.isValidationError) {
+						editValueError = err.errors.value?.[0] ?? '';
+						if (editValueError) return;
+					}
+					editFormError = getErrorMessage(err, 'Perubahan belum bisa disimpan. Silakan coba lagi.');
+				},
+				onSettled: () => {
+					updating = false;
+				}
+			}
+		);
+	}
+
+	function handleEditKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && !updateMutation.isPending) {
+			event.preventDefault();
+			void handleCancelEdit();
+		}
+	}
+
+	function handlePromptDelete(env: { id: number; key: string }) {
+		deleteError = '';
 		deletingEnv = env;
 	}
 
 	function handleCloseDelete() {
+		deleteError = '';
 		deletingEnv = null;
 	}
 
 	function handleConfirmDelete() {
-		if (!deletingEnv) return;
+		if (!deletingEnv || deleting) return;
 		const envId = deletingEnv.id;
+		deleting = true;
+		deleteError = '';
 
 		deleteMutation.mutate(
 			{ projectId, id: envId },
@@ -133,156 +294,347 @@
 				onSuccess: () => {
 					visibleIds.delete(envId);
 					loadingRevealIds.delete(envId);
+					revealErrors.delete(envId);
 					delete revealedValues[envId];
 					deletingEnv = null;
+				},
+				onError: (err) => {
+					deleteError = getErrorMessage(err, 'Variabel belum bisa dihapus. Silakan coba lagi.');
+				},
+				onSettled: () => {
+					deleting = false;
 				}
 			}
 		);
 	}
+
+	const inputClass =
+		'h-11 w-full min-w-0 rounded-lg border bg-surface px-4 font-montserrat text-sm text-foreground outline-none transition-colors placeholder:font-montserrat placeholder:text-muted @2xl:h-13 @2xl:text-base';
 </script>
 
-<div class="flex flex-col w-280 max-w-full">
-	<div
-		class="w-280 max-w-full rounded-lg border border-border bg-surface overflow-hidden shadow-none"
-	>
+<div class="flex w-full max-w-280 flex-col">
+	{#if projectQuery.data?.redeploy_required}
+		<div
+			role="status"
+			class="mb-4 flex flex-col justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 md:flex-row md:items-center"
+		>
+			<p class="min-w-0 font-montserrat text-sm text-foreground">
+				Perubahan variabel belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya
+				berlaku.
+			</p>
+			<Button
+				type="button"
+				onclick={redeploy.trigger}
+				disabled={redeploy.isProcessing}
+				class="min-h-10 shrink-0 rounded-lg px-4 font-montserrat-semibold"
+			>
+				{redeploy.isProcessing ? 'Menjalankan...' : 'Redeploy sekarang'}
+			</Button>
+		</div>
+		{#if redeploy.errorMessage}
+			<p role="alert" class="mb-4 font-montserrat text-sm text-error-dark">
+				{redeploy.errorMessage}
+			</p>
+		{/if}
+	{/if}
+
+	<div class="@container w-full rounded-lg border border-border bg-surface shadow-none">
 		{#if query.isLoading}
-			<div class="p-6 text-center text-sm font-montserrat text-muted">
+			<div class="p-6 text-center font-montserrat text-sm text-muted">
 				Memuat environment variables...
 			</div>
 		{:else if query.isError}
-			<div class="p-6 text-center text-sm font-montserrat text-error">
+			<div class="p-6 text-center font-montserrat text-sm text-error">
 				Gagal memuat data environment variables.
 			</div>
 		{:else if query.data}
 			{#if query.data.length === 0 && !isAdding}
-				<div class="p-8 text-center text-sm font-montserrat text-muted">
+				<div class="p-8 text-center font-montserrat text-sm text-muted">
 					Belum ada environment variable untuk proyek ini.
 				</div>
 			{:else}
-				<div class="flex flex-col w-full divide-y divide-border">
+				<ul class="flex w-full flex-col divide-y divide-border">
 					{#each query.data as env (env.id)}
-						<div class="flex items-center w-280 max-w-full h-18 bg-surface">
-							<div class="ml-6 w-58 mr-10 shrink-0">
+						<li
+							class="grid min-h-18 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 p-4 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto_auto] @2xl:gap-x-4 @2xl:px-6 @2xl:py-2"
+						>
+							<span class="flex min-w-0 flex-wrap items-center gap-x-2">
 								<span
-									class="font-jetbrains-mono-semibold font-bold text-base text-foreground break-all"
+									class="min-w-0 font-jetbrains-mono-semibold text-sm font-bold wrap-anywhere text-foreground @2xl:text-base"
 								>
 									{env.key}
 								</span>
-							</div>
+								{#if env.is_secret}
+									<span class="font-montserrat text-xs text-foreground/70">Secret</span>
+								{/if}
+							</span>
 
-							<div class="w-107.25 h-10 flex items-center overflow-hidden mr-4 shrink-0">
-								{#if visibleIds.has(env.id)}
-									<span class="font-montserrat-semibold text-base text-muted truncate">
+							<span
+								class="col-span-3 row-start-2 flex h-7 min-w-0 items-center @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1 @2xl:h-10"
+							>
+								{#if !env.is_secret}
+									<span
+										class="truncate font-montserrat-semibold text-sm text-foreground/70 select-all @2xl:text-base"
+									>
+										{env.value ?? ''}
+									</span>
+								{:else if visibleIds.has(env.id)}
+									<span
+										class="truncate font-montserrat-semibold text-sm text-foreground/70 select-all @2xl:text-base"
+									>
 										{revealedValues[env.id] ?? ''}
 									</span>
 								{:else}
 									<span
-										class="font-montserrat-semibold text-base text-muted tracking-widest truncate select-none"
+										class="truncate font-montserrat-semibold text-sm tracking-widest text-muted select-none @2xl:text-base"
+										aria-label="Nilai disembunyikan"
+										role="img"
 									>
 										••••••••••••
 									</span>
 								{/if}
-							</div>
+							</span>
 
-							<div class="flex items-center shrink-0">
+							<span class="flex shrink-0 items-center gap-1 @2xl:col-start-3">
+								{#if env.is_secret}
+									<button
+										type="button"
+										class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground disabled:opacity-50"
+										onclick={() => toggleReveal(env.id)}
+										disabled={loadingRevealIds.has(env.id)}
+										aria-pressed={visibleIds.has(env.id)}
+										aria-label={`${visibleIds.has(env.id) ? 'Sembunyikan' : 'Tampilkan'} nilai ${env.key}`}
+										title={visibleIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
+									>
+										{#if loadingRevealIds.has(env.id)}
+											<CircleNotch size={20} weight="bold" class="animate-spin text-primary" />
+										{:else if visibleIds.has(env.id)}
+											<EyeSlash size={24} weight="regular" />
+										{:else}
+											<Eye size={24} weight="regular" />
+										{/if}
+									</button>
+								{/if}
+
 								<button
+									id={`env-edit-button-${env.id}`}
 									type="button"
-									class="text-muted hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
-									onclick={() => toggleReveal(env.id)}
-									disabled={loadingRevealIds.has(env.id)}
-									title={visibleIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
+									class="min-h-10 shrink-0 cursor-pointer rounded-lg px-2 font-montserrat-medium text-sm text-foreground/70 transition-colors hover:text-foreground disabled:opacity-50"
+									onclick={() => handleOpenEdit(env)}
+									aria-label={`Ubah ${env.key}`}
 								>
-									{#if loadingRevealIds.has(env.id)}
-										<CircleNotch size={20} weight="bold" class="animate-spin text-primary" />
-									{:else if visibleIds.has(env.id)}
-										<EyeSlash size={24} weight="regular" />
-									{:else}
-										<Eye size={24} weight="regular" />
-									{/if}
+									Ubah
 								</button>
-							</div>
-
-							<div class="flex-1"></div>
+							</span>
 
 							<button
 								type="button"
-								class="font-montserrat-medium text-sm text-muted hover:text-error transition-colors mr-6 cursor-pointer"
+								class="min-h-10 shrink-0 cursor-pointer rounded-lg px-2 font-montserrat-medium text-sm text-foreground/70 transition-colors hover:text-error disabled:opacity-50"
 								onclick={() => handlePromptDelete(env)}
 								disabled={deleteMutation.isPending}
+								aria-label={`Hapus ${env.key}`}
 							>
 								Hapus
 							</button>
-						</div>
+
+							{#if revealErrors.has(env.id)}
+								<p role="alert" class="col-span-full font-montserrat text-xs text-error-dark">
+									{revealErrors.get(env.id)}
+								</p>
+							{/if}
+
+							{#if editingEnv?.id === env.id}
+								<!-- Esc is a shortcut; the Batal button stays the accessible path. -->
+								<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+								<form
+									onsubmit={handleSaveEdit}
+									onkeydown={handleEditKeydown}
+									novalidate
+									aria-label={`Ubah ${env.key}`}
+									class="col-span-full mt-2 rounded-lg bg-primary-50/50 p-3"
+								>
+									<label
+										for="env-edit-value"
+										class="font-montserrat-medium text-xs text-foreground"
+									>
+										Nilai baru
+									</label>
+									<input
+										bind:this={editValueInput}
+										bind:value={editValue}
+										oninput={() => (editValueError = '')}
+										id="env-edit-value"
+										type="text"
+										placeholder={env.is_secret
+											? 'Kosongkan untuk mempertahankan nilai'
+											: 'Isi value'}
+										autocomplete="off"
+										spellcheck="false"
+										aria-invalid={editValueError ? 'true' : undefined}
+										aria-describedby={editValueError ? 'env-edit-value-error' : undefined}
+										class="{inputClass} mt-1 {editValueError
+											? 'border-error-dark focus:border-error-dark'
+											: 'border-border-strong focus:border-primary'}"
+									/>
+									{#if editValueError}
+										<p
+											id="env-edit-value-error"
+											class="mt-1 font-montserrat text-xs text-error-dark"
+										>
+											{editValueError}
+										</p>
+									{/if}
+
+									<label class="mt-3 flex min-h-6 items-center gap-2 font-montserrat text-sm">
+										<input type="checkbox" bind:checked={editIsSecret} class="size-4 rounded" />
+										Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
+									</label>
+
+									{#if editFormError}
+										<p role="alert" class="mt-2 font-montserrat text-xs text-error-dark">
+											{editFormError}
+										</p>
+									{/if}
+
+									<div class="mt-3 flex justify-end gap-2">
+										<button
+											type="button"
+											onclick={handleCancelEdit}
+											class="min-h-10 cursor-pointer rounded-lg px-4 font-montserrat-medium text-sm text-foreground/70 hover:bg-black/5"
+										>
+											Batal
+										</button>
+										<Button
+											type="submit"
+											disabled={updateMutation.isPending}
+											class="min-h-10 rounded-lg px-4 font-montserrat-semibold"
+										>
+											{updateMutation.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
+										</Button>
+									</div>
+								</form>
+							{/if}
+						</li>
 					{/each}
-				</div>
+				</ul>
 			{/if}
 		{/if}
 
 		{#if isAdding}
-			<div
-				class="flex flex-col justify-center w-280 max-w-full min-h-21 bg-primary-50/50 border-t border-border py-4"
+			<!-- Esc is a shortcut; the Batal button stays the accessible path. -->
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<form
+				onsubmit={handleSave}
+				onkeydown={handleFormKeydown}
+				novalidate
+				aria-label="Tambah variabel"
+				class="w-full rounded-b-lg border-t border-border bg-primary-50/50 p-4 @2xl:px-6"
 			>
-				<div class="flex items-center">
-					<input
-						type="text"
-						placeholder="NAMA_VARIABEL"
-						value={newKey}
-						oninput={handleKeyInput}
-						class="ml-6 w-58 h-13 rounded-lg bg-surface border {errorMessage
-							? 'border-error-dark focus:border-error-dark'
-							: 'border-border focus:border-primary'} pl-4 pr-3 font-montserrat text-base text-foreground outline-none uppercase placeholder:normal-case placeholder:font-montserrat placeholder:text-muted shrink-0 transition-colors"
-					/>
+				<div class="flex flex-col gap-3 @2xl:flex-row @2xl:items-start">
+					<div class="flex min-w-0 flex-col gap-1 @2xl:w-58 @2xl:shrink-0">
+						<label for="env-new-key" class="font-montserrat-medium text-xs text-foreground">
+							Nama variabel
+						</label>
+						<input
+							bind:this={keyInput}
+							id="env-new-key"
+							type="text"
+							placeholder="NAMA_VARIABEL"
+							value={newKey}
+							oninput={handleKeyInput}
+							autocomplete="off"
+							spellcheck="false"
+							aria-invalid={keyError ? 'true' : undefined}
+							aria-describedby={keyError ? 'env-new-key-error' : undefined}
+							class="{inputClass} uppercase placeholder:normal-case {keyError
+								? 'border-error-dark focus:border-error-dark'
+								: 'border-border-strong focus:border-primary'}"
+						/>
+						{#if keyError}
+							<p id="env-new-key-error" class="font-montserrat text-xs text-error-dark">
+								{keyError}
+							</p>
+						{/if}
+					</div>
 
-					<input
-						type="text"
-						placeholder="Isi value"
-						bind:value={newValue}
-						oninput={handleValueInput}
-						class="ml-2 w-176 h-13 rounded-lg bg-surface border {errorMessage
-							? 'border-error-dark focus:border-error-dark'
-							: 'border-border focus:border-primary'} pl-4 pr-3 font-montserrat text-base text-foreground outline-none placeholder:font-montserrat placeholder:text-muted shrink-0 transition-colors"
-					/>
+					<div class="flex min-w-0 flex-1 flex-col gap-1">
+						<label for="env-new-value" class="font-montserrat-medium text-xs text-foreground">
+							Nilai
+						</label>
+						<input
+							bind:this={valueInput}
+							id="env-new-value"
+							type="text"
+							placeholder="Isi value"
+							bind:value={newValue}
+							oninput={handleValueInput}
+							autocomplete="off"
+							spellcheck="false"
+							aria-invalid={valueError ? 'true' : undefined}
+							aria-describedby={valueError ? 'env-new-value-error' : undefined}
+							class="{inputClass} {valueError
+								? 'border-error-dark focus:border-error-dark'
+								: 'border-border-strong focus:border-primary'}"
+						/>
+						{#if valueError}
+							<p id="env-new-value-error" class="font-montserrat text-xs text-error-dark">
+								{valueError}
+							</p>
+						{/if}
+					</div>
 
-					<button
-						type="button"
-						class="ml-10 w-10 h-12 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-						onclick={handleSave}
-						disabled={addMutation.isPending}
-						title="Simpan"
-					>
-						<Check size={24} weight="bold" />
-					</button>
+					<div class="flex shrink-0 items-center justify-end gap-2 @2xl:pt-6.5">
+						<Button
+							type="submit"
+							class="size-11 shrink-0 rounded-lg p-0"
+							disabled={addMutation.isPending}
+							aria-label="Simpan"
+							title="Simpan"
+						>
+							{#if addMutation.isPending}
+								<CircleNotch size={20} weight="bold" class="animate-spin" />
+							{:else}
+								<Check size={24} weight="bold" />
+							{/if}
+						</Button>
 
-					<button
-						type="button"
-						class="ml-2 mr-6 w-10 h-12 rounded-lg bg-transparent text-muted hover:text-foreground flex items-center justify-center hover:bg-black/5 transition-colors shrink-0 cursor-pointer"
-						onclick={handleCancelAdd}
-						title="Batal"
-					>
-						<X size={24} weight="regular" />
-					</button>
+						<button
+							type="button"
+							class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-transparent text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+							onclick={handleCancelAdd}
+							aria-label="Batal"
+							title="Batal"
+						>
+							<X size={24} weight="regular" />
+						</button>
+					</div>
 				</div>
 
-				{#if errorMessage}
-					<span class="ml-6 mt-2 font-montserrat text-xs text-error-dark">
-						{errorMessage}
-					</span>
+				<label class="mt-3 flex min-h-6 items-center gap-2 font-montserrat text-sm">
+					<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded" />
+					Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
+				</label>
+
+				{#if formError}
+					<p role="alert" class="mt-2 font-montserrat text-xs text-error-dark">{formError}</p>
 				{/if}
-			</div>
+			</form>
 		{/if}
 	</div>
 
 	{#if isAdding}
-		<p class="mt-3 font-montserrat text-xs text-muted">
-			Key otomatis jadi UPPERCASE_SNAKE_CASE. Klik centang untuk simpan, silang untuk batal.
+		<p class="mt-3 font-montserrat text-xs text-foreground/70">
+			Nama variabel otomatis jadi UPPERCASE_SNAKE_CASE. Tekan Enter atau centang untuk simpan, Esc
+			atau silang untuk batal.
 		</p>
 	{/if}
 
 	{#if !isAdding}
 		<button
+			bind:this={addButton}
 			type="button"
 			onclick={handleOpenAdd}
-			class="mt-4 flex items-center justify-center w-280 max-w-full h-12 rounded-lg border border-dashed border-black bg-surface text-foreground font-montserrat-semibold text-base gap-3 hover:bg-surface-elevated transition-colors cursor-pointer"
+			class="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-black bg-surface font-montserrat-semibold text-base text-foreground transition-colors hover:bg-surface-elevated"
 		>
 			<Plus size={24} weight="regular" />
 			<span>Tambah Variabel</span>
@@ -293,6 +645,7 @@
 		open={deletingEnv !== null}
 		envKey={deletingEnv?.key ?? ''}
 		isLoading={deleteMutation.isPending}
+		error={deleteError}
 		onConfirm={handleConfirmDelete}
 		onClose={handleCloseDelete}
 	/>

@@ -11,15 +11,23 @@
 	let currentPath = $derived($page.url.pathname);
 	let projectId = $derived($page.params.id as string);
 
-	initProjectDetailContext();
-	const projectQuery = createProjectQuery(() => projectId);
+	const detailState = initProjectDetailContext();
+
+	// This layout stays mounted across projects, and a draft belongs to one project.
+	let draftProjectId: string | undefined;
+	$effect.pre(() => {
+		if (draftProjectId !== undefined && projectId !== draftProjectId) detailState.resetDraft();
+		draftProjectId = projectId;
+	});
+
+	const projectQuery = createProjectQuery(() => projectId, { poll: true });
 </script>
 
-<div class="flex flex-col gap-6 w-full max-w-7xl mx-auto">
+<div class="flex flex-col gap-6 w-full min-w-0 max-w-7xl mx-auto">
 	{#if projectQuery.isLoading}
 		<div class="flex flex-col gap-4 mb-4 animate-pulse">
-			<div class="h-10 bg-surface-elevated/80 rounded-lg w-1/3"></div>
-			<div class="h-12 bg-surface-elevated/50 rounded-lg w-full"></div>
+			<div class="h-10 bg-background-soft rounded-lg w-1/3"></div>
+			<div class="h-12 bg-background-soft rounded-lg w-full"></div>
 		</div>
 	{:else if projectQuery.isError}
 		<div
@@ -31,10 +39,11 @@
 		<ProjectHeaderBanner project={projectQuery.data} />
 	{/if}
 
-	<div class="border-b border-border mb-2">
-		<nav class="-mb-px flex space-x-8" aria-label="Tabs">
+	<div class="border-b border-border mb-2 min-w-0 w-full">
+		<nav class="-mb-px flex gap-x-6 overflow-x-auto px-1 sm:gap-x-8" aria-label="Bagian proyek">
 			<a
 				href={resolveRoute('/(app)/projects/[id]/deployments', { id: projectId || '' })}
+				aria-current={currentPath.includes('/deployments') ? 'page' : undefined}
 				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/deployments')
 					? 'border-primary text-primary'
@@ -44,6 +53,7 @@
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/environments', { id: projectId || '' })}
+				aria-current={currentPath.includes('/environments') ? 'page' : undefined}
 				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/environments')
 					? 'border-primary text-primary'
@@ -53,12 +63,13 @@
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/settings', { id: projectId || '' })}
+				aria-current={currentPath.includes('/settings') ? 'page' : undefined}
 				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/settings')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Settings
+				Pengaturan
 			</a>
 		</nav>
 	</div>

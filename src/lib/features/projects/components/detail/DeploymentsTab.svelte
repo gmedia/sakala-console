@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { createDeploymentsQuery } from '../../queries';
 	import type { DeploymentFilter } from '../../type';
-	import {
-		CircleNotch,
-		WarningCircle,
-		List,
-		MagnifyingGlass,
-		Empty,
-		CaretLeft,
-		CaretRight
-	} from 'phosphor-svelte';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import List from 'phosphor-svelte/lib/List';
+	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
+	import Empty from 'phosphor-svelte/lib/Empty';
+	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
+	import CaretRight from 'phosphor-svelte/lib/CaretRight';
+	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import DeploymentCard from './DeploymentCard.svelte';
 
 	let { projectId }: { projectId: string } = $props();
@@ -33,6 +32,11 @@
 		const currentIndex = filterOptions.indexOf(selectedFilter);
 		const nextIndex = (currentIndex + 1) % filterOptions.length;
 		selectedFilter = filterOptions[nextIndex];
+		currentPage = 1;
+	}
+
+	function showAllTime() {
+		selectedFilter = 'all';
 		currentPage = 1;
 	}
 
@@ -72,19 +76,15 @@
 			<span class="pl-2 text-[12px] font-montserrat-semibold">{filterText}</span>
 		</button>
 
-		<div class="relative w-54 h-10">
-			<MagnifyingGlass size={16} class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-			<input
-				type="text"
-				placeholder="Search..."
-				value={searchQuery}
-				oninput={(e) => {
-					searchQuery = e.currentTarget.value;
-					currentPage = 1;
-				}}
-				class="w-full h-full bg-surface border border-border rounded-lg pl-11 pr-4 py-2 text-sm outline-none focus:border-primary transition-colors"
-			/>
-		</div>
+		<SearchInput
+			class="w-full md:w-54"
+			placeholder="Cari deployment"
+			debounce={300}
+			onSearch={(value) => {
+				searchQuery = value;
+				currentPage = 1;
+			}}
+		/>
 	</div>
 
 	{#if query.isPending}
@@ -93,17 +93,44 @@
 		</div>
 	{:else if query.isError}
 		<div
-			class="p-6 bg-error/5 text-error rounded-xl flex items-center gap-3 border border-error/20"
+			role="alert"
+			class="p-6 bg-error/5 text-error rounded-xl flex flex-wrap items-center gap-3 border border-error/20"
 		>
 			<WarningCircle size={24} weight="fill" />
-			<p class="font-medium text-sm">Gagal memuat riwayat deployment. Silakan coba lagi.</p>
+			<p class="min-w-0 flex-1 font-medium text-sm">
+				Gagal memuat riwayat deployment. Riwayatnya sendiri tidak hilang.
+			</p>
+			<button
+				type="button"
+				onclick={() => query.refetch()}
+				disabled={query.isFetching}
+				class="min-h-10 shrink-0 cursor-pointer rounded-lg border border-error/30 bg-surface px-4 font-montserrat-semibold text-sm text-error-dark transition-colors hover:bg-error/10 disabled:cursor-not-allowed disabled:opacity-60"
+			>
+				{query.isFetching ? 'Memuat...' : 'Coba lagi'}
+			</button>
+		</div>
+	{:else if deployments.length === 0 && !searchQuery.trim() && selectedFilter !== 'all'}
+		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
+			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
+				<Empty size={32} weight="regular" />
+			</div>
+			<p class="text-center text-foreground text-[20px] font-montserrat-light">
+				Tidak ada deployment dalam {filterText}.
+			</p>
+			<button
+				type="button"
+				onclick={showAllTime}
+				class="min-h-10 cursor-pointer rounded-lg border border-border-strong bg-surface px-4 font-montserrat-semibold text-sm text-foreground transition-colors hover:bg-background-soft"
+			>
+				Lihat semua waktu
+			</button>
 		</div>
 	{:else if deployments.length === 0 && !searchQuery.trim()}
 		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
 			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
 				<Empty size={32} weight="regular" />
 			</div>
-			<p class="text-foreground text-[20px] font-montserrat-light">
+			<p class="text-center text-foreground text-[20px] font-montserrat-light">
 				Belum ada riwayat deployment untuk proyek ini.
 			</p>
 		</div>
@@ -112,7 +139,7 @@
 			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
 				<MagnifyingGlass size={32} weight="regular" />
 			</div>
-			<p class="text-foreground text-[20px] font-montserrat-light">
+			<p class="text-center text-foreground text-[20px] font-montserrat-light">
 				Tidak ada deployment yang sesuai dengan pencarian.
 			</p>
 		</div>
@@ -124,12 +151,16 @@
 		</div>
 
 		{#if totalPages > 1}
-			<div class="flex items-center justify-center gap-2 mt-4 mb-8">
+			<nav
+				class="flex flex-wrap items-center justify-center gap-2 mt-4 mb-8"
+				aria-label="Navigasi halaman"
+			>
 				<button
 					type="button"
 					onclick={() => currentPage > 1 && (currentPage -= 1)}
 					disabled={currentPage === 1}
-					class="flex items-center justify-center w-14 h-12 rounded-lg bg-white text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
+					aria-label="Halaman sebelumnya"
+					class="flex items-center justify-center w-14 h-12 rounded-lg bg-surface text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
 				>
 					<CaretLeft size={16} weight="bold" />
 				</button>
@@ -145,6 +176,8 @@
 						<button
 							type="button"
 							onclick={() => (currentPage = Number(pageNum))}
+							aria-label={`Halaman ${pageNum}`}
+							aria-current={currentPage === pageNum ? 'page' : undefined}
 							class="flex items-center justify-center h-12 rounded-lg text-sm font-semibold transition-colors cursor-pointer {currentPage ===
 							pageNum
 								? 'bg-primary text-white w-9.75'
@@ -159,11 +192,12 @@
 					type="button"
 					onclick={() => currentPage < totalPages && (currentPage += 1)}
 					disabled={currentPage === totalPages}
-					class="flex items-center justify-center w-14 h-12 rounded-lg bg-white text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
+					aria-label="Halaman berikutnya"
+					class="flex items-center justify-center w-14 h-12 rounded-lg bg-surface text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
 				>
 					<CaretRight size={16} weight="bold" />
 				</button>
-			</div>
+			</nav>
 		{/if}
 	{/if}
 </div>

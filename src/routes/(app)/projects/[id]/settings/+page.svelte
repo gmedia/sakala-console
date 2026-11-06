@@ -5,6 +5,6 @@
 	let projectId = $derived($page.params.id as string);
 </script>
 
-<svelte:head><title>Settings | Sakala Console</title></svelte:head>
+<svelte:head><title>Pengaturan Proyek | Sakala Console</title></svelte:head>
 
 <ProjectSettingsTab {projectId} />

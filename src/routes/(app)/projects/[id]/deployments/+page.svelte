@@ -5,6 +5,6 @@
 	let projectId = $derived($page.params.id as string);
 </script>
 
-<svelte:head><title>Deployments | Sakala Console</title></svelte:head>
+<svelte:head><title>Riwayat Deployment | Sakala Console</title></svelte:head>
 
 <DeploymentsTab {projectId} />

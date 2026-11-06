@@ -5,7 +5,7 @@
 	let projectId = $derived($page.params.id as string);
 </script>
 
-<svelte:head><title>Environments | Sakala Console</title></svelte:head>
+<svelte:head><title>Environment Variables | Sakala Console</title></svelte:head>
 
 <div class="mt-4">
 	<EnvironmentVariablesTab {projectId} />
