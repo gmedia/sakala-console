@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { WarningCircleIcon } from 'phosphor-svelte';
+	import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
 	type Props = {
 		title: string;
 		description: string;
 	};
 
-	let { title = 'Gagal menyimpan pilihan anda.', description }: Props = $props();
+	let { title = 'Gagal menyimpan pilihanmu.', description }: Props = $props();
 </script>
 
 <div

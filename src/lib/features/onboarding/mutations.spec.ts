@@ -125,7 +125,10 @@ describe('useCompleteOnboarding', () => {
 			onboarding_source: 'github',
 			onboarding_role: 'developer',
 			onboarding_completed_at: '2026-09-16T10:00:00Z',
-			last_login_at: '2026-09-16T10:00:00Z'
+			last_login_at: '2026-09-16T10:00:00Z',
+			has_password: true,
+			pending_email: null,
+			created_at: '2026-01-01T00:00:00Z'
 		};
 
 		useCompleteOnboarding();

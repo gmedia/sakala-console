@@ -11,7 +11,11 @@
 	<title>Onboarding | Sakala Console</title>
 </svelte:head>
 
-<div class="flex min-h-screen w-full items-center justify-center bg-background text-black">
+<main
+	id="main-content"
+	tabindex="-1"
+	class="flex min-h-screen w-full items-center justify-center bg-background text-black outline-none"
+>
 	{#if flow.step === 1}
 		<OnboardingStep1
 			isSubmitPending={flow.isSubmittingSource}
@@ -42,4 +46,4 @@
 			isPending={flow.completeMutation.isPending}
 		/>
 	{/if}
-</div>
+</main>

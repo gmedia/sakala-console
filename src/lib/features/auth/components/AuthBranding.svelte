@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SakalaLogo from '$lib/assets/sakala-logo.svg';
-	import { Check, Copyright } from '@lucide/svelte';
+	import Check from '@lucide/svelte/icons/check';
+	import Copyright from '@lucide/svelte/icons/copyright';
 	import AccentBG from '$lib/assets/bg.png';
 
 	type Props = {
@@ -10,14 +11,14 @@
 	let { mode }: Props = $props();
 
 	const registerItems: { desc: string }[] = [
-		{ desc: 'Deteksi Projek Anda' },
-		{ desc: 'Deploy Otomatis' },
-		{ desc: 'URL Website Siap Digunakan' }
+		{ desc: 'Sakala memeriksa repository sebelum deploy' },
+		{ desc: 'Log dan status tiap tahap bisa kamu baca' },
+		{ desc: 'URL publik begitu deployment berhasil' }
 	];
 </script>
 
 <div
-	class="hidden lg:flex flex-col justify-between items-center bg-gradient-to-br from-[#0F766E] via-[#128F86] via-[#15A99E] to-[#1CDCCD] text-white p-16 select-none relative overflow-hidden lg:col-span-6"
+	class="hidden lg:flex flex-col justify-between items-center bg-gradient-to-br from-primary via-primary via-80% to-brand-glow text-white p-16 select-none relative overflow-hidden lg:col-span-6"
 >
 	<img
 		src={AccentBG}
@@ -30,18 +31,18 @@
 	</div>
 	<div class="relative z-10 my-auto space-y-6">
 		{#if mode === 'login'}
-			<h1 class="text-5xl font-bold tracking-tight leading-[1.1] text-white">
-				Build,<br />Deploy,<br />Scale.
-			</h1>
-			<p class="text-teal-50/80 text-xl font-normal">
-				Infrastruktur modern untuk pengembang masa depan. Kelola aplikasi Anda dengan efisiensi
-				terminal dan keandalan tingkat enterprise.
+			<p class="text-5xl font-bold tracking-tight leading-[1.1] text-white">
+				Build,<br />Deploy,<br />Baca log-nya.
+			</p>
+			<p class="text-white text-xl font-normal">
+				Hubungkan repository GitHub, deploy dari sini, lalu pantau status dan log-nya kalau ada yang
+				gagal.
 			</p>
 		{:else}
-			<h1 class="text-5xl font-bold tracking-tight leading-[1.1] text-white">Mulai Membangun.</h1>
-			<p class="text-teal-50/80 leading-relaxed text-xl font-normal">
-				Berhenti membatasi karya hanya di Local. Daftar sekarang dan mulailah pengalaman deployment
-				dengan langkah yang mudah.
+			<p class="text-5xl font-bold tracking-tight leading-[1.1] text-white">Mulai Membangun.</p>
+			<p class="text-white leading-relaxed text-xl font-normal">
+				Dari repository GitHub ke URL publik. Daftar, pilih repository, lalu deploy proyek
+				pertamamu.
 			</p>
 
 			<div class="space-y-2 pt-2">
@@ -49,8 +50,8 @@
 					<div
 						class="w-full py-2 px-3 rounded-lg flex items-center gap-3 transition-all duration-200"
 					>
-						<Check size={20} color="#ffffff" />
-						<span class="text-md font-medium">{item.desc}</span>
+						<Check size={20} class="text-white" />
+						<span class="text-base font-medium">{item.desc}</span>
 					</div>
 				{/each}
 			</div>
@@ -58,7 +59,7 @@
 	</div>
 
 	<div class="mt-16 flex items-center gap-1.5 w-full">
-		<Copyright class="size-4" color="#ffffff" />
+		<Copyright class="size-4 text-white" />
 		<span>2026 Sakala Contributors · Apache-2.0</span>
 	</div>
 </div>

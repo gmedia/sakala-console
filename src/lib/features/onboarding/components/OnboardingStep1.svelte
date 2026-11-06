@@ -1,14 +1,12 @@
 <script lang="ts">
-	import {
-		GraduationCap,
-		ShareNetwork,
-		UsersThree,
-		GoogleLogo,
-		SpeakerHigh,
-		GithubLogo,
-		Files,
-		DotsThree
-	} from 'phosphor-svelte';
+	import GraduationCap from 'phosphor-svelte/lib/GraduationCap';
+	import ShareNetwork from 'phosphor-svelte/lib/ShareNetwork';
+	import UsersThree from 'phosphor-svelte/lib/UsersThree';
+	import GoogleLogo from 'phosphor-svelte/lib/GoogleLogo';
+	import SpeakerHigh from 'phosphor-svelte/lib/SpeakerHigh';
+	import GithubLogo from 'phosphor-svelte/lib/GithubLogo';
+	import Files from 'phosphor-svelte/lib/Files';
+	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { cn } from '$lib/utils/cn';
 	import { ONBOARDING_SOURCE_VALUES, ONBOARDING_SOURCE_OPTIONS_MAP } from '../constants';
 	import type { OnboardingSource } from '$lib/api/resources/onboarding';
@@ -62,12 +60,12 @@
 
 	<!-- Heading -->
 	<h1 class="text-3xl font-bold tracking-tight text-black sm:text-4xl">
-		Dari mana Anda mengetahui <span class="text-primary">Sakala?</span>
+		Dari mana kamu mengetahui <span class="text-primary">Sakala?</span>
 	</h1>
-	<p class="mt-2 text-sm text-black">Bantu kami memahami bagaimana Anda menemukan platform kami.</p>
+	<p class="mt-2 text-sm text-black">Bantu kami memahami bagaimana kamu menemukan Sakala.</p>
 
 	{#if errorMessage}
-		<OnboardingError title="Gagal menyimpan pilihan anda." description={errorMessage} />
+		<OnboardingError title="Gagal menyimpan pilihanmu." description={errorMessage} />
 	{/if}
 
 	<!-- Column Options Grid -->
@@ -106,12 +104,12 @@
 	</div>
 
 	<!-- Footer Navigation Controls -->
-	<div class="mt-20 flex items-center justify-between pt-6">
+	<div class="mt-20 flex flex-wrap items-center justify-between gap-2 pt-6">
 		<Button
 			type="button"
 			onclick={onBack}
 			disabled={!onBack || isSubmitPending || isSkipPending}
-			class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-base font-medium text-black transition-colors hover:bg-background disabled:opacity-30 sm:w-40.5 sm:text-[22px]"
+			class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface text-base font-medium text-foreground transition-colors hover:bg-background disabled:opacity-30 sm:w-40.5 sm:text-[22px]"
 		>
 			Kembali
 		</Button>
@@ -121,7 +119,7 @@
 				type="button"
 				onclick={onSkip}
 				disabled={isSubmitPending || isSkipPending}
-				class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-base font-medium text-black transition-colors hover:bg-background sm:w-40.5 sm:text-[22px]"
+				class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface text-base font-medium text-foreground transition-colors hover:bg-background sm:w-40.5 sm:text-[22px]"
 			>
 				{isSkipPending ? 'Melewati...' : 'Lewati'}
 			</Button>

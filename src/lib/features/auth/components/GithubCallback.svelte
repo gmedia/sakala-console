@@ -64,11 +64,11 @@
 	function getErrorMessage(code: string) {
 		switch (code) {
 			case 'github_access_denied':
-				return 'Anda membatalkan izin masuk dengan GitHub.';
+				return 'Kamu membatalkan izin masuk dengan GitHub.';
 			case 'github_email_conflict':
-				return 'Email GitHub Anda sudah terdaftar dengan metode login lain.';
+				return 'Email GitHub kamu sudah terdaftar dengan metode login lain.';
 			case 'github_email_unavailable':
-				return 'Email publik tidak ditemukan di akun GitHub Anda.';
+				return 'Email publik tidak ditemukan di akun GitHub kamu.';
 			case 'github_invalid_state':
 				return 'Sesi login tidak valid. Silakan coba lagi.';
 			case 'github_provider_failure':
@@ -79,20 +79,24 @@
 	}
 </script>
 
-<div class="min-h-screen flex flex-col items-center justify-center p-4">
+<main
+	id="main-content"
+	tabindex="-1"
+	class="min-h-screen flex flex-col items-center justify-center p-4 outline-none"
+>
 	{#if errorParam}
 		<div
-			class="max-w-md w-full bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg space-y-3"
+			class="max-w-md w-full bg-error-50 border border-error/30 text-error p-4 rounded-lg space-y-3"
 		>
-			<h3 class="font-semibold text-lg focus:outline-none" tabindex="-1" bind:this={errorHeading}>
+			<h1 class="font-semibold text-lg focus:outline-none" tabindex="-1" bind:this={errorHeading}>
 				Gagal Masuk
-			</h3>
+			</h1>
 			<p class="text-sm">
 				{getErrorMessage(errorParam)}
 			</p>
 			<a
 				href={resolve('/login')}
-				class="inline-block bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-700"
+				class="inline-block bg-error text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-error-dark"
 			>
 				Coba Lagi
 			</a>
@@ -100,15 +104,15 @@
 	{:else if userQuery.isPending || userQuery.isLoading}
 		<div class="flex items-center gap-3 text-zinc-600">
 			<div
-				class="w-5 h-5 border-2 border-[#0F766E] border-t-transparent rounded-full animate-spin"
+				class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"
 			></div>
-			<span class="text-sm font-medium">Memverifikasi sesi Anda...</span>
+			<h1 class="text-sm font-medium">Memverifikasi sesimu...</h1>
 		</div>
 	{:else if userQuery.isError}
 		<div
 			class="max-w-md w-full bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg space-y-3"
 		>
-			<h3
+			<h1
 				class="font-semibold text-lg focus:outline-none"
 				tabindex="-1"
 				bind:this={queryErrorHeading}
@@ -122,15 +126,15 @@
 				{:else}
 					Autentikasi Gagal
 				{/if}
-			</h3>
+			</h1>
 
 			<p class="text-sm">
 				{#if userQuery.error instanceof NetworkError}
-					Gagal terhubung ke server. Periksa koneksi internet Anda dan coba verifikasi ulang.
+					Gagal terhubung ke server. Periksa koneksi internet kamu dan coba verifikasi ulang.
 				{:else if isRetryableError}
 					Sesi tidak dapat diverifikasi karena kendala sementara. Silakan coba lagi.
 				{:else}
-					Sesi tidak dapat diverifikasi atau telah kadaluwarsa. Silakan lakukan login ulang.
+					Sesi tidak dapat diverifikasi atau telah kadaluwarsa. Silakan masuk ulang.
 				{/if}
 			</p>
 
@@ -138,18 +142,18 @@
 				<button
 					type="button"
 					onclick={() => userQuery.refetch()}
-					class="inline-block bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-amber-700 cursor-pointer"
+					class="inline-block bg-warning text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-warning-dark cursor-pointer"
 				>
 					Coba Lagi
 				</button>
 			{:else}
 				<a
 					href={resolve('/login')}
-					class="inline-block bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-amber-700"
+					class="inline-block bg-warning text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-warning-dark"
 				>
-					Kembali ke Login
+					Kembali ke halaman masuk
 				</a>
 			{/if}
 		</div>
 	{/if}
-</div>
+</main>

@@ -61,8 +61,7 @@
 		<!-- Heading -->
 		<h1 class="text-3xl font-bold tracking-tight text-black sm:text-4xl">Pengaturan Profil</h1>
 		<p class="mt-2 text-sm text-black">
-			Lengkapi identitas teknis Anda untuk mempersonalisasi pengalaman dokumentasi dan kolaborasi di
-			Sakala.
+			Nama tampilan muncul di akunmu. Peran membantu kami memahami siapa yang memakai Sakala.
 		</p>
 	</div>
 
@@ -84,7 +83,7 @@
 				value={displayName}
 				oninput={handleInput}
 				disabled={isSubmitPending || isSkipPending}
-				class="mt-2 h-14 w-full rounded-lg border border-border/60 bg-surface pl-10 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:ring-primary focus:outline-none disabled:opacity-60"
+				class="mt-2 h-14 w-full rounded-lg border border-border-strong bg-surface pl-4 pr-4 py-3 font-sans text-[18px] font-normal text-black placeholder:text-muted focus:border-primary focus:ring-primary focus:outline-none disabled:opacity-60"
 			/>
 		</div>
 
@@ -122,12 +121,12 @@
 	</div>
 
 	<!-- Footer Navigation Controls -->
-	<div class="mt-20 flex items-center justify-between pt-6">
+	<div class="mt-20 flex flex-wrap items-center justify-between gap-2 pt-6">
 		<Button
 			type="button"
 			onclick={onBack}
 			disabled={!onBack || isSubmitPending || isSkipPending}
-			class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-base font-medium text-black transition-colors hover:bg-background disabled:opacity-30 sm:w-40.5 sm:text-[22px]"
+			class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface text-base font-medium text-foreground transition-colors hover:bg-background disabled:opacity-30 sm:w-40.5 sm:text-[22px]"
 		>
 			Kembali
 		</Button>
@@ -137,7 +136,7 @@
 				type="button"
 				onclick={onSkip}
 				disabled={isSubmitPending || isSkipPending}
-				class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-base font-medium text-black transition-colors hover:bg-background sm:w-40.5 sm:text-[22px]"
+				class="flex h-11.75 w-28 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-surface text-base font-medium text-foreground transition-colors hover:bg-background sm:w-40.5 sm:text-[22px]"
 			>
 				{isSkipPending ? 'Melewati...' : 'Lewati'}
 			</Button>

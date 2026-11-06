@@ -314,7 +314,7 @@ describe('useOnboardingFlow', () => {
 			sourceMutationStub.resolveError(new NetworkError());
 
 			expect(flow.sourceErrorMessage).toBe(
-				'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.'
+				'Tidak dapat terhubung ke server. Periksa koneksi internet kamu dan coba lagi.'
 			);
 		});
 
@@ -416,7 +416,7 @@ describe('useOnboardingFlow', () => {
 			completeMutationStub.resolveError(new NetworkError());
 
 			expect(flow.completeErrorMessage).toBe(
-				'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.'
+				'Tidak dapat terhubung ke server. Periksa koneksi internet kamu dan coba lagi.'
 			);
 			expect(mockedGoto).not.toHaveBeenCalled();
 		});

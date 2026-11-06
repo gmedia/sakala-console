@@ -7,8 +7,28 @@ import {
 	setPendingOAuthProvider,
 	clearPendingOAuthProvider,
 	redirectToGithubAuth,
-	redirectToGoogleAuth
+	redirectToGoogleAuth,
+	githubInstallUrl,
+	loginPathWithReturnTo
 } from './oauth';
+import { publicConfig } from '$lib/config/public';
+
+describe('githubInstallUrl (U-05)', () => {
+	it('points at the API origin, not the console', () => {
+		expect(githubInstallUrl()).toBe(
+			new URL('/auth/github/install', publicConfig.apiUrl).toString()
+		);
+		expect(new URL(githubInstallUrl()).origin).toBe(new URL(publicConfig.apiUrl).origin);
+	});
+});
+
+describe('loginPathWithReturnTo (U-30)', () => {
+	it('keeps the path and query of the page the session ended on', () => {
+		const path = loginPathWithReturnTo({ pathname: '/projects', search: '?tab=logs' });
+
+		expect(path).toBe('/login?returnTo=%2Fprojects%3Ftab%3Dlogs');
+	});
+});
 
 describe('isValidInternalPath', () => {
 	it('returns true for valid internal paths', () => {

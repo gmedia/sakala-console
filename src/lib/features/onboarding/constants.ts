@@ -26,6 +26,8 @@ export const ONBOARDING_PROFILE_VALUES = [
 	'developer',
 	'devops',
 	'architect',
+	'student',
+	'mentor',
 	'other'
 ] as const satisfies readonly OnboardingProfile[];
 
@@ -33,6 +35,8 @@ export const ONBOARDING_PROFILE_OPTIONS_MAP: Record<OnboardingProfile, string> =
 	developer: 'Developer',
 	devops: 'DevOps',
 	architect: 'Architect',
+	student: 'Mahasiswa',
+	mentor: 'Mentor',
 	other: 'Lainnya'
 };
 

@@ -11,7 +11,7 @@ import { ApiError, NetworkError } from '$lib/api/errors';
 function toErrorMessage(error: unknown): string | null {
 	if (!error) return null;
 	if (error instanceof NetworkError)
-		return 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.';
+		return 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu dan coba lagi.';
 	if (error instanceof ApiError && error.isValidationError) {
 		return 'Data yang dikirim tidak valid. Silakan periksa kembali.';
 	}

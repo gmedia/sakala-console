@@ -1,223 +1,294 @@
 <script lang="ts">
-	import { PencilSimple, Eye, EyeClosed } from 'phosphor-svelte';
-	import { untrack } from 'svelte';
-	import { useCurrentUser } from '$lib/features/auth/queries';
+	import Button from '$lib/components/ui/Button.svelte';
+	import { tick } from 'svelte';
+	import CaretDown from 'phosphor-svelte/lib/CaretDown';
+	import CaretUp from 'phosphor-svelte/lib/CaretUp';
+	import FormField from '$lib/components/ui/FormField.svelte';
+	import { getErrorMessage, getFieldError } from '$lib/api/errors';
+	import { useChangePassword, useRequestEmailChange } from '$lib/features/auth/mutations';
+	import { useAuthOptions, useCurrentUser } from '$lib/features/auth/queries';
+	import {
+		EMAIL_CHANGE_UNAVAILABLE_MESSAGE,
+		resolveAuthAvailability
+	} from '$lib/features/auth/availability';
+
+	const MIN_PASSWORD_LENGTH = 8;
 
 	const currentUserQuery = useCurrentUser();
+	const user = $derived(currentUserQuery.data);
+	const hasPassword = $derived(user?.has_password ?? true);
 
-	let initialEmail = $state(currentUserQuery.data?.email ?? '');
-	let email = $state(currentUserQuery.data?.email ?? '');
+	const authOptions = useAuthOptions();
+	const availability = $derived(resolveAuthAvailability(authOptions));
 
-	$effect(() => {
-		const u = currentUserQuery.data;
-		if (u?.email) {
-			const dirty = untrack(() => isEmailDirty);
-			if (!dirty) {
-				initialEmail = u.email;
-				email = u.email;
-			}
-		}
-	});
+	const emailChange = useRequestEmailChange();
+	const passwordChange = useChangePassword();
 
+	let newEmail = $state('');
+	let emailPassword = $state('');
+	let emailErrors = $state<{ email?: string; currentPassword?: string; general?: string }>({});
+
+	let isPasswordOpen = $state(false);
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
+	let passwordErrors = $state<{
+		currentPassword?: string;
+		password?: string;
+		confirmation?: string;
+		general?: string;
+	}>({});
+	let passwordSuccess = $state<string | null>(null);
 
-	let showCurrentPassword = $state(false);
-	let showNewPassword = $state(false);
-	let showConfirmPassword = $state(false);
-
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-	const isEmailDirty = $derived(email.trim() !== initialEmail);
-	const isEmailFormatValid = $derived(emailRegex.test(email.trim()));
-	const isEmailValid = $derived(isEmailDirty && isEmailFormatValid);
-
-	const hasMinLength = $derived(newPassword.length >= 8);
-	const hasLetter = $derived(/[a-zA-Z]/.test(newPassword));
-	const hasNumber = $derived(/[0-9]/.test(newPassword));
-	const hasSymbol = $derived(/[^a-zA-Z0-9]/.test(newPassword));
-	const isNewPasswordComplex = $derived(hasMinLength && hasLetter && hasNumber && hasSymbol);
-
-	const isPasswordMismatch = $derived(
-		confirmPassword.length > 0 && newPassword !== confirmPassword
-	);
-	const isPasswordFormValid = $derived(
-		currentPassword.trim().length > 0 && isNewPasswordComplex && newPassword === confirmPassword
+	const emailFormatValid = $derived(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim()));
+	const canSubmitEmail = $derived(
+		hasPassword &&
+			emailFormatValid &&
+			newEmail.trim().toLowerCase() !== user?.email.toLowerCase() &&
+			emailPassword.length > 0 &&
+			!emailChange.isPending
 	);
 
-	function handleUpdateEmail() {
-		if (!isEmailValid) return;
-		initialEmail = email.trim();
+	const newPasswordTooShort = $derived(
+		newPassword.length > 0 && newPassword.length < MIN_PASSWORD_LENGTH
+	);
+	const passwordMismatch = $derived(confirmPassword.length > 0 && newPassword !== confirmPassword);
+	const canSubmitPassword = $derived(
+		(!hasPassword || currentPassword.length > 0) &&
+			newPassword.length >= MIN_PASSWORD_LENGTH &&
+			newPassword === confirmPassword &&
+			!passwordChange.isPending
+	);
+
+	async function focusField(id: string) {
+		await tick();
+		document.getElementById(id)?.focus();
 	}
 
-	function handleUpdatePassword() {
-		if (!isPasswordFormValid) return;
-		currentPassword = '';
-		newPassword = '';
-		confirmPassword = '';
+	async function handleEmailSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		if (!canSubmitEmail) return;
+		emailErrors = {};
+
+		try {
+			await emailChange.mutateAsync({ email: newEmail.trim(), current_password: emailPassword });
+			newEmail = '';
+			emailPassword = '';
+		} catch (error) {
+			const email = getFieldError(error, 'email');
+			const password = getFieldError(error, 'current_password');
+			emailErrors = {
+				email,
+				currentPassword: password,
+				general:
+					email || password ? undefined : getErrorMessage(error, 'Gagal meminta ganti email.')
+			};
+			if (password) void focusField('email-current-password');
+			else if (email) void focusField('new-email');
+		}
+	}
+
+	async function handlePasswordSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		if (!canSubmitPassword) return;
+		const wasFirstPassword = !hasPassword;
+		passwordErrors = {};
+		passwordSuccess = null;
+
+		try {
+			await passwordChange.mutateAsync({
+				...(hasPassword ? { current_password: currentPassword } : {}),
+				password: newPassword,
+				password_confirmation: confirmPassword
+			});
+			currentPassword = '';
+			newPassword = '';
+			confirmPassword = '';
+			isPasswordOpen = false;
+			passwordSuccess = wasFirstPassword
+				? 'Kata sandi sudah dibuat. Sekarang kamu juga bisa masuk dengan email dan kata sandi.'
+				: 'Kata sandi sudah diganti. Sesi di perangkat lain akan berakhir.';
+		} catch (error) {
+			const current = getFieldError(error, 'current_password');
+			const password = getFieldError(error, 'password');
+			const confirmation = getFieldError(error, 'password_confirmation');
+			const hasFieldError = Boolean(current || password || confirmation);
+			passwordErrors = {
+				currentPassword: current,
+				password,
+				confirmation,
+				general: hasFieldError
+					? undefined
+					: getErrorMessage(error, 'Gagal menyimpan kata sandi. Coba lagi.')
+			};
+			if (current) void focusField('current-password');
+			else if (password) void focusField('new-password');
+			else if (confirmation) void focusField('confirm-password');
+		}
 	}
 </script>
 
 <div class="space-y-6">
-	<div class="rounded-2xl border border-border/70 bg-white p-6 shadow-xs space-y-4">
+	<section
+		aria-labelledby="email-card-title"
+		class="rounded-2xl border border-border/70 bg-white p-6 shadow-xs space-y-4"
+	>
 		<div>
-			<h3 class="font-sans text-base font-semibold text-foreground">Email</h3>
+			<h3 id="email-card-title" class="font-sans text-base font-semibold text-foreground">Email</h3>
 			<p class="mt-0.5 font-sans text-xs text-muted">
 				Alamat email dipakai untuk login dan notifikasi penting.
 			</p>
 		</div>
 
-		<div class="space-y-3">
-			<div class="relative">
-				<input
-					type="email"
-					bind:value={email}
-					class="w-full rounded-xl border border-border/80 bg-white px-4 py-3 pr-10 font-sans text-sm text-foreground focus:border-primary-dark focus:outline-none focus:ring-1 focus:ring-primary-dark"
-				/>
-				<PencilSimple
-					size={18}
-					class="absolute right-3.5 top-3.5 size-4.5 text-muted pointer-events-none"
-				/>
-			</div>
+		<p class="font-sans text-sm text-foreground">
+			Email saat ini: <strong class="font-semibold">{user?.email}</strong>
+		</p>
 
-			{#if isEmailDirty && !isEmailFormatValid}
-				<p class="font-sans text-xs text-error-base" role="alert">
-					Format alamat email tidak valid.
+		{#if user?.pending_email && availability.emailActionsAvailable}
+			<div class="rounded-xl bg-primary-50 p-4" role="status">
+				<p class="font-sans text-sm font-semibold text-primary-dark">Cek email baru</p>
+				<p class="mt-1 font-sans text-xs text-foreground">
+					Buka tautan konfirmasi yang kami kirim ke <strong>{user.pending_email}</strong>. Emailmu
+					tetap {user.email} sampai tautan itu dibuka. Kalau tidak ada email masuk, cek folder spam, atau
+					alamat itu mungkin sudah dipakai akun lain.
 				</p>
-			{/if}
+			</div>
+		{/if}
 
+		{#if availability.isLoading}
+			<div
+				class="h-24 rounded-xl bg-zinc-100 motion-safe:animate-pulse"
+				role="progressbar"
+				aria-label="Memuat pilihan ganti email"
+			></div>
+		{:else if availability.emailDeliveryOff}
+			<p class="font-sans text-xs text-muted" role="status">{EMAIL_CHANGE_UNAVAILABLE_MESSAGE}</p>
+		{:else if hasPassword}
+			<form class="space-y-3" onsubmit={handleEmailSubmit} novalidate>
+				<FormField
+					id="new-email"
+					label="Email baru"
+					type="email"
+					autocomplete="email"
+					placeholder="nama@contoh.com"
+					bind:value={newEmail}
+					error={emailErrors.email}
+				/>
+				<FormField
+					id="email-current-password"
+					label="Kata sandi saat ini"
+					type="password"
+					autocomplete="current-password"
+					placeholder="Masukkan kata sandi saat ini"
+					hint="Dipakai untuk memastikan ini memang kamu."
+					bind:value={emailPassword}
+					error={emailErrors.currentPassword}
+				/>
+				{#if emailErrors.general}
+					<p class="font-sans text-xs text-error-base" role="alert">{emailErrors.general}</p>
+				{/if}
+				<Button
+					type="submit"
+					disabled={!canSubmitEmail}
+					class="rounded-xl border-primary-dark bg-primary-dark px-5 py-2.5 font-sans text-sm shadow-xs hover:bg-primary-dark/90"
+				>
+					{emailChange.isPending ? 'Mengirim...' : 'Ubah Email'}
+				</Button>
+			</form>
+		{:else}
+			<p class="font-sans text-xs text-muted">
+				Akunmu masuk lewat GitHub atau Google dan belum punya kata sandi. Buat kata sandi dulu di
+				bawah, baru kamu bisa mengganti email.
+			</p>
+		{/if}
+	</section>
+
+	<section
+		aria-labelledby="password-card-title"
+		class="rounded-2xl border border-border/70 bg-white p-6 shadow-xs space-y-6"
+	>
+		<div class="flex items-start justify-between gap-4">
+			<div>
+				<h3 id="password-card-title" class="font-sans text-base font-semibold text-foreground">
+					{hasPassword ? 'Ubah Kata Sandi' : 'Buat Kata Sandi'}
+				</h3>
+				<p class="mt-0.5 font-sans text-xs text-muted">
+					{hasPassword
+						? 'Kata sandi baru mengakhiri sesi di perangkat lain.'
+						: 'Dengan kata sandi, kamu juga bisa masuk tanpa GitHub atau Google.'}
+				</p>
+			</div>
 			<button
 				type="button"
-				onclick={handleUpdateEmail}
-				disabled={!isEmailValid}
-				class={isEmailValid
-					? 'rounded-xl bg-primary-dark px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer'
-					: 'rounded-xl bg-[#E5E7EB] px-5 py-2.5 font-sans text-sm font-semibold text-[#9CA3AF] cursor-not-allowed'}
+				aria-expanded={isPasswordOpen}
+				aria-controls="password-form"
+				onclick={() => (isPasswordOpen = !isPasswordOpen)}
+				class="flex min-h-6 shrink-0 items-center gap-1 font-sans text-sm font-semibold text-primary-dark hover:underline cursor-pointer"
 			>
-				Ubah Email
+				{isPasswordOpen ? 'Tutup' : hasPassword ? 'Ubah' : 'Buat'}
+				{#if isPasswordOpen}
+					<CaretUp size={16} aria-hidden="true" />
+				{:else}
+					<CaretDown size={16} aria-hidden="true" />
+				{/if}
 			</button>
 		</div>
-	</div>
 
-	<div class="rounded-2xl border border-border/70 bg-white p-6 shadow-xs space-y-6">
-		<div>
-			<h3 class="font-sans text-base font-semibold text-foreground">Ubah Kata Sandi</h3>
-			<p class="mt-0.5 font-sans text-xs text-muted">
-				Harap ganti kata sandi sementara ini dengan kata sandi baru yang aman.
-			</p>
-		</div>
+		{#if passwordSuccess}
+			<p class="font-sans text-sm text-primary-dark" role="status">{passwordSuccess}</p>
+		{/if}
 
-		<div class="space-y-5">
-			<div class="space-y-2">
-				<label for="current-password" class="block font-sans text-sm font-medium text-foreground">
-					Kata sandi saat ini
-				</label>
-				<div class="relative">
-					<input
+		{#if isPasswordOpen}
+			<form id="password-form" class="space-y-5" onsubmit={handlePasswordSubmit} novalidate>
+				{#if hasPassword}
+					<FormField
 						id="current-password"
-						type={showCurrentPassword ? 'text' : 'password'}
+						label="Kata sandi saat ini"
+						type="password"
+						autocomplete="current-password"
 						placeholder="Masukkan kata sandi saat ini"
 						bind:value={currentPassword}
-						class="w-full rounded-xl border border-border/80 bg-white px-4 py-3 pr-11 font-sans text-sm text-foreground focus:border-primary-dark focus:outline-none focus:ring-1 focus:ring-primary-dark"
+						error={passwordErrors.currentPassword}
 					/>
-					<button
-						type="button"
-						onclick={() => (showCurrentPassword = !showCurrentPassword)}
-						class="absolute right-3.5 top-3.5 text-muted hover:text-foreground cursor-pointer"
-						aria-label={showCurrentPassword
-							? 'Sembunyikan kata sandi saat ini'
-							: 'Tampilkan kata sandi saat ini'}
-					>
-						{#if showCurrentPassword}
-							<EyeClosed size={18} />
-						{:else}
-							<Eye size={18} />
-						{/if}
-					</button>
-				</div>
-			</div>
-
-			<div class="space-y-2">
-				<label for="new-password" class="block font-sans text-sm font-medium text-foreground">
-					Kata sandi baru
-				</label>
-				<div class="relative">
-					<input
-						id="new-password"
-						type={showNewPassword ? 'text' : 'password'}
-						placeholder="Masukkan kata sandi baru Anda"
-						bind:value={newPassword}
-						class="w-full rounded-xl border border-border/80 bg-white px-4 py-3 pr-11 font-sans text-sm text-foreground focus:border-primary-dark focus:outline-none focus:ring-1 focus:ring-primary-dark"
-					/>
-					<button
-						type="button"
-						onclick={() => (showNewPassword = !showNewPassword)}
-						class="absolute right-3.5 top-3.5 text-muted hover:text-foreground cursor-pointer"
-						aria-label={showNewPassword
-							? 'Sembunyikan kata sandi baru'
-							: 'Tampilkan kata sandi baru'}
-					>
-						{#if showNewPassword}
-							<EyeClosed size={18} />
-						{:else}
-							<Eye size={18} />
-						{/if}
-					</button>
-				</div>
-				{#if newPassword.length > 0 && !isNewPasswordComplex}
-					<p class="font-sans text-xs text-amber-600 mt-1">
-						Kata sandi harus mengandung minimal 8 karakter, huruf, angka, dan simbol.
-					</p>
 				{/if}
-			</div>
-
-			<div class="space-y-2">
-				<label for="confirm-password" class="block font-sans text-sm font-medium text-foreground">
-					Konfirmasi kata sandi baru
-				</label>
-				<div class="relative">
-					<input
-						id="confirm-password"
-						type={showConfirmPassword ? 'text' : 'password'}
-						placeholder="Masukkan konfirmasi kata sandi baru Anda"
-						bind:value={confirmPassword}
-						class="w-full rounded-xl border border-border/80 bg-white px-4 py-3 pr-11 font-sans text-sm text-foreground focus:border-primary-dark focus:outline-none focus:ring-1 focus:ring-primary-dark"
-					/>
-					<button
-						type="button"
-						onclick={() => (showConfirmPassword = !showConfirmPassword)}
-						class="absolute right-3.5 top-3.5 text-muted hover:text-foreground cursor-pointer"
-						aria-label={showConfirmPassword
-							? 'Sembunyikan konfirmasi kata sandi'
-							: 'Tampilkan konfirmasi kata sandi'}
-					>
-						{#if showConfirmPassword}
-							<EyeClosed size={18} />
-						{:else}
-							<Eye size={18} />
-						{/if}
-					</button>
-				</div>
-
-				{#if isPasswordMismatch}
-					<p class="font-sans text-xs text-error-base mt-1" role="alert">
-						Konfirmasi kata sandi tidak cocok.
-					</p>
+				<FormField
+					id="new-password"
+					label="Kata sandi baru"
+					type="password"
+					autocomplete="new-password"
+					placeholder="Masukkan kata sandi baru"
+					hint="Minimal 8 karakter."
+					bind:value={newPassword}
+					error={passwordErrors.password ??
+						(newPasswordTooShort ? 'Kata sandi baru minimal 8 karakter.' : undefined)}
+				/>
+				<FormField
+					id="confirm-password"
+					label="Konfirmasi kata sandi baru"
+					type="password"
+					autocomplete="new-password"
+					placeholder="Masukkan ulang kata sandi baru"
+					bind:value={confirmPassword}
+					error={passwordErrors.confirmation ??
+						(passwordMismatch ? 'Konfirmasi kata sandi tidak cocok.' : undefined)}
+				/>
+				{#if passwordErrors.general}
+					<p class="font-sans text-xs text-error-base" role="alert">{passwordErrors.general}</p>
 				{/if}
-			</div>
-
-			<div class="pt-2">
-				<button
-					type="button"
-					onclick={handleUpdatePassword}
-					disabled={!isPasswordFormValid}
-					class={isPasswordFormValid
-						? 'w-full rounded-xl bg-primary-dark py-3 font-sans text-sm font-semibold text-white shadow-xs transition-colors hover:bg-primary-dark/90 cursor-pointer'
-						: 'w-full rounded-xl bg-[#E5E7EB] py-3 font-sans text-sm font-semibold text-[#9CA3AF] cursor-not-allowed'}
-				>
-					Perbarui Kata Sandi
-				</button>
-			</div>
-		</div>
-	</div>
+				<div class="pt-2">
+					<Button
+						type="submit"
+						disabled={!canSubmitPassword}
+						class="w-full rounded-xl border-primary-dark bg-primary-dark py-3 font-sans text-sm shadow-xs hover:bg-primary-dark/90"
+					>
+						{#if passwordChange.isPending}
+							Menyimpan...
+						{:else}
+							{hasPassword ? 'Perbarui Kata Sandi' : 'Buat Kata Sandi'}
+						{/if}
+					</Button>
+				</div>
+			</form>
+		{/if}
+	</section>
 </div>
