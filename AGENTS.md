@@ -30,8 +30,8 @@ Panduan ini berlaku untuk AI agent dan Codex yang bekerja di `sakala-console`.
 
 ## UI and Copy
 
-- Ikuti `../SAKALA_DESIGN_SYSTEM.md`.
-- Console memakai topbar, bukan sidebar admin template generik.
+- Token warna, font, dan focus ring ada di `src/app.css`, dan `src/lib/design-tokens.spec.ts` menguji kontrasnya. Desain layar ada di Figma.
+- Console memakai sidebar di `AppShell`, yang menjadi drawer di layar kecil.
 - UI light-first, tenang, jelas, accessible, dan tidak memakai dark cyberpunk atau AI glow.
 - User-facing copy memakai Bahasa Indonesia.
 - Setiap screen memiliki satu primary action dan status tidak boleh bergantung pada warna saja.
@@ -40,7 +40,7 @@ Panduan ini berlaku untuk AI agent dan Codex yang bekerja di `sakala-console`.
 ## Dependencies and Quality
 
 - Gunakan `pnpm add` atau `pnpm add -D`; jangan edit dependency version manual.
-- Jangan memasang Reverb/Echo, chart, atau component library sebelum use case dan kontraknya tersedia.
+- Laravel Echo untuk Reverb sudah terpasang, boundary-nya di `src/lib/realtime`. Jangan memasang chart atau component library sebelum use case dan kontraknya tersedia.
 - Jalankan `pnpm quality` sebelum menyelesaikan perubahan.
 - Component Svelte baru atau yang diubah harus diperiksa dengan Svelte autofixer.
 - Perubahan behavior memerlukan test yang sebanding dengan risikonya.

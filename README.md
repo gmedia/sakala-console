@@ -27,10 +27,15 @@ Console berjalan di `app.sakala.dev` dan berkomunikasi dengan Laravel control pl
 ```bash
 pnpm install
 cp .env.example .env
+pnpm exec playwright install chromium   # sekali per mesin, untuk component dan E2E test
 pnpm dev
 ```
 
 Console tersedia di `http://app.sakala.localhost:5173` jika host lokal tersebut diarahkan ke loopback. API default berada di `http://api.sakala.localhost:8000`.
+
+`.env` hanya berisi konfigurasi publik yang ikut masuk ke browser, jadi jangan menaruh secret di sana. Nilai dari `.env.example` langsung jalan untuk pengembangan lokal. Biarkan `PUBLIC_REVERB_KEY` kosong kalau belum menjalankan Reverb: console tetap jalan dengan polling. Build dan test membaca file ini juga, tetapi tidak butuh `sakala-api`, karena API-nya di-mock.
+
+Rincian alur kerja ada di [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), dan cara menjalankan test ada di [docs/TESTING.md](docs/TESTING.md).
 
 ## Container Image
 
@@ -61,12 +66,6 @@ pnpm test            # unit dan component test
 pnpm test:e2e        # browser flow test
 pnpm api:types       # generate types dari Scramble OpenAPI
 pnpm quality         # local quality gate
-```
-
-Pasang browser test sekali pada mesin baru:
-
-```bash
-pnpm exec playwright install chromium
 ```
 
 ## Architecture
