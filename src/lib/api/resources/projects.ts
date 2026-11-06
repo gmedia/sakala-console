@@ -26,6 +26,12 @@ const projectSchema: z.ZodType<Project> = z.object({
 	thumbnail_url: z.string().nullable(),
 	public_url: z.string(),
 	runtime_status: z.string(),
+	suspension: z
+		.object({
+			reason: z.string().nullable(),
+			suspended_at: z.string().nullable()
+		})
+		.nullable(),
 	latest_deployment: z
 		.object({
 			id: z.string(),

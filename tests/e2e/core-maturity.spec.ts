@@ -590,7 +590,11 @@ test.describe('deployment detail', () => {
 
 	test('a suspended project offers no Redeploy, and says why', async ({ page }) => {
 		await mockProjectApi(page, {
-			project: () => ({ ...baseProject, status: 'suspended' }),
+			project: () => ({
+				...baseProject,
+				status: 'suspended',
+				suspension: { reason: 'Halaman login palsu.', suspended_at: '2026-11-06T02:30:00+00:00' }
+			}),
 			deployment: () => failedDeployment
 		});
 
@@ -774,7 +778,11 @@ test.describe('project header states', () => {
 
 	test('suspended: no Redeploy, says why', async ({ page }) => {
 		await mockProjectApi(page, {
-			project: () => ({ ...baseProject, status: 'suspended' })
+			project: () => ({
+				...baseProject,
+				status: 'suspended',
+				suspension: { reason: 'Halaman login palsu.', suspended_at: '2026-11-06T02:30:00+00:00' }
+			})
 		});
 
 		await page.goto(projectsUrl);
@@ -847,7 +855,17 @@ test.describe('project header states', () => {
 	}) => {
 		let suspended = false;
 		await mockProjectApi(page, {
-			project: () => ({ ...baseProject, status: suspended ? 'suspended' : 'active' }),
+			project: () =>
+				suspended
+					? {
+							...baseProject,
+							status: 'suspended',
+							suspension: {
+								reason: 'Halaman login palsu.',
+								suspended_at: '2026-11-06T02:30:00+00:00'
+							}
+						}
+					: baseProject,
 			redeploy: () => {
 				suspended = true;
 				return {
@@ -865,6 +883,9 @@ test.describe('project header states', () => {
 
 		await expect(page.getByRole('alert')).toContainText('ditangguhkan oleh admin');
 		await expect(page.getByRole('button', { name: 'Redeploy' })).toHaveCount(0);
+		await expect(page.getByTestId('suspension-reason')).toHaveText(
+			'Alasannya: Halaman login palsu.'
+		);
 	});
 });
 

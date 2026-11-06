@@ -1680,6 +1680,14 @@ export interface components {
 			thumbnail_url: string | null;
 			public_url: string;
 			runtime_status: components['schemas']['RuntimeStatus'];
+			/**
+			 * @description Null unless the project is suspended. `reason` is what the admin wrote, as plain text;
+			 *     both values are null for a suspended project without a suspend record.
+			 */
+			suspension: {
+				reason: string | null;
+				suspended_at: string | null;
+			} | null;
 			latest_deployment: components['schemas']['LatestDeploymentResource'] | null;
 			stack: {
 				/**
@@ -1845,6 +1853,14 @@ export interface components {
 			public_url: string;
 			status: components['schemas']['ProjectStatus'];
 			runtime_status: components['schemas']['RuntimeStatus'];
+			/**
+			 * @description Null unless the project is suspended. `reason` is what the admin wrote, as plain text;
+			 *     both values are null for a suspended project without a suspend record.
+			 */
+			suspension: {
+				reason: string | null;
+				suspended_at: string | null;
+			} | null;
 			detected_port: number | null;
 			configured_port: number | null;
 			effective_port: number;

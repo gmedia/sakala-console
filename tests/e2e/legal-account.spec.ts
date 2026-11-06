@@ -249,25 +249,28 @@ test.describe('downloading my data', () => {
 
 test.describe('a suspended project', () => {
 	const projectsUrl = `/projects/${PROJECT_ID}/deployments`;
-	const notice = (message: string) => ({
-		id: 'n1',
-		category: 'project_issue',
-		title: 'Proyek ditangguhkan',
-		message,
-		project_id: PROJECT_ID,
-		deployment_id: null,
-		read_at: null,
-		created_at: '2026-11-06T00:00:00Z'
+	const suspended = (reason: string | null) => ({
+		...baseProject,
+		status: 'suspended',
+		suspension: { reason, suspended_at: reason === null ? null : '2026-11-06T02:30:00+00:00' }
 	});
 
-	test('shows the reason it was given, and where to appeal', async ({ page }) => {
-		await mockProjectApi(page, { project: () => ({ ...baseProject, status: 'suspended' }) });
+	test('shows the reason on the project, and where to appeal', async ({ page }) => {
+		await mockProjectApi(page, { project: () => suspended('Halaman login palsu.') });
 		await page.route('**/api/v1/app/notifications?*', (route) =>
 			json(route, {
 				data: [
-					notice(
-						'toko ditangguhkan oleh admin Sakala, jadi trafiknya diputus dan belum bisa di-deploy. Alasannya: Halaman login palsu. Kalau menurutmu keputusan ini keliru, kirim email ke abuse@sakala.dev.'
-					)
+					{
+						id: 'n1',
+						category: 'project_issue',
+						title: 'Proyek ditangguhkan',
+						message:
+							'toko ditangguhkan. Alasannya: Alasan lama. Kalau menurutmu keliru, kirim email.',
+						project_id: PROJECT_ID,
+						deployment_id: null,
+						read_at: null,
+						created_at: '2026-11-06T00:00:00Z'
+					}
 				],
 				meta: { current_page: 1, last_page: 1, total: 1 }
 			})
@@ -285,15 +288,33 @@ test.describe('a suspended project', () => {
 		await expect(page.getByRole('button', { name: 'Redeploy' })).toHaveCount(0);
 	});
 
-	test('still names the appeal when the notice is gone', async ({ page }) => {
-		await mockProjectApi(page, { project: () => ({ ...baseProject, status: 'suspended' }) });
-		await page.route('**/api/v1/app/notifications?*', (route) =>
-			json(route, { data: [], meta: { current_page: 1, last_page: 1, total: 0 } })
-		);
+	test('shows a reason with markup as text', async ({ page }) => {
+		const reason = '<img src=x onerror="window.__injected=1"> & <b>tebal</b>';
+		await mockProjectApi(page, { project: () => suspended(reason) });
+
+		await page.goto(projectsUrl);
+
+		const line = page.getByTestId('suspension-reason');
+		await expect(line).toHaveText(`Alasannya: ${reason}`);
+		await expect(line.locator('img, b')).toHaveCount(0);
+		expect(await page.evaluate(() => '__injected' in window)).toBe(false);
+	});
+
+	test('still names the appeal when there is no reason', async ({ page }) => {
+		await mockProjectApi(page, { project: () => suspended(null) });
 
 		await page.goto(projectsUrl);
 
 		await expect(page.getByTestId('suspension-reason')).toContainText('notifikasi dan email');
 		await expect(page.getByRole('link', { name: 'abuse@sakala.dev' })).toBeVisible();
+	});
+
+	test('says nothing about a reason once the suspension is lifted', async ({ page }) => {
+		await mockProjectApi(page, { project: () => baseProject });
+
+		await page.goto(projectsUrl);
+
+		await expect(page.getByRole('button', { name: 'Redeploy' })).toBeVisible();
+		await expect(page.getByTestId('suspension-reason')).toHaveCount(0);
 	});
 });

@@ -15,6 +15,7 @@ type ProjectContractFields = Pick<
 	| 'preview_status'
 	| 'inspection'
 	| 'inspection_error_code'
+	| 'suspension'
 >;
 
 type DeploymentContractFields = Pick<

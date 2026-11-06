@@ -90,6 +90,7 @@ export const createdProject = {
 	slug: 'repo-1',
 	repository_provider: 'github',
 	thumbnail_url: null,
+	suspension: null,
 	latest_deployment: null,
 	repository_url: 'https://github.com/rani/repo-1',
 	repository_full_name: 'rani/repo-1',

@@ -132,7 +132,7 @@ Daftar di-poll dengan `resolveProjectListPollInterval()`: 15 detik saat ada yang
 
 ## Alasan Penangguhan
 
-API belum menaruh alasan penangguhan di project. Alasan itu dikirim sekali lewat notifikasi `project_issue` berjudul `Proyek ditangguhkan`, jadi `findSuspensionReason()` membacanya dari 50 notifikasi terbaru. Kalau notifikasinya sudah tidak ada, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.
+Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.
 
 ## Hemat Request
 

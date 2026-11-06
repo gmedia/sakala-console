@@ -8,7 +8,7 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 - Register asks for the required declaration and sends the versions it showed. Accounts that have not accepted the current terms, such as a first GitHub login, get a blocking screen, and `/settings` stays open so nobody has to agree in order to leave.
 - Settings can delete the account, with a typed email, the password or a fresh provider login, and the real retention from the API, and can download a copy of the account's data.
-- A suspended project shows the reason from the owner's notification and `abuse@sakala.dev`.
+- A suspended project shows `suspension.reason` from the API and `abuse@sakala.dev`, instead of reading the reason out of the owner's notification.
 - Project cards show the public URL, the last commit, and its branch, from `public_url` and `latest_deployment` on the list. The list follows `notification.created` and polls within the request budget.
 - `Content-Security-Policy` with `frame-ancestors 'none'`, `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` on the image. The policy is generated at build from the same env file as the bundle.
 - Login, register, forgot-password, resend verification, and account settings follow `GET /api/v1/auth/options`: email-based options and unconfigured providers are not offered, with a plain explanation, and `EMAIL_DELIVERY_UNAVAILABLE` shows the API's message.

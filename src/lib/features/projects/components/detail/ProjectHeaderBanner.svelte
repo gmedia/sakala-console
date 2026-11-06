@@ -10,12 +10,10 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
 	import { ABUSE_EMAIL } from '$lib/config/project';
-	import { createNotificationsQuery } from '$lib/features/notifications/queries';
 	import { formatRelativeTime } from '$lib/utils/date';
 	import { useProjectLiveStatus } from '$lib/features/projects/detail/use-project-live-status.svelte';
 	import { useProjectRedeploy } from '$lib/features/projects/detail/use-project-redeploy.svelte';
 	import {
-		findSuspensionReason,
 		getPortDisplay,
 		getProjectPublicUrl,
 		getPublicUrlLabel
@@ -37,16 +35,7 @@
 	const isBusy = $derived(redeploy.isProcessing || header.redeployBusy);
 	const hasFacts = $derived(header.kind !== 'not_deployed' && header.kind !== 'failed');
 
-	// The reason reaches the owner as a notification, and the project itself does not carry it.
-	const notifications = createNotificationsQuery(
-		() => ({ perPage: 50 }),
-		() => header.kind === 'suspended'
-	);
-	const suspensionReason = $derived(
-		header.kind === 'suspended'
-			? findSuspensionReason(notifications.data?.data ?? [], project.id)
-			: null
-	);
+	const suspensionReason = $derived(project.suspension?.reason ?? null);
 
 	let isCopied = $state(false);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -180,7 +169,7 @@
 	{#if header.notice}
 		<ProjectStatusNotice projectId={project.id} notice={header.notice}>
 			{#if header.kind === 'suspended'}
-				<p data-testid="suspension-reason">
+				<p data-testid="suspension-reason" class="wrap-anywhere">
 					{#if suspensionReason}
 						Alasannya: {suspensionReason}
 					{:else}

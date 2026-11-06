@@ -29,6 +29,7 @@ const validProject = {
 	public_url: 'https://sakala-console.run.sakala.dev',
 	latest_deployment: null,
 	runtime_status: 'running',
+	suspension: null,
 	stack: null,
 	last_deployed_at: '2026-09-10T10:00:00Z',
 	created_at: '2026-01-01T00:00:00Z'

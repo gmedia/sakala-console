@@ -19,6 +19,7 @@ function buildProject(overrides: Partial<Project> = {}): Project {
 		public_url: 'https://sakala-console.run.sakala.dev',
 		latest_deployment: null,
 		runtime_status: 'running',
+		suspension: null,
 		stack: null,
 		last_deployed_at: '2026-09-10T10:00:00Z',
 		created_at: '2026-01-01T00:00:00Z',
@@ -67,6 +68,16 @@ describe('parseListProjectsResponse', () => {
 		const result = parseListProjectsResponse(raw);
 
 		expect(result.data[0].runtime_status).toBe('maintenance');
+	});
+
+	it('menyimpan suspension dari API', () => {
+		const suspension = {
+			reason: 'Halaman login palsu.',
+			suspended_at: '2026-11-06T02:30:00+00:00'
+		};
+		const raw = buildListResponse([buildProject({ suspension })]);
+
+		expect(parseListProjectsResponse(raw).data[0].suspension).toEqual(suspension);
 	});
 
 	it('menerima repository_full_name bernilai null', () => {

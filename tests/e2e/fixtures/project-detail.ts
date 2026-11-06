@@ -163,6 +163,7 @@ export const baseProject = {
 	slug: 'toko-kopi-web',
 	repository_provider: 'github',
 	thumbnail_url: null,
+	suspension: null,
 	latest_deployment: null,
 	repository_url: 'https://github.com/raniw/toko-kopi-web',
 	repository_full_name: 'raniw/toko-kopi-web',
