@@ -4,6 +4,7 @@
 
 	let {
 		commitSha,
+		commitUrl = null,
 		branch,
 		trigger,
 		status,
@@ -12,6 +13,7 @@
 		resourceLimit = null
 	}: {
 		commitSha: string;
+		commitUrl?: string | null;
 		branch: string;
 		trigger: string;
 		status: BannerStatus;
@@ -24,16 +26,16 @@
 	let timeLabel = $derived(getTimeLabel(status));
 </script>
 
-<div
+<dl
 	data-testid="deployment-info"
-	class="w-full bg-surface px-3 py-5 rounded-control flex flex-wrap items-center justify-around gap-x-6 gap-y-3 mt-6"
+	class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm"
 >
-	<InfoItem label="Commit" value={shortHash} testId="deployment-commit" />
-	<InfoItem label="Branch" value={branch} testId="deployment-branch" />
+	<InfoItem label="Commit" value={shortHash} href={commitUrl} mono testId="deployment-commit" />
+	<InfoItem label="Branch" value={branch} mono testId="deployment-branch" />
 	<InfoItem label="Trigger" value={trigger} testId="deployment-trigger" />
-	<InfoItem label={timeLabel} value={timestamp} testId="deployment-primary-time" />
-	<InfoItem label="Pembaruan terakhir" value={lastUpdate} testId="deployment-updated-time" />
+	<InfoItem label={timeLabel} value={timestamp} mono testId="deployment-primary-time" />
+	<InfoItem label="Pembaruan" value={lastUpdate} mono testId="deployment-updated-time" />
 	{#if resourceLimit}
-		<InfoItem label="Batas resource" value={resourceLimit} testId="deployment-resources" />
+		<InfoItem label="Batas" value={resourceLimit} testId="deployment-resources" />
 	{/if}
-</div>
+</dl>

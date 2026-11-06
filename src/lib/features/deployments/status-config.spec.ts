@@ -86,7 +86,7 @@ describe('getStatusDisplay', () => {
 
 		expect(result.title).toBe('Deployment sedang berjalan');
 		expect(result.desc).toBe(
-			'Tahap: Building image. Kamu dapat meninggalkan halaman ini dan kembali lagi nanti untuk melihat progresnya.'
+			'Tahap: Building image. Kamu boleh meninggalkan halaman ini dan kembali lagi nanti.'
 		);
 		expect(result.bannerBgClass).toBe('bg-primary-50');
 		expect(result.iconColorClass).toBe('bg-primary text-white');
@@ -127,9 +127,7 @@ describe('getStatusDisplay', () => {
 			const result = getStatusDisplay({ status: 'failed', failureCategory });
 
 			expect(result.title).toBe('Deployment gagal');
-			expect(result.desc).toBe(
-				'Penyebabnya belum bisa dipastikan. Lihat log di bawah untuk detailnya.'
-			);
+			expect(result.desc).toBe('Penyebabnya belum bisa dipastikan. Lihat log untuk detailnya.');
 		}
 	);
 
@@ -147,9 +145,7 @@ describe('getStatusDisplay', () => {
 		const result = getStatusDisplay({ status: 'failed', failedStepLabel: 'Building image' });
 
 		expect(result.title).toBe('Deployment gagal');
-		expect(result.desc).toBe(
-			'Berhenti di tahap Building image, lihat log di bawah untuk detail error'
-		);
+		expect(result.desc).toBe('Berhenti di tahap Building image. Lihat log untuk detail error.');
 		expect(result.bannerBgClass).toBe('bg-error/10');
 	});
 });
@@ -537,5 +533,57 @@ describe('deriveLiveInfoTimestamp', () => {
 			startedAtLabel: '08:41:00'
 		});
 		expect(result).toBe('-');
+	});
+});
+
+describe('states a deployment can end up in', () => {
+	it('says the cause once, in the words of the API, when it sent one', () => {
+		const result = getStatusDisplay({
+			status: 'failed',
+			failureCategory: 'build',
+			failedStepLabel: 'Build proyek',
+			failureSummary: 'Proses build aplikasi berhenti sebelum selesai.',
+			userFixable: true
+		});
+
+		expect(result.title).toBe('Deployment gagal saat build');
+		expect(result.desc).toBe('Proses build aplikasi berhenti sebelum selesai.');
+	});
+
+	it('does not put a platform failure on the code of the user', () => {
+		const result = getStatusDisplay({
+			status: 'failed',
+			failureCategory: 'node',
+			failureSummary: 'Server Sakala berhenti saat deployment berjalan.',
+			userFixable: false
+		});
+
+		expect(result.desc).toBe(
+			'Server Sakala berhenti saat deployment berjalan. Ini kendala di sisi platform Sakala, bukan dari kode kamu.'
+		);
+	});
+
+	it.each([
+		['crash_looping', 'Deployment berhasil, tapi aplikasinya terus crash'],
+		['not_serving', 'Deployment berhasil, tapi aplikasinya tidak melayani']
+	] as const)('does not call %s a plain success', (servingState, title) => {
+		const result = getStatusDisplay({ status: 'success', durationLabel: '1 menit', servingState });
+
+		expect(result.title).toBe(title);
+		expect(result.iconColorClass).toContain('bg-warning');
+		expect(result.desc).not.toContain('bagian atas halaman');
+	});
+
+	it('never promises how long it will take or how far along it is', () => {
+		const texts = (
+			[
+				{ status: 'running', currentStepLabel: 'Build proyek' },
+				{ status: 'running', queueState: 'waiting_for_node' },
+				{ status: 'running', queueState: 'assigned' },
+				{ status: 'running', cancelRequested: true }
+			] as const
+		).map((input) => getStatusDisplay(input).desc);
+
+		for (const text of texts) expect(text).not.toMatch(/%|\bsekitar\b|\bperkiraan\b|\bETA\b/i);
 	});
 });

@@ -2,6 +2,8 @@
 	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import Check from 'phosphor-svelte/lib/Check';
 	import X from 'phosphor-svelte/lib/X';
+	import { cn } from '$lib/utils/cn';
+
 	type Status = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 	type Size = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -39,8 +41,9 @@
 		xl: 20
 	};
 
+	// Not started yet is the quietest thing on the page. The ring is drawn by the track below.
 	const colorMap: Record<Status, string> = {
-		pending: 'bg-muted ring-1 ring-inset ring-muted/50',
+		pending: 'border-2 border-border-strong bg-surface',
 		running: 'bg-primary text-white',
 		success: 'bg-success-dark text-white',
 		failed: 'bg-error text-white',
@@ -63,11 +66,15 @@
 
 <span class="inline-flex items-center gap-2.5">
 	<span
-		class="inline-flex shrink-0 items-center justify-center rounded-full {dotSize} {dotColor}"
+		class={cn('inline-flex shrink-0 items-center justify-center rounded-full', dotSize, dotColor)}
 		aria-hidden="true"
 	>
 		{#if status === 'running' && showIcon}
-			<ArrowsClockwise size={iconSizePx} weight="bold" class={animateIcon ? 'animate-spin' : ''} />
+			<ArrowsClockwise
+				size={iconSizePx}
+				weight="bold"
+				class={animateIcon ? 'animate-spin motion-reduce:animate-none' : ''}
+			/>
 		{:else if status === 'success'}
 			<Check size={iconSizePx} weight="bold" />
 		{:else if status === 'failed' || status === 'cancelled'}

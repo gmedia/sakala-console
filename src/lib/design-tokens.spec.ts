@@ -52,6 +52,13 @@ describe('colour tokens', () => {
 		expect(ratio(token('primary'), token(background))).toBeGreaterThanOrEqual(3);
 	});
 
+	it.each(['terminal-text', 'terminal-muted', 'terminal-error'])(
+		'%s holds 4.5:1 on the terminal',
+		(text) => {
+			expect(ratio(token(text), token('terminal'))).toBeGreaterThanOrEqual(4.5);
+		}
+	);
+
 	it('the focus ring is still visible on the terminal', () => {
 		expect(ratio(token('primary'), token('terminal'))).toBeGreaterThanOrEqual(3);
 	});

@@ -1,10 +1,33 @@
 <script lang="ts">
-	let { label, value, testId }: { label: string; value: string; testId?: string } = $props();
+	import { cn } from '$lib/utils/cn';
+
+	type Props = {
+		label: string;
+		value: string;
+		href?: string | null;
+		mono?: boolean;
+		testId?: string;
+	};
+
+	let { label, value, href = null, mono = false, testId }: Props = $props();
+
+	const valueClass = $derived(
+		cn('min-w-0 wrap-anywhere text-foreground', mono && 'font-mono text-xs leading-5 tabular-nums')
+	);
 </script>
 
-<div class="flex min-w-0 flex-wrap items-baseline justify-center gap-x-2">
-	<p class="text-sm">{label}</p>
-	<p class="min-w-0 text-base wrap-anywhere font-semibold" data-testid={testId}>
+<dt class="text-muted">{label}</dt>
+<dd class={valueClass} data-testid={testId}>
+	{#if href}
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- a commit on GitHub -->
+		<a
+			{href}
+			target="_blank"
+			rel="external noopener noreferrer"
+			class="inline-flex min-h-6 items-center text-primary-dark underline underline-offset-2"
+			>{value}</a
+		>
+	{:else}
 		{value}
-	</p>
-</div>
+	{/if}
+</dd>

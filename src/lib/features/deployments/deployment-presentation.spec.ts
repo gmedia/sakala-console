@@ -8,7 +8,9 @@ import {
 	formatDeploymentTime,
 	formatLogTime,
 	formatResourceLimit,
-	getDeploymentTriggerLabel
+	getDeploymentTriggerLabel,
+	getCommitUrl,
+	isFirstSuccessfulDeployment
 } from './deployment-presentation';
 import type { DeploymentEvent } from '$lib/api/resources/deployment';
 
@@ -298,5 +300,55 @@ describe('formatResourceLimit', () => {
 				effective_resources: null
 			})
 		).toBeNull();
+	});
+});
+
+describe('isFirstSuccessfulDeployment', () => {
+	const done = (sequence: number, status = 'succeeded') => ({ sequence, status }) as never;
+
+	it('is the first deployment of a project when it succeeded', () => {
+		expect(isFirstSuccessfulDeployment(done(1), [done(1)])).toBe(true);
+	});
+
+	it('counts earlier failures, since nothing was live before this', () => {
+		const recent = [done(3), done(2, 'failed'), done(1, 'cancelled')];
+		expect(isFirstSuccessfulDeployment(done(3), recent)).toBe(true);
+	});
+
+	it('stays calm once something succeeded before', () => {
+		expect(isFirstSuccessfulDeployment(done(2), [done(2), done(1)])).toBe(false);
+	});
+
+	it('stays calm when the history does not reach back to the first deployment', () => {
+		const recent = [8, 7, 6, 5, 4, 3].map((sequence) =>
+			done(sequence, sequence === 8 ? 'succeeded' : 'failed')
+		);
+		expect(isFirstSuccessfulDeployment(done(8), recent)).toBe(false);
+	});
+
+	it('says nothing about a deployment that did not succeed', () => {
+		expect(isFirstSuccessfulDeployment(done(1, 'failed'), [])).toBe(false);
+		expect(isFirstSuccessfulDeployment(done(1, 'building'), [])).toBe(false);
+	});
+});
+
+describe('getCommitUrl', () => {
+	it('links a commit on GitHub, with or without .git', () => {
+		expect(getCommitUrl('https://github.com/rani/toko.git', 'a3f2c9d')).toBe(
+			'https://github.com/rani/toko/commit/a3f2c9d'
+		);
+		expect(getCommitUrl('https://github.com/rani/toko', 'a3f2c9d')).toBe(
+			'https://github.com/rani/toko/commit/a3f2c9d'
+		);
+	});
+
+	it.each([
+		['another host', 'https://gitlab.com/rani/toko', 'a3f2c9d'],
+		['a host that only looks like GitHub', 'https://github.com.evil.test/rani/toko', 'a3f2c9d'],
+		['a script address', 'javascript:alert(1)', 'a3f2c9d'],
+		['no address', null, 'a3f2c9d'],
+		['no commit', 'https://github.com/rani/toko', null]
+	])('gives no link for %s', (_name, url, sha) => {
+		expect(getCommitUrl(url, sha)).toBeNull();
 	});
 });

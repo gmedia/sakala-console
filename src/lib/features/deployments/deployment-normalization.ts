@@ -53,7 +53,10 @@ export function normalizeDeploymentTimeline(
 		return isActive && index > currentIndex;
 	});
 
-	return visibleStages.map((stage) => {
+	const stageStart = (stage: DeploymentPipelineStage) =>
+		stage === 'Queued' ? deployment.created_at : stageEvents.get(stage)?.occurred_at;
+
+	return visibleStages.map((stage, index) => {
 		const status = getStepStatus(deployment, stage, currentIndex);
 		// A stage's event says when it began; the step that stopped shows when it stopped.
 		const stoppedAt =
@@ -64,9 +67,31 @@ export function normalizeDeploymentTimeline(
 			key: stage,
 			title: getDeploymentStageLabel(stage),
 			status,
-			timestamp: stoppedAt ?? stageEvents.get(stage)?.occurred_at ?? undefined
+			timestamp: stoppedAt ?? stageEvents.get(stage)?.occurred_at ?? undefined,
+			durationSeconds: stageDuration(
+				status,
+				stageStart(stage),
+				// The next stage began when this one ended, and the last one ends with the deployment.
+				visibleStages
+					.slice(index + 1)
+					.map(stageStart)
+					.find(Boolean) ??
+					(stage === 'Queued' ? deployment.started_at : null) ??
+					deployment.finished_at ??
+					deployment.cancelled_at
+			)
 		};
 	});
+}
+
+function stageDuration(
+	status: DeploymentStep['status'],
+	start: string | null | undefined,
+	end: string | null | undefined
+): number | undefined {
+	if (status === 'pending' || status === 'running' || !start || !end) return undefined;
+	const seconds = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1_000);
+	return seconds >= 0 ? seconds : undefined;
 }
 
 function getCurrentStage(

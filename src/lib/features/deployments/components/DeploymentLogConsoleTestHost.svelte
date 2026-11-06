@@ -26,7 +26,7 @@
 	});
 </script>
 
-<div style="width: 320px">
+<div style="width: 320px; height: 240px">
 	<DeploymentLogConsole {lines} bind:following {paused} {onJumpToLatest} />
 </div>
 <p data-testid="following">{following ? 'mengikuti' : 'tidak mengikuti'}</p>

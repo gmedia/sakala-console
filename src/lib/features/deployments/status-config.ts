@@ -75,6 +75,8 @@ export interface TimelineItemDisplayInput {
 	status: StatusDeployment;
 	title: string;
 	timestamp?: string;
+	/** How long the stage took. Only a stage that ended has one. */
+	duration?: string;
 	showSubtitle?: boolean;
 }
 
@@ -87,6 +89,7 @@ export function getTimelineItemDisplay({
 	status,
 	title,
 	timestamp,
+	duration,
 	showSubtitle = true
 }: TimelineItemDisplayInput): TimelineItemDisplay {
 	const displayTitle = titleForStatus(status, title);
@@ -101,10 +104,12 @@ export function getTimelineItemDisplay({
 		case 'running':
 			return { title: displayTitle, subtitle: 'Sedang berjalan...' };
 		case 'success':
-			return { title: displayTitle, subtitle: timestamp };
 		case 'failed':
 		case 'cancelled':
-			return { title: displayTitle, subtitle: timestamp };
+			return {
+				title: displayTitle,
+				subtitle: [duration, timestamp].filter(Boolean).join(', ') || undefined
+			};
 	}
 }
 
@@ -171,19 +176,22 @@ function isPlatformFailure(category?: string, userFixable?: boolean): boolean {
 	return userFixable === false && category !== 'unknown';
 }
 
+/** One sentence on the cause. The API's summary says it best, when it sent one. */
 function getFailureDescription(
 	failedStepLabel?: string,
 	category?: string,
-	userFixable?: boolean
+	userFixable?: boolean,
+	summary?: string
 ): string {
 	if (isPlatformFailure(category, userFixable)) {
-		const where = failedStepLabel ? `Berhenti di tahap ${failedStepLabel}. ` : '';
-		return `${where}Ini kendala di sisi platform Sakala, bukan dari kode kamu.`;
+		const where = summary ?? (failedStepLabel ? `Berhenti di tahap ${failedStepLabel}.` : '');
+		return `${where} Ini kendala di sisi platform Sakala, bukan dari kode kamu.`.trim();
 	}
+	if (summary) return summary;
 
 	return failedStepLabel
-		? `Berhenti di tahap ${failedStepLabel}, lihat log di bawah untuk detail error`
-		: 'Penyebabnya belum bisa dipastikan. Lihat log di bawah untuk detailnya.';
+		? `Berhenti di tahap ${failedStepLabel}. Lihat log untuk detail error.`
+		: 'Penyebabnya belum bisa dipastikan. Lihat log untuk detailnya.';
 }
 
 function getSuccessDescription(
@@ -200,10 +208,17 @@ function getSuccessDescription(
 		case 'superseded':
 			return `${duration}. Deployment ini sudah digantikan oleh deployment yang lebih baru.`;
 		case 'not_serving':
-			return `${duration}. Aplikasinya sedang tidak melayani, lihat status di bagian atas halaman.`;
+			return `${duration}. Aplikasinya sedang tidak melayani, jadi URL-nya belum tentu bisa dibuka.`;
 		case 'crash_looping':
-			return `${duration}. Aplikasinya terus berhenti dan dimulai ulang, lihat status di bagian atas halaman.`;
+			return `${duration}. Aplikasinya terus berhenti dan dimulai ulang, jadi URL-nya kadang bisa dibuka, kadang tidak. Log di sini bisa membantu mencari penyebabnya.`;
 	}
+}
+
+/** A build that succeeded and an app that keeps falling over are two facts, and both get said. */
+function getSuccessTitle(servingState: ServingState = 'live'): string {
+	if (servingState === 'crash_looping') return 'Deployment berhasil, tapi aplikasinya terus crash';
+	if (servingState === 'not_serving') return 'Deployment berhasil, tapi aplikasinya tidak melayani';
+	return 'Deployment berhasil';
 }
 
 function getRunningMessage(
@@ -231,7 +246,7 @@ function getRunningMessage(
 	}
 	return {
 		title: 'Deployment sedang berjalan',
-		desc: `Tahap: ${currentStepLabel ?? '-'}. Kamu dapat meninggalkan halaman ini dan kembali lagi nanti untuk melihat progresnya.`
+		desc: `Tahap: ${currentStepLabel ?? '-'}. Kamu boleh meninggalkan halaman ini dan kembali lagi nanti.`
 	};
 }
 
@@ -241,6 +256,7 @@ export function getStatusDisplay({
 	durationLabel,
 	failedStepLabel,
 	failureCategory,
+	failureSummary,
 	userFixable,
 	recoveryHint,
 	servingState,
@@ -248,15 +264,17 @@ export function getStatusDisplay({
 	cancelRequested
 }: StatusDisplayInput) {
 	const isQueued = status === 'running' && Boolean(queueState) && !cancelRequested;
+	const isUnhealthy =
+		status === 'success' && (servingState === 'crash_looping' || servingState === 'not_serving');
 	const messages = {
 		running: getRunningMessage(currentStepLabel, queueState, cancelRequested),
 		success: {
-			title: 'Deployment berhasil',
+			title: getSuccessTitle(servingState),
 			desc: getSuccessDescription(durationLabel, servingState)
 		},
 		failed: {
 			title: getFailureHeadline(failureCategory),
-			desc: getFailureDescription(failedStepLabel, failureCategory, userFixable)
+			desc: getFailureDescription(failedStepLabel, failureCategory, userFixable, failureSummary)
 		},
 		cancelled: {
 			title: 'Deployment dibatalkan',
@@ -268,8 +286,16 @@ export function getStatusDisplay({
 		...messages[status],
 		recoveryHint: status === 'failed' ? recoveryHint : undefined,
 		// Running is healthy, so teal. Waiting in a queue is the one state that may need a look.
-		bannerBgClass: isQueued ? 'bg-queued-soft' : bannerBgMap[status],
-		iconColorClass: isQueued ? 'bg-queued text-white' : bannerIconColorMap[status]
+		bannerBgClass: isQueued
+			? 'bg-queued-soft'
+			: isUnhealthy
+				? 'bg-accent-soft'
+				: bannerBgMap[status],
+		iconColorClass: isQueued
+			? 'bg-queued text-white'
+			: isUnhealthy
+				? 'bg-warning text-white'
+				: bannerIconColorMap[status]
 	};
 }
 

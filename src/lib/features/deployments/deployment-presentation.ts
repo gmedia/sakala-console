@@ -68,6 +68,39 @@ export function getDeploymentErrorConfig(error: unknown): DeploymentErrorConfig 
 	};
 }
 
+/**
+ * True only when this is provably the first deployment of the project to succeed. `recent` holds the
+ * newest few, so with an older history out of reach this says false, and the page stays calm.
+ */
+export function isFirstSuccessfulDeployment(
+	current: Pick<Deployment, 'sequence' | 'status'>,
+	recent: readonly Pick<Deployment, 'sequence' | 'status'>[]
+): boolean {
+	if (current.status !== 'succeeded') return false;
+	if (current.sequence === 1) return true;
+
+	const earlier = recent.filter((deployment) => deployment.sequence < current.sequence);
+	return (
+		earlier.some((deployment) => deployment.sequence === 1) &&
+		earlier.every((deployment) => deployment.status !== 'succeeded')
+	);
+}
+
+/** Only GitHub's commit address is known here, so any other host gets no link rather than a guess. */
+export function getCommitUrl(
+	repositoryUrl: string | null | undefined,
+	commitSha: string | null | undefined
+): string | null {
+	if (!repositoryUrl || !commitSha) return null;
+	try {
+		const url = new URL(repositoryUrl);
+		if (url.protocol !== 'https:' || url.hostname !== 'github.com') return null;
+		return `${url.origin}${url.pathname.replace(/\.git$/, '').replace(/\/$/, '')}/commit/${encodeURIComponent(commitSha)}`;
+	} catch {
+		return null;
+	}
+}
+
 export function getDeploymentTriggerLabel(trigger: string): string {
 	return triggerLabels[trigger] ?? trigger;
 }

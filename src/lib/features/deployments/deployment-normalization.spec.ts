@@ -402,3 +402,62 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(cloning?.status).toBe('running');
 	});
 });
+
+describe('how long each stage took', () => {
+	const events = [
+		createEvent({
+			sequence: 1,
+			type: 'deployment.checkout.started',
+			occurred_at: '2026-09-20T10:00:10Z'
+		}),
+		createEvent({
+			sequence: 2,
+			type: 'deployment.build.started',
+			occurred_at: '2026-09-20T10:00:20Z'
+		})
+	];
+	const durationOf = (deployment: Deployment, key: string) =>
+		normalizeDeploymentTimeline(deployment, events).find((step) => step.key === key)
+			?.durationSeconds;
+
+	it('runs from the start of a stage to the start of the next', () => {
+		const deployment = createDeployment({
+			status: 'failed',
+			started_at: '2026-09-20T10:00:05Z',
+			finished_at: '2026-09-20T10:01:33Z',
+			failure: { stage: 'building' } as Deployment['failure']
+		});
+
+		expect(durationOf(deployment, 'Queued')).toBe(10);
+		expect(durationOf(deployment, 'Cloning')).toBe(10);
+		expect(durationOf(deployment, 'Building')).toBe(73);
+	});
+
+	it('claims nothing for a stage still running or not started', () => {
+		const deployment = createDeployment({ status: 'building' });
+
+		expect(durationOf(deployment, 'Cloning')).toBe(10);
+		expect(durationOf(deployment, 'Building')).toBeUndefined();
+		expect(durationOf(deployment, 'Deploying')).toBeUndefined();
+	});
+
+	it('claims nothing for the queue while the deployment is still in it', () => {
+		const deployment = createDeployment({
+			status: 'queued',
+			started_at: '2026-09-20T10:00:05Z'
+		});
+
+		expect(durationOf(deployment, 'Queued')).toBeUndefined();
+	});
+
+	it('claims nothing when the clock runs backwards', () => {
+		const deployment = createDeployment({
+			status: 'failed',
+			created_at: '2026-09-20T11:00:00Z',
+			finished_at: '2026-09-20T10:01:33Z',
+			failure: { stage: 'building' } as Deployment['failure']
+		});
+
+		expect(durationOf(deployment, 'Queued')).toBeUndefined();
+	});
+});

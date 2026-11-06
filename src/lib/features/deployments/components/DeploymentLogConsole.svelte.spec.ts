@@ -49,7 +49,7 @@ describe('DeploymentLogConsole', () => {
 		expect((window as unknown as { __xss?: number }).__xss).toBeUndefined();
 	});
 
-	it('labels stderr and system with text, and does not colour stderr as an error', async () => {
+	it('labels stderr and system with text, and tints stderr apart from stdout', async () => {
 		render(DeploymentLogConsoleTestHost, {
 			initialLines: [
 				{ ...makeLines(1)[0], stream: 'stderr', message: 'npm warn' },
@@ -64,7 +64,7 @@ describe('DeploymentLogConsole', () => {
 
 		const stderrMessage = page.getByText('npm warn').element();
 		const stdoutMessage = page.getByText('keluaran biasa').element();
-		expect(getComputedStyle(stderrMessage).color).toBe(getComputedStyle(stdoutMessage).color);
+		expect(getComputedStyle(stderrMessage).color).not.toBe(getComputedStyle(stdoutMessage).color);
 	});
 
 	it('wraps a long unbroken line instead of scrolling sideways', async () => {
@@ -172,5 +172,11 @@ describe('DeploymentLogConsole', () => {
 		await expect.element(page.getByText('baris 2000', { exact: true })).toBeInTheDocument();
 		await tick();
 		expect(isAtBottom(logElement())).toBe(true);
+	});
+
+	it('shows no cursor on a log that has ended', async () => {
+		render(DeploymentLogConsoleTestHost, { initialLines: makeLines(2) });
+
+		await expect.element(page.getByTestId('log-cursor')).not.toBeInTheDocument();
 	});
 });

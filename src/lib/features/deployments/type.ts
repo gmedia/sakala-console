@@ -45,6 +45,8 @@ export type DeploymentStep = {
 	title: string;
 	status: StatusDeployment;
 	timestamp?: string;
+	/** Only for a stage that ended and whose start is on record. */
+	durationSeconds?: number;
 };
 
 export type DeploymentEventLevel = 'info' | 'warning' | 'error';

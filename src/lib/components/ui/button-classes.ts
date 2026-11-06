@@ -1,6 +1,6 @@
 import { cn } from '$lib/utils/cn';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link' | 'terminal';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
 
 const variants: Record<ButtonVariant, string> = {
@@ -10,7 +10,10 @@ const variants: Record<ButtonVariant, string> = {
 	ghost:
 		'border-transparent bg-transparent text-foreground/70 hover:bg-background-soft hover:text-foreground',
 	danger: 'border-error bg-error text-white hover:border-error-dark hover:bg-error-dark',
-	link: 'border-transparent bg-transparent text-primary-dark underline-offset-2 hover:underline'
+	link: 'border-transparent bg-transparent text-primary-dark underline-offset-2 hover:underline',
+	/** On the dark terminal, where the focus ring has to be light as well. */
+	terminal:
+		'border-white/25 bg-transparent text-terminal-text hover:bg-white/10 focus-visible:outline-white'
 };
 
 /** Touch layouts get 44 px whatever the size. The drawer is up to 1024 px, and so is this. */
