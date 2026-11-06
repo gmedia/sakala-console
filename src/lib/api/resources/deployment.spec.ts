@@ -573,14 +573,48 @@ describe('getAllDeploymentEvents', () => {
 
 	it('tidak throw kalau halaman ke-50 punya next_cursor null (data lengkap)', async () => {
 		for (let i = 0; i < 49; i++) {
-			mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], `cursor_${i}`));
+			mockApiRequest.mockResolvedValueOnce(
+				makeEventPage([{ ...validDeploymentEvent, sequence: i + 1 }], `cursor_${i}`)
+			);
 		}
-		mockApiRequest.mockResolvedValueOnce(makeEventPage([validDeploymentEvent], null));
+		mockApiRequest.mockResolvedValueOnce(
+			makeEventPage([{ ...validDeploymentEvent, sequence: 50 }], null)
+		);
 
 		const result = await getAllDeploymentEvents('proj_1', 'dep_1');
 
 		expect(result.data).toHaveLength(50);
 		expect(result.meta.next_cursor).toBeNull();
+	});
+
+	it('a later read starts from the page the last one ended on, and merges by sequence', async () => {
+		mockApiRequest
+			.mockResolvedValueOnce(makeEventPage([{ ...validDeploymentEvent, sequence: 1 }], 'cursor_2'))
+			.mockResolvedValueOnce(makeEventPage([{ ...validDeploymentEvent, sequence: 2 }], null));
+
+		const first = await getAllDeploymentEvents('proj_1', 'dep_1');
+		expect(first.resumeCursor).toBe('cursor_2');
+		expect(mockApiRequest).toHaveBeenCalledTimes(2);
+
+		mockApiRequest.mockClear();
+		mockApiRequest.mockResolvedValueOnce(
+			makeEventPage(
+				[
+					{ ...validDeploymentEvent, sequence: 2 },
+					{ ...validDeploymentEvent, sequence: 3 }
+				],
+				null
+			)
+		);
+
+		const second = await getAllDeploymentEvents('proj_1', 'dep_1', first);
+
+		expect(mockApiRequest).toHaveBeenCalledTimes(1);
+		expect(mockApiRequest).toHaveBeenCalledWith(
+			'api/v1/app/projects/proj_1/deployments/dep_1/events',
+			{ params: { cursor: 'cursor_2', per_page: 10 } }
+		);
+		expect(second.data.map((event) => event.sequence)).toEqual([1, 2, 3]);
 	});
 });
 

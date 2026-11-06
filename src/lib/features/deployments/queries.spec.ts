@@ -245,7 +245,9 @@ describe('createDeploymentEventsQuery', () => {
 	});
 
 	it('queryFn memanggil getAllDeploymentEvents(project, deployment)', () => {
-		const config = captureQueryConfig<{ queryFn: () => unknown }>(() =>
+		const config = captureQueryConfig<{
+			queryFn: (context: { client: { getQueryData: () => unknown } }) => unknown;
+		}>(() =>
 			createDeploymentEventsQuery(
 				() => 'proj_1',
 				() => 'dep_1',
@@ -253,8 +255,9 @@ describe('createDeploymentEventsQuery', () => {
 			)
 		);
 
-		config.queryFn();
-		expect(mockGetAllDeploymentEvents).toHaveBeenCalledWith('proj_1', 'dep_1');
+		const previous = { data: [], resumeCursor: 'cursor_2' };
+		config.queryFn({ client: { getQueryData: () => previous } });
+		expect(mockGetAllDeploymentEvents).toHaveBeenCalledWith('proj_1', 'dep_1', previous);
 	});
 
 	it('enabled = true ketika project dan deployment terisi', () => {

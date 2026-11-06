@@ -13,6 +13,7 @@ import {
 	getAllDeploymentEvents,
 	getDeploymentLogs,
 	DeploymentEventsTruncationError,
+	type DeploymentEventsRead,
 	type DeploymentEventsResponse,
 	type DeploymentLogsResponse
 } from '$lib/api/resources/deployment';
@@ -175,7 +176,14 @@ export function createDeploymentEventsQuery(
 
 		return {
 			queryKey: queryKeys.deployments.events(project, deployment),
-			queryFn: () => getAllDeploymentEvents(project, deployment),
+			queryFn: ({ client }) =>
+				getAllDeploymentEvents(
+					project,
+					deployment,
+					client.getQueryData<DeploymentEventsRead>(
+						queryKeys.deployments.events(project, deployment)
+					)
+				),
 			refetchInterval: (query) => resolveRefetchInterval(isTerminal(), query.state.error),
 			enabled: !!project && !!deployment,
 			retry: (failureCount: number, error: unknown) => {

@@ -249,13 +249,24 @@ export async function cancelDeployment(
 	return parseDeploymentResponse(response);
 }
 
+/** Where the next read starts: the page it ended on, since new events land at the end of that page. */
+export type DeploymentEventsRead = DeploymentEventsResponse & { resumeCursor?: string };
+
+/**
+ * Events are only ever added, so a read after the first goes on from the page the last one ended on
+ * instead of walking the list again from the start.
+ */
 export async function getAllDeploymentEvents(
 	project: string,
-	deployment: string
-): Promise<DeploymentEventsResponse> {
-	const allEvents: DeploymentEvent[] = [];
-	let cursor: string | undefined = undefined;
+	deployment: string,
+	previous?: DeploymentEventsRead
+): Promise<DeploymentEventsRead> {
+	const bySequence = new Map<number, DeploymentEvent>(
+		previous?.data.map((event) => [event.sequence, event])
+	);
+	let cursor = previous?.resumeCursor;
 	let pageCount = 0;
+	let fetched = 0;
 	let lastResponse: DeploymentEventsResponse | null = null;
 
 	while (pageCount < MAX_EVENT_PAGES) {
@@ -264,19 +275,22 @@ export async function getAllDeploymentEvents(
 			cursor,
 			per_page: EVENT_PAGE_SIZE
 		});
-		allEvents.push(...lastResponse.data);
+		fetched += lastResponse.data.length;
+		for (const event of lastResponse.data) bySequence.set(event.sequence, event);
 
 		const nextCursor = lastResponse.meta.next_cursor;
 		if (!nextCursor) {
+			const data = [...bySequence.values()].sort((a, b) => a.sequence - b.sequence);
 			return {
-				data: allEvents,
+				data,
 				links: lastResponse.links,
 				meta: {
 					path: lastResponse.meta.path,
-					per_page: allEvents.length,
+					per_page: data.length,
 					next_cursor: null,
 					prev_cursor: null
-				}
+				},
+				resumeCursor: cursor
 			};
 		}
 
@@ -286,7 +300,7 @@ export async function getAllDeploymentEvents(
 	throw new DeploymentEventsTruncationError(
 		deployment,
 		pageCount,
-		allEvents.length,
+		fetched,
 		lastResponse?.meta.next_cursor ?? 'unknown'
 	);
 }
