@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { CellSignalSlashIcon, ArrowCounterClockwiseIcon } from 'phosphor-svelte';
+	import CellSignalSlashIcon from 'phosphor-svelte/lib/CellSignalSlashIcon';
+	import ArrowCounterClockwiseIcon from 'phosphor-svelte/lib/ArrowCounterClockwiseIcon';
 	import Card from '../ui/Card.svelte';
 	import Button from '../ui/Button.svelte';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import type { Component } from 'svelte';
+	import type { ResolvedPathname } from '$app/types';
 
 	type Props = {
 		title?: string;
@@ -18,12 +20,16 @@
 		buttonIcon?: Component<{ size?: number; class?: string; 'aria-hidden'?: 'true' }>;
 		buttonText?: string;
 		onRetry?: () => void;
+		/** Ways out of this screen, for errors that retrying alone cannot solve. */
+		links?: { label: string; href: ResolvedPathname }[];
+		/** A full-page error owns the page's main heading. */
+		headingTag?: 'h1' | 'h2';
 	};
 
 	let {
 		title = 'Terjadi kesalahan',
 		titleClass,
-		description = 'Gagal memuat data. Silakan periksa koneksi anda dan coba lagi.',
+		description = 'Gagal memuat data. Silakan periksa koneksi kamu dan coba lagi.',
 		icon: Icon = CellSignalSlashIcon,
 		iconText,
 		iconClass = 'text-error-base',
@@ -32,7 +38,9 @@
 		statusIndicatorClass = 'text-muted',
 		buttonIcon: ButtonIcon = ArrowCounterClockwiseIcon,
 		buttonText,
-		onRetry
+		onRetry,
+		links = [],
+		headingTag = 'h2'
 	}: Props = $props();
 </script>
 
@@ -53,10 +61,15 @@
 				<p class="text-base font-montserrat-semibold text-error-base">{iconText}</p>
 			{/if}
 
-			<h2 class={`text-base font-montserrat-semibold ${titleClass || ''}`}>{title}</h2>
+			<svelte:element
+				this={headingTag}
+				class={`text-base font-montserrat-semibold ${titleClass || ''}`}
+			>
+				{title}
+			</svelte:element>
 
 			{#if description}
-				<p class="mt-1 text-md font-montserrat-light">{description}</p>
+				<p class="mt-1 text-base font-montserrat-light">{description}</p>
 			{/if}
 
 			{#if statusIndicator}
@@ -74,6 +87,16 @@
 					{buttonText}
 				</Button>
 			{/if}
+
+			{#each links as link, index (link.href)}
+				<Button
+					class="mt-2 w-full py-3"
+					variant={index === 0 && !onRetry ? 'primary' : 'secondary'}
+					href={link.href}
+				>
+					{link.label}
+				</Button>
+			{/each}
 		</div>
 	</Card>
 </div>

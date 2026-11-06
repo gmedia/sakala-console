@@ -9,6 +9,8 @@
 			children: Snippet;
 			href?: ResolvedPathname;
 			externalHref?: string;
+			/** `sameTab` is for links that come back here, such as the GitHub install redirect. */
+			sameTab?: boolean;
 			variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
 			type?: 'button' | 'submit' | 'reset';
 			disabled?: boolean;
@@ -19,6 +21,7 @@
 		children,
 		href,
 		externalHref,
+		sameTab = false,
 		variant = 'primary',
 		type = 'button',
 		disabled = false,
@@ -29,7 +32,7 @@
 
 	const variants = {
 		primary:
-			'border-primary bg-primary text-white hover:border-primary-dark hover:bg-primary-dark cursor-pointer',
+			'border-primary bg-primary text-white hover:border-primary-dark hover:bg-primary-dark cursor-pointer max-md:min-h-11',
 		secondary:
 			'border-border-strong bg-surface text-foreground hover:border-primary hover:text-primary',
 		ghost: 'border-transparent bg-transparent text-muted hover:text-foreground',
@@ -38,7 +41,7 @@
 
 	const classes = $derived(
 		cn(
-			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-muted disabled:border-none',
+			'inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border px-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-background-soft disabled:text-muted disabled:border-none',
 			variants[variant],
 			className
 		)
@@ -57,7 +60,7 @@
 	<a
 		href={disabled ? undefined : externalHref}
 		class={cn(classes, disabled && 'pointer-events-none opacity-50 cursor-not-allowed')}
-		target="_blank"
+		target={sameTab ? undefined : '_blank'}
 		rel="external noreferrer"
 		aria-disabled={disabled}
 		onclick={handleAnchorClick}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+
 	type Props = {
 		currentPage: number;
 		totalPages: number;
@@ -18,7 +20,7 @@
 	const baseButton = $derived(
 		cn(
 			buttonClass,
-			'flex items-center justify-center text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+			'flex items-center justify-center text-sm font-semibold transition-colors disabled:cursor-not-allowed',
 			'cursor-pointer font-montserrat-semibold rounded-lg w-10 h-8 border'
 		)
 	);
@@ -43,15 +45,16 @@
 
 {#if totalPages > 1}
 	<nav
-		class="flex items-center justify-center gap-2 mt-3"
-		aria-label="Pagination"
+		class="flex flex-wrap items-center justify-center gap-2 mt-3"
+		aria-label="Navigasi halaman"
 		aria-busy={disabled}
 	>
 		<button
-			aria-label="Previous Page"
+			type="button"
+			aria-label="Halaman sebelumnya"
 			disabled={disabled || currentPage === 1}
 			onclick={() => onPageChange(currentPage - 1)}
-			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
+			class="{baseButton} flex items-center justify-center bg-white text-muted border-border-strong disabled:opacity-50 disabled:cursor-not-allowed"
 		>
 			<ChevronLeft class="w-6 h-6" />
 		</button>
@@ -62,23 +65,25 @@
 				</span>
 			{:else}
 				<button
-					aria-label={`Page ${page}`}
+					type="button"
+					aria-label={`Halaman ${page}`}
 					aria-current={page === currentPage ? 'page' : undefined}
 					disabled={disabled || page === currentPage}
 					onclick={() => onPageChange(page)}
 					class="{baseButton} {page === currentPage
 						? 'bg-primary text-white border-primary'
-						: 'bg-surface-elevated text-muted border-muted/30'}"
+						: 'bg-surface-elevated text-muted border-border-strong disabled:opacity-50'}"
 				>
 					{page}
 				</button>
 			{/if}
 		{/each}
 		<button
-			aria-label="Next Page"
+			type="button"
+			aria-label="Halaman berikutnya"
 			disabled={disabled || currentPage === totalPages}
 			onclick={() => onPageChange(currentPage + 1)}
-			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
+			class="{baseButton} flex items-center justify-center bg-white text-muted border-border-strong disabled:opacity-50 disabled:cursor-not-allowed"
 		>
 			<ChevronRight class="w-6 h-6" />
 		</button>

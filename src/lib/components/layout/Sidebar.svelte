@@ -1,22 +1,25 @@
 <script lang="ts">
-	import { tick } from 'svelte';
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import SakalaLogo from '$lib/assets/sakala-logo-green.svg';
 	import { cn } from '$lib/utils/cn';
-	import {
-		SquaresFour,
-		BookOpenText,
-		User as UserIcon,
-		CaretDown,
-		CaretUp,
-		GearSix,
-		SignOut
-	} from 'phosphor-svelte';
+	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
+	import BookOpenText from 'phosphor-svelte/lib/BookOpenText';
+	import ChatCircleText from 'phosphor-svelte/lib/ChatCircleText';
+	import UserIcon from 'phosphor-svelte/lib/User';
+	import CaretDown from 'phosphor-svelte/lib/CaretDown';
+	import CaretUp from 'phosphor-svelte/lib/CaretUp';
+	import GearSix from 'phosphor-svelte/lib/GearSix';
+	import SignOut from 'phosphor-svelte/lib/SignOut';
+	import X from 'phosphor-svelte/lib/X';
+	import { Dialog as DialogPrimitive } from 'bits-ui';
+	import { MediaQuery } from 'svelte/reactivity';
+	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import type { User } from '$lib/features/auth/types';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { useLogout } from '$lib/features/auth/mutations';
+	import { feedbackPath } from '$lib/features/feedback/context';
 
 	type Props = {
 		isMobileOpen?: boolean;
@@ -24,11 +27,7 @@
 		user?: Partial<User>;
 	};
 
-	let {
-		isMobileOpen = false,
-		onCloseMobile,
-		user: initialUser = { name: 'Sasongko', username: 'ssngk', email: 'sasongkoahay@gmail.com' }
-	}: Props = $props();
+	let { isMobileOpen = false, onCloseMobile, user: initialUser = {} }: Props = $props();
 
 	const currentUserQuery = useCurrentUser();
 	const user = $derived(currentUserQuery.data ?? initialUser);
@@ -48,13 +47,28 @@
 		isExternal?: boolean;
 	};
 
-	const navigation: readonly NavItem[] = [
-		{ href: '/projects', label: 'Projects', icon: SquaresFour },
-		{ href: 'https://sakala.dev/docs', label: 'User Guide', icon: BookOpenText, isExternal: true }
-	];
+	// Feedback opens from the project or deployment on screen, and the form lets the user remove it.
+	const navigation: readonly NavItem[] = $derived([
+		{ href: '/projects', label: 'Proyek', icon: SquaresFour },
+		{
+			href: feedbackPath('/feedback', {
+				projectId: page.params.id,
+				deploymentId: page.params.deploymentId
+			}),
+			label: 'Kirim Masukan',
+			icon: ChatCircleText
+		},
+		{
+			href: 'https://sakala.dev/docs/deploy-pertama',
+			label: 'Panduan',
+			icon: BookOpenText,
+			isExternal: true
+		}
+	]);
 
 	function isActive(href: string): boolean {
-		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
+		const path = href.split('?')[0];
+		return page.url.pathname === path || page.url.pathname.startsWith(`${path}/`);
 	}
 
 	function isItemActive(item: NavItem): boolean {
@@ -73,84 +87,10 @@
 		}
 	}
 
-	let lastLogoutTrigger: HTMLElement | null = null;
-
-	function openLogoutModal(e?: MouseEvent | KeyboardEvent) {
-		lastLogoutTrigger =
-			(e?.currentTarget as HTMLElement) ?? (document.activeElement as HTMLElement);
+	function openLogoutModal() {
 		isProfileMenuOpen = false;
 		logoutErrorMessage = null;
 		isLogoutModalOpen = true;
-	}
-
-	async function closeLogoutModal() {
-		if (logoutMutation.isPending) return;
-		isLogoutModalOpen = false;
-		logoutErrorMessage = null;
-		await tick();
-		if (lastLogoutTrigger && lastLogoutTrigger.isConnected) {
-			lastLogoutTrigger.focus();
-		} else {
-			profileTriggerRef?.focus();
-		}
-	}
-
-	function logoutModalTrap(node: HTMLElement) {
-		const focusableSelector =
-			'button:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), [href]:not([tabindex="-1"]):not([aria-hidden="true"]), input:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), select:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), textarea:not([disabled]):not([tabindex="-1"]):not([aria-hidden="true"]), [tabindex]:not([tabindex="-1"]):not([aria-hidden="true"])';
-
-		function isVisible(el: HTMLElement) {
-			return (
-				(el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0) &&
-				window.getComputedStyle(el).visibility !== 'hidden'
-			);
-		}
-
-		function getFocusableElements(): HTMLElement[] {
-			return Array.from(node.querySelectorAll<HTMLElement>(focusableSelector)).filter(
-				(el) =>
-					el.getAttribute('tabindex') !== '-1' &&
-					el.getAttribute('aria-hidden') !== 'true' &&
-					isVisible(el)
-			);
-		}
-
-		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				closeLogoutModal();
-				return;
-			}
-
-			if (e.key === 'Tab') {
-				const focusables = getFocusableElements();
-				if (focusables.length === 0) return;
-
-				const first = focusables[0];
-				const last = focusables[focusables.length - 1];
-
-				if (e.shiftKey && document.activeElement === first) {
-					e.preventDefault();
-					last.focus();
-				} else if (!e.shiftKey && document.activeElement === last) {
-					e.preventDefault();
-					first.focus();
-				}
-			}
-		}
-
-		tick().then(() => {
-			const focusables = getFocusableElements();
-			focusables[0]?.focus();
-		});
-
-		window.addEventListener('keydown', handleKeyDown);
-
-		return {
-			destroy() {
-				window.removeEventListener('keydown', handleKeyDown);
-			}
-		};
 	}
 
 	function handleConfirmLogout() {
@@ -173,6 +113,17 @@
 	function handleNavigationClick() {
 		isProfileMenuOpen = false;
 		if (onCloseMobile) onCloseMobile();
+	}
+
+	// Past this width the drawer is hidden, and a hidden dialog would still hold focus and scroll.
+	const isDesktop = new MediaQuery('min-width: 768px', false);
+	$effect(() => {
+		if (isDesktop.current && isMobileOpen) onCloseMobile?.();
+	});
+
+	function handleDrawerCloseFocus(event: Event) {
+		event.preventDefault();
+		document.getElementById('mobile-nav-toggle')?.focus();
 	}
 </script>
 
@@ -228,8 +179,8 @@
 
 			<button
 				type="button"
-				onclick={(e) => openLogoutModal(e)}
-				class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium text-error-base transition-colors hover:bg-error/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base"
+				onclick={openLogoutModal}
+				class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium text-error transition-colors hover:bg-error/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
 			>
 				<SignOut size={18} class="size-4.5 shrink-0" />
 				<span>Keluar</span>
@@ -263,7 +214,7 @@
 				<div
 					class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-foreground"
 				>
-					<UserIcon size={18} class="size-4.5 text-black/70" />
+					<UserIcon size={18} class="size-4.5 text-foreground/70" />
 				</div>
 			{/if}
 			<div class="flex flex-col min-w-0">
@@ -288,7 +239,7 @@
 >
 	<div class="mt-7 mb-10 px-6">
 		<a href={`${base}/projects`} class="inline-block" aria-label="Sakala">
-			<img src={SakalaLogo} alt="Sakala Logo" class="h-10 w-auto object-contain" />
+			<img src={SakalaLogo} alt="" class="h-10 w-auto object-contain" />
 		</a>
 	</div>
 
@@ -319,109 +270,92 @@
 	</div>
 </aside>
 
-{#if isMobileOpen}
-	<button
-		type="button"
-		class="fixed inset-0 z-50 h-full w-full cursor-default bg-black/40 backdrop-blur-xs md:hidden"
-		onclick={onCloseMobile}
-		aria-label="Tutup menu"
-	></button>
-
-	<nav
-		class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col rounded-2xl border border-border bg-surface p-6 shadow-xl md:hidden"
-		aria-label="Navigasi mobile"
-	>
-		<div class="mt-2 mb-10">
-			<a href={`${base}/projects`} onclick={onCloseMobile} class="inline-block" aria-label="Sakala">
-				<img src={SakalaLogo} alt="Sakala Logo" class="h-10 w-auto object-contain" />
-			</a>
-		</div>
-		<div class="flex flex-col gap-1 pb-20">
-			{#each navigation as item (item.href)}
-				{@const Icon = item.icon}
-				<a
-					href={item.isExternal ? item.href : `${base}${item.href}`}
-					target={item.isExternal ? '_blank' : undefined}
-					rel={item.isExternal ? 'noreferrer noopener' : undefined}
-					onclick={onCloseMobile}
-					class={cn(
-						'flex h-14 w-full items-center gap-3 rounded-lg px-4 font-sans text-base font-medium transition-colors',
-						isItemActive(item)
-							? 'bg-primary-50 font-semibold text-primary-dark'
-							: 'text-muted hover:bg-background-soft hover:text-foreground'
-					)}
-				>
-					<Icon size={24} class="size-6 shrink-0" />
-					<span>{item.label}</span>
-				</a>
-			{/each}
-		</div>
-
-		<div class="relative mt-auto border-t border-border pt-4" bind:this={mobileProfileContainerRef}>
-			{@render profileMenu()}
-			{@render profileTrigger()}
-		</div>
-	</nav>
-{/if}
-
-{#if isLogoutModalOpen}
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="logout-dialog-title"
-		tabindex="-1"
-		use:logoutModalTrap
-	>
-		<button
-			type="button"
-			tabindex="-1"
-			aria-hidden="true"
-			class="absolute inset-0 h-full w-full cursor-default"
-			onclick={closeLogoutModal}
-			disabled={logoutMutation.isPending}
-			aria-label="Tutup modal konfirmasi"
-		></button>
-		<div
-			class="relative z-10 flex w-full max-w-xs flex-col items-center gap-6 rounded-2xl bg-white p-6 text-center shadow-xl border border-border/80"
+<DialogPrimitive.Root
+	bind:open={
+		() => isMobileOpen,
+		(next) => {
+			if (!next) onCloseMobile?.();
+		}
+	}
+>
+	<DialogPrimitive.Portal>
+		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs md:hidden" />
+		<DialogPrimitive.Content
+			onCloseAutoFocus={handleDrawerCloseFocus}
+			class="fixed inset-y-0 left-0 z-50 flex w-64 max-w-[calc(100vw-2rem)] flex-col rounded-r-2xl border border-border bg-surface p-6 shadow-xl md:hidden"
 		>
-			<div class="space-y-2">
-				<h3 id="logout-dialog-title" class="font-sans text-base font-semibold text-foreground">
-					Yakin Ingin Keluar Akun?
-				</h3>
-				{#if logoutErrorMessage}
-					<p
-						class="text-xs text-error-base font-medium bg-error/10 py-1.5 px-3 rounded-lg border border-error/20"
-						role="alert"
+			<DialogPrimitive.Title class="sr-only">Navigasi</DialogPrimitive.Title>
+			<DialogPrimitive.Close
+				aria-label="Tutup menu"
+				class="absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-foreground hover:bg-background-soft"
+			>
+				<X size={20} />
+			</DialogPrimitive.Close>
+
+			<nav class="flex min-h-0 flex-1 flex-col" aria-label="Navigasi mobile">
+				<div class="mt-2 mb-10">
+					<a
+						href={`${base}/projects`}
+						onclick={onCloseMobile}
+						class="inline-block"
+						aria-label="Sakala"
 					>
-						{logoutErrorMessage}
-					</p>
-				{/if}
-			</div>
-			<div class="flex w-full items-center justify-center gap-3">
-				<button
-					type="button"
-					onclick={closeLogoutModal}
-					disabled={logoutMutation.isPending}
-					class="flex-1 rounded-lg bg-primary-dark py-2.5 font-sans text-sm font-semibold text-white transition-colors hover:bg-primary-dark/90 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
+						<img src={SakalaLogo} alt="" class="h-10 w-auto object-contain" />
+					</a>
+				</div>
+				<div class="flex flex-col gap-1 pb-20">
+					{#each navigation as item (item.href)}
+						{@const Icon = item.icon}
+						<a
+							href={item.isExternal ? item.href : `${base}${item.href}`}
+							target={item.isExternal ? '_blank' : undefined}
+							rel={item.isExternal ? 'noreferrer noopener' : undefined}
+							onclick={onCloseMobile}
+							aria-current={isItemActive(item) ? 'page' : undefined}
+							class={cn(
+								'flex h-14 w-full items-center gap-3 rounded-lg px-4 font-sans text-base font-medium transition-colors',
+								isItemActive(item)
+									? 'bg-primary-50 font-semibold text-primary-dark'
+									: 'text-muted hover:bg-background-soft hover:text-foreground'
+							)}
+						>
+							<Icon size={24} class="size-6 shrink-0" />
+							<span>{item.label}</span>
+						</a>
+					{/each}
+				</div>
+
+				<div
+					class="relative mt-auto border-t border-border pt-4"
+					bind:this={mobileProfileContainerRef}
 				>
-					Tidak
-				</button>
-				<button
-					type="button"
-					onclick={handleConfirmLogout}
-					disabled={logoutMutation.isPending}
-					class="flex-1 rounded-lg border border-border/80 py-2.5 font-sans text-sm font-semibold text-foreground transition-colors hover:bg-background-soft cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2"
-				>
-					{#if logoutMutation.isPending}
-						Keluar...
-					{:else if logoutErrorMessage}
-						Coba Lagi
-					{:else}
-						Iya
-					{/if}
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+					{@render profileMenu()}
+					{@render profileTrigger()}
+				</div>
+			</nav>
+		</DialogPrimitive.Content>
+	</DialogPrimitive.Portal>
+</DialogPrimitive.Root>
+
+<Dialog
+	bind:open={isLogoutModalOpen}
+	title="Yakin Ingin Keluar Akun?"
+	titleClass="text-base text-center"
+	class="max-w-xs"
+	cancelLabel="Tidak"
+	confirmLabel={logoutMutation.isPending ? 'Keluar...' : logoutErrorMessage ? 'Coba Lagi' : 'Iya'}
+	emphasis="cancel"
+	loading={logoutMutation.isPending}
+	returnFocus={() => profileTriggerRef}
+	onConfirm={handleConfirmLogout}
+	onCancel={() => (logoutErrorMessage = null)}
+>
+	{#if logoutErrorMessage}
+		<p
+			class="text-xs text-error font-medium bg-error/10 py-1.5 px-3 rounded-lg border border-error/20"
+			role="alert"
+		>
+			{logoutErrorMessage}
+		</p>
+	{/if}
+</Dialog>

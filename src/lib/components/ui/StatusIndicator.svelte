@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { Check, X, RefreshCw } from '@lucide/svelte';
-	type Status = 'pending' | 'running' | 'success' | 'failed';
+	import Check from '@lucide/svelte/icons/check';
+	import X from '@lucide/svelte/icons/x';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	type Status = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 	type Size = 'sm' | 'md' | 'lg' | 'xl';
 
 	type Props = {
@@ -41,14 +43,16 @@
 		pending: 'bg-muted ring-1 ring-inset ring-muted/50',
 		running: 'bg-muted text-white',
 		success: 'bg-success-dark text-white',
-		failed: 'bg-error text-white'
+		failed: 'bg-error text-white',
+		cancelled: 'bg-muted text-white'
 	};
 
 	const defaultLabelMap: Record<Status, string> = {
 		pending: 'Menunggu',
 		running: 'Berjalan',
 		success: 'Berhasil',
-		failed: 'Gagal'
+		failed: 'Gagal',
+		cancelled: 'Dibatalkan'
 	};
 
 	let dotSize = $derived(dotSizeMap[size]);
@@ -66,7 +70,7 @@
 			<RefreshCw size={iconSizePx} strokeWidth={2.5} class={animateIcon ? 'animate-spin' : ''} />
 		{:else if status === 'success'}
 			<Check size={iconSizePx} strokeWidth={3} />
-		{:else if status === 'failed'}
+		{:else if status === 'failed' || status === 'cancelled'}
 			<X size={iconSizePx} strokeWidth={3} />
 		{/if}
 	</span>

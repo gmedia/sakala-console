@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
@@ -7,11 +6,14 @@
 	--color-background-soft: #ededed;
 	--color-surface: #ffffff;
 	--color-surface-elevated: #fbfdfb;
+	--color-surface-tint: #f1f7f4;
 	--color-foreground: #17211b;
-	--color-muted: #a2a2a2;
-	--color-muted-2: #89958d;
+	/* Figma's #a2a2a2 is 2.55:1 on white. This is the lightest grey that holds 4.5:1 on every background below. */
+	--color-muted: #6b6b6b;
+	/* Decorative: cards and dividers, where nothing depends on seeing the line. */
 	--color-border: #dde5df;
-	--color-border-strong: #cfdad2;
+	/* The edge of a control: inputs, selects, outlined buttons. 3:1 on every background. */
+	--color-border-strong: #7e8a82;
 	--color-primary: #0f766e;
 	--color-primary-base: #0f766e;
 	--color-primary-50: #e7f1f1;
@@ -25,21 +27,21 @@
 	--color-primary-800: #08413d;
 	--color-primary-900: #06322e;
 	--color-primary-dark: #115e59;
-	--color-primary-soft: #ccfbf1;
-	--color-accent: #d97706;
+	--color-brand-glow: #1cdccd;
 	--color-accent-soft: #fef3c7;
-	--color-success: #16a34a;
+	--color-success: #0f7635;
 	--color-success-soft: #bcdfce;
-	--color-success-dark: #248a57;
-	--color-warning: #d97706;
+	--color-success-dark: #1c6b44;
+	--color-warning: #9f5704;
 	--color-warning-dark: #975a09;
-	--color-error: #dc2626;
-	--color-error-base: #da5439;
+	--color-error: #c41f1f;
+	--color-error-base: #bc3d23;
 	--color-error-50: #fef2f2;
 	--color-error-dark: #833222;
-	--color-info: #2563eb;
-	--color-terminal: #0f172a;
+	--color-info: #1e5eea;
+	--color-terminal: #1e1e1d;
 	--color-terminal-text: #e2e8f0;
+	--color-terminal-muted: #a2a2a2;
 	--font-sans: 'Montserrat', 'Inter', 'Segoe UI', system-ui, sans-serif;
 	--font-montserrat: 'Montserrat', sans-serif;
 	--font-montserrat-medium: 'Montserrat-Medium', sans-serif;
@@ -50,11 +52,21 @@
 	--font-jetbrains-mono-semibold: 'JetBrains-Mono-semibold', monospace;
 }
 
+/* The text face, one variable file for every weight the console uses. */
+@font-face {
+	font-family: 'Montserrat';
+	src: url('/fonts/Montserrat-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
 @font-face {
 	font-family: 'Montserrat-semiBold';
 	src: url('/fonts/Montserrat-SemiBold.woff2') format('woff2');
 	font-weight: 600;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -62,6 +74,7 @@
 	src: url('/fonts/Montserrat-Medium.woff2') format('woff2');
 	font-weight: 500;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -69,6 +82,7 @@
 	src: url('/fonts/Montserrat-Light.woff2') format('woff2');
 	font-weight: 300;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -76,6 +90,7 @@
 	src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
 	font-weight: 400;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -83,6 +98,7 @@
 	src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
 	font-weight: 500;
 	font-style: normal;
+	font-display: swap;
 }
 
 @font-face {
@@ -90,6 +106,7 @@
 	src: url('/fonts/JetBrainsMono-SemiBold.woff2') format('woff2');
 	font-weight: 600;
 	font-style: normal;
+	font-display: swap;
 }
 
 @layer base {
@@ -114,7 +131,7 @@
 	}
 
 	:focus-visible {
-		outline: 3px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+		outline: 3px solid var(--color-primary);
 		outline-offset: 3px;
 	}
 }
@@ -125,26 +142,6 @@
 		border-radius: 1.5rem;
 		background: color-mix(in srgb, var(--color-surface) 94%, transparent);
 		box-shadow: 0 18px 50px -38px rgb(23 33 27 / 0.42);
-	}
-
-	.status-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
-		border-radius: 999px;
-		background: var(--color-primary-soft);
-		padding: 0.35rem 0.7rem;
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: var(--color-primary-dark);
-	}
-
-	.paper-grid {
-		background-image:
-			linear-gradient(rgb(15 118 110 / 0.045) 1px, transparent 1px),
-			linear-gradient(90deg, rgb(15 118 110 / 0.045) 1px, transparent 1px);
-		background-size: 32px 32px;
 	}
 }
 

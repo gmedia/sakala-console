@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { Search } from '@lucide/svelte';
-	// import type { Snippet } from 'svelte';
+	import Search from '@lucide/svelte/icons/search';
 	import { cn } from '$lib/utils/cn';
 
 	type Props = {
@@ -39,7 +38,7 @@
 
 <div
 	class={cn(
-		'flex items-center rounded-lg bg-white px-3 py-0.5',
+		'flex items-center rounded-lg border border-border-strong bg-surface px-3 py-0.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary',
 		disabled && 'opacity-50',
 		className
 	)}
@@ -53,6 +52,6 @@
 		{disabled}
 		aria-label={placeholder}
 		{id}
-		class="flex-1 bg-transparent placeholder:text-muted placeholder:font-montserrat text-sm border-none ps-1 focus:ring-0"
+		class="min-w-0 flex-1 bg-transparent placeholder:text-muted placeholder:font-montserrat text-sm border-none ps-1 focus:ring-0 focus:outline-none"
 	/>
 </div>

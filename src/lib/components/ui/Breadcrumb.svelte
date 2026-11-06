@@ -19,7 +19,7 @@
 </script>
 
 <nav aria-label="Breadcrumb" class={className}>
-	<ol class="flex items-center gap-2">
+	<ol class="flex flex-wrap items-center gap-2">
 		{#each items as item, index (item.label)}
 			<li class="flex items-center gap-2">
 				{#if item.current}
@@ -27,7 +27,7 @@
 						{item.label}
 					</span>
 				{:else if item.href}
-					<a href={resolve(item.href)} class="text-muted">
+					<a href={resolve(item.href)} class="inline-flex min-h-6 items-center text-muted">
 						{item.label}
 					</a>
 				{:else}
