@@ -5,6 +5,7 @@ import type {
 	UpdateProjectPayload,
 	EnvironmentVariable,
 	CreateEnvVarPayload,
+	UpdateEnvVarPayload,
 	EnvVarValueResponse,
 	TriggerRedeployPayload,
 	GetDeploymentsParams,
@@ -26,6 +27,16 @@ export async function updateProject(id: string, data: UpdateProjectPayload): Pro
 	const res = await apiRequest<{ data: Project }>(`/api/v1/app/projects/${id}`, {
 		method: 'PUT',
 		json: data
+	});
+	return res.data;
+}
+
+/**
+ * Ask for the inspection again. Answers 202: the result arrives later through `preview_status`.
+ */
+export async function requestProjectInspection(id: string): Promise<Project> {
+	const res = await apiRequest<{ data: Project }>(`/api/v1/app/projects/${id}/inspection`, {
+		method: 'POST'
 	});
 	return res.data;
 }
@@ -121,7 +132,7 @@ export async function createEnvironmentVariable(
  */
 export async function getEnvironmentVariableValue(
 	projectId: string,
-	envId: string
+	envId: number
 ): Promise<EnvVarValueResponse> {
 	return await apiRequest<EnvVarValueResponse>(
 		`/api/v1/app/projects/${projectId}/environment-variables/${envId}/value`
@@ -129,9 +140,28 @@ export async function getEnvironmentVariableValue(
 }
 
 /**
+ * Change a value or its secret flag. The running deployment keeps the old value until the next one,
+ * which `redeploy_required` reports.
+ */
+export async function updateEnvironmentVariable(
+	projectId: string,
+	envId: number,
+	payload: UpdateEnvVarPayload
+): Promise<EnvironmentVariable> {
+	const res = await apiRequest<{ data: EnvironmentVariable }>(
+		`/api/v1/app/projects/${projectId}/environment-variables/${envId}`,
+		{
+			method: 'PATCH',
+			json: payload
+		}
+	);
+	return res.data;
+}
+
+/**
  * Delete env var
  */
-export async function deleteEnvironmentVariable(projectId: string, envId: string): Promise<void> {
+export async function deleteEnvironmentVariable(projectId: string, envId: number): Promise<void> {
 	await apiRequest<void>(`/api/v1/app/projects/${projectId}/environment-variables/${envId}`, {
 		method: 'DELETE'
 	});

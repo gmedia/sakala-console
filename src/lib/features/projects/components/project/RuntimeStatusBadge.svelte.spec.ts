@@ -9,7 +9,7 @@ describe('RuntimeStatusBadge', () => {
 		['running', 'Live'],
 		['failed', 'Gagal'],
 		['stopped', 'Berhenti'],
-		['crashed', 'Gagal'],
+		['crashed', 'Crash'],
 		['deploying', 'Mendeploy'],
 		['not_deployed', 'Belum Deploy']
 	])('menampilkan label "%s" -> "%s"', async (runtimeStatus, expectedLabel) => {

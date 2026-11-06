@@ -1,4 +1,26 @@
+import type { components } from '$lib/api/generated/schema';
 import type { DeploymentStatus } from '$lib/features/deployments/type';
+
+type ProjectContractFields = Pick<
+	components['schemas']['ProjectResource'],
+	| 'active_deployment_id'
+	| 'effective_port'
+	| 'configured_port'
+	| 'build_command'
+	| 'start_command'
+	| 'root_directory'
+	| 'auto_deploy'
+	| 'redeploy_required'
+	| 'stack'
+	| 'preview_status'
+	| 'inspection'
+	| 'inspection_error_code'
+>;
+
+type DeploymentContractFields = Pick<
+	components['schemas']['DeploymentResource'],
+	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
+>;
 
 export type RuntimeStatus =
 	| 'not_deployed'
@@ -25,7 +47,7 @@ export const ACTIVE_DEPLOYMENT_STATUSES: readonly DeploymentStatus[] = [
 	'health_checking'
 ] as const;
 
-export interface Project {
+export interface ProjectBase {
 	id: string;
 	project_name: string;
 	name?: string;
@@ -38,21 +60,22 @@ export interface Project {
 	github_installation_id: string | null;
 	github_repository_id: number | null;
 	branch: string;
-	default_domain: string;
+	default_domain: string | null;
 	status: ProjectStatus;
 	runtime_status: RuntimeStatus;
 	detected_port: number | null;
+	/** Added by the API alongside this code, so it can still be missing. */
+	serving_port?: number | null;
+	/** Only the single-project resource has it; the list does not send it. */
+	public_url?: string | null;
 	last_deployed_at: string | null;
 	created_at: string;
 	updated_at: string;
 }
 
-export interface EnvironmentVariable {
-	id: string;
-	key: string;
-	is_secret: boolean;
-	created_at: string;
-}
+export interface Project extends ProjectBase, ProjectContractFields {}
+
+export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];
 
 export interface CreateEnvVarPayload {
 	key: string;
@@ -60,18 +83,15 @@ export interface CreateEnvVarPayload {
 	is_secret: boolean;
 }
 
+export type UpdateEnvVarPayload = components['schemas']['UpdateEnvironmentVariableRequest'];
+
 export interface EnvVarValueResponse {
 	data: {
 		value: string;
 	};
 }
 
-export interface ProjectEnvironmentVariable extends EnvironmentVariable {
-	project_id?: string;
-	value?: string;
-}
-
-export interface Deployment {
+export interface DeploymentBase {
 	id: string;
 	project_id: string;
 	sequence: number;
@@ -91,6 +111,8 @@ export interface Deployment {
 	created_at: string;
 	updated_at: string;
 }
+
+export interface Deployment extends DeploymentBase, DeploymentContractFields {}
 
 export type DeploymentFilter = '7_days' | '30_days' | 'all';
 
@@ -120,11 +142,7 @@ export interface TriggerRedeployPayload {
 	idempotencyKey?: string;
 }
 
-export interface UpdateProjectPayload {
-	name?: string;
-	thumbnail_url?: string | null;
-	branch?: string;
-}
+export type UpdateProjectPayload = components['schemas']['UpdateProjectRequest'];
 
 export interface Repository {
 	id: string;
@@ -134,16 +152,4 @@ export interface Repository {
 	default_branch: string;
 	pushed_at: string;
 	private: boolean;
-}
-
-export interface CreateProjectPayload {
-	project_name: string;
-	repository_url: string;
-	branch: string;
-}
-
-export interface CreateProjectResult {
-	id: string;
-	project_name: string;
-	domain: string;
 }

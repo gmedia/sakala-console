@@ -2,11 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-keys';
 import { getListProjects } from '$lib/api/resources/projects';
-import { createListProjectsQuery } from './queries';
+import { apiErrorFromResponse } from '$lib/api/errors';
+import { realtimeState } from '$lib/realtime/connection-state.svelte';
+import {
+	createListProjectsQuery,
+	HEADER_POLL_IDLE_MS,
+	HEADER_POLL_RUNNING_MS,
+	HEADER_POLL_RUNNING_REALTIME_MS,
+	resolveHeaderPollInterval,
+	resolveProjectPollInterval
+} from './queries';
 import type { ProjectsQueryParams } from '$lib/api/resources/projects';
 
 vi.mock('@tanstack/svelte-query', () => ({
 	createQuery: vi.fn()
+}));
+
+vi.mock('$lib/realtime/connection-state.svelte', () => ({
+	realtimeState: { status: 'disconnected' }
 }));
 
 vi.mock('$lib/api/resources/projects', () => ({
@@ -133,5 +146,37 @@ describe('createListProjectsQuery', () => {
 		};
 
 		expect(config.placeholderData(previousData)).toBe(previousData);
+	});
+});
+
+describe('project header polling', () => {
+	beforeEach(() => {
+		realtimeState.status = 'disconnected';
+	});
+
+	it('follows a running deployment without realtime (U-15)', () => {
+		expect(resolveHeaderPollInterval(true)).toBe(HEADER_POLL_RUNNING_MS);
+	});
+
+	it('slows down while realtime carries the updates', () => {
+		realtimeState.status = 'connected';
+
+		expect(resolveHeaderPollInterval(true)).toBe(HEADER_POLL_RUNNING_REALTIME_MS);
+		expect(resolveProjectPollInterval()).toBe(false);
+	});
+
+	it('stays slow when idle, and still catches a deployment started elsewhere', () => {
+		expect(resolveHeaderPollInterval(false)).toBe(HEADER_POLL_IDLE_MS);
+	});
+
+	it('leaves room in the 60 a minute limit for the rest of the page', () => {
+		expect((60_000 / HEADER_POLL_RUNNING_MS) * 2).toBeLessThanOrEqual(12);
+	});
+
+	it('waits out a 429', () => {
+		const limited = apiErrorFromResponse(429, { retryAfterSeconds: 30 });
+
+		expect(resolveHeaderPollInterval(true, limited)).toBe(30_000);
+		expect(resolveProjectPollInterval(limited)).toBe(30_000);
 	});
 });

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { RotateCcw, CircleAlert, CircleOff } from '@lucide/svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import CircleOff from '@lucide/svelte/icons/circle-off';
 	import type { Project } from '$lib/api/resources/projects';
 	import ProjectCard from '$lib/features/projects/components/project/ProjectCard.svelte';
 	import ProjectCardSkeleton from '$lib/features/projects/components/project/ProjectCardSkeleton.svelte';
@@ -34,7 +37,7 @@
 		onRetry
 	}: Props = $props();
 
-	const guide_rule = 'https://sakala.dev/docs';
+	const guide_rule = 'https://sakala.dev/docs/deploy-pertama';
 
 	const skeletonCount = 6;
 	const skeletons = Array.from({ length: skeletonCount }, (_, i) => i);
@@ -45,7 +48,7 @@
 	class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-150 {isFetching
 		? 'opacity-60'
 		: ''}"
-	aria-label="List Projects"
+	aria-label="Daftar proyek"
 	aria-busy={isFetching}
 >
 	{#if isLoading}
@@ -64,19 +67,19 @@
 				{#if errorPresentation.action === 'login'}
 					<a
 						href={resolve('/login')}
-						class="inline-flex cursor-pointer gap-2 rounded-lg border border-muted/20 bg-primary px-4 py-3 font-montserrat-semibold text-white"
+						class="inline-flex cursor-pointer gap-2 rounded-lg border border-primary bg-primary px-4 py-3 font-montserrat-semibold text-white"
 					>
-						Login kembali
+						Masuk kembali
 					</a>
 				{:else}
-					<button
+					<Button
 						type="button"
-						class="inline-flex cursor-pointer gap-2 rounded-lg border border-muted/20 bg-primary px-4 py-3 font-montserrat-semibold text-white"
+						class="gap-2 px-4 py-3 font-montserrat-semibold text-base"
 						onclick={onRetry}
 					>
 						<RotateCcw class="h-6 w-6" />
 						Coba lagi
-					</button>
+					</Button>
 				{/if}
 			{/snippet}
 		</EmptyState>
@@ -88,7 +91,7 @@
 		<EmptyState
 			icon={CircleOff}
 			title="Belum ada proyek"
-			description="Kamu belum punya project apapun. Buat project pertamamu untuk melihatnya muncul di sini."
+			description="Kamu belum punya proyek apa pun. Buat proyek pertamamu untuk melihatnya muncul di sini."
 			class="col-span-full border-none bg-transparent shadow-none"
 		>
 			{#snippet action()}
@@ -103,8 +106,8 @@
 	{:else if projects.length === 0}
 		<EmptyState
 			icon={CircleOff}
-			title="Tidak menemukan project"
-			description="Project yang kamu cari tidak ditemukan. Coba periksa kembali kata kunci pencarianmu atau filter tanggal yang digunakan."
+			title="Tidak menemukan proyek"
+			description="Proyek yang kamu cari tidak ditemukan. Coba periksa kembali kata kunci pencarianmu atau filter tanggal yang digunakan."
 			class="col-span-full border-none bg-transparent shadow-none"
 		/>
 	{:else}

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { List, CaretDown } from 'phosphor-svelte';
+	import List from 'phosphor-svelte/lib/List';
+	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 	import { cn } from '$lib/utils/cn';
 	import type { DateFilterValue } from '$lib/features/projects/filters';
 
@@ -15,6 +16,7 @@
 	const dateOptions: { label: string; value: DateFilterValue }[] = [
 		{ label: '7 hari terakhir', value: '7_days' },
 		{ label: '30 hari terakhir', value: '30_days' },
+		{ label: '90 hari terakhir', value: '90_days' },
 		{ label: 'Semua waktu', value: 'all' }
 	];
 
@@ -38,26 +40,30 @@
 	}
 </script>
 
-<svelte:window onclick={handleWindowClick} />
+<svelte:window
+	onclick={handleWindowClick}
+	onkeydown={(event) => {
+		if (event.key === 'Escape') open = false;
+	}}
+/>
 
 <div bind:this={containerRef} class="relative inline-block">
 	<button
 		type="button"
-		class="flex h-8 w-43.75 items-center justify-between gap-2 rounded-2xl border border-primary bg-primary/10 px-3 font-sans text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+		class="flex h-8 min-w-43.75 items-center justify-between gap-2 rounded-2xl border border-primary bg-primary/10 px-3 font-sans text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		onclick={toggle}
 	>
 		<List size={16} class="size-4 shrink-0 text-primary" />
-		<span class="truncate font-sans text-xs font-semibold">{selectedLabel}</span>
+		<span class="font-sans text-xs font-semibold whitespace-nowrap">{selectedLabel}</span>
 		<CaretDown size={16} class="size-4 shrink-0 text-primary" />
 	</button>
 
-	<!-- Dropdown Popover (w-56.25 / 225px, h-45.75 / 183px, rounded-2xl, p-4) -->
 	{#if open}
 		<div
 			role="listbox"
-			class="absolute top-full left-0 z-50 mt-2 flex h-45.75 w-56.25 flex-col rounded-2xl border border-border bg-surface p-4 shadow-lg"
+			class="absolute top-full left-0 z-50 mt-2 flex w-56.25 flex-col rounded-2xl border border-border bg-surface p-4 shadow-lg max-sm:fixed max-sm:inset-x-4 max-sm:top-auto max-sm:w-auto"
 		>
 			<span class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted">
 				FILTER BERDASARKAN WAKTU
@@ -70,7 +76,7 @@
 						role="option"
 						aria-selected={opt.value === value}
 						class={cn(
-							'flex h-8 w-48.25 items-center rounded-2xl px-3 font-sans text-xs transition-colors',
+							'flex h-8 w-full items-center rounded-2xl px-3 font-sans text-xs transition-colors',
 							opt.value === value
 								? 'border border-primary bg-primary/10 font-semibold text-primary'
 								: 'font-medium text-foreground hover:bg-background-soft'

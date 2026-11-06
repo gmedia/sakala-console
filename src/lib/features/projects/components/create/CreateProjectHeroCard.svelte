@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Plus, RocketLaunch } from 'phosphor-svelte';
+	import Plus from 'phosphor-svelte/lib/Plus';
+	import RocketLaunch from 'phosphor-svelte/lib/RocketLaunch';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
@@ -32,7 +33,7 @@
 {:else}
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 		<div class="space-y-1">
-			<h1 class="text-[22px] font-semibold text-foreground">Projects</h1>
+			<h2 class="text-[22px] font-semibold text-foreground">Proyek</h2>
 			<p class="text-[18px] font-normal text-muted">
 				Terus lanjutkan progresmu, deploy proyek berikutnya.
 			</p>

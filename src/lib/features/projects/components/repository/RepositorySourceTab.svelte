@@ -19,11 +19,12 @@
 	{#each tabs as tab (tab.value)}
 		<Button
 			variant="ghost"
+			aria-pressed={value === tab.value}
 			class={cn(
 				'w-full rounded-md border-none py-3 cursor-pointer',
 				value === tab.value
 					? 'bg-white text-foreground'
-					: 'bg-transparent text-muted-foreground hover:bg-muted/10'
+					: 'bg-transparent text-foreground/70 hover:bg-muted/10'
 			)}
 			onclick={() => (value = tab.value)}
 		>

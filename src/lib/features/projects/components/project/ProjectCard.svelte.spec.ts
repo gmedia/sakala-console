@@ -15,6 +15,7 @@ const baseProject: Project = {
 	branch: 'main',
 	thumbnail_url: null,
 	runtime_status: 'running',
+	stack: null,
 	last_deployed_at: '2026-09-10T10:00:00Z',
 	created_at: '2026-01-01T00:00:00Z'
 };
@@ -73,16 +74,39 @@ describe('ProjectCard — long content', () => {
 
 describe('ProjectCard — thumbnail placeholder', () => {
 	test('menampilkan gambar saat thumbnail_url ada', async () => {
-		await render(ProjectCard, { ...baseProject, thumbnail_url: 'https://example.com/thumb.png' });
+		const thumbnail =
+			'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>';
+		await render(ProjectCard, { ...baseProject, thumbnail_url: thumbnail });
 
 		await expect.element(page.getByRole('img', { name: baseProject.name })).toBeVisible();
+		await expect.element(page.getByTestId('thumbnail-placeholder')).not.toBeInTheDocument();
+	});
+
+	test('jatuh ke placeholder saat gambarnya gagal dimuat', async () => {
+		await render(ProjectCard, { ...baseProject, thumbnail_url: 'data:image/png;base64,rusak' });
+
+		await expect.element(page.getByTestId('thumbnail-placeholder')).toBeVisible();
+		await expect.element(page.getByRole('img', { name: baseProject.name })).not.toBeInTheDocument();
+	});
+
+	test('menampilkan chip framework hanya kalau inspeksi menyebutkannya', async () => {
+		const stack = { builder: 'railpack', provider: 'node', package_manager: null } as const;
+		const screen = await render(ProjectCard, {
+			...baseProject,
+			stack: { ...stack, framework: 'vite' }
+		});
+		await expect.element(page.getByTestId('framework-chip')).toHaveTextContent('vite');
+		screen.unmount();
+
+		await render(ProjectCard, { ...baseProject, stack: { ...stack, framework: null } });
+		await expect.element(page.getByTestId('framework-chip')).not.toBeInTheDocument();
 	});
 
 	test.each<[RuntimeStatus, string]>([
 		['deploying', 'Menunggu build selesai...'],
 		['failed', 'Deployment gagal'],
-		['stopped', 'Project sedang berhenti'],
-		['crashed', 'Project mengalami crash'],
+		['stopped', 'Proyek sedang berhenti'],
+		['crashed', 'Proyek mengalami crash'],
 		['not_deployed', 'Belum Deploy'],
 		['running', 'Belum memiliki thumbnail']
 	])(

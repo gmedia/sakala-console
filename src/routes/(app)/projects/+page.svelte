@@ -3,11 +3,12 @@
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import ProjectList from '$lib/features/projects/components/project/ProjectList.svelte';
 	import ProjectFilter from '$lib/features/projects/components/project/ProjectFilter.svelte';
-	import type { ProjectsQueryParams } from '$lib/api/resources/projects';
-	import { createListProjectsQuery } from '$lib/features/projects/queries';
+	import type { DateFilterValue } from '$lib/features/projects/filters';
+	import PilotQuotaNotice from '$lib/features/projects/components/create/PilotQuotaNotice.svelte';
+	import { createListProjectsQuery, createPilotLimitsQuery } from '$lib/features/projects/queries';
 
 	let search = $state('');
-	let filter = $state<NonNullable<ProjectsQueryParams['filter']>>('30_days');
+	let filter = $state<DateFilterValue>('30_days');
 	let currentPage = $state(1);
 	const perPage = 6;
 
@@ -34,22 +35,34 @@
 	);
 
 	const isTrulyEmpty = $derived(isCurrentResultEmpty && hasAnyProjectQuery.data?.meta.total === 0);
+
+	const pilotLimitsQuery = createPilotLimitsQuery();
 </script>
 
-<svelte:head><title>Projects | Sakala Console</title></svelte:head>
-<main class="flex flex-col gap-8">
-	<CreateProjectHeroCard />
+<svelte:head><title>Proyek | Sakala Console</title></svelte:head>
+<div class="flex flex-col gap-8">
+	<CreateProjectHeroCard isEmpty={isTrulyEmpty} />
 
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
-		<div class="flex items-center justify-between sm:justify-normal gap-4 w-full sm:flex-1">
+	<PilotQuotaNotice limits={pilotLimitsQuery.data} />
+
+	<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between w-full">
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-2 w-full lg:flex-1">
 			<h2 class="text-2xl font-semibold font-montserrat-semibold whitespace-nowrap">
-				Recent Projects
+				Proyek Terbaru
 			</h2>
-			<ProjectFilter bind:value={filter} />
+			{#if !isTrulyEmpty}
+				<ProjectFilter bind:value={filter} />
+			{/if}
 		</div>
-		<div class="relative w-full sm:max-w-max sm:flex-2">
-			<SearchInput bind:value={search} placeholder="Cari.." />
-		</div>
+		{#if !isTrulyEmpty}
+			<div class="relative w-full lg:max-w-max lg:flex-2">
+				<SearchInput
+					placeholder="Cari proyek"
+					debounce={300}
+					onSearch={(value) => (search = value)}
+				/>
+			</div>
+		{/if}
 	</div>
 
 	<ProjectList
@@ -66,4 +79,4 @@
 		}}
 		onPageChange={(page) => (currentPage = page)}
 	/>
-</main>
+</div>
