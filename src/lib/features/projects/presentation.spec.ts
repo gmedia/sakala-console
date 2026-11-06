@@ -14,7 +14,8 @@ import {
 	getPortDisplay,
 	getActiveDeploymentLimitNotice,
 	getProjectQuotaNotice,
-	isProjectQuotaReached
+	isProjectQuotaReached,
+	findSuspensionReason
 } from './presentation';
 import { apiErrorFromResponse, NetworkError } from '$lib/api/errors';
 
@@ -409,5 +410,50 @@ describe('getFrameworkLabel', () => {
 
 	it('keeps the word from the API when it does not know the framework', () => {
 		expect(getFrameworkLabel('phoenix')).toBe('phoenix');
+	});
+});
+
+describe('findSuspensionReason', () => {
+	const notice = (project_id: string, message: string, title = 'Proyek ditangguhkan') => ({
+		title,
+		message,
+		project_id
+	});
+	const message =
+		'toko ditangguhkan oleh admin Sakala, jadi trafiknya diputus dan belum bisa di-deploy. Alasannya: Halaman login palsu. Kalau menurutmu keputusan ini keliru, kirim email ke abuse@sakala.dev.';
+
+	it('reads the reason out of the notice sent to the owner', () => {
+		expect(findSuspensionReason([notice('p1', message)], 'p1')).toBe('Halaman login palsu.');
+	});
+
+	it('takes the newest notice, which the API lists first', () => {
+		const newer = message.replace('Halaman login palsu.', 'Phishing.');
+		expect(findSuspensionReason([notice('p1', newer), notice('p1', message)], 'p1')).toBe(
+			'Phishing.'
+		);
+	});
+
+	it('ignores other projects and other notices', () => {
+		expect(findSuspensionReason([notice('p2', message)], 'p1')).toBeNull();
+		expect(findSuspensionReason([notice('p1', message, 'Proyek crash')], 'p1')).toBeNull();
+	});
+
+	it('shows a notice in another shape whole rather than cutting it up', () => {
+		expect(findSuspensionReason([notice('p1', 'Ditangguhkan karena spam.')], 'p1')).toBe(
+			'Ditangguhkan karena spam.'
+		);
+	});
+});
+
+describe('a suspended project', () => {
+	it('offers no Redeploy and no site, whatever the runtime says', () => {
+		const state = deriveProjectHeaderState({
+			status: 'suspended',
+			runtime_status: 'running',
+			active_deployment_id: 'dep-1'
+		});
+		expect(state.kind).toBe('suspended');
+		expect(state.showRedeploy).toBe(false);
+		expect(state.serving).toBe(false);
 	});
 });

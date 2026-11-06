@@ -7,6 +7,8 @@
 		projectName: string;
 		defaultDomain?: string;
 		deploymentCount?: number;
+		/** From the API. Without it the dialog says less rather than quote a number it does not know. */
+		retentionDays?: number;
 		isLoading?: boolean;
 		error?: string;
 		onConfirm: () => void;
@@ -18,6 +20,7 @@
 		projectName,
 		defaultDomain,
 		deploymentCount = 0,
+		retentionDays,
 		isLoading = false,
 		error = '',
 		onConfirm,
@@ -85,9 +88,14 @@
 		<li>Semua environment variable</li>
 	</ul>
 
-	<p class="mt-3 text-sm text-foreground">
-		Data proyek dihapus permanen setelah masa simpannya berakhir, dan alamatnya tidak bisa dipakai
-		lagi.
+	<p class="mt-3 text-sm text-foreground" data-testid="delete-project-retention">
+		{#if retentionDays !== undefined}
+			Datanya disimpan {retentionDays} hari lalu dihapus permanen, dan selama itu proyek ini tidak bisa
+			dipulihkan. Alamatnya tidak bisa dipakai lagi.
+		{:else}
+			Datanya dihapus permanen setelah masa simpannya berakhir, dan selama itu proyek ini tidak bisa
+			dipulihkan. Alamatnya tidak bisa dipakai lagi.
+		{/if}
 	</p>
 
 	<div class="mt-6 flex flex-col">

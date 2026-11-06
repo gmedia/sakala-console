@@ -209,7 +209,7 @@ export function deriveProjectHeaderState(
 			notice: {
 				tone: 'warning',
 				message:
-					'Proyek ini ditangguhkan oleh admin, jadi belum bisa di-deploy. Hubungi admin Sakala untuk membukanya kembali.'
+					'Proyek ini ditangguhkan oleh admin Sakala, jadi trafiknya diputus dan belum bisa di-deploy.'
 			}
 		};
 	}
@@ -341,6 +341,39 @@ export function getDeploymentCardNote(
 		return `Tahap: ${getDeploymentStatusLabel(status)}`;
 	}
 	return null;
+}
+
+/** The shape on a deployment status, for the small indicator in a history row. */
+export function getDeploymentIndicatorStatus(
+	status: string
+): 'pending' | 'running' | 'success' | 'failed' | 'cancelled' {
+	if (status === 'succeeded') return 'success';
+	if (status === 'failed') return 'failed';
+	if (status === 'cancelled') return 'cancelled';
+	return 'running';
+}
+
+const SUSPENSION_TITLE = 'Proyek ditangguhkan';
+const SUSPENSION_REASON = /Alasannya: (.+?)\s+Kalau menurutmu/s;
+
+/**
+ * The API does not put the reason on the project. It sends it once, in the owner's notification
+ * (`SuspendProjectAction`), so that notification is the only place to read it from. The newest one
+ * wins, and a message in another shape returns whole rather than being cut up.
+ */
+export function findSuspensionReason(
+	notifications: readonly {
+		title: string | null;
+		message: string | null;
+		project_id: string | null;
+	}[],
+	projectId: string
+): string | null {
+	const notice = notifications.find(
+		(item) => item.project_id === projectId && item.title === SUSPENSION_TITLE
+	);
+	if (!notice?.message) return null;
+	return notice.message.match(SUSPENSION_REASON)?.[1] ?? notice.message;
 }
 
 const FRAMEWORK_LABELS: Record<string, string> = {

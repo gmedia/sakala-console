@@ -1,5 +1,6 @@
 <script lang="ts">
 	import List from 'phosphor-svelte/lib/List';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -53,10 +54,14 @@
 
 			<h1 class="flex min-w-0 flex-wrap items-center gap-x-1.5 text-base sm:text-xl">
 				{#if page.params.id}
-					<span class="font-medium text-muted">Proyek</span>
-					<span class="font-medium text-muted">/</span>
-					<span class="line-clamp-2 min-w-0 wrap-anywhere text-foreground" title={projectName}
-						>{projectName || '...'}</span
+					<a href={resolve('/projects')} class="font-medium text-muted hover:text-foreground">
+						Proyek
+					</a>
+					<span class="font-medium text-muted" aria-hidden="true">/</span>
+					<a
+						href={resolve(`/projects/${page.params.id}`)}
+						class="line-clamp-2 min-w-0 wrap-anywhere text-foreground"
+						title={projectName}>{projectName || '...'}</a
 					>
 				{:else}
 					<span class="text-foreground">{pageTitle}</span>

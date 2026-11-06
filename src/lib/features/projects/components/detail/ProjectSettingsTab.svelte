@@ -6,6 +6,7 @@
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { ApiError, getErrorMessage } from '$lib/api/errors';
 	import Button from '$lib/components/ui/Button.svelte';
+	import FormField from '$lib/components/ui/FormField.svelte';
 	import ToggleField from '$lib/components/ui/ToggleField.svelte';
 	import {
 		AUTO_DEPLOY_HELP,
@@ -14,7 +15,8 @@
 		ROOT_DIRECTORY_HELP,
 		START_COMMAND_HELP
 	} from '../../build-help';
-	import { createProjectQuery } from '../../queries';
+	import { createRepositoryBranchesQuery, type BranchSource } from '../../githubQueries';
+	import { createPilotLimitsQuery, createProjectQuery } from '../../queries';
 	import {
 		createDeleteProjectMutation,
 		createRequestInspectionMutation,
@@ -27,11 +29,13 @@
 		type ProjectConfigDraft
 	} from '../../detail/projectDetailState.svelte';
 	import { buildConfigurationSchema } from '../../validation/createProjectSchema';
+	import BranchCombobox from '../create/BranchCombobox.svelte';
 	import DeleteProjectConfirmModal from './DeleteProjectConfirmModal.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
 	const projectQuery = createProjectQuery(() => projectId);
+	const pilotLimits = createPilotLimitsQuery();
 	const deleteMutation = createDeleteProjectMutation();
 	const updateMutation = createUpdateProjectMutation();
 	const inspectMutation = createRequestInspectionMutation();
@@ -52,6 +56,29 @@
 	const isGithubInstallation = $derived(
 		projectQuery.data?.repository_source === 'github_installation'
 	);
+
+	const branchSource = $derived.by<BranchSource | null>(() => {
+		const project = projectQuery.data;
+		if (!project) return null;
+		if (project.github_installation_id && project.github_repository_id) {
+			return {
+				kind: 'installation',
+				installationId: project.github_installation_id,
+				repositoryId: String(project.github_repository_id)
+			};
+		}
+		return project.repository_url
+			? { kind: 'public', repositoryUrl: project.repository_url }
+			: null;
+	});
+	const branchesQuery = createRepositoryBranchesQuery(() => branchSource);
+	const branchOptions = $derived.by(() => {
+		const fetched = branchesQuery.data ?? [];
+		return originalBranch && !fetched.includes(originalBranch)
+			? [originalBranch, ...fetched]
+			: fetched;
+	});
+
 	type ConfigErrors = Partial<Record<keyof ProjectConfigDraft, string>>;
 	let configErrors = $state<ConfigErrors>({});
 
@@ -70,16 +97,16 @@
 		saveMessage = '';
 	}
 
-	function handleNameInput(event: Event) {
+	function setName(next: string) {
 		nameError = '';
 		formError = '';
-		updateDraft((event.currentTarget as HTMLInputElement).value, branch);
+		updateDraft(next, branch);
 	}
 
-	function handleBranchInput(event: Event) {
+	function setBranch(next: string) {
 		branchError = '';
 		formError = '';
-		updateDraft(name, (event.currentTarget as HTMLInputElement).value);
+		updateDraft(name, next);
 	}
 
 	function updateConfig(patch: Partial<ProjectConfigDraft>) {
@@ -205,9 +232,6 @@
 			}
 		});
 	}
-
-	const editableInputClass = 'control-input';
-	const readonlyInputClass = 'control-input';
 </script>
 
 {#snippet configField(
@@ -215,146 +239,101 @@
 	label: string,
 	field: Exclude<keyof ProjectConfigDraft, 'auto_deploy'>,
 	placeholder: string,
-	help: string,
-	inputmode: 'text' | 'numeric' = 'text'
+	hint: string,
+	options: { mono?: boolean; numeric?: boolean } = {}
 )}
-	<div class="flex min-w-0 flex-col">
-		<label for={id} class="mb-2 font-medium text-xs text-foreground">{label}</label>
-		<input
-			type="text"
-			{id}
-			{inputmode}
-			{placeholder}
-			value={config?.[field] ?? ''}
-			oninput={(event) => updateConfig({ [field]: event.currentTarget.value })}
-			spellcheck="false"
-			aria-invalid={configErrors[field] ? 'true' : undefined}
-			aria-describedby="{id}-help"
-			class="{editableInputClass} {configErrors[field]
-				? 'border-error-dark focus:border-error-dark'
-				: 'border-border-strong focus:border-primary'}"
-		/>
-		<p
-			id="{id}-help"
-			class="mt-1 text-xs {configErrors[field] ? 'text-error-dark' : 'text-foreground/70'}"
-		>
-			{configErrors[field] ?? help}
-		</p>
-	</div>
+	<FormField
+		{id}
+		{label}
+		{placeholder}
+		{hint}
+		inputmode={options.numeric ? 'numeric' : 'text'}
+		spellcheck={false}
+		inputClass={options.mono ? 'font-mono' : undefined}
+		bind:value={
+			() => config?.[field]?.toString() ?? '', (value) => updateConfig({ [field]: value })
+		}
+		error={configErrors[field]}
+	/>
 {/snippet}
 
-<div class="flex w-full max-w-280 flex-col">
+<div class="flex w-full max-w-reading flex-col gap-4">
 	{#if projectQuery.isLoading}
 		<div class="p-6 text-center text-sm text-muted">Memuat pengaturan...</div>
 	{:else if projectQuery.isError}
 		<div class="p-6 text-center text-sm text-error">Gagal memuat data pengaturan proyek.</div>
 	{:else if projectQuery.data}
-		<form
-			onsubmit={handleSave}
-			novalidate
-			class="@container w-full rounded-control border border-border bg-surface p-4 sm:p-6"
-		>
-			<div class="grid grid-cols-1 gap-4 @2xl:grid-cols-2 @2xl:gap-6">
-				<div class="flex min-w-0 flex-col gap-4">
-					<div class="flex min-w-0 flex-col">
-						<label for="projectName" class="mb-2 font-medium text-xs text-foreground">
-							Nama proyek
-						</label>
-						<input
-							type="text"
-							id="projectName"
-							value={name}
-							oninput={handleNameInput}
-							placeholder="Nama proyek"
-							required
-							aria-invalid={nameError ? 'true' : undefined}
-							aria-describedby={nameError ? 'projectName-error' : undefined}
-							class="{editableInputClass} {nameError
-								? 'border-error-dark focus:border-error-dark'
-								: 'border-border-strong focus:border-primary'}"
-						/>
-						{#if nameError}
-							<p id="projectName-error" class="mt-1 text-xs text-error-dark">
-								{nameError}
-							</p>
-						{/if}
-					</div>
+		<form onsubmit={handleSave} novalidate class="surface-card flex flex-col gap-5 p-4 sm:p-6">
+			<FormField
+				id="projectName"
+				label="Nama proyek"
+				placeholder="Nama proyek"
+				required
+				bind:value={() => name, setName}
+				error={nameError}
+			/>
 
-					<div class="flex min-w-0 flex-col">
-						<label for="branch" class="mb-2 font-medium text-xs text-foreground"> Branch </label>
-						<input
-							type="text"
-							id="branch"
-							value={branch}
-							oninput={handleBranchInput}
-							placeholder="main"
-							required
-							aria-invalid={branchError ? 'true' : undefined}
-							aria-describedby={branchError ? 'branch-error' : undefined}
-							class="{editableInputClass} {branchError
-								? 'border-error-dark focus:border-error-dark'
-								: 'border-border-strong focus:border-primary'}"
-						/>
-						{#if branchError}
-							<p id="branch-error" class="mt-1 text-xs text-error-dark">
-								{branchError}
-							</p>
-						{/if}
-					</div>
-
-					{@render configField(
-						'rootDirectory',
-						'Root directory',
-						'root_directory',
-						'apps/web',
-						ROOT_DIRECTORY_HELP
-					)}
-				</div>
-
-				<div class="flex min-w-0 flex-col gap-4">
-					<div class="flex min-w-0 flex-col">
-						<div class="mb-2 flex items-center gap-1.5">
-							<label for="subdomain" class="font-medium text-xs text-foreground">
-								Subdomain (URL Publik)
-							</label>
-							<span class="text-xs text-foreground/70">(Otomatis)</span>
-						</div>
-						<input
-							type="text"
-							id="subdomain"
-							value={projectQuery.data.slug ?? ''}
-							disabled
-							placeholder="subdomain"
-							class={readonlyInputClass}
-						/>
-					</div>
-
-					{@render configField(
-						'port',
-						'Port',
-						'configured_port',
-						String(projectQuery.data.effective_port),
-						`Sekarang ${projectQuery.data.effective_port}. Sakala mengisi environment variable PORT dengan angka ini, dan aplikasimu harus mendengarkan di PORT. Kosongkan untuk memakai port bawaan.`,
-						'numeric'
-					)}
-					{@render configField(
-						'buildCommand',
-						'Build command',
-						'build_command',
-						'npm run build',
-						BUILD_COMMAND_HELP
-					)}
-					{@render configField(
-						'startCommand',
-						'Start command',
-						'start_command',
-						'npm start',
-						START_COMMAND_HELP
-					)}
-				</div>
+			<div class="space-y-1.5">
+				<label for="branch" class="block text-sm font-medium text-foreground">Branch</label>
+				{#key branchSource}
+					<BranchCombobox
+						id="branch"
+						value={branch}
+						branches={branchOptions}
+						loading={branchesQuery.isPending && branchSource !== null}
+						allowOther
+						invalid={Boolean(branchError)}
+						describedBy={branchError ? 'branch-error' : undefined}
+						onValueChange={setBranch}
+					/>
+				{/key}
+				{#if branchError}
+					<p id="branch-error" class="text-xs text-error-base">{branchError}</p>
+				{/if}
 			</div>
 
-			<div class="mt-2 border-t border-border">
+			<FormField
+				id="subdomain"
+				label="Subdomain, dibuat otomatis"
+				value={projectQuery.data.slug ?? ''}
+				disabled
+				inputClass="font-mono"
+			/>
+
+			{@render configField(
+				'rootDirectory',
+				'Root directory',
+				'root_directory',
+				'apps/web',
+				ROOT_DIRECTORY_HELP,
+				{ mono: true }
+			)}
+			{@render configField(
+				'port',
+				'Port',
+				'configured_port',
+				String(projectQuery.data.effective_port),
+				`Sekarang ${projectQuery.data.effective_port}. Aplikasimu harus mendengarkan di environment variable PORT.`,
+				{ numeric: true }
+			)}
+			{@render configField(
+				'buildCommand',
+				'Build command',
+				'build_command',
+				'npm run build',
+				BUILD_COMMAND_HELP,
+				{ mono: true }
+			)}
+			{@render configField(
+				'startCommand',
+				'Start command',
+				'start_command',
+				'npm start',
+				START_COMMAND_HELP,
+				{ mono: true }
+			)}
+
+			<div class="border-t border-border">
 				<ToggleField
 					title="Auto-deploy"
 					description={isGithubInstallation ? AUTO_DEPLOY_HELP : AUTO_DEPLOY_UNAVAILABLE_HELP}
@@ -364,7 +343,13 @@
 				/>
 			</div>
 
-			<div class="mt-4 flex flex-wrap items-center justify-end gap-3">
+			<p class="text-xs text-foreground/70">
+				Branch, port, command, dan root directory baru dipakai mulai deployment berikutnya.
+				<strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan yang belum
+				tersimpan.
+			</p>
+
+			<div class="flex flex-wrap items-center justify-end gap-3">
 				{#if formError}
 					<p role="alert" class="mr-auto text-sm text-error-dark">{formError}</p>
 				{/if}
@@ -375,38 +360,42 @@
 					aria-busy={updateMutation.isPending}
 				>
 					{#if updateMutation.isPending}
-						<CircleNotch size={16} weight="bold" class="animate-spin" />
+						<CircleNotch
+							size={16}
+							weight="bold"
+							class="animate-spin motion-reduce:animate-none"
+							aria-hidden="true"
+						/>
 					{/if}
 					Simpan perubahan
 				</Button>
 			</div>
 		</form>
 
-		<p class="mt-2 text-xs text-foreground/70">
-			Branch, port, command, dan root directory baru dipakai mulai deployment berikutnya.
-			<strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan yang belum tersimpan.
-		</p>
-
-		<div
-			class="mt-6 flex w-full flex-col justify-between gap-4 rounded-control border border-error/50 bg-error-50 p-4 sm:flex-row sm:items-center sm:p-5"
+		<section
+			aria-labelledby="danger-zone-title"
+			class="flex w-full flex-col justify-between gap-4 rounded-card border border-error/40 bg-surface p-4 sm:flex-row sm:items-center sm:p-6"
 		>
-			<div class="flex min-w-0 flex-col justify-center">
-				<h3 class="mb-1.5 font-semibold text-base leading-none text-error">Hapus proyek</h3>
-				<p class="text-sm text-error sm:text-base">
-					Tindakan ini permanen dan tidak bisa dibatalkan.
+			<div class="min-w-0">
+				<h2 id="danger-zone-title" class="font-sans text-base font-semibold text-foreground">
+					Zona bahaya
+				</h2>
+				<p class="mt-1 text-sm text-foreground">
+					Menghapus proyek menghentikan aplikasinya dan tidak bisa dibatalkan.
 				</p>
 			</div>
 
 			<Button variant="danger" onclick={handleOpenDelete} disabled={deleteMutation.isPending}>
-				<Trash size={20} weight="regular" />
-				<span class="font-semibold text-sm">Hapus proyek</span>
+				<Trash size={16} aria-hidden="true" />
+				Hapus proyek
 			</Button>
-		</div>
+		</section>
 
 		<DeleteProjectConfirmModal
 			open={isDeleteDialogOpen}
 			projectName={projectQuery.data.name ?? projectQuery.data.project_name ?? ''}
 			defaultDomain={projectQuery.data.default_domain ?? undefined}
+			retentionDays={pilotLimits.data?.deleted_project_retention_days}
 			isLoading={deleteMutation.isPending}
 			error={deleteError}
 			onConfirm={handleConfirmDelete}

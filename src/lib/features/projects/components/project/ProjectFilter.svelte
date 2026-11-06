@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="T extends string = DateFilterValue">
 	import { Select } from 'bits-ui';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 	import Check from 'phosphor-svelte/lib/Check';
@@ -6,27 +6,33 @@
 	import type { DateFilterValue } from '$lib/features/projects/filters';
 
 	type Props = {
-		value: DateFilterValue;
+		value: T;
+		options?: { label: string; value: T }[];
+		name?: string;
 	};
 
-	let { value = $bindable() }: Props = $props();
-
-	// The API filters on the date a project was created, and the label says so.
-	const dateOptions: { label: string; value: DateFilterValue }[] = [
+	// The API filters projects on the date they were created, and the label says so.
+	const projectDateOptions = [
 		{ label: 'Dibuat kapan saja', value: 'all' },
 		{ label: 'Dibuat 7 hari terakhir', value: '7_days' },
 		{ label: 'Dibuat 30 hari terakhir', value: '30_days' },
 		{ label: 'Dibuat 90 hari terakhir', value: '90_days' }
-	];
+	] as { label: string; value: T }[];
+
+	let {
+		value = $bindable(),
+		options = projectDateOptions,
+		name = 'Filter waktu'
+	}: Props = $props();
 
 	const selectedLabel = $derived(
-		dateOptions.find((option) => option.value === value)?.label ?? dateOptions[0].label
+		options.find((option) => option.value === value)?.label ?? options[0].label
 	);
 </script>
 
-<Select.Root type="single" bind:value={() => value, (next) => (value = next as DateFilterValue)}>
+<Select.Root type="single" bind:value={() => value, (next) => (value = next as T)}>
 	<Select.Trigger
-		aria-label={`Filter waktu: ${selectedLabel}`}
+		aria-label={`${name}: ${selectedLabel}`}
 		class={buttonClasses('secondary', 'sm', 'w-full justify-between sm:w-auto')}
 	>
 		{selectedLabel}
@@ -38,7 +44,7 @@
 			class="z-50 min-w-(--bits-select-anchor-width) rounded-overlay border border-border bg-surface p-1 shadow-overlay"
 		>
 			<Select.Viewport>
-				{#each dateOptions as option (option.value)}
+				{#each options as option (option.value)}
 					<Select.Item
 						value={option.value}
 						label={option.label}

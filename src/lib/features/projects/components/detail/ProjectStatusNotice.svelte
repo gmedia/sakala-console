@@ -4,10 +4,15 @@
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Link from 'phosphor-svelte/lib/Link';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import type { Snippet } from 'svelte';
 	import type { ResolvedPathname } from '$app/types';
 	import type { ProjectHeaderNotice } from '../../presentation';
 
-	let { projectId, notice }: { projectId: string; notice: ProjectHeaderNotice } = $props();
+	let {
+		projectId,
+		notice,
+		children
+	}: { projectId: string; notice: ProjectHeaderNotice; children?: Snippet } = $props();
 
 	const deploymentRoute = '/(app)/projects/[id]/deployments/[deploymentId]';
 	const historyHref = $derived(
@@ -45,7 +50,10 @@
 		{:else}
 			<Link size={24} class="shrink-0 text-foreground" />
 		{/if}
-		<span class="min-w-0 text-sm wrap-anywhere">{notice.message}</span>
+		<div class="min-w-0 space-y-1 text-sm wrap-anywhere">
+			<p>{notice.message}</p>
+			{@render children?.()}
+		</div>
 	</div>
 
 	{#if link}

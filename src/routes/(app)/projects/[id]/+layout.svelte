@@ -23,7 +23,7 @@
 	const projectQuery = createProjectQuery(() => projectId, { poll: true });
 </script>
 
-<div class="flex flex-col gap-6 w-full min-w-0">
+<div class="flex w-full min-w-0 flex-col gap-4">
 	{#if projectQuery.isLoading}
 		<div class="flex flex-col gap-4 mb-4">
 			<div class="skeleton h-10 w-1/3"></div>
@@ -37,32 +37,32 @@
 		<ProjectHeaderBanner project={projectQuery.data} />
 	{/if}
 
-	<div class="border-b border-border mb-2 min-w-0 w-full">
-		<nav class="-mb-px flex gap-x-6 overflow-x-auto px-1 sm:gap-x-8" aria-label="Bagian proyek">
+	<div class="w-full min-w-0 border-b border-border">
+		<nav class="-mb-px flex gap-x-6 overflow-x-auto sm:gap-x-8" aria-label="Bagian proyek">
 			<a
 				href={resolveRoute('/(app)/projects/[id]/deployments', { id: projectId || '' })}
 				aria-current={currentPath.includes('/deployments') ? 'page' : undefined}
-				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/deployments')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Riwayat deployment
+				Riwayat
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/environments', { id: projectId || '' })}
 				aria-current={currentPath.includes('/environments') ? 'page' : undefined}
-				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/environments')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Environment variable
+				Variabel
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/settings', { id: projectId || '' })}
 				aria-current={currentPath.includes('/settings') ? 'page' : undefined}
-				class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors
+				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
 				{currentPath.includes('/settings')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
@@ -72,7 +72,7 @@
 		</nav>
 	</div>
 
-	<div class="mt-2 w-full">
+	<div class="w-full">
 		{@render children()}
 	</div>
 </div>

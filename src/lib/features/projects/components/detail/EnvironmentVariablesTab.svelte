@@ -22,6 +22,7 @@
 	import { getEnvironmentVariableValue } from '../../api';
 	import { ENV_KEY_REGEX, normalizeEnvKey } from '../../validation/environmentVariable';
 	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
+	import EnvKey from './EnvKey.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -353,11 +354,9 @@
 						<li
 							class="grid min-h-18 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 p-4 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto_auto] @2xl:gap-x-4 @2xl:px-6 @2xl:py-2"
 						>
-							<span class="flex min-w-0 flex-wrap items-center gap-x-2">
-								<span
-									class="min-w-0 font-mono font-semibold text-sm wrap-anywhere text-foreground @2xl:text-base"
-								>
-									{env.key}
+							<span class="flex min-w-0 flex-col">
+								<span class="min-w-0 font-mono font-semibold text-sm text-foreground">
+									<EnvKey name={env.key} />
 								</span>
 								{#if env.is_secret}
 									<span class="text-xs text-foreground/70">Secret</span>
@@ -368,20 +367,16 @@
 								class="col-span-3 row-start-2 flex h-7 min-w-0 items-center @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1 @2xl:h-10"
 							>
 								{#if !env.is_secret}
-									<span
-										class="truncate font-semibold text-sm text-foreground/70 select-all @2xl:text-base"
-									>
+									<span class="truncate font-mono text-sm text-foreground/70 select-all">
 										{env.value ?? ''}
 									</span>
 								{:else if visibleIds.has(env.id)}
-									<span
-										class="truncate font-semibold text-sm text-foreground/70 select-all @2xl:text-base"
-									>
+									<span class="truncate font-mono text-sm text-foreground/70 select-all">
 										{revealedValues[env.id] ?? ''}
 									</span>
 								{:else}
 									<span
-										class="truncate font-semibold text-sm text-muted select-none @2xl:text-base"
+										class="truncate font-mono text-sm text-muted select-none"
 										aria-label="Nilai disembunyikan"
 										role="img"
 									>
@@ -425,7 +420,7 @@
 							<Button
 								variant="ghost"
 								size="sm"
-								class="hover:text-error"
+								class="text-error-dark hover:text-error-dark"
 								onclick={() => handlePromptDelete(env)}
 								disabled={deleteMutation.isPending}
 								aria-label={`Hapus ${env.key}`}
@@ -476,11 +471,7 @@
 									{/if}
 
 									<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
-										<input
-											type="checkbox"
-											bind:checked={editIsSecret}
-											class="size-4 rounded-control"
-										/>
+										<input type="checkbox" bind:checked={editIsSecret} class="size-4" />
 										Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
 									</label>
 
@@ -593,7 +584,7 @@
 				</div>
 
 				<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
-					<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded-control" />
+					<input type="checkbox" bind:checked={newIsSecret} class="size-4" />
 					Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
 				</label>
 
