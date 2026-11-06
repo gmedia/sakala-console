@@ -1,7 +1,8 @@
 <script lang="ts">
-	import List from 'phosphor-svelte/lib/List';
+	import { Select } from 'bits-ui';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
-	import { cn } from '$lib/utils/cn';
+	import Check from 'phosphor-svelte/lib/Check';
+	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import type { DateFilterValue } from '$lib/features/projects/filters';
 
 	type Props = {
@@ -10,83 +11,48 @@
 
 	let { value = $bindable() }: Props = $props();
 
-	let open = $state(false);
-	let containerRef: HTMLDivElement | null = $state(null);
-
+	// The API filters on the date a project was created, and the label says so.
 	const dateOptions: { label: string; value: DateFilterValue }[] = [
-		{ label: '7 hari terakhir', value: '7_days' },
-		{ label: '30 hari terakhir', value: '30_days' },
-		{ label: '90 hari terakhir', value: '90_days' },
-		{ label: 'Semua waktu', value: 'all' }
+		{ label: 'Dibuat kapan saja', value: 'all' },
+		{ label: 'Dibuat 7 hari terakhir', value: '7_days' },
+		{ label: 'Dibuat 30 hari terakhir', value: '30_days' },
+		{ label: 'Dibuat 90 hari terakhir', value: '90_days' }
 	];
 
 	const selectedLabel = $derived(
-		dateOptions.find((opt) => opt.value === value)?.label ?? '30 hari terakhir'
+		dateOptions.find((option) => option.value === value)?.label ?? dateOptions[0].label
 	);
-
-	function toggle() {
-		open = !open;
-	}
-
-	function selectOption(optValue: DateFilterValue) {
-		value = optValue;
-		open = false;
-	}
-
-	function handleWindowClick(e: MouseEvent) {
-		if (open && containerRef && !containerRef.contains(e.target as Node)) {
-			open = false;
-		}
-	}
 </script>
 
-<svelte:window
-	onclick={handleWindowClick}
-	onkeydown={(event) => {
-		if (event.key === 'Escape') open = false;
-	}}
-/>
-
-<div bind:this={containerRef} class="relative inline-block">
-	<button
-		type="button"
-		class="flex h-8 min-w-43.75 items-center justify-between gap-2 rounded-2xl border border-primary bg-primary/10 px-3 font-sans text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
-		aria-haspopup="listbox"
-		aria-expanded={open}
-		onclick={toggle}
+<Select.Root type="single" bind:value={() => value, (next) => (value = next as DateFilterValue)}>
+	<Select.Trigger
+		aria-label={`Filter waktu: ${selectedLabel}`}
+		class={buttonClasses('secondary', 'sm', 'w-full justify-between sm:w-auto')}
 	>
-		<List size={16} class="size-4 shrink-0 text-primary" />
-		<span class="font-sans text-xs font-semibold whitespace-nowrap">{selectedLabel}</span>
-		<CaretDown size={16} class="size-4 shrink-0 text-primary" />
-	</button>
-
-	{#if open}
-		<div
-			role="listbox"
-			class="absolute top-full left-0 z-50 mt-2 flex w-56.25 flex-col rounded-2xl border border-border bg-surface p-4 shadow-lg max-sm:fixed max-sm:inset-x-4 max-sm:top-auto max-sm:w-auto"
+		{selectedLabel}
+		<CaretDown size={16} aria-hidden="true" />
+	</Select.Trigger>
+	<Select.Portal>
+		<Select.Content
+			sideOffset={4}
+			class="z-50 min-w-(--bits-select-anchor-width) rounded-overlay border border-border bg-surface p-1 shadow-overlay"
 		>
-			<span class="mb-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted">
-				FILTER BERDASARKAN WAKTU
-			</span>
-
-			<div class="flex flex-col gap-1">
-				{#each dateOptions as opt (opt.value)}
-					<button
-						type="button"
-						role="option"
-						aria-selected={opt.value === value}
-						class={cn(
-							'flex h-8 w-full items-center rounded-2xl px-3 font-sans text-xs transition-colors',
-							opt.value === value
-								? 'border border-primary bg-primary/10 font-semibold text-primary'
-								: 'font-medium text-foreground hover:bg-background-soft'
-						)}
-						onclick={() => selectOption(opt.value)}
+			<Select.Viewport>
+				{#each dateOptions as option (option.value)}
+					<Select.Item
+						value={option.value}
+						label={option.label}
+						class="flex min-h-control-md cursor-pointer items-center justify-between gap-3 rounded-control px-3 text-sm data-highlighted:bg-background-soft"
 					>
-						{opt.label}
-					</button>
+						{#snippet children({ selected })}
+							{option.label}
+							{#if selected}
+								<Check size={16} class="shrink-0 text-primary-dark" aria-label="Terpilih" />
+							{/if}
+						{/snippet}
+					</Select.Item>
 				{/each}
-			</div>
-		</div>
-	{/if}
-</div>
+			</Select.Viewport>
+		</Select.Content>
+	</Select.Portal>
+</Select.Root>

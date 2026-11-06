@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import CircleAlert from '@lucide/svelte/icons/circle-alert';
-	import CircleOff from '@lucide/svelte/icons/circle-off';
+	import ArrowCounterClockwise from 'phosphor-svelte/lib/ArrowCounterClockwise';
+	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import type { Project } from '$lib/api/resources/projects';
 	import ProjectCard from '$lib/features/projects/components/project/ProjectCard.svelte';
 	import ProjectCardSkeleton from '$lib/features/projects/components/project/ProjectCardSkeleton.svelte';
@@ -15,7 +15,6 @@
 		projects: Project[];
 		currentPage: number;
 		totalPages: number;
-		isAccountEmpty?: boolean;
 		isCheckingEmptyState?: boolean;
 		isError?: Error | string | null;
 		isLoading?: boolean;
@@ -28,7 +27,6 @@
 		projects,
 		currentPage,
 		totalPages,
-		isAccountEmpty = false,
 		isCheckingEmptyState = false,
 		isError = null,
 		isLoading = false,
@@ -37,15 +35,13 @@
 		onRetry
 	}: Props = $props();
 
-	const guide_rule = 'https://sakala.dev/docs/deploy-pertama';
-
 	const skeletonCount = 6;
 	const skeletons = Array.from({ length: skeletonCount }, (_, i) => i);
 	const errorPresentation = $derived(getProjectListErrorPresentation(isError));
 </script>
 
 <section
-	class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-150 {isFetching
+	class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 transition-opacity duration-150 {isFetching
 		? 'opacity-60'
 		: ''}"
 	aria-label="Daftar proyek"
@@ -57,27 +53,18 @@
 		{/each}
 	{:else if isError}
 		<EmptyState
-			icon={CircleAlert}
+			icon={WarningCircle}
 			tone="failed"
 			title={errorPresentation.title}
 			description={errorPresentation.description}
-			class="col-span-full border-none bg-transparent shadow-none"
+			class="col-span-full"
 		>
 			{#snippet action()}
 				{#if errorPresentation.action === 'login'}
-					<a
-						href={resolve('/login')}
-						class="inline-flex cursor-pointer gap-2 rounded-lg border border-primary bg-primary px-4 py-3 font-montserrat-semibold text-white"
-					>
-						Masuk kembali
-					</a>
+					<Button href={resolve('/login')}>Masuk kembali</Button>
 				{:else}
-					<Button
-						type="button"
-						class="gap-2 px-4 py-3 font-montserrat-semibold text-base"
-						onclick={onRetry}
-					>
-						<RotateCcw class="h-6 w-6" />
+					<Button onclick={onRetry}>
+						<ArrowCounterClockwise size={18} aria-hidden="true" />
 						Coba lagi
 					</Button>
 				{/if}
@@ -87,28 +74,12 @@
 		{#each skeletons.slice(0, 3) as i (i)}
 			<ProjectCardSkeleton />
 		{/each}
-	{:else if isAccountEmpty}
-		<EmptyState
-			icon={CircleOff}
-			title="Belum ada proyek"
-			description="Kamu belum punya proyek apa pun. Buat proyek pertamamu untuk melihatnya muncul di sini."
-			class="col-span-full border-none bg-transparent shadow-none"
-		>
-			{#snippet action()}
-				<p class="text-sm text-muted">
-					Belum pernah deploy?
-					<a href={guide_rule} class="underline underline-offset-2">
-						Baca panduan deploy pertamamu.
-					</a>
-				</p>
-			{/snippet}
-		</EmptyState>
 	{:else if projects.length === 0}
 		<EmptyState
-			icon={CircleOff}
+			icon={MagnifyingGlass}
 			title="Tidak menemukan proyek"
-			description="Proyek yang kamu cari tidak ditemukan. Coba periksa kembali kata kunci pencarianmu atau filter tanggal yang digunakan."
-			class="col-span-full border-none bg-transparent shadow-none"
+			description="Tidak ada proyek yang cocok. Coba kata kunci lain, atau ubah filter waktunya."
+			class="col-span-full"
 		/>
 	{:else}
 		{#each projects as project (project.id)}
