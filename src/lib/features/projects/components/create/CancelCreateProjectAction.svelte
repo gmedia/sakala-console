@@ -20,7 +20,7 @@
 					confirmLabel: 'Ya, keluar'
 				}
 			: {
-					title: 'Batalkan Pembuatan Proyek?',
+					title: 'Batalkan pembuatan proyek?',
 					description:
 						'Proyek belum dibuat. Kalau dibatalkan sekarang, konfigurasi yang sudah kamu isi akan hilang.',
 					confirmLabel: 'Ya, batalkan'
@@ -45,11 +45,7 @@
 	}
 </script>
 
-<Button
-	variant="outline"
-	onclick={handleClick}
-	class="mb-4 border border-border-strong px-3 text-foreground/70"
->
+<Button variant="secondary" size="sm" class="mb-4" onclick={handleClick}>
 	{label}
 </Button>
 

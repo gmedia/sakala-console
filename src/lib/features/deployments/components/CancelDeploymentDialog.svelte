@@ -22,7 +22,7 @@
 
 <Dialog
 	{open}
-	title={`Batalkan Deployment #${sequence}?`}
+	title={`Batalkan deployment #${sequence}?`}
 	description="Prosesnya dihentikan dan tidak bisa dilanjutkan. Kalau masih ingin men-deploy, jalankan Redeploy setelahnya."
 	confirmLabel="Ya, batalkan"
 	cancelLabel="Tidak jadi"
@@ -33,6 +33,6 @@
 	onCancel={onClose}
 >
 	{#if error}
-		<p role="alert" class="font-montserrat text-sm text-error-dark">{error}</p>
+		<p role="alert" class="text-sm text-error-dark">{error}</p>
 	{/if}
 </Dialog>

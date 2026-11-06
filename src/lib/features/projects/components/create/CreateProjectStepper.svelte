@@ -16,7 +16,7 @@
 		steps = [
 			{ number: 1, title: 'Repository' },
 			{ number: 2, title: 'Konfigurasi' },
-			{ number: 3, title: 'Auto Detect' }
+			{ number: 3, title: 'Deteksi otomatis' }
 		]
 	}: Props = $props();
 
@@ -39,7 +39,7 @@
 					class={[
 						'flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors lg:h-10 lg:w-10 lg:text-base',
 						status === 'completed' && 'bg-primary text-white',
-						status === 'active' && 'bg-primary font-montserrat-semibold text-white',
+						status === 'active' && 'bg-primary font-semibold text-white',
 						status === 'upcoming' && 'bg-muted/20 text-foreground/70'
 					]}
 				>
@@ -52,7 +52,7 @@
 				</div>
 				<span
 					class={[
-						'max-w-20 text-center text-xs font-montserrat-semibold lg:max-w-none lg:text-left lg:text-base',
+						'max-w-20 text-center text-xs font-semibold lg:max-w-none lg:text-left lg:text-base',
 						status === 'upcoming' ? 'text-foreground/70' : 'text-foreground'
 					]}
 				>

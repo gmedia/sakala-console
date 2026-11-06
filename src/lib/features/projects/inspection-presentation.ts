@@ -15,13 +15,13 @@ const BUILDER_LABELS: Record<string, string> = {
 
 const FAILURE_MESSAGES: Record<string, (branch: string) => string> = {
 	branch_not_found: (branch) =>
-		`Branch ${branch} tidak ditemukan di repository. Ganti branch-nya di tab Pengaturan proyek, lalu klik Detect ulang.`,
+		`Branch ${branch} tidak ditemukan di repository. Ganti branch-nya di tab Pengaturan proyek, lalu klik Deteksi ulang.`,
 	repository_access_denied: () =>
-		'Sakala tidak punya akses untuk membaca repository ini. Periksa akses GitHub repository-nya, lalu klik Detect ulang.',
+		'Sakala tidak punya akses untuk membaca repository ini. Periksa akses GitHub repository-nya, lalu klik Deteksi ulang.',
 	github_unavailable: () =>
-		'Sakala gagal menghubungi GitHub. Biasanya ini sementara, jadi coba Detect ulang beberapa saat lagi.',
+		'Sakala gagal menghubungi GitHub. Biasanya ini sementara, jadi coba Deteksi ulang beberapa saat lagi.',
 	github_rate_limited: () =>
-		'Sakala sedang mencapai batas permintaan ke GitHub. Ini bukan masalah di repository kamu. Coba Detect ulang beberapa saat lagi.'
+		'Sakala sedang mencapai batas permintaan ke GitHub. Ini bukan masalah di repository kamu. Coba Deteksi ulang beberapa saat lagi.'
 };
 
 export function getInspectionState(project: Pick<Project, 'preview_status'>): InspectionState {
@@ -38,7 +38,7 @@ export function getInspectionFailureMessage(
 		: undefined;
 	return (
 		describe?.(project.branch) ??
-		'Deteksi tidak selesai, jadi hasilnya belum diketahui. Klik Detect ulang untuk mencobanya lagi.'
+		'Deteksi tidak selesai, jadi hasilnya belum diketahui. Klik Deteksi ulang untuk mencobanya lagi.'
 	);
 }
 
@@ -78,7 +78,7 @@ export function getInspectionNotes(project: Pick<Project, 'inspection'>): string
 	const notes: string[] = [];
 	if (inspection.env_example_found) {
 		notes.push(
-			'Repository ini punya .env.example. Cocokkan isinya dengan variabel di tab Environment Variables sebelum deploy.'
+			'Repository ini punya .env.example. Cocokkan isinya dengan variabel di tab Environment variable sebelum deploy.'
 		);
 	}
 	if (inspection.compose_found) {
