@@ -45,7 +45,7 @@ async function isScrolledToEnd(log: Locator) {
 	);
 }
 
-test.describe('log panel (U-02, #10)', () => {
+test.describe('log panel (#10)', () => {
 	test('renders API history as plain text with stream labels, then picks up polled lines', async ({
 		page
 	}) => {
@@ -72,7 +72,7 @@ test.describe('log panel (U-02, #10)', () => {
 
 		await page.goto(DETAIL_URL);
 
-		const log = page.getByRole('log', { name: 'Logs' });
+		const log = page.getByRole('log', { name: 'Log' });
 		await expect(log).toBeVisible();
 		await expect(log.getByText('Cloning repository')).toBeVisible();
 		await expect(log).not.toContainText('\u001B');
@@ -281,7 +281,7 @@ test.describe('log panel (U-02, #10)', () => {
 	});
 });
 
-test.describe('failure banner (U-24, U-27, #13)', () => {
+test.describe('failure banner (#13)', () => {
 	test('headline names the category and the summary comes from the API', async ({ page }) => {
 		await mockProjectApi(page, { deployment: () => failedDeployment });
 
@@ -292,7 +292,7 @@ test.describe('failure banner (U-24, U-27, #13)', () => {
 		await expect(page.getByText(/Cara memperbaiki/)).toBeVisible();
 	});
 
-	test('shows failure.detail as its own block, and the stage from failure.stage (U-21)', async ({
+	test('shows failure.detail as its own block, and the stage from failure.stage', async ({
 		page
 	}) => {
 		await mockProjectApi(page, { deployment: () => failedDeployment });
@@ -439,7 +439,7 @@ test.describe('failure banner (U-24, U-27, #13)', () => {
 		expect(postedBranch).toBe('develop');
 	});
 
-	test('Redeploy shows a coded quota refusal in the banner (U-28)', async ({ page }) => {
+	test('Redeploy shows a coded quota refusal in the banner', async ({ page }) => {
 		await mockProjectApi(page, {
 			deployment: () => failedDeployment,
 			redeploy: () => ({
@@ -460,7 +460,7 @@ test.describe('failure banner (U-24, U-27, #13)', () => {
 	});
 });
 
-test.describe('deployment detail (U-20, U-22, U-51, U-63)', () => {
+test.describe('deployment detail', () => {
 	test('says "sudah live" and links the site only for the active deployment', async ({ page }) => {
 		await mockProjectApi(page, { deployment: () => succeededDeployment });
 
@@ -519,7 +519,7 @@ test.describe('deployment detail (U-20, U-22, U-51, U-63)', () => {
 		await page.getByRole('button', { name: 'Batalkan deployment' }).click();
 
 		const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'));
-		await expect(dialog).toContainText('Batalkan Deployment #3?');
+		await expect(dialog).toContainText('Batalkan deployment #3?');
 		await expect(dialog.getByRole('button', { name: 'Tidak jadi' })).toBeFocused();
 		expect(posts).toBe(0);
 
@@ -574,7 +574,7 @@ test.describe('deployment detail (U-20, U-22, U-51, U-63)', () => {
 
 		const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
 		await expect(trail.getByText('Deployment #3')).toHaveAttribute('aria-current', 'page');
-		await trail.getByRole('link', { name: 'Riwayat Deployment' }).click();
+		await trail.getByRole('link', { name: 'Riwayat deployment' }).click();
 		await expect(page).toHaveURL(new RegExp(`/projects/${PROJECT_ID}/deployments$`));
 	});
 
@@ -605,9 +605,7 @@ test.describe('deployment detail (U-20, U-22, U-51, U-63)', () => {
 		await expect(page.getByRole('button', { name: 'Redeploy' })).toBeDisabled();
 	});
 
-	test('admits it has no stage record instead of drawing an empty timeline (U-21)', async ({
-		page
-	}) => {
+	test('admits it has no stage record instead of drawing an empty timeline', async ({ page }) => {
 		await mockProjectApi(page, { deployment: () => failedWithoutDetails, events: () => [] });
 
 		await page.goto(DETAIL_URL);
@@ -617,7 +615,7 @@ test.describe('deployment detail (U-20, U-22, U-51, U-63)', () => {
 	});
 });
 
-test.describe('project header states (U-13 to U-18, U-26)', () => {
+test.describe('project header states', () => {
 	const projectsUrl = `/projects/${PROJECT_ID}/deployments`;
 	const url = baseProject.default_domain;
 
@@ -634,7 +632,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 
 		await page.goto(projectsUrl);
 
-		await expect(page.getByText('Belum Deploy').first()).toBeVisible();
+		await expect(page.getByText('Belum deploy').first()).toBeVisible();
 		await expect(page.getByText('Draft')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Deploy sekarang' })).toBeEnabled();
 		await expect(page.getByText(url)).toHaveCount(0);
@@ -650,7 +648,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 
 		await page.goto(projectsUrl);
 
-		await expect(page.getByRole('button', { name: 'Sedang mendeploy' })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Sedang men-deploy' })).toBeDisabled();
 		await expect(page.getByText(/Deployment #4 sedang berjalan/)).toBeVisible();
 		await expect(page.getByText(/Versi sebelumnya masih melayani/)).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Lihat progres' })).toHaveAttribute(
@@ -676,7 +674,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 		await page.goto(projectsUrl);
 
 		await expect(page.getByText(/belum ada server Sakala yang siap/)).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Sedang mendeploy' })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Sedang men-deploy' })).toBeDisabled();
 		await expect(page.getByText(url)).toHaveCount(0);
 		await expect(page.getByText('Tidak ada URL yang melayani saat ini')).toBeVisible();
 	});
@@ -702,7 +700,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 			'href',
 			`${DETAIL_URL}#deployment-logs`
 		);
-		await expect(page.getByLabel('Live').first()).toBeVisible();
+		await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
 	});
 
 	test('crashed: a crash loop, honest that the URL may answer now and then', async ({ page }) => {
@@ -712,7 +710,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 
 		await page.goto(projectsUrl);
 
-		await expect(page.getByLabel('Crash')).toBeVisible();
+		await expect(page.getByText('Crash', { exact: true })).toBeVisible();
 		await expect(page.getByText(/kadang bisa dibuka, kadang tidak/)).toBeVisible();
 		await expect(page.getByText(/tidak melayani/)).toHaveCount(0);
 		await expect(page.getByRole('link', { name: 'Lihat log' })).toBeVisible();
@@ -771,13 +769,13 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 
 		await page.goto(projectsUrl);
 
-		await expect(page.getByLabel('Ditangguhkan')).toBeVisible();
+		await expect(page.getByText('Ditangguhkan', { exact: true })).toBeVisible();
 		await expect(page.getByText(/ditangguhkan oleh admin/)).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Redeploy' })).toHaveCount(0);
 		await expect(page.getByText(url)).toHaveCount(0);
 	});
 
-	test('a missing domain never becomes a link to https:// (U-17)', async ({ page }) => {
+	test('a missing domain never becomes a link to https://', async ({ page }) => {
 		await mockProjectApi(page, {
 			project: () => ({ ...baseProject, default_domain: null, public_url: 'https://' })
 		});
@@ -798,7 +796,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 		await expect(page.getByText('8080')).toBeVisible();
 	});
 
-	test('follows a deployment to the end, then reads the project again (U-15)', async ({ page }) => {
+	test('follows a deployment to the end, then reads the project again', async ({ page }) => {
 		let finished = false;
 		let projectReads = 0;
 		await mockProjectApi(page, {
@@ -814,18 +812,18 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 		});
 
 		await page.goto(projectsUrl);
-		await expect(page.getByRole('button', { name: 'Sedang mendeploy' })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Sedang men-deploy' })).toBeDisabled();
 		const readsWhileRunning = projectReads;
 
 		finished = true;
 
 		await expect(page.getByRole('button', { name: 'Redeploy' })).toBeEnabled({ timeout: 20_000 });
-		await expect(page.getByLabel('Live').first()).toBeVisible();
+		await expect(page.getByText('Live', { exact: true }).first()).toBeVisible();
 		await expect(page.getByText(url)).toBeVisible();
 		expect(projectReads).toBeGreaterThan(readsWhileRunning);
 	});
 
-	test('Redeploy opens the new deployment (U-87)', async ({ page }) => {
+	test('Redeploy opens the new deployment', async ({ page }) => {
 		await mockProjectApi(page);
 
 		await page.goto(projectsUrl);
@@ -860,7 +858,7 @@ test.describe('project header states (U-13 to U-18, U-26)', () => {
 	});
 });
 
-test.describe('deployment history (U-19, U-25, U-86, U-95)', () => {
+test.describe('deployment history', () => {
 	const projectsUrl = `/projects/${PROJECT_ID}/deployments`;
 
 	test('cards name what really happened, in Indonesian', async ({ page }) => {
@@ -901,7 +899,7 @@ test.describe('deployment history (U-19, U-25, U-86, U-95)', () => {
 
 		await page.getByRole('button', { name: 'Lihat semua waktu' }).click();
 
-		await expect(page.getByText(/Belum ada riwayat/)).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Belum ada riwayat' })).toBeVisible();
 	});
 
 	test('a 500 offers a retry that recovers', async ({ page }) => {
@@ -924,7 +922,7 @@ test.describe('deployment history (U-19, U-25, U-86, U-95)', () => {
 	});
 });
 
-test.describe('env editing (U-57)', () => {
+test.describe('env editing', () => {
 	const vars = [
 		{ id: 1, key: 'DATABASE_URL', is_secret: true, created_at: '2026-01-01T00:00:00Z' },
 		{
@@ -1023,7 +1021,7 @@ test.describe('env editing (U-57)', () => {
 		});
 
 		await page.goto(ENV_URL);
-		await page.getByRole('button', { name: 'Tambah Variabel' }).click();
+		await page.getByRole('button', { name: 'Tambah variabel' }).click();
 		await page.getByLabel('Nama variabel').fill('LOG_LEVEL');
 		await page.getByLabel('Nilai', { exact: true }).fill('debug');
 		await page.getByLabel(/Simpan sebagai secret/).uncheck();
@@ -1109,7 +1107,7 @@ test.describe('project header', () => {
 	});
 });
 
-test.describe('env form (U-72, U-83, U-71, U-31)', () => {
+test.describe('env form', () => {
 	for (const width of [320, 768, 1024, 1280, 1366]) {
 		test(`add, save, reveal, and delete work with a mouse at ${width} px`, async ({ page }) => {
 			const list = [...envVars];
@@ -1139,7 +1137,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 			await expect(page.getByText('DATABASE_URL')).toBeVisible();
 			expect(await pageOverflowsHorizontally(page)).toBe(false);
 
-			await page.getByRole('button', { name: 'Tambah Variabel' }).click();
+			await page.getByRole('button', { name: 'Tambah variabel' }).click();
 			await page.getByLabel('Nama variabel').fill('new_key');
 			await page.getByLabel('Nilai', { exact: true }).fill('nilai-contoh');
 
@@ -1169,7 +1167,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 			await page.getByRole('button', { name: 'Hapus DATABASE_URL' }).click();
 			const dialog = page.getByRole('dialog');
 			await expect(dialog).toBeVisible();
-			await dialog.getByRole('button', { name: 'Hapus Variabel' }).click();
+			await dialog.getByRole('button', { name: 'Hapus variabel' }).click();
 
 			await expect(dialog).toHaveCount(0);
 			await expect(page.getByText('DATABASE_URL')).toHaveCount(0);
@@ -1187,7 +1185,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 		});
 		await page.goto(ENV_URL);
 
-		const add = page.getByRole('button', { name: 'Tambah Variabel' });
+		const add = page.getByRole('button', { name: 'Tambah variabel' });
 		await add.click();
 		await expect(page.getByLabel('Nama variabel')).toBeFocused();
 
@@ -1220,7 +1218,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 		});
 		await page.goto(ENV_URL);
 
-		await page.getByRole('button', { name: 'Tambah Variabel' }).click();
+		await page.getByRole('button', { name: 'Tambah variabel' }).click();
 		await page.getByLabel('Nama variabel').fill('NEW_KEY');
 		await page.getByLabel('Nilai', { exact: true }).fill('nilai');
 		await page.getByRole('button', { name: 'Simpan' }).click();
@@ -1245,7 +1243,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 		});
 		await page.goto(ENV_URL);
 
-		await page.getByRole('button', { name: 'Tambah Variabel' }).click();
+		await page.getByRole('button', { name: 'Tambah variabel' }).click();
 		await page.getByLabel('Nama variabel').fill('APP_ENV');
 		await page.getByLabel('Nilai', { exact: true }).fill('nilai');
 		await page.getByRole('button', { name: 'Simpan' }).click();
@@ -1263,7 +1261,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 
 		await page.getByRole('button', { name: 'Hapus APP_ENV' }).click();
 		const dialog = page.getByRole('dialog');
-		await dialog.getByRole('button', { name: 'Hapus Variabel' }).click();
+		await dialog.getByRole('button', { name: 'Hapus variabel' }).click();
 
 		await expect(dialog.getByRole('alert')).toContainText('Terjadi kesalahan pada server');
 		await expect(dialog).not.toContainText('rahasia');
@@ -1288,7 +1286,7 @@ test.describe('env form (U-72, U-83, U-71, U-31)', () => {
 	});
 });
 
-test.describe('delete modals (U-69)', () => {
+test.describe('delete modals', () => {
 	test('env modal traps focus, starts on the safe button, and closes on Escape', async ({
 		page
 	}) => {
@@ -1298,9 +1296,9 @@ test.describe('delete modals (U-69)', () => {
 		const trigger = page.getByRole('button', { name: 'Hapus APP_ENV' });
 		await trigger.click();
 
-		const dialog = page.getByRole('dialog', { name: 'Hapus Variabel APP_ENV?' });
+		const dialog = page.getByRole('dialog', { name: 'Hapus variabel APP_ENV?' });
 		const cancel = dialog.getByRole('button', { name: 'Batal' });
-		const confirm = dialog.getByRole('button', { name: 'Hapus Variabel' });
+		const confirm = dialog.getByRole('button', { name: 'Hapus variabel' });
 		await expect(cancel).toBeFocused();
 
 		await page.keyboard.press('Tab');
@@ -1321,7 +1319,7 @@ test.describe('delete modals (U-69)', () => {
 		});
 		await page.goto(SETTINGS_URL);
 
-		const trigger = page.getByRole('button', { name: 'Hapus Proyek' });
+		const trigger = page.getByRole('button', { name: 'Hapus proyek' });
 		await trigger.click();
 
 		const dialog = page.getByRole('dialog', { name: /Hapus proyek toko-kopi-web/ });
@@ -1341,6 +1339,29 @@ test.describe('delete modals (U-69)', () => {
 		await expect(trigger).toBeFocused();
 	});
 
+	test('deleting a project confirms it on the page it lands on, and says what stays', async ({
+		page
+	}) => {
+		await mockProjectApi(page);
+		await page.goto(SETTINGS_URL);
+
+		await page.getByRole('button', { name: 'Hapus proyek' }).click();
+		const dialog = page.getByRole('dialog', { name: /Hapus proyek toko-kopi-web/ });
+		await expect(dialog).toContainText(
+			'Data proyek dihapus permanen setelah masa simpannya berakhir, dan alamatnya tidak bisa dipakai lagi.'
+		);
+		await expect(dialog.getByLabel(/untuk konfirmasi/)).toHaveAttribute(
+			'placeholder',
+			'toko-kopi-web'
+		);
+
+		await dialog.getByLabel(/untuk konfirmasi/).fill('toko-kopi-web');
+		await dialog.getByRole('button', { name: 'Hapus proyek ini' }).click();
+
+		await expect(page).toHaveURL('/projects');
+		await expect(page.getByText('Proyek toko-kopi-web dihapus.')).toBeVisible();
+	});
+
 	for (const width of [320, 1280]) {
 		test(`project modal fits and scrolls inside itself at ${width} px`, async ({ page }) => {
 			await mockProjectApi(page, {
@@ -1352,7 +1373,7 @@ test.describe('delete modals (U-69)', () => {
 			await page.setViewportSize({ width, height: 500 });
 			await page.goto(SETTINGS_URL);
 
-			await page.getByRole('button', { name: 'Hapus Proyek' }).click();
+			await page.getByRole('button', { name: 'Hapus proyek' }).click();
 			const dialog = page.getByRole('dialog');
 			await expect(dialog).toBeVisible();
 
@@ -1370,19 +1391,19 @@ test.describe('delete modals (U-69)', () => {
 	}
 });
 
-test.describe('project settings (U-82, U-42)', () => {
+test.describe('project settings', () => {
 	test('a draft survives switching tabs, with all six fields intact', async ({ page }) => {
 		await mockProjectApi(page, { envList: () => envVars });
 		await page.goto(SETTINGS_URL);
 
-		await page.getByLabel('Nama Proyek').fill('nama-baru');
+		await page.getByLabel('Nama proyek').fill('nama-baru');
 		await page.getByLabel('Branch').fill('develop');
 
-		await page.getByRole('link', { name: 'Environment Variables' }).click();
+		await page.getByRole('link', { name: 'Environment variable' }).click();
 		await expect(page.getByText('DATABASE_URL')).toBeVisible();
 		await page.getByRole('link', { name: 'Pengaturan', exact: true }).click();
 
-		await expect(page.getByLabel('Nama Proyek')).toHaveValue('nama-baru');
+		await expect(page.getByLabel('Nama proyek')).toHaveValue('nama-baru');
 		await expect(page.getByLabel('Branch')).toHaveValue('develop');
 		await expect(page.getByLabel('Subdomain (URL Publik)')).toHaveValue('toko-kopi-web');
 		// Nothing configured: the fields stay empty and editable, and the port names what is used.
@@ -1409,7 +1430,7 @@ test.describe('project settings (U-82, U-42)', () => {
 		await page.goto(SETTINGS_URL);
 
 		await page.getByLabel('Branch').fill('develop');
-		await page.getByRole('link', { name: 'Environment Variables' }).click();
+		await page.getByRole('link', { name: 'Environment variable' }).click();
 		await expect(page.getByText('DATABASE_URL')).toBeVisible();
 		await page.getByRole('button', { name: 'Redeploy' }).click();
 
@@ -1436,7 +1457,7 @@ test.describe('project settings (U-82, U-42)', () => {
 		const save = page.getByRole('button', { name: 'Simpan perubahan' });
 		await expect(save).toBeDisabled();
 
-		await page.getByLabel('Nama Proyek').fill('nama-baru');
+		await page.getByLabel('Nama proyek').fill('nama-baru');
 		await save.click();
 
 		await expect(page.getByText('Perubahan tersimpan.')).toBeVisible();
@@ -1474,10 +1495,10 @@ test.describe('project settings (U-82, U-42)', () => {
 		});
 		await page.goto(SETTINGS_URL);
 
-		await page.getByLabel('Nama Proyek').fill('   ');
+		await page.getByLabel('Nama proyek').fill('   ');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
-		await expect(page.getByLabel('Nama Proyek')).toHaveAccessibleDescription(/Isi nama proyek/);
+		await expect(page.getByLabel('Nama proyek')).toHaveAccessibleDescription(/Isi nama proyek/);
 		expect(updates).toBe(0);
 	});
 
@@ -1496,8 +1517,8 @@ test.describe('project settings (U-82, U-42)', () => {
 				(form?.x ?? 0) + (form?.width ?? 0)
 			);
 
-			await page.getByRole('button', { name: 'Hapus Proyek' }).scrollIntoViewIfNeeded();
-			expect(await isClickable(page, 'Hapus Proyek')).toBe(true);
+			await page.getByRole('button', { name: 'Hapus proyek' }).scrollIntoViewIfNeeded();
+			expect(await isClickable(page, 'Hapus proyek')).toBe(true);
 		});
 	}
 });

@@ -14,7 +14,7 @@ import {
 const DEPLOYMENT_URL = new RegExp(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}$`);
 const PROJECT_URL = new RegExp(`/projects/${PROJECT_ID}(/|$)`);
 
-const buatProyek = (page: Page) => page.getByRole('button', { name: 'Buat Proyek' });
+const buatProyek = (page: Page) => page.getByRole('button', { name: 'Buat proyek' });
 const lanjut = (page: Page) => page.getByRole('button', { name: 'Lanjut', exact: true });
 
 async function chooseFirstRepository(page: Page) {
@@ -85,8 +85,8 @@ test.describe('create project wizard, from GitHub', () => {
 
 		// The domain comes from the API, and it waits for the typing to stop.
 		await expect(page.getByTestId('domain-preview')).toHaveText('repo-1-2.apps.example.test');
-		await page.getByLabel('Nama Proyek').press('End');
-		await page.getByLabel('Nama Proyek').pressSequentially('-baru');
+		await page.getByLabel('Nama proyek').press('End');
+		await page.getByLabel('Nama proyek').pressSequentially('-baru');
 		await expect(page.getByTestId('domain-preview')).toHaveText('repo-1-baru-2.apps.example.test');
 		expect(calls.domainPreview).toEqual(['repo-1', 'repo-1-baru']);
 
@@ -142,7 +142,7 @@ test.describe('create project wizard, from GitHub', () => {
 		expect(calls.deploy[0].headers['idempotency-key']).toBeTruthy();
 	});
 
-	test('switching installation reads that account, and forgets the old selection (U-38)', async ({
+	test('switching installation reads that account, and forgets the old selection', async ({
 		page
 	}) => {
 		const calls = await mockWizardApi(page, {
@@ -294,7 +294,7 @@ test.describe('create project wizard, from a public URL', () => {
 
 		await page.goto('/projects/new');
 
-		// Figma's not-connected frame: this link is a real control now (U-40).
+		// Figma's not-connected frame: this link is a real control now.
 		await expect(page.getByText('Belum ada akun GitHub yang terhubung')).toBeVisible();
 		await page.getByRole('button', { name: 'Gunakan Public Git URL' }).click();
 
@@ -302,7 +302,7 @@ test.describe('create project wizard, from a public URL', () => {
 		await lanjut(page).click();
 
 		await expect(page.getByRole('heading', { name: 'Persiapan deployment' })).toBeVisible();
-		await expect(page.getByLabel('Nama Proyek')).toHaveValue('situs');
+		await expect(page.getByLabel('Nama proyek')).toHaveValue('situs');
 		await expect(page.getByLabel('Branch', { exact: true })).toHaveValue('trunk');
 
 		// Real branches, from the endpoint for public repositories.
@@ -311,7 +311,7 @@ test.describe('create project wizard, from a public URL', () => {
 			'https://github.com/publik/situs'
 		);
 
-		// Webhooks only exist for GitHub App installations (U-64).
+		// Webhooks only exist for GitHub App installations.
 		await expect(page.getByRole('switch', { name: 'Auto-deploy' })).toHaveCount(0);
 		await expect(page.getByText(/Auto-deploy tidak tersedia untuk Public Git URL/)).toBeVisible();
 
@@ -360,7 +360,7 @@ test.describe('create project wizard, from a public URL', () => {
 	});
 });
 
-test.describe('partial env failure (U-49)', () => {
+test.describe('partial env failure', () => {
 	test('explains it, retries only what failed, and never recreates the project', async ({
 		page
 	}) => {
@@ -448,7 +448,7 @@ test.describe('partial env failure (U-49)', () => {
 	});
 });
 
-test.describe('auto detect (U-41, U-47)', () => {
+test.describe('auto detect', () => {
 	test('while it runs, deploy waits and the page says it may be left', async ({ page }) => {
 		await mockWizardApi(page, { project: () => createdProject });
 		await page.goto(`/projects/new?project=${PROJECT_ID}`);
@@ -462,7 +462,7 @@ test.describe('auto detect (U-41, U-47)', () => {
 		await expect(page.getByText(/beberapa detik lagi/i)).toHaveCount(0);
 	});
 
-	test('a failed inspection offers Detect ulang, which recovers', async ({ page }) => {
+	test('a failed inspection offers Deteksi ulang, which recovers', async ({ page }) => {
 		let inspection = {
 			preview_status: 'unavailable',
 			inspection_error_code: 'github_unavailable'
@@ -480,15 +480,15 @@ test.describe('auto detect (U-41, U-47)', () => {
 		await expect(page.getByText('Tidak terdeteksi').first()).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Deploy sekarang' })).toHaveCount(0);
 
-		await page.getByRole('button', { name: 'Detect ulang' }).click();
+		await page.getByRole('button', { name: 'Deteksi ulang' }).click();
 
 		await expect(page.getByText('Dockerfile terdeteksi')).toBeVisible({ timeout: 10_000 });
 		await expect(page.getByRole('button', { name: 'Deploy sekarang' })).toBeEnabled();
-		await expect(page.getByRole('button', { name: 'Detect ulang' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Deteksi ulang' })).toHaveCount(0);
 		expect(calls.inspect).toBe(1);
 	});
 
-	test('a refused Detect ulang says why, in Indonesian', async ({ page }) => {
+	test('a refused Deteksi ulang says why, in Indonesian', async ({ page }) => {
 		await mockWizardApi(page, {
 			project: () => ({ ...createdProject, preview_status: 'failed' }),
 			inspect: () => ({
@@ -499,7 +499,7 @@ test.describe('auto detect (U-41, U-47)', () => {
 		});
 		await page.goto(`/projects/new?project=${PROJECT_ID}`);
 
-		await page.getByRole('button', { name: 'Detect ulang' }).click();
+		await page.getByRole('button', { name: 'Deteksi ulang' }).click();
 
 		await expect(page.getByRole('alert').filter({ hasText: /30 detik/ })).toBeVisible();
 		await expect(page.getByText('Too Many Attempts.')).toHaveCount(0);
@@ -540,7 +540,7 @@ test.describe('auto detect (U-41, U-47)', () => {
 		await expect(page).toHaveURL(/projects\/new/);
 	});
 
-	test('warns about the running-deployment limit before it is hit (U-54)', async ({ page }) => {
+	test('warns about the running-deployment limit before it is hit', async ({ page }) => {
 		await mockWizardApi(page, {
 			project: () => ({ ...createdProject, ...succeededInspection }),
 			pilotLimits: () => ({
@@ -626,7 +626,7 @@ test.describe('leaving the wizard', () => {
 });
 
 test.describe('repository step states', () => {
-	test('a 409 installation offers a real reconnect (U-53)', async ({ page }) => {
+	test('a 409 installation offers a real reconnect', async ({ page }) => {
 		await mockWizardApi(page, {
 			repositories: () => ({
 				status: 409,
@@ -646,7 +646,7 @@ test.describe('repository step states', () => {
 		await expect(page.getByText(/no longer active/)).toHaveCount(0);
 	});
 
-	test('a removed installation reconnects through a new install (U-53)', async ({ page }) => {
+	test('a removed installation reconnects through a new install', async ({ page }) => {
 		await mockWizardApi(page, {
 			installations: () => ({
 				body: { data: [{ ...INSTALLATIONS[0], status: 'removed' }] }
@@ -692,7 +692,7 @@ test.describe('repository step states', () => {
 	});
 });
 
-test.describe('pilot limits (U-54)', () => {
+test.describe('pilot limits', () => {
 	const quotaFull = () => ({
 		body: {
 			data: { ...pilotLimits, quotas: { ...pilotLimits.quotas, current_projects_count: 3 } }
@@ -746,7 +746,7 @@ test.describe('pilot limits (U-54)', () => {
 	});
 });
 
-test.describe('branches when the list is not simple (U-36)', () => {
+test.describe('branches when the list is not simple', () => {
 	test('a failed list keeps the default branch and offers a retry', async ({ page }) => {
 		let attempts = 0;
 		await mockWizardApi(page, {

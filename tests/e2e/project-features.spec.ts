@@ -4,7 +4,7 @@ import { mockWizardApi, pilotLimits } from './fixtures/create-project';
 
 const SETTINGS_URL = `/projects/${PROJECT_ID}/settings`;
 
-test.describe('project settings: build configuration (U-50, U-60, U-64)', () => {
+test.describe('project settings: build configuration', () => {
 	test('no field says "Belum tersedia", and the help tells Dockerfile from auto builds', async ({
 		page
 	}) => {
@@ -121,7 +121,7 @@ test.describe('project settings: build configuration (U-50, U-60, U-64)', () => 
 		await page.goto(SETTINGS_URL);
 
 		await page.getByLabel('Build command').fill('pnpm build');
-		await page.getByRole('link', { name: 'Environment Variables' }).click();
+		await page.getByRole('link', { name: 'Environment variable' }).click();
 		await page.getByRole('link', { name: 'Pengaturan', exact: true }).click();
 		await expect(page.getByLabel('Build command')).toHaveValue('pnpm build');
 
@@ -171,7 +171,12 @@ test.describe('project settings: build configuration (U-50, U-60, U-64)', () => 
 	});
 });
 
-async function mockDashboard(page: Page, projects: unknown[], filters: string[] = []) {
+async function mockDashboard(
+	page: Page,
+	projects: unknown[],
+	filters: string[] = [],
+	total: number = projects.length
+) {
 	await mockWizardApi(page);
 	await page.route('**/api/v1/app/projects?**', (route) => {
 		const url = new URL(route.request().url());
@@ -189,7 +194,7 @@ async function mockDashboard(page: Page, projects: unknown[], filters: string[] 
 					path: null,
 					per_page: 6,
 					to: projects.length || null,
-					total: projects.length
+					total
 				}
 			})
 		});
@@ -211,48 +216,59 @@ const listProject = {
 	created_at: '2026-01-01T00:00:00Z'
 };
 
-test.describe('dashboard (U-59, U-54)', () => {
-	test('an empty account gets the hero, and no filters to play with', async ({ page }) => {
+test.describe('dashboard', () => {
+	test('an empty account gets one block with real steps, and no filters to play with', async ({
+		page
+	}) => {
 		await mockDashboard(page, []);
 		await page.goto('/projects');
 
-		await expect(page.getByRole('heading', { name: 'Buat Proyek Baru' })).toBeVisible();
-		await expect(page.getByRole('link', { name: 'Mulai Sekarang' })).toHaveAttribute(
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Buat proyek' })).toHaveAttribute(
 			'href',
 			/\/projects\/new$/
 		);
-		await expect(page.getByRole('button', { name: /hari terakhir/ })).toHaveCount(0);
+		await expect(page.getByRole('list').getByRole('listitem')).toHaveCount(3);
+		await expect(page.getByRole('button', { name: /Filter waktu/ })).toHaveCount(0);
+		await expect(page.getByText('Belum ada proyek')).toHaveCount(0);
+		await expect(page.locator('main')).not.toContainText('timmu');
 	});
 
-	test('an account with projects keeps the plain header', async ({ page }) => {
-		await mockDashboard(page, [listProject]);
-		await page.goto('/projects');
-
-		await expect(
-			page.getByRole('heading', { name: 'Toko Kopi' }).or(page.getByText('Toko Kopi'))
-		).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Buat Proyek Baru' })).toHaveCount(0);
-	});
-
-	test('offers 90 days, and asks the API for it', async ({ page }) => {
+	test('a few projects need no filter or search, and all of them show by default', async ({
+		page
+	}) => {
 		const filters: string[] = [];
 		await mockDashboard(page, [listProject], filters);
 		await page.goto('/projects');
 
-		await page.getByRole('button', { name: '30 hari terakhir' }).click();
-		await page.getByRole('option', { name: '90 hari terakhir' }).click();
-
-		await expect.poll(() => filters).toContain('90_days');
-		await expect(page.getByRole('button', { name: '90 hari terakhir' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Toko Kopi' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /Filter waktu/ })).toHaveCount(0);
+		await expect(page.getByRole('textbox', { name: 'Cari proyek' })).toHaveCount(0);
+		expect(filters).toEqual(['all']);
 	});
 
-	test('the header and the open filter stay inside the page at 320 px (U-96)', async ({ page }) => {
-		await page.setViewportSize({ width: 320, height: 800 });
-		await mockDashboard(page, [listProject]);
+	test('more than a page of projects offers the filter, and asks the API for it', async ({
+		page
+	}) => {
+		const filters: string[] = [];
+		await mockDashboard(page, [listProject], filters, 7);
 		await page.goto('/projects');
 
-		await page.getByRole('button', { name: '30 hari terakhir' }).click();
-		await expect(page.getByRole('option', { name: '90 hari terakhir' })).toBeVisible();
+		await page.getByRole('button', { name: /Filter waktu/ }).click();
+		await page.getByRole('option', { name: 'Dibuat 90 hari terakhir' }).click();
+
+		await expect.poll(() => filters).toContain('90_days');
+		await expect(page.getByRole('button', { name: /Dibuat 90 hari terakhir/ })).toBeVisible();
+	});
+
+	test('the header and the open filter stay inside the page at 320 px', async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 800 });
+		await mockDashboard(page, [listProject], [], 7);
+		await page.goto('/projects');
+
+		await page.getByRole('button', { name: /Filter waktu/ }).click();
+		await expect(page.getByRole('option', { name: 'Dibuat 90 hari terakhir' })).toBeVisible();
 
 		const overflow = await page
 			.locator('main')
@@ -277,16 +293,21 @@ test.describe('dashboard (U-59, U-54)', () => {
 		await page.goto('/projects');
 
 		await expect(page.getByTestId('framework-chip')).toHaveCount(1);
-		await expect(page.getByTestId('framework-chip')).toHaveText('vite');
+		await expect(page.getByTestId('framework-chip')).toHaveText('Vite');
 	});
 
-	test('a thumbnail that fails to load falls back to the placeholder', async ({ page }) => {
+	test('the whole card opens the project, and it has no thumbnail box', async ({ page }) => {
 		await mockDashboard(page, [{ ...listProject, thumbnail_url: 'https://broken.invalid/x.png' }]);
-		await page.route('https://broken.invalid/**', (route) => route.abort());
 		await page.goto('/projects');
 
-		await expect(page.getByTestId('thumbnail-placeholder')).toBeVisible();
 		await expect(page.getByRole('img', { name: 'Toko Kopi' })).toHaveCount(0);
+		await expect(page.getByTestId('thumbnail-placeholder')).toHaveCount(0);
+
+		const link = page.getByRole('link', { name: 'Toko Kopi' });
+		const card = await page.locator('article').boundingBox();
+		await page.mouse.click(card!.x + card!.width - 12, card!.y + card!.height - 12);
+		await expect(page).toHaveURL(/\/projects\/proj_1/);
+		await expect(link).toHaveCount(0);
 	});
 
 	test('shows the pilot quota before it is used up', async ({ page }) => {
@@ -329,7 +350,7 @@ test.describe('dashboard (U-59, U-54)', () => {
 	});
 });
 
-test.describe('feedback (U-55, #14)', () => {
+test.describe('feedback (#14)', () => {
 	const message = () => page_.getByLabel('Masukanmu');
 	let page_: Page;
 
@@ -343,7 +364,7 @@ test.describe('feedback (U-55, #14)', () => {
 		await mockWizardApi(page, { project: () => baseProject });
 		await page.goto('/projects');
 
-		await page.getByRole('link', { name: 'Kirim Masukan' }).first().click();
+		await page.getByRole('link', { name: 'Kirim masukan' }).first().click();
 
 		await expect(page).toHaveURL(/\/feedback$/);
 		await expect(page.getByRole('heading', { name: 'Kirim masukan', exact: true })).toBeVisible();
@@ -386,7 +407,7 @@ test.describe('feedback (U-55, #14)', () => {
 		await mockWizardApi(page);
 		await page.goto('/feedback');
 
-		await expect(page.getByText(/Jangan menulis password, token/)).toBeVisible();
+		await expect(page.getByText(/Jangan menulis kata sandi, token/)).toBeVisible();
 		await expect(page.getByLabel(/boleh memakai masukan ini/)).not.toBeChecked();
 	});
 
@@ -447,7 +468,9 @@ test.describe('feedback (U-55, #14)', () => {
 		});
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
 
-		await expect(page.getByRole('link', { name: 'Kirim masukan', exact: true })).toHaveAttribute(
+		await expect(
+			page.locator('#main-content').getByRole('link', { name: 'Kirim masukan', exact: true })
+		).toHaveAttribute(
 			'href',
 			new RegExp(`/feedback\\?project=${PROJECT_ID}&deployment=${DEPLOYMENT_ID}$`)
 		);

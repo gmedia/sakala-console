@@ -41,8 +41,8 @@ const options = (email_delivery_enabled: boolean, github = true, google = false)
 	email_delivery_enabled,
 	providers: { github, google }
 });
-const provider = (name: string) => page.getByRole('button', { name: `Masuk akun dengan ${name}` });
-const forgotLink = () => page.getByRole('link', { name: 'Lupa Kata Sandi?' });
+const provider = (name: string) => page.getByRole('button', { name: `Masuk dengan ${name}` });
+const forgotLink = () => page.getByRole('link', { name: 'Lupa kata sandi?' });
 
 beforeEach(() => {
 	localStorage.clear();
@@ -58,17 +58,17 @@ describe('login page and email delivery', () => {
 		await expect
 			.element(page.getByText('Pendaftaran lewat email belum tersedia. Masuk lewat GitHub dulu.'))
 			.toBeVisible();
-		await expect.element(provider('Github')).toBeVisible();
-		await expect.element(provider('Email')).toBeVisible();
+		await expect.element(provider('GitHub')).toBeVisible();
+		await expect.element(provider('email')).toBeVisible();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
 	});
 
-	it('hides "Lupa Kata Sandi" on the password form when delivery is off', async () => {
+	it('hides "Lupa kata sandi" on the password form when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
 		renderPage('?method=email');
 
 		await expect.element(page.getByText('Pendaftaran lewat email belum tersedia')).toBeVisible();
-		await expect.element(page.getByLabelText('Kata Sandi', { exact: true })).toBeVisible();
+		await expect.element(page.getByLabelText('Kata sandi', { exact: true })).toBeVisible();
 		await expect.element(forgotLink()).not.toBeInTheDocument();
 	});
 
@@ -77,11 +77,11 @@ describe('login page and email delivery', () => {
 		renderPage();
 
 		await expect.element(provider('Google')).toBeVisible();
-		await expect.element(provider('Email')).toBeVisible();
+		await expect.element(provider('email')).toBeVisible();
 		await expect.element(page.getByText('belum tersedia')).not.toBeInTheDocument();
 	});
 
-	it('shows "Lupa Kata Sandi" when delivery is on', async () => {
+	it('shows "Lupa kata sandi" when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
 		renderPage('?method=email');
 
@@ -96,13 +96,13 @@ describe('login page and email delivery', () => {
 		await expect
 			.element(page.getByRole('progressbar', { name: 'Memuat pilihan yang tersedia' }))
 			.toBeInTheDocument();
-		await expect.element(provider('Github')).not.toBeInTheDocument();
+		await expect.element(provider('GitHub')).not.toBeInTheDocument();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
-		await expect.element(provider('Email')).not.toBeInTheDocument();
+		await expect.element(provider('email')).not.toBeInTheDocument();
 
 		answer(options(false));
 
-		await expect.element(provider('Github')).toBeVisible();
+		await expect.element(provider('GitHub')).toBeVisible();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
 	});
 
@@ -110,7 +110,7 @@ describe('login page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockReturnValue(new Promise(() => {}));
 		renderPage('?method=email');
 
-		await expect.element(page.getByLabelText('Kata Sandi', { exact: true })).toBeVisible();
+		await expect.element(page.getByLabelText('Kata sandi', { exact: true })).toBeVisible();
 		await expect.element(forgotLink()).not.toBeInTheDocument();
 	});
 
@@ -118,9 +118,9 @@ describe('login page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockRejectedValue(new Error('offline'));
 		renderPage();
 
-		await expect.element(provider('Github')).toBeVisible();
+		await expect.element(provider('GitHub')).toBeVisible();
 		await expect.element(provider('Google')).toBeVisible();
-		await expect.element(provider('Email')).toBeVisible();
+		await expect.element(provider('email')).toBeVisible();
 	});
 
 	it('does not offer a remembered provider that is no longer configured', async () => {
@@ -128,9 +128,9 @@ describe('login page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
 		renderPage();
 
-		await expect.element(provider('Github')).toBeVisible();
+		await expect.element(provider('GitHub')).toBeVisible();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
-		await expect.element(page.getByText('Terakhir Digunakan')).not.toBeInTheDocument();
+		await expect.element(page.getByText('Terakhir dipakai')).not.toBeInTheDocument();
 	});
 
 	it('hides the resend for an unverified login when delivery is off', async () => {
@@ -144,8 +144,8 @@ describe('login page and email delivery', () => {
 		renderPage('?method=email');
 
 		await page.getByLabelText('Email', { exact: true }).fill('rani@sakala.local');
-		await page.getByLabelText('Kata Sandi', { exact: true }).fill('kata-sandi');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabelText('Kata sandi', { exact: true }).fill('kata-sandi');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		await expect.element(page.getByRole('alert')).toHaveTextContent('belum bisa mengirim email');
 		await expect

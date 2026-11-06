@@ -57,7 +57,7 @@ describe('AccountSettingsTab and email delivery', () => {
 
 		await expect.element(page.getByText('Ganti email belum tersedia')).toBeVisible();
 		await expect.element(emailField()).not.toBeInTheDocument();
-		await expect.element(page.getByRole('heading', { name: 'Ubah Kata Sandi' })).toBeVisible();
+		await expect.element(page.getByRole('heading', { name: 'Ubah kata sandi' })).toBeVisible();
 	});
 
 	it('does not ask to open a link that never arrived when delivery is off', async () => {
@@ -100,7 +100,7 @@ describe('AccountSettingsTab and email delivery', () => {
 
 		await emailField().fill('baru@sakala.local');
 		await page.getByLabelText('Kata sandi saat ini', { exact: true }).fill('kata-sandi');
-		await page.getByRole('button', { name: 'Ubah Email' }).click();
+		await page.getByRole('button', { name: 'Ubah email' }).click();
 
 		await expect
 			.element(page.getByRole('alert'))

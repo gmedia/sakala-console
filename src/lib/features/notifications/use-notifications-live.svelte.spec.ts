@@ -26,7 +26,7 @@ function channelCall() {
 	return { name: name as () => string | null, events };
 }
 
-describe('useNotificationsLive (U-56)', () => {
+describe('useNotificationsLive', () => {
 	beforeEach(() => {
 		client.invalidateQueries.mockReset();
 		vi.mocked(usePrivateChannel).mockReset();

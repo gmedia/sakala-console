@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const css = readFileSync(resolve(import.meta.dirname, '../app.css'), 'utf8');
@@ -39,7 +39,7 @@ const TEXT = [
 	'info'
 ];
 
-describe('colour tokens (U-67, U-68, U-98)', () => {
+describe('colour tokens', () => {
 	it.each(TEXT.flatMap((text) => BACKGROUNDS.map((background) => [text, background])))(
 		'%s text holds 4.5:1 on %s',
 		(text, background) => {
@@ -63,19 +63,67 @@ describe('colour tokens (U-67, U-68, U-98)', () => {
 		}
 	);
 
-	it('terminal text holds 4.5:1 and the terminal matches Figma (U-76)', () => {
+	it('terminal text holds 4.5:1 and the terminal matches Figma', () => {
 		expect(token('terminal').toLowerCase()).toBe('#1e1e1d');
 		expect(ratio(token('terminal-text'), token('terminal'))).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('a queued status fills shapes with the brand orange, and its text uses the darker ink', () => {
+		expect(token('queued').toLowerCase()).toBe('#c2670e');
+		expect(ratio(token('queued'), token('surface'))).toBeGreaterThanOrEqual(3);
+		expect(ratio(token('queued'), token('background'))).toBeGreaterThanOrEqual(3);
+		expect(ratio(token('queued-ink'), token('queued-soft'))).toBeGreaterThanOrEqual(4.5);
+		expect(ratio(token('queued-ink'), token('surface'))).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('a skeleton can be seen on white, which the old grey at 1.17:1 could not', () => {
+		expect(ratio(token('skeleton'), token('surface'))).toBeGreaterThanOrEqual(1.5);
 	});
 
 	it('keeps the brand anchor', () => {
 		expect(token('primary').toLowerCase()).toBe('#0f766e');
 	});
 
-	it('loads no font from another origin, and never blocks text on one (U-78)', () => {
+	it('loads no font from another origin, and never blocks text on one', () => {
 		expect(css).not.toMatch(/fonts\.googleapis|@import\s+url/);
 		const faces = css.match(/@font-face\s*{[^}]*}/g) ?? [];
 		expect(faces.length).toBeGreaterThan(0);
 		for (const face of faces) expect(face).toContain('font-display: swap');
+	});
+});
+
+describe('the type and shape system', () => {
+	const SOURCE = resolve(import.meta.dirname, '..');
+
+	function sourceFiles(directory: string): string[] {
+		return readdirSync(directory).flatMap((entry) => {
+			const path = join(directory, entry);
+			if (statSync(path).isDirectory()) return sourceFiles(path);
+			return /\.svelte$|(?<!\.spec|\.test)\.ts$/.test(path) && !path.endsWith('schema.d.ts')
+				? [path]
+				: [];
+		});
+	}
+
+	// Anything here compiles to no style at all, or to a value outside the scale.
+	it.each([
+		['a size outside the scale', /\btext-(\[\d|lg\b|4xl\b|6xl\b)/],
+		['a weight outside the three in use', /\bfont-(thin|light|bold|extrabold|black)\b/],
+		['a removed font class', /\bfont-(montserrat|jetbrains)/],
+		['a radius outside the three in use', /\brounded-(sm|md|lg|xl|2xl|3xl)\b/],
+		['a shadow other than the overlay one', /\bshadow-(xs|sm|md|lg|xl|2xl|inner)\b/],
+		['a colour outside the tokens', /\b(text|bg|border)-(zinc|gray|slate|blue|amber)-\d/]
+	])('no component uses %s', (_name, pattern) => {
+		const hits = sourceFiles(SOURCE).filter((path) => pattern.test(readFileSync(path, 'utf8')));
+		expect(hits).toEqual([]);
+	});
+
+	it('loads one variable file per family', () => {
+		const faces = css.match(/@font-face\s*{[^}]*}/g) ?? [];
+		expect(faces.map((face) => face.match(/font-family: '([^']+)'/)?.[1])).toEqual([
+			'Inter',
+			'Montserrat',
+			'JetBrains Mono'
+		]);
 	});
 });

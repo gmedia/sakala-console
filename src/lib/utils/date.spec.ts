@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { formatClockTime, formatDateTime, formatDuration } from './date';
+import { formatClockTime, formatDateTime, formatDuration, formatRelativeTime } from './date';
 
 describe('formatClockTime', () => {
-	it('separates with colons, not the dots of the id-ID locale (U-77)', () => {
+	it('separates with colons, not the dots of the id-ID locale', () => {
 		expect(formatClockTime(new Date(2026, 8, 13, 8, 1, 2))).toBe('08:01:02');
 	});
 
@@ -34,5 +34,28 @@ describe('formatDuration', () => {
 		[-5, '0 detik']
 	])('%i seconds reads as %s', (seconds, expected) => {
 		expect(formatDuration(seconds)).toBe(expected);
+	});
+});
+
+describe('formatRelativeTime', () => {
+	const NOW = Date.parse('2026-10-10T12:00:00Z');
+
+	it.each([
+		['2026-10-10T11:59:40Z', 'Baru saja'],
+		['2026-10-10T11:55:00Z', '5 menit yang lalu'],
+		['2026-10-10T09:00:00Z', '3 jam yang lalu'],
+		['2026-10-09T12:00:00Z', 'Kemarin'],
+		['2026-10-07T12:00:00Z', '3 hari yang lalu']
+	])('%s reads as "%s"', (date, expected) => {
+		expect(formatRelativeTime(date, NOW)).toBe(expected);
+	});
+
+	it('shows the date after a week', () => {
+		expect(formatRelativeTime('2026-09-01T12:00:00Z', NOW)).toContain('2026');
+	});
+
+	it('shows nothing rather than a made-up time when the date is missing or broken', () => {
+		expect(formatRelativeTime(null, NOW)).toBe('');
+		expect(formatRelativeTime('bukan tanggal', NOW)).toBe('');
 	});
 });

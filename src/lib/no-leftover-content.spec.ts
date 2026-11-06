@@ -14,7 +14,7 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe('production source holds no leftover personal or sample data', () => {
-	it("does not contain the contributor's name or email (U-11)", () => {
+	it("does not contain the contributor's name or email", () => {
 		const hits = [...sourceFiles(join(ROOT, 'src')), ...sourceFiles(join(ROOT, 'tests'))].filter(
 			(path) => {
 				const content = readFileSync(path, 'utf8').toLowerCase();
@@ -25,18 +25,18 @@ describe('production source holds no leftover personal or sample data', () => {
 		expect(hits).toEqual([]);
 	});
 
-	it('has no notification fixtures or in-memory store (U-09)', () => {
+	it('has no notification fixtures or in-memory store', () => {
 		const feature = join(ROOT, 'src/lib/features/notifications');
 
 		expect(existsSync(join(feature, 'fixtures.ts'))).toBe(false);
 		expect(existsSync(join(feature, 'store.svelte.ts'))).toBe(false);
 	});
 
-	it('has no simulated verification screen (U-32, U-65)', () => {
+	it('has no simulated verification screen', () => {
 		expect(existsSync(join(ROOT, 'src/routes/(public)/login/verify'))).toBe(false);
 	});
 
-	it('has no fake wizard: no mocks, no simulated deploy step, no made-up domain (U-48, U-51, U-39)', () => {
+	it('has no fake wizard: no mocks, no simulated deploy step, no made-up domain', () => {
 		const projects = join(ROOT, 'src/lib/features/projects');
 
 		expect(existsSync(join(projects, 'mock'))).toBe(false);

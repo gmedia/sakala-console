@@ -93,7 +93,7 @@ describe('useProjectLiveStatus', () => {
 		expect(channelName()).toBe('deployment.dep_active');
 	});
 
-	it('listens to the running deployment while there is one (U-15)', () => {
+	it('listens to the running deployment while there is one', () => {
 		recent.data = { data: [deployment('dep_run', 'building', 5)] };
 		setup();
 
@@ -106,7 +106,7 @@ describe('useProjectLiveStatus', () => {
 		expect(channelName()).toBeNull();
 	});
 
-	it('applies project_runtime_status at once, so a crash shows without waiting (U-14)', () => {
+	it('applies project_runtime_status at once, so a crash shows without waiting', () => {
 		setup();
 
 		handlers[UPDATED]({ sequence: 1, project_runtime_status: 'crashed' });
@@ -127,7 +127,7 @@ describe('useProjectLiveStatus', () => {
 		expect(client.invalidateQueries).not.toHaveBeenCalled();
 	});
 
-	it('re-reads the project when the newest deployment moves on (U-15)', () => {
+	it('re-reads the project when the newest deployment moves on', () => {
 		recent.data = { data: [deployment('dep_run', 'building', 5)] };
 		const live = setup();
 		expect(live.header.kind).toBe('deploying');

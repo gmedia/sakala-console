@@ -47,7 +47,7 @@ function createEvent(overrides: Partial<DeploymentEvent> = {}): DeploymentEvent 
 }
 
 describe('normalizeDeploymentTimeline', () => {
-	it('shows when the failed step stopped, not when it began (U-77)', () => {
+	it('shows when the failed step stopped, not when it began', () => {
 		const result = normalizeDeploymentTimeline(
 			createDeployment({ status: 'failed', finished_at: '2026-09-20T10:09:00Z' }),
 			[
@@ -157,7 +157,7 @@ describe('normalizeDeploymentTimeline', () => {
 		['deployment.analysis.started', 'analyzing', 'Analyzing'],
 		['deployment.health.started', 'health_checking', 'HealthChecking'],
 		['deployment.route.started', 'routing', 'Routing']
-	] as const)('maps %s to its own stage (U-23)', (type, status, key) => {
+	] as const)('maps %s to its own stage', (type, status, key) => {
 		const events = [createEvent({ sequence: 1, type, occurred_at: '2026-09-20T10:03:00Z' })];
 
 		const result = normalizeDeploymentTimeline(createDeployment({ status }), events);
@@ -168,7 +168,7 @@ describe('normalizeDeploymentTimeline', () => {
 		});
 	});
 
-	it('does not read deployment.runtime.ready as routing (U-23)', () => {
+	it('does not read deployment.runtime.ready as routing', () => {
 		const events = [createEvent({ sequence: 1, type: 'deployment.runtime.ready' })];
 
 		const result = normalizeDeploymentTimeline(createDeployment({ status: 'succeeded' }), events);
@@ -176,7 +176,7 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(result).toEqual([]);
 	});
 
-	it('drops a stage the agent passed without reporting it, instead of calling it done (U-23)', () => {
+	it('drops a stage the agent passed without reporting it, instead of calling it done', () => {
 		const events = [
 			createEvent({ sequence: 1, type: 'deployment.checkout.started' }),
 			createEvent({ sequence: 2, type: 'deployment.build.started' }),
@@ -189,7 +189,7 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(result.every((s) => s.status === 'success')).toBe(true);
 	});
 
-	it('shows no stage after the one a deployment failed at (U-23)', () => {
+	it('shows no stage after the one a deployment failed at', () => {
 		const events = [
 			createEvent({ sequence: 1, type: 'deployment.checkout.started' }),
 			createEvent({ sequence: 2, type: 'deployment.build.started' })
@@ -201,7 +201,7 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(result.at(-1)?.status).toBe('failed');
 	});
 
-	it('trusts failure.stage over the events (U-21)', () => {
+	it('trusts failure.stage over the events', () => {
 		const deployment = createDeployment({
 			status: 'failed',
 			failure: {
@@ -220,11 +220,11 @@ describe('normalizeDeploymentTimeline', () => {
 		expect(result.at(-1)).toMatchObject({ key: 'HealthChecking', status: 'failed' });
 	});
 
-	it('claims nothing when a started deployment has no stage record left (U-21)', () => {
+	it('claims nothing when a started deployment has no stage record left', () => {
 		expect(normalizeDeploymentTimeline(createDeployment({ status: 'failed' }), [])).toEqual([]);
 	});
 
-	it('places a failure that never started in the queue (U-21)', () => {
+	it('places a failure that never started in the queue', () => {
 		const deployment = createDeployment({ status: 'failed', started_at: null });
 
 		expect(normalizeDeploymentTimeline(deployment, [])).toEqual([

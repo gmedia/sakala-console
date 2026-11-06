@@ -26,12 +26,12 @@ test.describe('email delivery is off (the state of staging and production today)
 		await expect(
 			page.getByText('Pendaftaran lewat email belum tersedia. Masuk lewat GitHub dulu.')
 		).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Github' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Email' })).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Google' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Daftar dengan GitHub' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Daftar dengan email' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Daftar dengan Google' })).toHaveCount(0);
 
 		await page.goto('/register?method=email');
-		await expect(page.getByRole('button', { name: 'Buat Akun', exact: true })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Buat akun', exact: true })).toHaveCount(0);
 	});
 
 	test('password login stays, without a reset link that cannot be sent', async ({ page }) => {
@@ -39,11 +39,11 @@ test.describe('email delivery is off (the state of staging and production today)
 
 		await page.goto('/login');
 		await expect(page.getByText('Pendaftaran lewat email belum tersedia')).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Masuk akun dengan Google' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Masuk dengan Google' })).toHaveCount(0);
 
-		await page.getByRole('button', { name: 'Masuk akun dengan Email' }).click();
-		await expect(page.getByLabel('Kata Sandi', { exact: true })).toBeVisible();
-		await expect(page.getByRole('link', { name: 'Lupa Kata Sandi?' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'Masuk dengan email' }).click();
+		await expect(page.getByLabel('Kata sandi', { exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Lupa kata sandi?' })).toHaveCount(0);
 	});
 
 	test('a kept forgot-password link explains itself', async ({ page }) => {
@@ -52,7 +52,7 @@ test.describe('email delivery is off (the state of staging and production today)
 		await page.goto('/forgot-password');
 
 		await expect(page.getByText('tautan reset kata sandi belum tersedia')).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Kirim Tautan Reset' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Kirim tautan reset' })).toHaveCount(0);
 	});
 
 	test('an expired verification link does not offer a resend', async ({ page }) => {
@@ -70,15 +70,15 @@ test.describe('email delivery is on', () => {
 		await mockOptions(page, true, true);
 
 		await page.goto('/register');
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Email' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Google' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Daftar dengan email' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Daftar dengan Google' })).toBeVisible();
 		await expect(page.getByText('belum tersedia')).toHaveCount(0);
 
 		await page.goto('/login?method=email');
-		await expect(page.getByRole('link', { name: 'Lupa Kata Sandi?' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Lupa kata sandi?' })).toBeVisible();
 
 		await page.goto('/forgot-password');
-		await expect(page.getByRole('button', { name: 'Kirim Tautan Reset' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Kirim tautan reset' })).toBeVisible();
 	});
 });
 
@@ -98,12 +98,12 @@ test.describe('the flag is not known', () => {
 		await expect(
 			page.getByRole('progressbar', { name: 'Memuat pilihan yang tersedia' })
 		).toBeVisible();
-		await expect(page.getByRole('button', { name: /Buat akun dengan/ })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /Daftar dengan/ })).toHaveCount(0);
 
 		answer();
 
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Github' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Buat akun dengan Email' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Daftar dengan GitHub' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Daftar dengan email' })).toHaveCount(0);
 	});
 
 	test('a failed fetch keeps today’s options, and the API refusal is shown', async ({ page }) => {
@@ -117,11 +117,11 @@ test.describe('the flag is not known', () => {
 		);
 
 		await page.goto('/login');
-		await expect(page.getByRole('button', { name: 'Masuk akun dengan Google' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Masuk dengan Google' })).toBeVisible();
 
 		await page.goto('/forgot-password');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByRole('button', { name: 'Kirim Tautan Reset' }).click();
+		await page.getByRole('button', { name: 'Kirim tautan reset' }).click();
 
 		await expect(page.getByRole('alert')).toContainText(
 			'Sakala belum bisa mengirim email untuk saat ini.'

@@ -31,17 +31,17 @@ beforeEach(() => {
 });
 
 const renderTab = () => render(QueryTestHost, { props: { component: NotificationSettingsTab } });
-const saveButton = () => page.getByRole('button', { name: 'Simpan Perubahan' });
+const saveButton = () => page.getByRole('button', { name: 'Simpan perubahan' });
 
-describe('NotificationSettingsTab (U-10)', () => {
+describe('NotificationSettingsTab', () => {
 	it('shows what the API has saved, not a local default', async () => {
 		renderTab();
 
 		await expect
-			.element(page.getByRole('switch', { name: 'Masalah Proyek' }))
+			.element(page.getByRole('switch', { name: 'Masalah proyek' }))
 			.toHaveAttribute('aria-checked', 'false');
 		await expect
-			.element(page.getByRole('switch', { name: 'Deployment Berhasil' }))
+			.element(page.getByRole('switch', { name: 'Deployment berhasil' }))
 			.toHaveAttribute('aria-checked', 'true');
 		await expect.element(saveButton()).toBeDisabled();
 	});
@@ -49,7 +49,7 @@ describe('NotificationSettingsTab (U-10)', () => {
 	it('offers only the categories the API knows', async () => {
 		renderTab();
 
-		await expect.element(page.getByRole('switch', { name: 'Masalah Proyek' })).toBeVisible();
+		await expect.element(page.getByRole('switch', { name: 'Masalah proyek' })).toBeVisible();
 		await expect.element(page.getByRole('switch')).toHaveLength(5);
 		await expect.element(page.getByText('Penawaran Khusus')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Peringatan Suara')).not.toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('NotificationSettingsTab (U-10)', () => {
 		});
 		renderTab();
 
-		await page.getByRole('switch', { name: 'Keamanan Akun' }).click();
+		await page.getByRole('switch', { name: 'Perubahan kata sandi dan email' }).click();
 		await saveButton().click();
 
 		await vi.waitFor(() => expect(updateNotificationPreferences).toHaveBeenCalled());
@@ -77,7 +77,7 @@ describe('NotificationSettingsTab (U-10)', () => {
 		vi.mocked(updateNotificationPreferences).mockRejectedValue(apiErrorFromResponse(500));
 		renderTab();
 
-		await page.getByRole('switch', { name: 'Masalah Proyek' }).click();
+		await page.getByRole('switch', { name: 'Masalah proyek' }).click();
 		await saveButton().click();
 
 		await expect.element(page.getByRole('alert')).toBeVisible();
@@ -85,7 +85,7 @@ describe('NotificationSettingsTab (U-10)', () => {
 			.element(page.getByText('Pengaturan notifikasi tersimpan.'))
 			.not.toBeInTheDocument();
 		await expect
-			.element(page.getByRole('switch', { name: 'Masalah Proyek' }))
+			.element(page.getByRole('switch', { name: 'Masalah proyek' }))
 			.toHaveAttribute('aria-checked', 'true');
 	});
 
@@ -93,7 +93,7 @@ describe('NotificationSettingsTab (U-10)', () => {
 		vi.mocked(updateNotificationPreferences).mockResolvedValue(saved);
 		renderTab();
 
-		await page.getByRole('switch', { name: 'Aktifkan Semua Notifikasi' }).click();
+		await page.getByRole('switch', { name: 'Aktifkan semua notifikasi' }).click();
 		await saveButton().click();
 
 		await vi.waitFor(() => expect(updateNotificationPreferences).toHaveBeenCalled());

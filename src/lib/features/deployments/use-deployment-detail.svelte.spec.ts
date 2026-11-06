@@ -605,7 +605,7 @@ describe('useDeploymentDetail - new contract fields', () => {
 		stage: 'health_checking'
 	};
 
-	it('reads the failed stage from failure.stage, with no events at all (U-21)', () => {
+	it('reads the failed stage from failure.stage, with no events at all', () => {
 		const input = bannerFor({ status: 'failed', failure });
 
 		expect(input.failedStepLabel).toBe('Mengecek aplikasi');
@@ -633,7 +633,7 @@ describe('useDeploymentDetail - new contract fields', () => {
 			'crash_looping'
 		],
 		['the active deployment of a suspended project', {}, { status: 'suspended' }, 'not_serving']
-	])('%s reads as %s (U-20)', (_name, deployment, project, expected) => {
+	])('%s reads as %s', (_name, deployment, project, expected) => {
 		expect(
 			bannerFor({ status: 'succeeded', ...deployment }, makeProject(project)).servingState
 		).toBe(expected);
@@ -675,7 +675,7 @@ describe('useDeploymentDetail - new contract fields', () => {
 		destroy();
 	});
 
-	it('passes the queue state and a requested cancel on (U-22, U-51)', () => {
+	it('passes the queue state and a requested cancel on', () => {
 		const input = bannerFor({
 			status: 'queued',
 			queue_state: 'waiting_for_node',

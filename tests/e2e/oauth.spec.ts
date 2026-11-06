@@ -118,11 +118,15 @@ test('ignores backslash URL normalization open-redirect return_url', async ({ pa
 test('shows error message when provider returns error query parameter', async ({ page }) => {
 	await page.goto('/auth/github/callback?error=github_access_denied');
 
-	const heading = page.getByRole('heading', { name: 'Gagal Masuk' });
+	const heading = page.getByRole('heading', { name: 'Gagal masuk' });
 	await expect(heading).toBeVisible();
 	await expect(heading).toBeFocused();
 	await expect(page.getByText('Kamu membatalkan izin masuk dengan GitHub.')).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Coba Lagi' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Coba lagi' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Masuk dengan cara lain' })).toHaveAttribute(
+		'href',
+		'/login'
+	);
 });
 
 test('shows retry button for network failure during user session verification', async ({
@@ -132,10 +136,10 @@ test('shows retry button for network failure during user session verification', 
 
 	await page.goto('/auth/github/callback');
 
-	const heading = page.getByRole('heading', { name: 'Koneksi Terganggu' });
+	const heading = page.getByRole('heading', { name: 'Koneksi terganggu' });
 	await expect(heading).toBeVisible({ timeout: 15000 });
 	await expect(heading).toBeFocused();
-	await expect(page.getByRole('button', { name: 'Coba Lagi' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Coba lagi' })).toBeVisible();
 });
 
 test('shows re-login button for unauthenticated 401 response', async ({ page }) => {
@@ -143,13 +147,13 @@ test('shows re-login button for unauthenticated 401 response', async ({ page }) 
 
 	await page.goto('/auth/github/callback');
 
-	const heading = page.getByRole('heading', { name: 'Autentikasi Gagal' });
+	const heading = page.getByRole('heading', { name: 'Autentikasi gagal' });
 	await expect(heading).toBeVisible({ timeout: 15000 });
 	await expect(heading).toBeFocused();
 	await expect(page.getByRole('link', { name: 'Kembali ke halaman masuk' })).toBeVisible();
 });
 
-test('shows "Terakhir Digunakan" badge when last_login_provider exists in localStorage', async ({
+test('shows "Terakhir dipakai" badge when last_login_provider exists in localStorage', async ({
 	page
 }) => {
 	await page.addInitScript(() => {
@@ -158,31 +162,31 @@ test('shows "Terakhir Digunakan" badge when last_login_provider exists in localS
 
 	await page.goto('/login');
 
-	const lastUsedBadge = page.getByText(/Terakhir Digunakan/);
+	const lastUsedBadge = page.getByText(/Terakhir dipakai/);
 	await expect(lastUsedBadge).toBeVisible();
 
-	const googleButton = page.getByRole('button', { name: /Masuk akun dengan Google/ });
+	const googleButton = page.getByRole('button', { name: /Masuk dengan Google/ });
 	await expect(googleButton).toBeVisible();
 
-	const otherProfileButton = page.getByRole('button', { name: 'Masuk dengan profil lainnya' });
+	const otherProfileButton = page.getByRole('button', { name: 'Pilih cara masuk lain' });
 	await expect(otherProfileButton).toBeVisible();
 
 	await otherProfileButton.click();
-	await expect(page.getByRole('button', { name: /Masuk akun dengan Github/ })).toBeVisible();
-	await expect(page.getByRole('button', { name: /Masuk akun dengan Email/ })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Masuk dengan GitHub/ })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Masuk dengan email/ })).toBeVisible();
 });
 
-test('renders register page with Nama Lengkap field in email registration mode', async ({
+test('renders register page with Nama lengkap field in email registration mode', async ({
 	page
 }) => {
 	await page.goto('/register?method=email');
 
 	await expect(page.getByRole('heading', { name: 'Daftar Dengan Email' })).toBeVisible();
-	await expect(page.getByLabel('Nama Lengkap')).toBeVisible();
+	await expect(page.getByLabel('Nama lengkap')).toBeVisible();
 	await expect(page.getByLabel('Email')).toBeVisible();
-	await expect(page.getByLabel('Kata Sandi', { exact: true })).toBeVisible();
-	await expect(page.getByLabel('Konfirmasi Kata Sandi', { exact: true })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Buat Akun' })).toBeVisible();
+	await expect(page.getByLabel('Kata sandi', { exact: true })).toBeVisible();
+	await expect(page.getByLabel('Konfirmasi kata sandi', { exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Buat akun' })).toBeVisible();
 });
 
 test('redirects to saved valid return_url after Google login via /dashboard and records last_login_provider', async ({
@@ -302,7 +306,7 @@ test('does not set last_login_provider when Google login is cancelled or fails',
 	await page.goto('/login?error=google_access_denied');
 
 	await expect(page.getByText('Kamu membatalkan izin masuk dengan Google.')).toBeVisible();
-	await expect(page.getByText(/Terakhir Digunakan/)).not.toBeVisible();
+	await expect(page.getByText(/Terakhir dipakai/)).not.toBeVisible();
 
 	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
 	expect(lastProvider).toBeNull();
@@ -324,7 +328,7 @@ test('does not set last_login_provider when GitHub login is cancelled or fails',
 	const lastProvider = await page.evaluate(() => localStorage.getItem('last_login_provider'));
 	expect(lastProvider).toBeNull();
 
-	const heading = page.getByRole('heading', { name: 'Gagal Masuk' });
+	const heading = page.getByRole('heading', { name: 'Gagal masuk' });
 	await expect(heading).toBeVisible();
 });
 

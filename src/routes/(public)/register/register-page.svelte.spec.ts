@@ -40,7 +40,7 @@ const options = (email_delivery_enabled: boolean, google = false) => ({
 	email_delivery_enabled,
 	providers: { github: true, google }
 });
-const provider = (name: string) => page.getByRole('button', { name: `Buat akun dengan ${name}` });
+const provider = (name: string) => page.getByRole('button', { name: `Daftar dengan ${name}` });
 
 beforeEach(() => {
 	vi.mocked(getAuthOptions).mockReset();
@@ -55,8 +55,8 @@ describe('register page and email delivery', () => {
 		await expect
 			.element(page.getByText('Pendaftaran lewat email belum tersedia. Masuk lewat GitHub dulu.'))
 			.toBeVisible();
-		await expect.element(provider('Github')).toBeVisible();
-		await expect.element(provider('Email')).not.toBeInTheDocument();
+		await expect.element(provider('GitHub')).toBeVisible();
+		await expect.element(provider('email')).not.toBeInTheDocument();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
 	});
 
@@ -64,9 +64,9 @@ describe('register page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
 		renderPage('?method=email');
 
-		await expect.element(provider('Github')).toBeVisible();
+		await expect.element(provider('GitHub')).toBeVisible();
 		await expect
-			.element(page.getByRole('button', { name: 'Buat Akun', exact: true }))
+			.element(page.getByRole('button', { name: 'Buat akun', exact: true }))
 			.not.toBeInTheDocument();
 		await expect.element(page.getByRole('heading', { name: 'Daftar', exact: true })).toBeVisible();
 	});
@@ -75,7 +75,7 @@ describe('register page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
 		renderPage();
 
-		await expect.element(provider('Email')).toBeVisible();
+		await expect.element(provider('email')).toBeVisible();
 		await expect.element(page.getByText('belum tersedia')).not.toBeInTheDocument();
 	});
 
@@ -84,7 +84,7 @@ describe('register page and email delivery', () => {
 		renderPage('?method=email');
 
 		await expect
-			.element(page.getByRole('button', { name: 'Buat Akun', exact: true }))
+			.element(page.getByRole('button', { name: 'Buat akun', exact: true }))
 			.toBeVisible();
 	});
 
@@ -96,7 +96,7 @@ describe('register page and email delivery', () => {
 			.element(page.getByRole('progressbar', { name: 'Memuat pilihan yang tersedia' }))
 			.toBeInTheDocument();
 		await expect
-			.element(page.getByRole('button', { name: 'Buat Akun', exact: true }))
+			.element(page.getByRole('button', { name: 'Buat akun', exact: true }))
 			.not.toBeInTheDocument();
 	});
 
@@ -106,10 +106,10 @@ describe('register page and email delivery', () => {
 		renderPage('?method=email');
 
 		await page.getByLabelText('Email').fill('rani@sakala.local');
-		await page.getByLabelText('Nama Lengkap').fill('Rani');
-		await page.getByLabelText('Kata Sandi', { exact: true }).fill('kata-sandi-baru');
-		await page.getByLabelText('Konfirmasi Kata Sandi', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Buat Akun', exact: true }).click();
+		await page.getByLabelText('Nama lengkap').fill('Rani');
+		await page.getByLabelText('Kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByLabelText('Konfirmasi kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByRole('button', { name: 'Buat akun', exact: true }).click();
 
 		await expect.element(page.getByText('Cek email kamu')).toBeVisible();
 		await expect
@@ -129,10 +129,10 @@ describe('register page and email delivery', () => {
 		renderPage('?method=email');
 
 		await page.getByLabelText('Email').fill('rani@sakala.local');
-		await page.getByLabelText('Nama Lengkap').fill('Rani');
-		await page.getByLabelText('Kata Sandi', { exact: true }).fill('kata-sandi-baru');
-		await page.getByLabelText('Konfirmasi Kata Sandi', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Buat Akun', exact: true }).click();
+		await page.getByLabelText('Nama lengkap').fill('Rani');
+		await page.getByLabelText('Kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByLabelText('Konfirmasi kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByRole('button', { name: 'Buat akun', exact: true }).click();
 
 		await expect
 			.element(page.getByText('Sakala belum bisa mengirim email untuk saat ini.'))

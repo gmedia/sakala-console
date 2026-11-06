@@ -41,7 +41,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			onRetry
 		});
 
-		const errorTitle = page.getByText('Gagal Memuat Repository');
+		const errorTitle = page.getByText('Gagal memuat repository');
 		await expect.element(errorTitle).toBeVisible();
 
 		const errorDesc = page.getByText(/Gagal memuat daftar repository GitHub/i);
@@ -65,7 +65,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			onRetry
 		});
 
-		const errorTitle = page.getByText('Gagal Memuat Repository');
+		const errorTitle = page.getByText('Gagal memuat repository');
 		await expect.element(errorTitle).toBeVisible();
 
 		const errorDesc = page.getByText(/Gagal memuat instalasi GitHub/i);
@@ -313,7 +313,7 @@ const installation = (id: string, login: string, status = 'active') => ({
 });
 
 describe('RepositoryStep: repository list from the API', () => {
-	it('shows the true count from the API, not the size of the page (U-37)', async () => {
+	it('shows the true count from the API, not the size of the page', async () => {
 		await render(RepositoryStepTestHost, {
 			repositories: [mockRepo1],
 			total: 12,
@@ -324,7 +324,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		await expect.element(page.getByRole('status')).toHaveTextContent(/Menampilkan\s*1\s*dari\s*12/);
 	});
 
-	it('asks for the next page instead of slicing what it has (U-37)', async () => {
+	it('asks for the next page instead of slicing what it has', async () => {
 		const onPageChange = vi.fn();
 		await render(RepositoryStepTestHost, {
 			repositories: [mockRepo1],
@@ -339,7 +339,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		expect(onPageChange).toHaveBeenCalledWith(2);
 	});
 
-	it('sends the search to the API, and does not filter the page itself (U-37)', async () => {
+	it('sends the search to the API, and does not filter the page itself', async () => {
 		const onSearch = vi.fn();
 		await render(RepositoryStepTestHost, { repositories: [mockRepo1], onSearch });
 
@@ -378,7 +378,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		screen.unmount();
 	});
 
-	it('offers a switcher only when there is more than one installation (U-38)', async () => {
+	it('offers a switcher only when there is more than one installation', async () => {
 		const onInstallationChange = vi.fn();
 		const screen = await render(RepositoryStepTestHost, {
 			repositories: [mockRepo1],
@@ -406,7 +406,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		expect(onInstallationChange).toHaveBeenCalledWith('i2');
 	});
 
-	it('offers a real reconnect link when the installation is inactive (U-53)', async () => {
+	it('offers a real reconnect link when the installation is inactive', async () => {
 		const reconnectUrl = 'http://api.test/auth/github/installations/i1/configure';
 		await render(RepositoryStepTestHost, {
 			repositories: [],
@@ -424,7 +424,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		await expect.element(page.getByLabelText('Akun GitHub')).toBeVisible();
 	});
 
-	it('"Gunakan Public Git URL" is a real control that switches the source (U-40)', async () => {
+	it('"Gunakan Public Git URL" is a real control that switches the source', async () => {
 		await render(RepositoryStepTestHost, { repositories: [], githubConnected: false });
 
 		await page.getByRole('button', { name: 'Gunakan Public Git URL' }).click();
@@ -432,7 +432,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		await expect.element(page.getByLabelText('URL repository publik')).toBeVisible();
 	});
 
-	it('does not move on when the pilot quota is used up (U-54)', async () => {
+	it('does not move on when the pilot quota is used up', async () => {
 		await render(RepositoryStepTestHost, { repositories: [mockRepo1], blocked: true });
 
 		await page.getByRole('radio').click();

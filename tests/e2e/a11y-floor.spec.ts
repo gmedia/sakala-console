@@ -26,11 +26,11 @@ async function expectFloor(page: Page, route: string, width: number) {
 	expect.soft(audit.primaryTargets, `${at}: primary actions on touch layouts`).toEqual([]);
 	expect.soft(audit.h1, `${at}: exactly one h1`).toBe(1);
 	expect.soft(audit.main, `${at}: exactly one main`).toBe(1);
-	expect.soft(audit.title, `${at}: a title of its own`).toContain('|');
+	expect.soft(audit.title, `${at}: a title of its own`).toMatch(/· Sakala$/);
 }
 
 // One test per width and not per route: a route takes about a second, and every failure names both.
-test.describe('every route, at every width (U-67, U-68, U-70, U-71, U-85, U-92 to U-98, U-101)', () => {
+test.describe('every route, at every width', () => {
 	test.describe.configure({ timeout: 120_000 });
 
 	for (const width of WIDTHS) {
@@ -56,7 +56,7 @@ test.describe('every route, at every width (U-67, U-68, U-70, U-71, U-85, U-92 t
 	}
 });
 
-test.describe('very long names, commits, and domains stay inside the page (U-93, U-94)', () => {
+test.describe('very long names, commits, and domains stay inside the page', () => {
 	test.describe.configure({ timeout: 120_000 });
 
 	for (const width of WIDTHS) {
@@ -71,7 +71,7 @@ test.describe('very long names, commits, and domains stay inside the page (U-93,
 		});
 	}
 
-	test('wizard repositories stay tellable apart at 320 px (U-94)', async ({ page }) => {
+	test('wizard repositories stay tellable apart at 320 px', async ({ page }) => {
 		await page.setViewportSize({ width: 320, height: 800 });
 		await mockEveryRoute(page, { long: true });
 		await page.goto('/projects/new');
@@ -84,7 +84,7 @@ test.describe('very long names, commits, and domains stay inside the page (U-93,
 		}
 	});
 
-	test('the deployment detail shows every value in full at 320 px (U-85)', async ({ page }) => {
+	test('the deployment detail shows every value in full at 320 px', async ({ page }) => {
 		await page.setViewportSize({ width: 320, height: 800 });
 		await mockEveryRoute(page, { long: true });
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
@@ -95,7 +95,80 @@ test.describe('very long names, commits, and domains stay inside the page (U-93,
 	});
 });
 
-test('onboarding fits 320 px and has a page heading (U-92)', async ({ page }) => {
+test.describe('shell and brand', () => {
+	for (const [width, drawer] of [
+		[320, true],
+		[768, true],
+		[1023, true],
+		[1024, false],
+		[1366, false]
+	] as const) {
+		test(`at ${width} px the navigation is ${drawer ? 'a drawer' : 'a sidebar'}`, async ({
+			page
+		}) => {
+			await page.setViewportSize({ width, height: 800 });
+			await mockEveryRoute(page);
+			await page.goto('/projects');
+			await settled(page);
+
+			if (drawer) {
+				await expect(page.getByRole('button', { name: 'Buka navigasi' })).toBeVisible();
+				await expect(page.getByRole('navigation', { name: 'Navigasi utama' })).toBeHidden();
+			} else {
+				await expect(page.getByRole('button', { name: 'Buka navigasi' })).toBeHidden();
+				await expect(page.getByRole('navigation', { name: 'Navigasi utama' })).toBeVisible();
+			}
+		});
+	}
+
+	test('the login on a phone shows the logo, and it stays in the Console', async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 800 });
+		await mockSignedOutRoutes(page);
+		await page.goto('/login');
+
+		await expect(page.getByRole('link', { name: 'Sakala' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Sakala' })).toHaveAttribute('href', '/projects');
+	});
+
+	test('the sample flow on the hero says it is a sample', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await mockSignedOutRoutes(page);
+		await page.goto('/login');
+
+		const sample = page.getByRole('figure');
+		await expect(sample).toContainText('contoh');
+		await expect(sample.getByRole('listitem')).toHaveCount(4);
+	});
+
+	test('the sidebar links to the repository and names the version', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await mockEveryRoute(page);
+		await page.goto('/projects');
+		await settled(page);
+
+		await expect(page.getByRole('link', { name: 'GitHub', exact: true })).toHaveAttribute(
+			'href',
+			'https://github.com/gmedia/sakala-console'
+		);
+		await expect(page.getByText(/^v\d+\.\d+\.\d+/)).toBeVisible();
+		await expect(page.locator('aside')).not.toContainText('GMEDIA');
+	});
+
+	test('the time of a notification sits under its text at 320 px', async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 800 });
+		await mockEveryRoute(page);
+		await page.goto('/notifications');
+		await settled(page);
+
+		const row = page.locator('#main-content button').filter({ hasText: /\S/ }).last();
+		const lastChild = row.locator('> span').nth(1);
+		const time = row.locator('> span').nth(2);
+		const [text, when] = await Promise.all([lastChild.boundingBox(), time.boundingBox()]);
+		expect(when!.y).toBeGreaterThanOrEqual(text!.y + text!.height);
+	});
+});
+
+test('onboarding fits 320 px and has a page heading', async ({ page }) => {
 	await page.setViewportSize({ width: 320, height: 800 });
 	await mockEveryRoute(page);
 	await page.route('**/api/v1/auth/user', (route) =>
@@ -117,7 +190,7 @@ test('onboarding fits 320 px and has a page heading (U-92)', async ({ page }) =>
 });
 
 test.describe('keyboard', () => {
-	test('the skip link is the first stop and lands past the navigation (U-69)', async ({ page }) => {
+	test('the skip link is the first stop and lands past the navigation', async ({ page }) => {
 		await mockEveryRoute(page);
 		await page.goto('/projects');
 		await settled(page);
@@ -131,10 +204,10 @@ test.describe('keyboard', () => {
 		await expect(page.locator('#main-content')).toBeFocused();
 
 		await page.keyboard.press('Tab');
-		await expect(page.getByRole('link', { name: 'Buat Proyek' })).toBeFocused();
+		await expect(page.getByRole('link', { name: 'Buat proyek' })).toBeFocused();
 	});
 
-	test('the mobile drawer traps focus, closes on Esc and its button, and gives focus back (U-88)', async ({
+	test('the mobile drawer traps focus, closes on Esc and its button, and gives focus back', async ({
 		page
 	}) => {
 		await page.setViewportSize({ width: 320, height: 800 });
@@ -177,7 +250,7 @@ test.describe('keyboard', () => {
 		await expect(page.getByRole('dialog', { name: 'Navigasi', includeHidden: true })).toHaveCount(
 			0
 		);
-		await expect(page.getByRole('link', { name: 'Kirim Masukan' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Kirim masukan' })).toBeVisible();
 	});
 
 	for (const [name, path] of [
@@ -186,7 +259,7 @@ test.describe('keyboard', () => {
 		['environments', `/projects/${PROJECT_ID}/environments`],
 		['settings', '/settings']
 	] as const) {
-		test(`every Tab stop on ${name} shows focus (U-90)`, async ({ page }) => {
+		test(`every Tab stop on ${name} shows focus`, async ({ page }) => {
 			await mockEveryRoute(page);
 			await page.goto(path);
 			await settled(page);
@@ -213,7 +286,7 @@ test.describe('keyboard', () => {
 		});
 	}
 
-	test('the project search shows focus and asks the API once for a typed word (U-90, U-100)', async ({
+	test('the project search shows focus and asks the API once for a typed word', async ({
 		page
 	}) => {
 		await mockEveryRoute(page);
@@ -228,7 +301,7 @@ test.describe('keyboard', () => {
 		const box = page.getByRole('textbox', { name: 'Cari proyek' });
 		await box.focus();
 		const ring = await box.evaluate(
-			(el) => getComputedStyle(el.parentElement as Element).boxShadow
+			(el) => getComputedStyle(el.parentElement as Element).outlineStyle
 		);
 		expect(ring).not.toBe('none');
 
@@ -236,7 +309,7 @@ test.describe('keyboard', () => {
 		await expect.poll(() => searches).toEqual(['kopi']);
 	});
 
-	test('the deployment search asks the API once for a typed word (U-100)', async ({ page }) => {
+	test('the deployment search asks the API once for a typed word', async ({ page }) => {
 		await mockEveryRoute(page);
 		const searches: string[] = [];
 		await page.route(`**/api/v1/app/projects/${PROJECT_ID}/deployments?*`, (route) => {
@@ -254,9 +327,7 @@ test.describe('keyboard', () => {
 		await expect.poll(() => searches).toEqual(['checkout']);
 	});
 
-	test('a destructive dialog does not start on its destructive button (U-102)', async ({
-		page
-	}) => {
+	test('a destructive dialog does not start on its destructive button', async ({ page }) => {
 		await mockEveryRoute(page);
 		await page.goto(`/projects/${PROJECT_ID}/environments`);
 
@@ -264,10 +335,10 @@ test.describe('keyboard', () => {
 
 		const dialog = page.getByRole('dialog');
 		await expect(dialog.getByRole('button', { name: 'Batal' })).toBeFocused();
-		await expect(dialog.getByRole('button', { name: 'Hapus Variabel' })).not.toBeFocused();
+		await expect(dialog.getByRole('button', { name: 'Hapus variabel' })).not.toBeFocused();
 	});
 
-	test('Enter saves a new variable and Esc cancels (U-102)', async ({ page }) => {
+	test('Enter saves a new variable and Esc cancels', async ({ page }) => {
 		await mockEveryRoute(page);
 		const added: unknown[] = [];
 		await page.route(`**/api/v1/app/projects/${PROJECT_ID}/environment-variables`, (route) => {
@@ -276,9 +347,9 @@ test.describe('keyboard', () => {
 		});
 		await page.goto(`/projects/${PROJECT_ID}/environments`);
 
-		await page.getByRole('button', { name: 'Tambah Variabel' }).click();
+		await page.getByRole('button', { name: 'Tambah variabel' }).click();
 		await page.keyboard.press('Escape');
-		const addButton = page.getByRole('button', { name: 'Tambah Variabel' });
+		const addButton = page.getByRole('button', { name: 'Tambah variabel' });
 		await expect(addButton).toBeFocused();
 
 		await addButton.click();
@@ -304,21 +375,19 @@ test.describe('wording', () => {
 		}
 	});
 
-	test('the deployment detail has a title of its own, and so does a missing page (U-101)', async ({
+	test('the deployment detail has a title of its own, and so does a missing page', async ({
 		page
 	}) => {
 		await mockEveryRoute(page);
 
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
-		await expect(page).toHaveTitle('Deployment #3 | toko-kopi-web');
+		await expect(page).toHaveTitle('Deployment #3 · toko-kopi-web · Sakala');
 
 		await page.goto('/halaman-yang-tidak-ada');
-		await expect(page).toHaveTitle('Halaman Tidak Ditemukan | Sakala Console');
+		await expect(page).toHaveTitle('Halaman tidak ditemukan · Sakala');
 	});
 
-	test('fonts are served from this origin, and text never waits for them (U-78)', async ({
-		page
-	}) => {
+	test('fonts are served from this origin, and text never waits for them', async ({ page }) => {
 		const external: string[] = [];
 		page.on('request', (request) => {
 			if (/font|\.woff2/.test(request.url()) && !request.url().startsWith('http://127.0.0.1')) {
@@ -330,7 +399,11 @@ test.describe('wording', () => {
 		await settled(page);
 
 		await expect
-			.poll(() => page.evaluate(() => document.fonts.check('600 16px Montserrat')))
+			.poll(() =>
+				page.evaluate(() =>
+					['16px Inter', '600 16px Montserrat'].every((font) => document.fonts.check(font))
+				)
+			)
 			.toBe(true);
 		expect(external).toEqual([]);
 	});

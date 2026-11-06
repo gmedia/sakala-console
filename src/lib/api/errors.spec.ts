@@ -22,7 +22,7 @@ describe('ApiError', () => {
 });
 
 describe('apiErrorFromResponse', () => {
-	it('keeps the code and message of a coded business error (U-28)', () => {
+	it('keeps the code and message of a coded business error', () => {
 		const error = apiErrorFromResponse(422, {
 			apiMessage: 'Batas proyek tercapai. Kamu bisa membuat 3 proyek selama fase pilot.',
 			code: 'PROJECT_LIMIT_EXCEEDED'
@@ -91,7 +91,7 @@ describe('apiErrorFromResponse', () => {
 		expect(apiErrorFromResponse(409, { code: '' }).code).toBeUndefined();
 	});
 
-	describe('429 (U-29)', () => {
+	describe('429', () => {
 		it('states the wait in seconds', () => {
 			const error = apiErrorFromResponse(429, {
 				apiMessage: 'Too Many Attempts.',

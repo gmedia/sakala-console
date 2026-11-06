@@ -19,7 +19,7 @@ function setup(overrides: Record<string, unknown> = {}) {
 	};
 }
 
-describe('BranchCombobox (U-36)', () => {
+describe('BranchCombobox', () => {
 	it('shows the selected branch, and offers only what the API returned', async () => {
 		setup();
 		const input = page.getByRole('combobox');

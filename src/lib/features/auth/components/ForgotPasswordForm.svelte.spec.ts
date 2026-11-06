@@ -27,7 +27,7 @@ const options = (email_delivery_enabled: boolean) => ({
 	providers: { github: true, google: false }
 });
 const renderForm = () => render(QueryTestHost, { props: { component: ForgotPasswordForm } });
-const submit = () => page.getByRole('button', { name: 'Kirim Tautan Reset' });
+const submit = () => page.getByRole('button', { name: 'Kirim tautan reset' });
 
 beforeEach(() => {
 	vi.mocked(forgotPassword).mockReset();

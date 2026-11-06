@@ -42,7 +42,7 @@ beforeEach(() => {
 	vi.mocked(markAllNotificationsRead).mockReset().mockResolvedValue(undefined);
 });
 
-describe('NotificationCenter (U-09)', () => {
+describe('NotificationCenter', () => {
 	it('pages through the server, not through a local array', async () => {
 		vi.mocked(listNotifications).mockImplementation(async ({ page: current = 1 } = {}) => ({
 			data: [item(`halaman-${current}`)],
@@ -68,7 +68,7 @@ describe('NotificationCenter (U-09)', () => {
 		});
 		renderPage();
 
-		await page.getByRole('button', { name: 'Belum Dibaca', exact: true }).click();
+		await page.getByRole('button', { name: 'Belum dibaca', exact: true }).click();
 
 		await vi.waitFor(() =>
 			expect(listNotifications).toHaveBeenLastCalledWith({
@@ -105,6 +105,6 @@ describe('NotificationCenter (U-09)', () => {
 		await expect
 			.element(page.getByRole('button', { name: 'Tandai semua telah dibaca' }))
 			.toBeDisabled();
-		await expect.element(page.getByText('Tidak Ada Notifikasi')).toBeVisible();
+		await expect.element(page.getByText('Tidak ada notifikasi')).toBeVisible();
 	});
 });

@@ -142,7 +142,7 @@ describe('Auth Resource', () => {
 	});
 });
 
-describe('account security endpoints (U-07, U-32, U-33)', () => {
+describe('account security endpoints', () => {
 	const user = {
 		id: 1,
 		name: 'Rani',

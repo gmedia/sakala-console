@@ -16,7 +16,7 @@ afterEach(() => {
 	queryClient.clear();
 });
 
-describe('session expiry on API errors (U-30)', () => {
+describe('session expiry on API errors', () => {
 	it('fires on a 401 from any query, without retrying it', async () => {
 		setSessionExpiredHandler(handler);
 		const queryFn = vi.fn().mockRejectedValue(apiErrorFromResponse(401));

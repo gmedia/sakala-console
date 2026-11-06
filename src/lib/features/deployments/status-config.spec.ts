@@ -36,7 +36,7 @@ describe('getDeploymentStageLabel', () => {
 		['Building', 'Build proyek'],
 		['Deploying', 'Deploy proyek'],
 		['Routing', 'Menyiapkan routing'],
-		['Succeeded', 'Selesai'],
+		['Succeeded', 'Berhasil'],
 		['Failed', 'Gagal'],
 		['Cancelled', 'Dibatalkan']
 	] as const)('maps %s -> %s', (stage, expected) => {
@@ -88,8 +88,8 @@ describe('getStatusDisplay', () => {
 		expect(result.desc).toBe(
 			'Tahap: Building image. Kamu dapat meninggalkan halaman ini dan kembali lagi nanti untuk melihat progresnya.'
 		);
-		expect(result.bannerBgClass).toBe('bg-warning/10');
-		expect(result.iconColorClass).toBe('bg-warning-dark text-white');
+		expect(result.bannerBgClass).toBe('bg-primary-50');
+		expect(result.iconColorClass).toBe('bg-primary text-white');
 	});
 
 	it('fallback to "-" when currentStepLabel is not provided', () => {
@@ -155,7 +155,7 @@ describe('getStatusDisplay', () => {
 });
 
 describe('getStatusDisplay - contract fields', () => {
-	it('never says "sudah live" for a deployment that is not the active one (U-20)', () => {
+	it('never says "sudah live" for a deployment that is not the active one', () => {
 		const superseded = getStatusDisplay({
 			status: 'success',
 			durationLabel: '48 detik',
@@ -195,7 +195,24 @@ describe('getStatusDisplay - contract fields', () => {
 		expect(`${display.title} ${display.desc}`).not.toMatch(/gagal/i);
 	});
 
-	it('explains waiting for a node without inventing a time (U-22)', () => {
+	it('marks a queue in orange, because running is healthy and waiting may need a look', () => {
+		const result = getStatusDisplay({ status: 'running', queueState: 'waiting_for_node' });
+
+		expect(result.bannerBgClass).toBe('bg-queued-soft');
+		expect(result.iconColorClass).toBe('bg-queued text-white');
+	});
+
+	it('a queue that is being cancelled is not shown as waiting', () => {
+		const result = getStatusDisplay({
+			status: 'running',
+			queueState: 'waiting_for_node',
+			cancelRequested: true
+		});
+
+		expect(result.bannerBgClass).toBe('bg-primary-50');
+	});
+
+	it('explains waiting for a node without inventing a time', () => {
 		const display = getStatusDisplay({ status: 'running', queueState: 'waiting_for_node' });
 
 		expect(display.title).toBe('Deployment mengantre');
@@ -203,7 +220,7 @@ describe('getStatusDisplay - contract fields', () => {
 		expect(display.desc).not.toMatch(/\d|perkiraan|sebentar/i);
 	});
 
-	it('says a cancel is on its way rather than still running (U-51)', () => {
+	it('says a cancel is on its way rather than still running', () => {
 		expect(getStatusDisplay({ status: 'running', cancelRequested: true }).title).toBe(
 			'Deployment sedang dibatalkan'
 		);

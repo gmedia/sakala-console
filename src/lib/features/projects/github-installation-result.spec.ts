@@ -3,7 +3,7 @@ import { parseGithubInstallationResult } from './github-installation-result';
 
 const parse = (query: string) => parseGithubInstallationResult(new URLSearchParams(query));
 
-describe('parseGithubInstallationResult (U-52)', () => {
+describe('parseGithubInstallationResult', () => {
 	it('is null when the wizard was not reached from the install callback', () => {
 		expect(parse('')).toBeNull();
 		expect(parse('error=github_access_denied')).toBeNull();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { usernameError } from './username';
 
-describe('usernameError follows UpdateProfileRequest (U-61)', () => {
+describe('usernameError follows UpdateProfileRequest', () => {
 	it.each(['rani', 'rani-wulandari', 'r4ni-2', 'a'.repeat(50)])('accepts %s', (username) => {
 		expect(usernameError(username)).toBeNull();
 	});

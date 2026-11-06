@@ -241,7 +241,7 @@ describe('deriveDurationLabel', () => {
 describe('formatDeploymentTime', () => {
 	const now = new Date(2026, 8, 13, 12, 0, 0);
 
-	it('shows only the clock for a time from today, with colons (U-77)', () => {
+	it('shows only the clock for a time from today, with colons', () => {
 		const timestamp = new Date(2026, 8, 13, 8, 41, 2).toISOString();
 
 		expect(formatDeploymentTime(timestamp, now)).toBe('08:41:02');
@@ -253,7 +253,7 @@ describe('formatDeploymentTime', () => {
 		expect(formatDeploymentTime(timestamp, now)).toBe('08:01:02');
 	});
 
-	it('puts the date in front of a time from another day (U-77)', () => {
+	it('puts the date in front of a time from another day', () => {
 		const timestamp = new Date(2026, 8, 12, 23, 59, 59).toISOString();
 
 		expect(formatDeploymentTime(timestamp, now)).toBe('12 Sep 2026 23:59:59');
@@ -273,7 +273,7 @@ describe('formatLogTime', () => {
 describe('formatResourceLimit', () => {
 	const resources = { memory_mb: 512, cpu_millis: 500, pids_limit: 128 };
 
-	it('prefers what was applied over what was planned (U-58)', () => {
+	it('prefers what was applied over what was planned', () => {
 		expect(
 			formatResourceLimit({
 				applied_resources: { memory_mb: 256, cpu_millis: 1000, pids_limit: 128 },

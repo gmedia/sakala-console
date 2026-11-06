@@ -32,7 +32,7 @@ const preferences = {
 
 beforeEach(() => mockedApiRequest.mockReset());
 
-describe('notifications resource (U-09, U-10)', () => {
+describe('notifications resource', () => {
 	it('lists under /app, sends the unread filter as 1, and accepts null fields', async () => {
 		mockedApiRequest.mockResolvedValue({
 			data: [notification],

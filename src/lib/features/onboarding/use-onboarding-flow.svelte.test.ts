@@ -104,7 +104,7 @@ describe('useOnboardingFlow', () => {
 			expect(sourceMutate).not.toHaveBeenCalled();
 		});
 
-		it('mengirim { type: "source", source } dan pindah ke step 2 saat sukses', () => {
+		it('mengirim { type: "source", source } dan pindah ke step 3 saat sukses', () => {
 			const flow = useOnboardingFlow();
 			flow.selectSource('github');
 
@@ -117,12 +117,12 @@ describe('useOnboardingFlow', () => {
 
 			sourceMutationStub.resolveSuccess();
 
-			expect(flow.step).toBe(2);
+			expect(flow.step).toBe(3);
 		});
 	});
 
 	describe('skipSource', () => {
-		it('mengirim { type: "skip" } dan pindah ke step 2 saat sukses', () => {
+		it('mengirim { type: "skip" } dan pindah ke step 3 saat sukses', () => {
 			const flow = useOnboardingFlow();
 
 			flow.skipSource();
@@ -134,7 +134,7 @@ describe('useOnboardingFlow', () => {
 
 			sourceMutationStub.resolveSuccess();
 
-			expect(flow.step).toBe(2);
+			expect(flow.step).toBe(3);
 		});
 	});
 
@@ -153,7 +153,7 @@ describe('useOnboardingFlow', () => {
 	});
 
 	describe('submitProfile & skipProfile', () => {
-		it('mengirim { name, role } dari state saat ini dan pindah ke step 3 saat sukses', () => {
+		it('mengirim { name, role } dari state saat ini dan pindah ke step 2 saat sukses', () => {
 			const flow = useOnboardingFlow();
 			flow.updateProfile({ name: 'sakala_programmer', role: 'architect' });
 
@@ -166,10 +166,10 @@ describe('useOnboardingFlow', () => {
 
 			profileMutationStub.resolveSuccess();
 
-			expect(flow.step).toBe(3);
+			expect(flow.step).toBe(2);
 		});
 
-		it('skipProfile mengirim { skip: true } dan pindah ke step 3 saat sukses', () => {
+		it('skipProfile mengirim { skip: true } dan pindah ke step 2 saat sukses', () => {
 			const flow = useOnboardingFlow();
 
 			flow.skipProfile();
@@ -181,7 +181,7 @@ describe('useOnboardingFlow', () => {
 
 			profileMutationStub.resolveSuccess();
 
-			expect(flow.step).toBe(3);
+			expect(flow.step).toBe(2);
 		});
 	});
 
@@ -198,17 +198,29 @@ describe('useOnboardingFlow', () => {
 
 			completeMutationStub.resolveSuccess();
 
-			expect(mockedResolve).toHaveBeenCalledWith('/projects');
-			expect(mockedGoto).toHaveBeenCalledWith('/projects');
+			expect(mockedResolve).toHaveBeenCalledWith('/projects/new');
+			expect(mockedGoto).toHaveBeenCalledWith('/projects/new');
 		});
+	});
+
+	it('menanyakan profil dulu, lalu sumber yang boleh dilewati, lalu selesai', () => {
+		const flow = useOnboardingFlow();
+		expect(flow.step).toBe(1);
+
+		flow.skipProfile();
+		profileMutationStub.resolveSuccess();
+		expect(flow.step).toBe(2);
+
+		flow.skipSource();
+		sourceMutationStub.resolveSuccess();
+		expect(flow.step).toBe(3);
 	});
 
 	describe('back', () => {
 		it('mengurangi step kalau step > 1', () => {
 			const flow = useOnboardingFlow();
-			flow.selectSource('github');
-			flow.submitSource();
-			sourceMutationStub.resolveSuccess();
+			flow.skipProfile();
+			profileMutationStub.resolveSuccess();
 			expect(flow.step).toBe(2);
 
 			flow.back();
@@ -376,7 +388,7 @@ describe('useOnboardingFlow', () => {
 
 			sourceMutationStub.resolveSuccess();
 
-			expect(flow.step).toBe(2);
+			expect(flow.step).toBe(3);
 			expect(flow.selectedSource).toBe('github');
 		});
 	});
@@ -384,10 +396,6 @@ describe('useOnboardingFlow', () => {
 	describe('profile error state', () => {
 		it('menampilkan pesan error dan mempertahankan profile ketika submit gagal', () => {
 			const flow = useOnboardingFlow();
-
-			flow.selectSource('github');
-			flow.submitSource();
-			sourceMutationStub.resolveSuccess();
 
 			flow.updateProfile({
 				name: 'sakala_programmer',
@@ -398,7 +406,7 @@ describe('useOnboardingFlow', () => {
 
 			profileMutationStub.resolveError(new ApiError('Invalid data', 422));
 
-			expect(flow.step).toBe(2);
+			expect(flow.step).toBe(1);
 			expect(flow.profileName).toBe('sakala_programmer');
 			expect(flow.profileRole).toBe('developer');
 			expect(flow.profileErrorMessage).toBe(

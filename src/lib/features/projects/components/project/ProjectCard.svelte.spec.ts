@@ -46,12 +46,13 @@ describe('ProjectCard — status badge', () => {
 	});
 });
 
-describe('ProjectCard — action link', () => {
-	test('anchor "Lihat detail" mengarah ke URL project yang benar', async () => {
+describe('ProjectCard — link', () => {
+	test('nama proyek adalah tautan ke halaman proyek, dan membentang menutupi kartu', async () => {
 		await render(ProjectCard, baseProject);
 
-		const link = page.getByRole('link', { name: /lihat detail/i });
+		const link = page.getByRole('link', { name: baseProject.name });
 		await expect.element(link).toHaveAttribute('href', `/projects/${baseProject.id}`);
+		await expect.element(link).toHaveClass(/after:inset-0/);
 	});
 });
 
@@ -72,30 +73,21 @@ describe('ProjectCard — long content', () => {
 	});
 });
 
-describe('ProjectCard — thumbnail placeholder', () => {
-	test('menampilkan gambar saat thumbnail_url ada', async () => {
-		const thumbnail =
-			'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>';
-		await render(ProjectCard, { ...baseProject, thumbnail_url: thumbnail });
+describe('ProjectCard — isi', () => {
+	test('tidak punya kotak thumbnail, bahkan kalau API mengirim thumbnail_url', async () => {
+		await render(ProjectCard, { ...baseProject, thumbnail_url: 'https://example.test/a.png' });
 
-		await expect.element(page.getByRole('img', { name: baseProject.name })).toBeVisible();
+		await expect.element(page.getByRole('img')).not.toBeInTheDocument();
 		await expect.element(page.getByTestId('thumbnail-placeholder')).not.toBeInTheDocument();
 	});
 
-	test('jatuh ke placeholder saat gambarnya gagal dimuat', async () => {
-		await render(ProjectCard, { ...baseProject, thumbnail_url: 'data:image/png;base64,rusak' });
-
-		await expect.element(page.getByTestId('thumbnail-placeholder')).toBeVisible();
-		await expect.element(page.getByRole('img', { name: baseProject.name })).not.toBeInTheDocument();
-	});
-
-	test('menampilkan chip framework hanya kalau inspeksi menyebutkannya', async () => {
+	test('menampilkan chip framework hanya kalau inspeksi menyebutkannya, dengan nama yang rapi', async () => {
 		const stack = { builder: 'railpack', provider: 'node', package_manager: null } as const;
 		const screen = await render(ProjectCard, {
 			...baseProject,
-			stack: { ...stack, framework: 'vite' }
+			stack: { ...stack, framework: 'next' }
 		});
-		await expect.element(page.getByTestId('framework-chip')).toHaveTextContent('vite');
+		await expect.element(page.getByTestId('framework-chip')).toHaveTextContent('Next.js');
 		screen.unmount();
 
 		await render(ProjectCard, { ...baseProject, stack: { ...stack, framework: null } });
@@ -103,26 +95,17 @@ describe('ProjectCard — thumbnail placeholder', () => {
 	});
 
 	test.each<[RuntimeStatus, string]>([
-		['deploying', 'Menunggu build selesai...'],
-		['failed', 'Deployment gagal'],
-		['stopped', 'Proyek sedang berhenti'],
-		['crashed', 'Proyek mengalami crash'],
-		['not_deployed', 'Belum Deploy'],
-		['running', 'Belum memiliki thumbnail']
-	])(
-		'placeholder benar saat thumbnail_url null dan status %s',
-		async (runtime_status, expectedText) => {
-			await render(ProjectCard, {
-				...baseProject,
-				thumbnail_url: null,
-				runtime_status
-			});
+		['deploying', 'Men-deploy'],
+		['failed', 'Gagal'],
+		['stopped', 'Berhenti'],
+		['crashed', 'Crash'],
+		['not_deployed', 'Belum deploy'],
+		['running', 'Live']
+	])('badge status %s berbunyi %s', async (runtime_status, label) => {
+		await render(ProjectCard, { ...baseProject, runtime_status });
 
-			await expect
-				.element(page.getByTestId('thumbnail-placeholder'))
-				.toHaveTextContent(expectedText);
-		}
-	);
+		await expect.element(page.getByTestId('runtime-status-badge')).toHaveTextContent(label);
+	});
 });
 
 describe('ProjectCard — nullable fields', () => {
@@ -135,20 +118,17 @@ describe('ProjectCard — nullable fields', () => {
 });
 
 describe('ProjectCard — last deployment', () => {
-	test('menampilkan tanggal last deployment, bukan tanggal project dibuat', async () => {
+	test('menampilkan waktu relatif dari last deployment, dengan tanggal lengkap di title', async () => {
+		const lastDeployed = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
 		await render(ProjectCard, {
 			...baseProject,
 			created_at: '2026-01-01T00:00:00Z',
-			last_deployed_at: '2026-09-10T10:00:00Z'
+			last_deployed_at: lastDeployed
 		});
 
-		await expect
-			.element(page.getByText(formatDate('2026-09-10T10:00:00Z'), { exact: true }))
-			.toBeVisible();
-
-		await expect
-			.element(page.getByText(formatDate('2026-01-01T00:00:00Z'), { exact: true }))
-			.not.toBeInTheDocument();
+		const time = page.getByText('Deploy 3 jam yang lalu', { exact: true });
+		await expect.element(time).toBeVisible();
+		await expect.element(time).toHaveAttribute('title', formatDate(lastDeployed));
 	});
 
 	test('menampilkan "Belum pernah deploy" ketika last_deployed_at null', async () => {

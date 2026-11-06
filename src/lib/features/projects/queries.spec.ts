@@ -154,7 +154,7 @@ describe('project header polling', () => {
 		realtimeState.status = 'disconnected';
 	});
 
-	it('follows a running deployment without realtime (U-15)', () => {
+	it('follows a running deployment without realtime', () => {
 		expect(resolveHeaderPollInterval(true)).toBe(HEADER_POLL_RUNNING_MS);
 	});
 

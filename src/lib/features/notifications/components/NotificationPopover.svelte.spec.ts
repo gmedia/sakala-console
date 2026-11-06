@@ -64,7 +64,7 @@ beforeEach(() => {
 });
 
 describe('NotificationPopover', () => {
-	it('shows the unread dot only when the API count says so (U-09)', async () => {
+	it('shows the unread dot only when the API count says so', async () => {
 		respondWith([]);
 		renderPopover({ unreadCount: 3 });
 
@@ -100,7 +100,7 @@ describe('NotificationPopover', () => {
 		await expect.element(page.getByText('Kata sandi diganti')).toBeVisible();
 		await expect.element(page.getByTestId('unread-dot')).toBeInTheDocument();
 		await expect
-			.element(page.getByRole('link', { name: 'Lihat Semua' }))
+			.element(page.getByRole('link', { name: 'Lihat semua' }))
 			.toHaveAttribute('href', '/notifications');
 	});
 
@@ -108,7 +108,7 @@ describe('NotificationPopover', () => {
 		respondWith([]);
 		renderPopover({ open: true });
 
-		await expect.element(page.getByText('Tidak Ada Notifikasi')).toBeVisible();
+		await expect.element(page.getByText('Tidak ada notifikasi')).toBeVisible();
 	});
 
 	it('explains a failed load and can retry, rather than reading as empty', async () => {
@@ -116,7 +116,7 @@ describe('NotificationPopover', () => {
 		renderPopover({ open: true });
 
 		await expect.element(page.getByText('Sakala API tidak dapat dijangkau.')).toBeVisible();
-		await expect.element(page.getByText('Tidak Ada Notifikasi')).not.toBeInTheDocument();
+		await expect.element(page.getByText('Tidak ada notifikasi')).not.toBeInTheDocument();
 
 		respondWith([read]);
 		await page.getByRole('button', { name: 'Coba lagi' }).click();

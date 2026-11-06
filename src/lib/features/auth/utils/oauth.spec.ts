@@ -13,7 +13,7 @@ import {
 } from './oauth';
 import { publicConfig } from '$lib/config/public';
 
-describe('githubInstallUrl (U-05)', () => {
+describe('githubInstallUrl', () => {
 	it('points at the API origin, not the console', () => {
 		expect(githubInstallUrl()).toBe(
 			new URL('/auth/github/install', publicConfig.apiUrl).toString()
@@ -22,7 +22,7 @@ describe('githubInstallUrl (U-05)', () => {
 	});
 });
 
-describe('loginPathWithReturnTo (U-30)', () => {
+describe('loginPathWithReturnTo', () => {
 	it('keeps the path and query of the page the session ended on', () => {
 		const path = loginPathWithReturnTo({ pathname: '/projects', search: '?tab=logs' });
 

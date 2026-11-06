@@ -10,8 +10,8 @@ describe('RuntimeStatusBadge', () => {
 		['failed', 'Gagal'],
 		['stopped', 'Berhenti'],
 		['crashed', 'Crash'],
-		['deploying', 'Mendeploy'],
-		['not_deployed', 'Belum Deploy']
+		['deploying', 'Men-deploy'],
+		['not_deployed', 'Belum deploy']
 	])('menampilkan label "%s" -> "%s"', async (runtimeStatus, expectedLabel) => {
 		await render(RuntimeStatusBadge, { runtimeStatus });
 

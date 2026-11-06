@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseEmailLinkStatus } from './email-link-status';
 
-describe('parseEmailLinkStatus (U-06)', () => {
+describe('parseEmailLinkStatus', () => {
 	it('accepts only what the API sends', () => {
 		expect(parseEmailLinkStatus('success')).toBe('success');
 		expect(parseEmailLinkStatus('error')).toBe('error');

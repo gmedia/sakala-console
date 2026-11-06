@@ -26,7 +26,7 @@ beforeEach(() => {
 	mockedApiRequest.mockResolvedValue({ data: user });
 });
 
-describe('profile resource (U-08)', () => {
+describe('profile resource', () => {
 	it('saves name and username with PATCH', async () => {
 		await updateProfile({ name: 'Rani W' });
 

@@ -317,7 +317,7 @@ async function mockProjects(
 test('shows the honest foundation state', async ({ page }) => {
 	await page.goto('/');
 
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Selamat Datang');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Selamat datang');
 });
 
 test('keeps deep links available through the static SPA fallback', async ({ page }) => {
@@ -381,7 +381,7 @@ test.describe('Deployment detail page', () => {
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Logs' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Log', exact: true })).toBeVisible();
 		await expect(page.getByText('Menunggu log...')).toBeVisible();
 		await page.waitForTimeout(2000);
 		await expect(page.getByText(/Tahap: Build proyek/)).toBeVisible();
@@ -464,8 +464,8 @@ test.describe('Projects list page', () => {
 
 		await page.goto('/projects');
 
-		await expect(page.getByText('Belum ada proyek')).toBeVisible();
-		await expect(page.getByRole('link', { name: /baca panduan deploy pertamamu/i })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Buat proyek' })).toHaveCount(1);
 	});
 
 	test('shows "tidak menemukan" when active date filter excludes existing projects', async ({
@@ -482,7 +482,7 @@ test.describe('Projects list page', () => {
 		await page.goto('/projects');
 
 		await expect(page.getByText('Tidak menemukan proyek')).toBeVisible();
-		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toHaveCount(0);
 	});
 
 	test('shows "tidak menemukan" when a search term matches nothing', async ({ page }) => {
@@ -504,10 +504,11 @@ test.describe('Projects list page', () => {
 				});
 			}
 
+			// More than one page of projects, or the search box is not offered.
 			return buildProjectsResponse({
 				data: [validProject],
 				meta: {
-					total: 1
+					total: 7
 				}
 			});
 		});
@@ -519,7 +520,7 @@ test.describe('Projects list page', () => {
 		await page.getByPlaceholder('Cari proyek').fill('project-yang-tidak-ada');
 
 		await expect(page.getByText('Tidak menemukan proyek')).toBeVisible();
-		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toHaveCount(0);
 	});
 
 	test('shows project list', async ({ page }) => {
@@ -693,7 +694,7 @@ test.describe('Projects list page', () => {
 		await expect(list).toHaveAttribute('aria-busy', 'false');
 	});
 
-	test('navigates to project detail when clicking lihat detail', async ({ page }) => {
+	test('navigates to project detail when clicking the card', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
 
 		await mockProjects(page, () =>
@@ -709,7 +710,7 @@ test.describe('Projects list page', () => {
 
 		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
 
-		await page.getByRole('link', { name: /lihat detail/i }).click();
+		await page.getByRole('link', { name: validProject.name }).click();
 
 		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
 	});
@@ -738,8 +739,8 @@ test.describe('Projects list page', () => {
 		const logoutDialog = page.getByRole('dialog');
 		await expect(logoutDialog).toBeVisible();
 
-		const cancelButton = page.getByRole('button', { name: 'Tidak' });
-		const confirmButton = page.getByRole('button', { name: 'Iya' });
+		const cancelButton = page.getByRole('button', { name: 'Tetap di sini' });
+		const confirmButton = page.getByRole('button', { name: 'Keluar' });
 
 		await expect(cancelButton).toBeFocused();
 
@@ -782,7 +783,7 @@ test.describe('Projects list page', () => {
 		await expect(profileTrigger).toBeVisible();
 		await profileTrigger.click();
 
-		await expect(mobileNav.getByRole('link', { name: 'Lihat Profil' })).toBeVisible();
+		await expect(mobileNav.getByRole('link', { name: 'Lihat profil' })).toBeVisible();
 		await expect(mobileNav.getByRole('link', { name: 'Pengaturan' })).toBeVisible();
 		await expect(mobileNav.getByRole('button', { name: 'Keluar' })).toBeVisible();
 	});
@@ -819,11 +820,11 @@ test.describe('Projects list page', () => {
 		const logoutDialog = page.getByRole('dialog');
 		await expect(logoutDialog).toBeVisible();
 
-		await logoutDialog.getByRole('button', { name: 'Iya' }).click();
+		await logoutDialog.getByRole('button', { name: 'Keluar' }).click();
 
 		await expect.poll(() => logoutIntercepted, { timeout: 5_000 }).toBe(true);
 
-		await expect(logoutDialog.getByRole('button', { name: 'Coba Lagi' })).toBeVisible({
+		await expect(logoutDialog.getByRole('button', { name: 'Coba lagi' })).toBeVisible({
 			timeout: 5_000
 		});
 		await expect(logoutDialog.getByText('Gagal keluar akun. Silakan coba lagi.')).toBeVisible();

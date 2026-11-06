@@ -63,7 +63,7 @@ async function mockSignedOut(page: Page) {
 	);
 }
 
-test.describe('GitHub installation (U-05, U-52)', () => {
+test.describe('GitHub installation', () => {
 	test('"Hubungkan GitHub" leaves for the API origin', async ({ page }) => {
 		await mockSession(page);
 		const requests: Request[] = [];
@@ -86,7 +86,7 @@ test.describe('GitHub installation (U-05, U-52)', () => {
 
 		await expect(page.getByRole('status').getByText('GitHub sudah terhubung')).toBeVisible();
 		await expect(page).toHaveURL('/projects/new');
-		await expect(page.getByRole('heading', { name: 'Proyek Baru', exact: true })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Proyek baru', exact: true })).toBeVisible();
 	});
 
 	test('coming back with an error explains it on the wizard', async ({ page }) => {
@@ -100,11 +100,11 @@ test.describe('GitHub installation (U-05, U-52)', () => {
 	});
 });
 
-test.describe('landing pages from email links (U-06)', () => {
+test.describe('landing pages from email links', () => {
 	test('a verified email is confirmed, with a way to log in', async ({ page }) => {
 		await page.goto('/email-verified?status=success');
 
-		await expect(page.getByRole('heading', { name: 'Verifikasi Email Berhasil' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Verifikasi email berhasil' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Masuk' })).toHaveAttribute('href', '/login');
 	});
 
@@ -119,7 +119,7 @@ test.describe('landing pages from email links (U-06)', () => {
 		await page.goto('/email-verified?status=error');
 
 		await expect(
-			page.getByRole('heading', { name: 'Tautan Verifikasi Tidak Berlaku' })
+			page.getByRole('heading', { name: 'Tautan verifikasi tidak berlaku' })
 		).toBeVisible();
 		await page.getByLabel('Email akunmu').fill('rani@sakala.local');
 		await page.getByRole('button', { name: 'Kirim ulang email verifikasi' }).click();
@@ -133,30 +133,30 @@ test.describe('landing pages from email links (U-06)', () => {
 			await page.goto(url);
 
 			await expect(
-				page.getByRole('heading', { name: 'Status Verifikasi Tidak Diketahui' })
+				page.getByRole('heading', { name: 'Status verifikasi tidak diketahui' })
 			).toBeVisible();
-			await expect(page.getByText('Verifikasi Email Berhasil')).toHaveCount(0);
+			await expect(page.getByText('Verifikasi email berhasil')).toHaveCount(0);
 			await expect(page.getByRole('link', { name: 'Masuk' })).toBeVisible();
 		});
 	}
 
 	test('the email-change link lands on its own page', async ({ page }) => {
 		await page.goto('/email-changed?status=success');
-		await expect(page.getByRole('heading', { name: 'Email Berhasil Diganti' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Email berhasil diganti' })).toBeVisible();
 
 		await page.goto('/email-changed?status=error');
 		await expect(
-			page.getByRole('heading', { name: 'Tautan Ganti Email Tidak Berlaku' })
+			page.getByRole('heading', { name: 'Tautan ganti email tidak berlaku' })
 		).toBeVisible();
 
 		await page.goto('/email-changed');
 		await expect(
-			page.getByRole('heading', { name: 'Status Ganti Email Tidak Diketahui' })
+			page.getByRole('heading', { name: 'Status ganti email tidak diketahui' })
 		).toBeVisible();
 	});
 });
 
-test.describe('error page (U-06)', () => {
+test.describe('error page', () => {
 	test('an unknown address gets a branded 404 with ways onward', async ({ page }) => {
 		await page.goto('/alamat/yang/tidak/ada');
 
@@ -164,25 +164,33 @@ test.describe('error page (U-06)', () => {
 			page.getByRole('heading', { level: 1, name: 'Halaman tidak ditemukan' })
 		).toBeVisible();
 		await expect(page.getByText('Error 404')).toBeVisible();
-		await expect(page.getByRole('link', { name: 'Buka Proyek' })).toHaveAttribute(
+		await expect(page.getByRole('link', { name: 'Buka proyek' })).toHaveAttribute(
 			'href',
 			'/projects'
-		);
-		await expect(page.getByRole('link', { name: 'Ke Halaman Masuk' })).toHaveAttribute(
-			'href',
-			'/login'
 		);
 		await expect(page.locator('body')).not.toContainText('Not Found');
 	});
 
-	test('the simulated Google verification page is gone (U-65)', async ({ page }) => {
+	test('someone signed out is offered the login, not the projects', async ({ page }) => {
+		await mockSignedOut(page);
+
+		await page.goto('/alamat/yang/tidak/ada');
+
+		await expect(page.getByRole('link', { name: 'Masuk', exact: true })).toHaveAttribute(
+			'href',
+			'/login'
+		);
+		await expect(page.getByRole('link', { name: 'Buka proyek' })).toHaveCount(0);
+	});
+
+	test('the simulated Google verification page is gone', async ({ page }) => {
 		await page.goto('/login/verify/google');
 
 		await expect(page.getByRole('heading', { name: 'Halaman tidak ditemukan' })).toBeVisible();
 	});
 });
 
-test.describe('unverified login and resend (U-32)', () => {
+test.describe('unverified login and resend', () => {
 	const unverified = {
 		code: 'email_not_verified',
 		message: 'Email kamu belum diverifikasi. Buka tautan verifikasi yang kami kirim ke email kamu.'
@@ -193,8 +201,8 @@ test.describe('unverified login and resend (U-32)', () => {
 		await page.route('**/api/v1/auth/login', (route) => reply(route, 403, unverified));
 		await page.goto('/login?method=email');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('kata-sandi-benar');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi-benar');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 	}
 
 	test('shows the real reason and a resend, for the address just typed', async ({ page }) => {
@@ -237,8 +245,8 @@ test.describe('unverified login and resend (U-32)', () => {
 
 		await page.goto('/login?method=email');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('salah');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabel('Kata sandi', { exact: true }).fill('salah');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		await expect(page.getByRole('alert')).toHaveText('Email atau kata sandi salah.');
 		await expect(page.getByRole('button', { name: /Kirim ulang/ })).toHaveCount(0);
@@ -259,10 +267,10 @@ test.describe('unverified login and resend (U-32)', () => {
 
 		await page.goto('/register?method=email');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByLabel('Nama Lengkap').fill('Rani');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('kata-sandi-baru');
-		await page.getByLabel('Konfirmasi Kata Sandi', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Buat Akun' }).click();
+		await page.getByLabel('Nama lengkap').fill('Rani');
+		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByLabel('Konfirmasi kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByRole('button', { name: 'Buat akun' }).click();
 
 		// The API answers the same for a new and an existing email, so the screen cannot say which.
 		await expect(page.getByText('Cek email kamu')).toBeVisible();
@@ -274,11 +282,11 @@ test.describe('unverified login and resend (U-32)', () => {
 	});
 });
 
-test.describe('login form accessibility (U-91)', () => {
+test.describe('login form accessibility', () => {
 	test('empty fields are flagged, described, and focused', async ({ page }) => {
 		await page.goto('/login?method=email');
 
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		const email = page.getByLabel('Email');
 		await expect(email).toBeFocused();
@@ -294,18 +302,18 @@ test.describe('login form accessibility (U-91)', () => {
 
 		await page.goto('/login?method=email');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('salah');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabel('Kata sandi', { exact: true }).fill('salah');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		await expect(page.getByRole('alert')).toBeFocused();
 	});
 });
 
-test.describe('forgot and reset password (U-33)', () => {
+test.describe('forgot and reset password', () => {
 	test('the login page links to it', async ({ page }) => {
 		await page.goto('/login?method=email');
 
-		await expect(page.getByRole('link', { name: 'Lupa Kata Sandi?' })).toHaveAttribute(
+		await expect(page.getByRole('link', { name: 'Lupa kata sandi?' })).toHaveAttribute(
 			'href',
 			'/forgot-password'
 		);
@@ -319,7 +327,7 @@ test.describe('forgot and reset password (U-33)', () => {
 
 		await page.goto('/forgot-password');
 		await page.getByLabel('Email').fill('siapa@contoh.com');
-		await page.getByRole('button', { name: 'Kirim Tautan Reset' }).click();
+		await page.getByRole('button', { name: 'Kirim tautan reset' }).click();
 
 		await expect(page.getByRole('status')).toContainText('Kalau siapa@contoh.com terdaftar');
 	});
@@ -332,7 +340,7 @@ test.describe('forgot and reset password (U-33)', () => {
 
 		await page.goto('/forgot-password');
 		await page.getByLabel('Email').fill('siapa@contoh.com');
-		await page.getByRole('button', { name: 'Kirim Tautan Reset' }).click();
+		await page.getByRole('button', { name: 'Kirim tautan reset' }).click();
 
 		await expect(page.getByRole('alert')).toContainText('Coba lagi dalam 42 detik');
 	});
@@ -359,7 +367,7 @@ test.describe('forgot and reset password (U-33)', () => {
 
 		await page.getByLabel('Kata sandi baru', { exact: true }).fill('kata-sandi-baru');
 		await page.getByLabel('Konfirmasi kata sandi baru', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Simpan Kata Sandi' }).click();
+		await page.getByRole('button', { name: 'Simpan kata sandi' }).click();
 
 		await expect(page.getByText('Kata sandi sudah diganti')).toBeVisible();
 		expect(bodies).toEqual([
@@ -385,7 +393,7 @@ test.describe('forgot and reset password (U-33)', () => {
 		await page.goto('/reset-password?token=lama&email=rani%40sakala.local');
 		await page.getByLabel('Kata sandi baru', { exact: true }).fill('kata-sandi-baru');
 		await page.getByLabel('Konfirmasi kata sandi baru', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Simpan Kata Sandi' }).click();
+		await page.getByRole('button', { name: 'Simpan kata sandi' }).click();
 
 		await expect(page.getByRole('alert')).toContainText('sudah tidak berlaku');
 		await expect(page.getByRole('link', { name: 'Minta tautan baru' })).toHaveAttribute(
@@ -398,11 +406,11 @@ test.describe('forgot and reset password (U-33)', () => {
 		await page.goto('/reset-password');
 
 		await expect(page.getByRole('link', { name: 'Minta tautan baru' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Simpan Kata Sandi' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Simpan kata sandi' })).toHaveCount(0);
 	});
 });
 
-test.describe('account settings (U-07)', () => {
+test.describe('account settings', () => {
 	test('asks for an email change and shows it as pending, not as done', async ({ page }) => {
 		await mockSession(page);
 		const bodies: unknown[] = [];
@@ -414,7 +422,7 @@ test.describe('account settings (U-07)', () => {
 		await page.goto('/settings');
 		await page.getByLabel('Email baru').fill('baru@sakala.local');
 		await page.getByRole('textbox', { name: 'Kata sandi saat ini' }).fill('kata-sandi');
-		await page.getByRole('button', { name: 'Ubah Email' }).click();
+		await page.getByRole('button', { name: 'Ubah email' }).click();
 
 		await expect(page.getByText('Cek email baru')).toBeVisible();
 		await expect(page.getByText(/Email saat ini:\s*rani@sakala\.local/)).toBeVisible();
@@ -444,7 +452,7 @@ test.describe('account settings (U-07)', () => {
 		await page.getByLabel('Email baru').fill('baru@sakala.local');
 		const password = page.getByRole('textbox', { name: 'Kata sandi saat ini' });
 		await password.fill('salah');
-		await page.getByRole('button', { name: 'Ubah Email' }).click();
+		await page.getByRole('button', { name: 'Ubah email' }).click();
 
 		await expect(password).toHaveAttribute('aria-invalid', 'true');
 		await expect(password).toHaveAccessibleDescription(/Kata sandi salah/);
@@ -468,7 +476,7 @@ test.describe('account settings (U-07)', () => {
 		await page.locator('#current-password').fill('lama-sekali');
 		await page.getByLabel('Kata sandi baru', { exact: true }).fill('kata-sandi-baru');
 		await page.getByLabel('Konfirmasi kata sandi baru', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Perbarui Kata Sandi' }).click();
+		await page.getByRole('button', { name: 'Perbarui kata sandi' }).click();
 
 		await expect(page.getByText('Kata sandi sudah diganti')).toBeVisible();
 		expect(bodies).toEqual([
@@ -497,7 +505,7 @@ test.describe('account settings (U-07)', () => {
 		await current.fill('salah');
 		await page.getByLabel('Kata sandi baru', { exact: true }).fill('kata-sandi-baru');
 		await page.getByLabel('Konfirmasi kata sandi baru', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Perbarui Kata Sandi' }).click();
+		await page.getByRole('button', { name: 'Perbarui kata sandi' }).click();
 
 		await expect(current).toHaveAttribute('aria-invalid', 'true');
 		await expect(current).toBeFocused();
@@ -515,20 +523,20 @@ test.describe('account settings (U-07)', () => {
 		await page.goto('/settings');
 
 		// Changing the email needs a password to confirm with, so it waits for this one.
-		await expect(page.getByRole('button', { name: 'Ubah Email' })).toHaveCount(0);
-		await expect(page.getByRole('heading', { name: 'Buat Kata Sandi' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Ubah email' })).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: 'Buat kata sandi' })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Buat', exact: true }).click();
 		await expect(page.locator('#current-password')).toHaveCount(0);
 		await page.getByLabel('Kata sandi baru', { exact: true }).fill('kata-sandi-baru');
 		await page.getByLabel('Konfirmasi kata sandi baru', { exact: true }).fill('kata-sandi-baru');
-		await page.getByRole('button', { name: 'Buat Kata Sandi' }).click();
+		await page.getByRole('button', { name: 'Buat kata sandi' }).click();
 
 		await expect(page.getByText('Kata sandi sudah dibuat')).toBeVisible();
 		expect(bodies).toEqual([
 			{ password: 'kata-sandi-baru', password_confirmation: 'kata-sandi-baru' }
 		]);
-		await expect(page.getByRole('button', { name: 'Ubah Email' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Ubah email' })).toBeVisible();
 	});
 
 	test('does not claim rules or features the API lacks', async ({ page }) => {
@@ -544,7 +552,7 @@ test.describe('account settings (U-07)', () => {
 	});
 });
 
-test.describe('profile (U-08, U-61)', () => {
+test.describe('profile', () => {
 	test('saves name and username through the API and updates the sidebar', async ({ page }) => {
 		await mockSession(page);
 		const bodies: unknown[] = [];
@@ -557,7 +565,7 @@ test.describe('profile (U-08, U-61)', () => {
 		await page.goto('/profile');
 		await page.getByLabel('Nama lengkap').fill('Rani W');
 		await page.getByLabel('Username').fill('rani-w');
-		await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
+		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
 		await expect(page.getByText('Profil tersimpan.')).toBeVisible();
 		await expect(page.getByRole('navigation', { name: 'Navigasi utama' })).toBeVisible();
@@ -575,7 +583,7 @@ test.describe('profile (U-08, U-61)', () => {
 
 		await page.goto('/profile');
 		await page.getByLabel('Nama lengkap').fill('Rani W');
-		await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
+		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
 		await expect(page.getByText('Profil tersimpan.')).toBeVisible();
 		expect(bodies).toEqual([{ name: 'Rani W' }]);
@@ -595,7 +603,7 @@ test.describe('profile (U-08, U-61)', () => {
 		await page.goto('/profile');
 		const username = page.getByLabel('Username');
 		await username.fill('dipakai');
-		await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
+		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
 		await expect(username).toHaveAttribute('aria-invalid', 'true');
 		await expect(username).toHaveAccessibleDescription('Username sudah dipakai.');
@@ -609,7 +617,7 @@ test.describe('profile (U-08, U-61)', () => {
 		await page.getByLabel('Username').fill('Rani_W');
 
 		await expect(page.getByLabel('Username')).toHaveAttribute('aria-invalid', 'true');
-		await expect(page.getByRole('button', { name: 'Simpan Perubahan' })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Simpan perubahan' })).toBeDisabled();
 	});
 
 	test('shows when the account was created', async ({ page }) => {
@@ -620,16 +628,14 @@ test.describe('profile (U-08, U-61)', () => {
 		await expect(page.getByLabel('Bergabung sejak')).toHaveValue('15 Maret 2026');
 	});
 
-	test('the photo dialog traps focus, closes on Esc, and gives focus back (U-69)', async ({
-		page
-	}) => {
+	test('the photo dialog traps focus, closes on Esc, and gives focus back', async ({ page }) => {
 		await mockSession(page);
 		await page.goto('/profile');
 
-		const trigger = page.getByRole('button', { name: 'Edit Foto' });
+		const trigger = page.getByRole('button', { name: 'Ubah foto', exact: true });
 		await trigger.click();
-		const dialog = page.getByRole('dialog', { name: 'Ubah Foto Profil' });
-		await expect(dialog.getByRole('button', { name: 'Unggah Foto' })).toBeFocused();
+		const dialog = page.getByRole('dialog', { name: 'Ubah foto profil' });
+		await expect(dialog.getByRole('button', { name: 'Unggah foto' })).toBeFocused();
 
 		for (let i = 0; i < 4; i++) {
 			await page.keyboard.press('Tab');
@@ -660,7 +666,7 @@ test.describe('profile (U-08, U-61)', () => {
 		);
 
 		await page.goto('/profile');
-		await page.getByRole('button', { name: 'Edit Foto' }).click();
+		await page.getByRole('button', { name: 'Ubah foto', exact: true }).click();
 		await page.getByLabel('Pilih foto profil').setInputFiles({
 			name: 'foto.png',
 			mimeType: 'image/png',
@@ -687,7 +693,7 @@ test.describe('profile (U-08, U-61)', () => {
 		});
 
 		await page.goto('/profile');
-		await page.getByRole('button', { name: 'Edit Foto' }).click();
+		await page.getByRole('button', { name: 'Ubah foto', exact: true }).click();
 		await page.getByLabel('Pilih foto profil').setInputFiles({
 			name: 'besar.png',
 			mimeType: 'image/png',
@@ -713,18 +719,18 @@ test.describe('profile (U-08, U-61)', () => {
 		});
 
 		await page.goto('/profile');
-		await page.getByRole('button', { name: 'Edit Foto' }).click();
-		await page.getByRole('button', { name: 'Hapus Foto Saat Ini' }).click();
+		await page.getByRole('button', { name: 'Ubah foto', exact: true }).click();
+		await page.getByRole('button', { name: 'Hapus foto saat ini' }).click();
 
 		await expect(page.getByRole('dialog')).toHaveCount(0);
 		expect(methods).toEqual(['DELETE']);
 
-		await page.getByRole('button', { name: 'Edit Foto' }).click();
-		await expect(page.getByRole('button', { name: 'Hapus Foto Saat Ini' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'Ubah foto', exact: true }).click();
+		await expect(page.getByRole('button', { name: 'Hapus foto saat ini' })).toHaveCount(0);
 	});
 });
 
-test.describe('notifications (U-09, U-10, U-56)', () => {
+test.describe('notifications', () => {
 	const notification = {
 		id: '0198c5e0-7c1d-7000-8000-000000000001',
 		category: 'deployment_failure',
@@ -743,7 +749,7 @@ test.describe('notifications (U-09, U-10, U-56)', () => {
 
 		await page.goto('/notifications');
 
-		await expect(page.getByText('Tidak Ada Notifikasi')).toBeVisible();
+		await expect(page.getByText('Tidak ada notifikasi')).toBeVisible();
 		await expect(page.getByTestId('bell-unread-dot')).toHaveCount(0);
 		await expect(page.locator('body')).not.toContainText('E-Commerce Platform');
 	});
@@ -846,13 +852,13 @@ test.describe('notifications (U-09, U-10, U-56)', () => {
 		});
 
 		await page.goto('/settings?tab=notifications');
-		await page.getByRole('switch', { name: 'Deployment Berhasil' }).click();
-		await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
+		await page.getByRole('switch', { name: 'Deployment berhasil' }).click();
+		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 		await expect(page.getByText('Pengaturan notifikasi tersimpan.')).toBeVisible();
 
 		await page.reload();
 
-		await expect(page.getByRole('switch', { name: 'Deployment Berhasil' })).toHaveAttribute(
+		await expect(page.getByRole('switch', { name: 'Deployment berhasil' })).toHaveAttribute(
 			'aria-checked',
 			'false'
 		);
@@ -860,7 +866,7 @@ test.describe('notifications (U-09, U-10, U-56)', () => {
 	});
 });
 
-test.describe('a session that ends mid-way (U-30)', () => {
+test.describe('a session that ends mid-way', () => {
 	test('a 401 on any query goes to login with the way back', async ({ page }) => {
 		await mockSession(page);
 		await page.route('**/api/v1/app/notifications?*', (route) =>
@@ -915,11 +921,11 @@ test.describe('a session that ends mid-way (U-30)', () => {
 
 		await expect(page.getByRole('status')).toHaveText('Sesi kamu berakhir, silakan masuk lagi.');
 
-		await page.getByRole('button', { name: /dengan Email/ }).click();
+		await page.getByRole('button', { name: /dengan email/ }).click();
 		await expect(page.getByRole('status')).toHaveText('Sesi kamu berakhir, silakan masuk lagi.');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('kata-sandi-benar');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi-benar');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		await expect(page).toHaveURL('/settings?tab=account');
 	});
@@ -944,7 +950,7 @@ test.describe('a session that ends mid-way (U-30)', () => {
 		await page.goto('/profile');
 
 		await expect(page).toHaveURL(/\/login\?returnTo=%2Fprofile$/);
-		await expect(page.getByRole('heading', { name: 'Selamat Datang' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Selamat datang' })).toBeVisible();
 		await expect(page.getByText('Sesi kamu berakhir')).toHaveCount(0);
 	});
 
@@ -956,7 +962,7 @@ test.describe('a session that ends mid-way (U-30)', () => {
 
 		await page.goto('/profile');
 		await page.getByLabel('Nama lengkap').fill('Rani W');
-		await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
+		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
 		await expect(page).toHaveURL(/\/login\?returnTo=%2Fprofile$/);
 	});
@@ -974,10 +980,10 @@ test.describe('a session that ends mid-way (U-30)', () => {
 		await page.route('**/api/v1/auth/login', (route) => reply(route, 200, { data: other }));
 		await page.route('**/api/v1/app/notifications?*', (route) => reply(route, 200, emptyPage()));
 
-		await page.getByRole('button', { name: 'Masuk akun dengan Email' }).click();
+		await page.getByRole('button', { name: 'Masuk dengan email' }).click();
 		await page.getByLabel('Email').fill('lain@sakala.local');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('kata-sandi');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		await expect(page).toHaveURL('/notifications');
 		await expect(page.getByRole('button', { name: 'Menu akun pengguna' })).toContainText(
@@ -1009,15 +1015,15 @@ test.describe('a session that ends mid-way (U-30)', () => {
 
 		await page.goto('/login?method=email&returnTo=%2Fprofile');
 		await page.getByLabel('Email').fill('rani@sakala.local');
-		await page.getByLabel('Kata Sandi', { exact: true }).fill('salah');
-		await page.getByRole('button', { name: 'Lanjutkan dengan Email' }).click();
+		await page.getByLabel('Kata sandi', { exact: true }).fill('salah');
+		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
 
 		await expect(page.getByRole('alert')).toHaveText('Email atau kata sandi salah.');
 		expect(new URL(page.url()).searchParams.get('returnTo')).toBe('/profile');
 	});
 });
 
-test.describe('onboarding (U-84, U-66)', () => {
+test.describe('onboarding', () => {
 	test('requires a session', async ({ page }) => {
 		await mockSignedOut(page);
 
@@ -1046,6 +1052,35 @@ test.describe('onboarding (U-84, U-66)', () => {
 		await expect(page.getByText('Langkah 1 dari 3')).toBeVisible();
 	});
 
+	test('asks for the profile first, the source can be skipped, and it ends on a new project', async ({
+		page
+	}) => {
+		await mockSession(page, { onboarding_completed_at: null });
+		await page.route('**/api/v1/onboarding/profile', (route) =>
+			reply(route, 200, { data: { ...user, onboarding_completed_at: null } })
+		);
+		await page.route('**/api/v1/onboarding/source', (route) =>
+			reply(route, 200, { data: { ...user, onboarding_completed_at: null } })
+		);
+		await page.route('**/api/v1/onboarding/complete', async (route) => {
+			await mockSession(page);
+			await reply(route, 200, { data: user });
+		});
+
+		await page.goto('/onboarding');
+		await expect(page.getByRole('heading', { level: 1, name: 'Profil kamu' })).toBeVisible();
+		await page.getByRole('button', { name: 'Lewati' }).click();
+
+		const source = page.getByRole('heading', { level: 1, name: 'Dari mana kamu tahu Sakala?' });
+		await expect(source).toBeVisible();
+		await expect(source).toBeFocused();
+		await expect(page.getByRole('radio', { name: 'GMEDIA' })).toHaveCount(1);
+		await page.getByRole('button', { name: 'Lewati' }).click();
+
+		await page.getByRole('button', { name: 'Buat proyek pertama' }).click();
+		await expect(page).toHaveURL('/projects/new');
+	});
+
 	for (const [label, role] of [
 		['Mahasiswa', 'student'],
 		['Mentor', 'mentor']
@@ -1064,19 +1099,18 @@ test.describe('onboarding (U-84, U-66)', () => {
 			});
 
 			await page.goto('/onboarding');
-			await page.getByRole('button', { name: 'Lewati' }).click();
-			await page.getByLabel('Nama Tampilan').fill('Rani');
+			await page.getByLabel('Nama lengkap').fill('Rani');
 			await page.getByRole('radio', { name: label, exact: true }).check({ force: true });
 			await page.getByRole('button', { name: 'Lanjutkan' }).click();
 
-			await expect(page.getByText('Langkah 3 dari 3')).toBeVisible();
+			await expect(page.getByText('Langkah 2 dari 3')).toBeVisible();
 			expect(bodies).toEqual([{ name: 'Rani', role }]);
 		});
 	}
 });
 
 test.describe('honest copy', () => {
-	test('the 500 page does not claim the team was notified (U-12)', async ({ page }) => {
+	test('the 500 page does not claim the team was notified', async ({ page }) => {
 		await mockCsrf(page);
 		await page.route('**/api/v1/auth/user', (route) => reply(route, 500, {}));
 
@@ -1086,7 +1120,7 @@ test.describe('honest copy', () => {
 		await expect(page.locator('body')).not.toContainText('diberi tahu');
 	});
 
-	test('loading shows no invented percentage (U-99)', async ({ page }) => {
+	test('loading shows no invented percentage', async ({ page }) => {
 		await mockCsrf(page);
 		await page.route('**/api/v1/auth/user', () => {
 			// Never answers: the guard stays in its loading state.
@@ -1094,12 +1128,12 @@ test.describe('honest copy', () => {
 
 		await page.goto('/projects');
 
-		await expect(page.getByText('Mohon tunggu')).toBeVisible();
+		await expect(page.getByRole('status', { name: /memuat/i })).toBeVisible();
 		await expect(page.locator('body')).not.toContainText('%');
-		await expect(page.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+		await expect(page.getByRole('progressbar')).toHaveCount(0);
 	});
 
-	test('a 403 from the guard has a way out (U-99)', async ({ page }) => {
+	test('a 403 from the guard has a way out', async ({ page }) => {
 		await mockCsrf(page);
 		await page.route('**/api/v1/auth/user', (route) => reply(route, 403, {}));
 
