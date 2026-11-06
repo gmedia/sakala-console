@@ -1,29 +1,36 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import AuthBranding from './AuthBranding.svelte';
 
 	type Props = {
 		title: string;
-		description: string;
+		description?: string;
+		mode?: 'login' | 'register';
 		children: Snippet;
 	};
 
-	let { title, description, children }: Props = $props();
+	let { title, description, mode = 'login', children }: Props = $props();
 </script>
 
 <main
 	id="main-content"
 	tabindex="-1"
-	class="min-h-screen grid grid-cols-1 lg:grid-cols-10 outline-none"
+	class="grid min-h-screen grid-cols-1 outline-none lg:grid-cols-10"
 >
-	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-4">
-		<div class="w-full max-w-lg space-y-8">
+	<div
+		class="flex flex-col items-center justify-center bg-surface p-6 sm:p-12 lg:col-span-4 lg:p-16"
+	>
+		<div class="w-full max-w-md space-y-8">
+			<SakalaLogo class="h-10 lg:hidden" />
 			<div class="space-y-2">
-				<h1 class="text-4xl font-semibold text-zinc-950 tracking-tight">{title}</h1>
-				<p class="text-sm text-muted font-normal">{description}</p>
+				<h1 class="text-3xl text-foreground">{title}</h1>
+				{#if description}
+					<p class="text-sm text-muted">{description}</p>
+				{/if}
 			</div>
 			{@render children()}
 		</div>
 	</div>
-	<AuthBranding mode="login" />
+	<AuthBranding {mode} />
 </main>

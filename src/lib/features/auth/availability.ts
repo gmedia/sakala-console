@@ -31,20 +31,20 @@ export function resolveAuthAvailability(query: {
 
 function oauthProviders(availability: AuthAvailability): AuthProviderOption[] {
 	return [
-		...(availability.github ? [{ id: 'github' as const, name: 'Github' }] : []),
+		...(availability.github ? [{ id: 'github' as const, name: 'GitHub' }] : []),
 		...(availability.google ? [{ id: 'google' as const, name: 'Google' }] : [])
 	];
 }
 
 /** Password login needs no email, so an account that is already verified can always use it. */
 export function loginProviders(availability: AuthAvailability): AuthProviderOption[] {
-	return [...oauthProviders(availability), { id: 'email', name: 'Email' }];
+	return [...oauthProviders(availability), { id: 'email', name: 'email' }];
 }
 
 export function registerProviders(availability: AuthAvailability): AuthProviderOption[] {
 	return availability.emailDeliveryOff
 		? oauthProviders(availability)
-		: [...oauthProviders(availability), { id: 'email', name: 'Email' }];
+		: [...oauthProviders(availability), { id: 'email', name: 'email' }];
 }
 
 /** The sentence that says where to go instead, naming only providers that really work. */

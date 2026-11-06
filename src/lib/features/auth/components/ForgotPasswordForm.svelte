@@ -57,18 +57,19 @@
 	{:else if availability.emailDeliveryOff}
 		<EmailDeliveryNotice message={passwordResetUnavailableMessage(availability)} />
 	{:else if sentTo}
-		<div class="space-y-2 rounded-lg border border-primary/20 bg-primary-50 p-6" role="status">
+		<div class="space-y-2 rounded-control border border-primary/20 bg-primary-50 p-6" role="status">
 			<p class="font-semibold text-primary">Cek email kamu</p>
-			<p class="text-sm text-zinc-600">
-				Kalau <strong class="text-zinc-900">{sentTo}</strong> terdaftar di Sakala, tautan untuk membuat
-				kata sandi baru sudah kami kirim ke sana. Tautan berlaku 60 menit. Cek juga folder spam.
+			<p class="text-sm text-foreground">
+				Kalau <strong class="font-semibold text-foreground">{sentTo}</strong> terdaftar di Sakala, tautan
+				untuk membuat kata sandi baru sudah kami kirim ke sana. Tautan berlaku 60 menit. Cek juga folder
+				spam.
 			</p>
 		</div>
 	{:else}
 		<form class="space-y-4" onsubmit={handleSubmit} novalidate>
 			{#if generalError}
 				<div
-					class="rounded-lg border border-error/30 bg-error-50 p-3 text-xs font-medium text-error"
+					class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error"
 					role="alert"
 				>
 					{generalError}
@@ -83,19 +84,16 @@
 				bind:value={email}
 				error={fieldError}
 			/>
-			<Button
-				type="submit"
-				disabled={forgotPassword.isPending}
-				class="w-full rounded-lg px-4 py-3 text-base"
-			>
-				{forgotPassword.isPending ? 'Mengirim...' : 'Kirim Tautan Reset'}
+			<Button size="lg" class="w-full" type="submit" disabled={forgotPassword.isPending}>
+				{forgotPassword.isPending ? 'Mengirim...' : 'Kirim tautan reset'}
 			</Button>
 		</form>
 	{/if}
 
 	<p class="text-center text-sm text-muted">
 		Ingat kata sandimu?
-		<a href={resolve('/login')} class="ml-1 font-semibold text-primary-600 hover:underline">Masuk</a
+		<a href={resolve('/login')} class="ml-1 font-semibold text-primary-dark hover:underline"
+			>Masuk</a
 		>
 	</p>
 </div>

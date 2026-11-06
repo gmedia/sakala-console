@@ -83,25 +83,20 @@
 
 <div class="space-y-6">
 	{#if isDone}
-		<div class="space-y-3 rounded-lg border border-primary/20 bg-primary-50 p-6" role="status">
+		<div class="space-y-3 rounded-control border border-primary/20 bg-primary-50 p-6" role="status">
 			<p class="font-semibold text-primary">Kata sandi sudah diganti</p>
-			<p class="text-sm text-zinc-600">Masuk dengan kata sandi barumu.</p>
-			<a
-				href={resolve('/login')}
-				class="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
-			>
-				Masuk
-			</a>
+			<p class="text-sm text-foreground">Masuk dengan kata sandi barumu.</p>
+			<Button href={resolve('/login')}>Masuk</Button>
 		</div>
 	{:else if !hasLink}
-		<div class="space-y-3 rounded-lg border border-error/30 bg-error-50 p-6" role="alert">
+		<div class="space-y-3 rounded-control border border-error/30 bg-error-50 p-6" role="alert">
 			<p class="text-sm text-error">
 				Tautan reset ini tidak lengkap, atau halaman ini sudah dimuat ulang. Minta tautan baru
 				supaya kamu bisa membuat kata sandi baru.
 			</p>
 			<a
 				href={resolve('/forgot-password')}
-				class="inline-block text-sm font-semibold text-primary-600 hover:underline"
+				class="inline-block text-sm font-semibold text-primary-dark hover:underline"
 			>
 				Minta tautan baru
 			</a>
@@ -110,14 +105,14 @@
 		<form class="space-y-4" onsubmit={handleSubmit} novalidate>
 			{#if errors.general}
 				<div
-					class="space-y-1 rounded-lg border border-error/30 bg-error-50 p-3 text-xs font-medium text-error"
+					class="space-y-1 rounded-control border border-error/30 bg-error-50 p-3 text-xs font-medium text-error"
 					role="alert"
 				>
 					<p>{errors.general}</p>
 					{#if linkRejected}
 						<a
 							href={resolve('/forgot-password')}
-							class="inline-block font-semibold text-primary-600 hover:underline"
+							class="inline-block font-semibold text-primary-dark hover:underline"
 						>
 							Minta tautan baru
 						</a>
@@ -130,7 +125,7 @@
 				label="Kata sandi baru"
 				type="password"
 				autocomplete="new-password"
-				placeholder="Masukkan kata sandi baru"
+				placeholder="Kata sandi baru"
 				hint="Minimal 8 karakter."
 				bind:value={password}
 				error={errors.password}
@@ -140,16 +135,12 @@
 				label="Konfirmasi kata sandi baru"
 				type="password"
 				autocomplete="new-password"
-				placeholder="Masukkan ulang kata sandi baru"
+				placeholder="Ulangi kata sandi baru"
 				bind:value={confirmation}
 				error={errors.confirmation}
 			/>
-			<Button
-				type="submit"
-				disabled={resetPassword.isPending}
-				class="w-full rounded-lg px-4 py-3 text-base"
-			>
-				{resetPassword.isPending ? 'Menyimpan...' : 'Simpan Kata Sandi'}
+			<Button size="lg" class="w-full" type="submit" disabled={resetPassword.isPending}>
+				{resetPassword.isPending ? 'Menyimpan...' : 'Simpan kata sandi'}
 			</Button>
 		</form>
 	{/if}

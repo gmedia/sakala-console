@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pageTitle } from '$lib/utils/page-title';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -12,7 +13,8 @@
 		type AuthProviderId
 	} from '$lib/features/auth/utils/oauth';
 	import { resolve } from '$app/paths';
-	import AuthBranding from '$lib/features/auth/components/AuthBranding.svelte';
+	import FormField from '$lib/components/ui/FormField.svelte';
+	import AuthSplitLayout from '$lib/features/auth/components/AuthSplitLayout.svelte';
 	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
 	import ResendVerification from '$lib/features/auth/components/ResendVerification.svelte';
 	import AuthOptionsSkeleton from '$lib/features/auth/components/AuthOptionsSkeleton.svelte';
@@ -23,8 +25,6 @@
 		resolveAuthAvailability
 	} from '$lib/features/auth/availability';
 	import { useAuthOptions } from '$lib/features/auth/queries';
-	import Eye from 'phosphor-svelte/lib/Eye';
-	import EyeSlash from 'phosphor-svelte/lib/EyeSlash';
 	import { useLogin } from '$lib/features/auth/mutations';
 	import { consumeSessionEndedNotice } from '$lib/features/auth/session-notice';
 	import { ApiError, NetworkError } from '$lib/api/errors';
@@ -33,7 +33,6 @@
 
 	let email = $state('');
 	let password = $state('');
-	let showPassword = $state(false);
 	let lastProvider = $state<AuthProviderId | null>(null);
 	let showAllProviders = $state(false);
 	let errors = $state({
@@ -60,11 +59,11 @@
 	function providerName(id: AuthProviderId): string {
 		switch (id) {
 			case 'github':
-				return 'Github';
+				return 'GitHub';
 			case 'google':
 				return 'Google';
 			case 'email':
-				return 'Email';
+				return 'email';
 		}
 	}
 
@@ -220,204 +219,154 @@
 </script>
 
 <svelte:head>
-	<title>Masuk | Sakala Console</title>
+	<title>{pageTitle('Masuk')}</title>
 </svelte:head>
 
-<main
-	id="main-content"
-	tabindex="-1"
-	class="min-h-screen grid grid-cols-1 lg:grid-cols-10 outline-none"
->
-	<div class="flex flex-col justify-center items-center bg-white p-8 sm:p-12 lg:p-16 lg:col-span-4">
-		<div class="w-full max-w-lg space-y-8">
-			<div class="space-y-2">
-				<h1 class="text-4xl font-semibold text-zinc-950 tracking-tight">Selamat Datang</h1>
-				<p class="text-sm text-muted font-normal">Masuk ke dashboard kamu untuk melanjutkan.</p>
-			</div>
+<AuthSplitLayout title="Selamat datang" description="Masuk ke dashboard kamu untuk melanjutkan.">
+	<div class="space-y-6">
+		{#if sessionEnded}
+			<p
+				class="rounded-control border border-primary/30 bg-primary-50 p-3 text-sm font-medium text-foreground"
+				role="status"
+			>
+				Sesi kamu berakhir, silakan masuk lagi.
+			</p>
+		{/if}
 
-			<div class="space-y-6">
-				{#if sessionEnded}
-					<p
-						class="rounded-lg border border-primary/30 bg-primary-50 p-3 text-sm font-medium text-foreground"
-						role="status"
+		{#if availability.emailDeliveryOff}
+			<EmailDeliveryNotice message={loginUnavailableMessage(availability)} />
+		{/if}
+
+		{#if authMethod === 'choice'}
+			{#if errors.general}
+				<div
+					class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error"
+					role="alert"
+				>
+					{errors.general}
+				</div>
+			{/if}
+
+			{#if availability.isLoading}
+				<AuthOptionsSkeleton />
+			{:else if offeredLastProvider && !showAllProviders}
+				<div class="space-y-4">
+					<Button
+						variant="secondary"
+						size="lg"
+						class="w-full justify-between"
+						onclick={() => handleProviderClick(offeredLastProvider)}
 					>
-						Sesi kamu berakhir, silakan masuk lagi.
-					</p>
-				{/if}
-
-				{#if availability.emailDeliveryOff}
-					<EmailDeliveryNotice message={loginUnavailableMessage(availability)} />
-				{/if}
-
-				{#if authMethod === 'choice'}
-					{#if errors.general}
-						<div
-							class="p-3 text-xs font-medium text-error bg-error-50 border border-error/30 rounded-lg"
-							role="alert"
+						<span class="flex items-center gap-2.5">
+							<SocialLogo name={offeredLastProvider} />
+							<span>Masuk dengan {providerName(offeredLastProvider)}</span>
+						</span>
+						<span
+							class="rounded-full border border-primary/30 bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-dark"
 						>
-							{errors.general}
-						</div>
-					{/if}
+							Terakhir dipakai
+						</span>
+					</Button>
 
-					{#if availability.isLoading}
-						<AuthOptionsSkeleton />
-					{:else if offeredLastProvider && !showAllProviders}
-						<div class="space-y-4">
-							<button
-								onclick={() => handleProviderClick(offeredLastProvider)}
-								type="button"
-								class="w-full bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-between transition-all duration-200 hover:shadow-sm cursor-pointer"
-							>
-								<div class="flex items-center gap-2.5">
-									<SocialLogo name={offeredLastProvider} />
-									<span>Masuk akun dengan {providerName(offeredLastProvider)}</span>
-								</div>
-								<span
-									class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary border border-primary/30"
-								>
-									Terakhir Digunakan &rarr;
-								</span>
-							</button>
+					<div class="flex items-center gap-3 text-xs text-muted">
+						<span class="h-px flex-1 bg-border"></span>
+						atau
+						<span class="h-px flex-1 bg-border"></span>
+					</div>
 
-							<div class="relative flex items-center justify-center my-4">
-								<div class="w-full border-t border-zinc-200"></div>
-								<span
-									class="absolute bg-white px-3 text-xs text-muted font-medium uppercase tracking-wider"
-									>Atau</span
-								>
-							</div>
-
-							<button
-								onclick={() => (showAllProviders = true)}
-								type="button"
-								class="w-full bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-700 font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all duration-200 hover:shadow-sm cursor-pointer text-sm"
-							>
-								Masuk dengan profil lainnya
-							</button>
-						</div>
-					{:else}
-						<div class="space-y-4">
-							{#each authProviders as provider (provider.id)}
-								<button
-									onclick={() => handleProviderClick(provider.id)}
-									type="button"
-									class="w-full bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2.5 transition-all duration-200 hover:shadow-sm cursor-pointer"
-								>
-									<SocialLogo name={provider.id} />
-									<span>Masuk akun dengan {provider.name}</span>
-								</button>
-							{/each}
-						</div>
-					{/if}
-				{:else}
-					<form class="space-y-4" onsubmit={handleSubmit} novalidate>
-						{#if errors.general}
-							<div
-								bind:this={generalErrorRef}
-								class="p-3 text-xs font-medium text-error bg-error-50 border border-error/30 rounded-lg focus:outline-none"
-								role="alert"
-								tabindex="-1"
-							>
-								{errors.general}
-							</div>
-						{/if}
-						{#if unverifiedEmail}
-							<ResendVerification email={unverifiedEmail} />
-						{/if}
-						<div class="space-y-1.5 flex flex-col">
-							<label for="email" class="text-sm font-semibold text-zinc-700">Email</label>
-							<input
-								id="email"
-								type="email"
-								placeholder="example@gmail.com"
-								bind:value={email}
-								oninput={handleEmailInput}
-								aria-invalid={errors.email ? 'true' : undefined}
-								aria-describedby={errors.email ? 'email-error' : undefined}
-								class="w-full rounded-lg border border-primary bg-white px-4 py-3 text-sm font-medium placeholder-muted focus:border-primary-600 focus:ring-1 focus:ring-primary-600 focus:outline-none transition-colors {errors.email
-									? 'border-error bg-error-50/20 text-error placeholder-error focus:border-error'
-									: 'border-primary bg-white text-zinc-800 placeholder-muted focus:border-primary-600'}"
-								required
-							/>
-							{#if errors.email}
-								<p id="email-error" class="text-xs text-error mt-1">{errors.email}</p>
-							{/if}
-						</div>
-
-						<div class="space-y-1.5 flex flex-col">
-							<div class="flex justify-between items-center w-full">
-								<label for="password" class="text-sm font-semibold text-zinc-700">Kata Sandi</label>
-							</div>
-							<div class="relative flex items-center">
-								<input
-									id="password"
-									type={showPassword ? 'text' : 'password'}
-									placeholder="Masukkan kata sandi kamu"
-									bind:value={password}
-									oninput={handlePasswordInput}
-									aria-invalid={errors.password ? 'true' : undefined}
-									aria-describedby={errors.password ? 'password-error' : undefined}
-									class="w-full rounded-lg border border-primary bg-white pl-4 pr-11 py-3 text-sm font-medium placeholder-muted focus:border-primary-600 focus:ring-1 focus:ring-primary-600 focus:outline-none transition-colors
-                  {errors.password
-										? 'border-error bg-error-50/20 text-error placeholder-error focus:border-error'
-										: 'border-primary bg-white text-zinc-800 placeholder-muted focus:border-primary-600'}"
-									required
-								/>
-								<button
-									type="button"
-									onclick={() => (showPassword = !showPassword)}
-									class="absolute right-3.5 text-primary hover:text-primary-600 p-1 cursor-pointer"
-									aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-								>
-									{#if showPassword}
-										<EyeSlash size={20} />
-									{:else}
-										<Eye size={20} />
-									{/if}
-								</button>
-							</div>
-							{#if errors.password}
-								<p id="password-error" class="text-xs text-error mt-1">{errors.password}</p>
-							{/if}
-						</div>
-
-						{#if availability.emailActionsAvailable}
-							<a
-								href={resolve('/forgot-password')}
-								class="inline-flex min-h-6 items-center text-xs font-semibold text-primary-600 hover:underline"
-							>
-								Lupa Kata Sandi?
-							</a>
-						{/if}
-
+					<Button
+						variant="ghost"
+						size="lg"
+						class="w-full"
+						onclick={() => (showAllProviders = true)}
+					>
+						Pilih cara masuk lain
+					</Button>
+				</div>
+			{:else}
+				<div class="space-y-3">
+					{#each authProviders as provider (provider.id)}
 						<Button
-							type="submit"
-							disabled={loginMutation.isPending}
-							class="mt-2 w-full gap-2.5 rounded-lg px-4 py-3 text-base"
+							variant="secondary"
+							size="lg"
+							class="w-full"
+							onclick={() => handleProviderClick(provider.id)}
 						>
-							{#if loginMutation.isPending}
-								<div
-									class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
-								></div>
-								<span>Memproses...</span>
-							{:else}
-								<span>Lanjutkan dengan Email</span>
-							{/if}
+							<SocialLogo name={provider.id} />
+							<span>Masuk dengan {provider.name}</span>
 						</Button>
-					</form>
+					{/each}
+				</div>
+			{/if}
+		{:else}
+			<form class="space-y-4" onsubmit={handleSubmit} novalidate>
+				{#if errors.general}
+					<div
+						bind:this={generalErrorRef}
+						class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error focus:outline-none"
+						role="alert"
+						tabindex="-1"
+					>
+						{errors.general}
+					</div>
+				{/if}
+				{#if unverifiedEmail}
+					<ResendVerification email={unverifiedEmail} />
+				{/if}
+				<FormField
+					id="email"
+					label="Email"
+					type="email"
+					autocomplete="email"
+					placeholder="nama@contoh.com"
+					required
+					bind:value={email}
+					oninput={handleEmailInput}
+					error={errors.email}
+				/>
+
+				<FormField
+					id="password"
+					label="Kata sandi"
+					type="password"
+					autocomplete="current-password"
+					placeholder="Kata sandi"
+					required
+					bind:value={password}
+					oninput={handlePasswordInput}
+					error={errors.password}
+				/>
+
+				{#if availability.emailActionsAvailable}
+					<a
+						href={resolve('/forgot-password')}
+						class="inline-flex min-h-6 items-center text-sm font-semibold text-primary-dark hover:underline"
+					>
+						Lupa kata sandi?
+					</a>
 				{/if}
 
-				<p class="text-center text-sm text-muted">
-					Belum Punya Akun?
-					<a
-						href={resolve('/register')}
-						class="text-primary-600 font-semibold hover:underline ml-1"
-					>
-						Daftar
-					</a>
-				</p>
-			</div>
-		</div>
+				<Button type="submit" size="lg" disabled={loginMutation.isPending} class="w-full">
+					{#if loginMutation.isPending}
+						<span
+							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+						></span>
+						<span>Memproses...</span>
+					{:else}
+						<span>Masuk</span>
+					{/if}
+				</Button>
+			</form>
+		{/if}
+
+		<p class="text-center text-sm text-muted">
+			Belum punya akun?
+			<a
+				href={resolve('/register')}
+				class="ml-1 inline-flex min-h-6 items-center font-semibold text-primary-dark hover:underline"
+			>
+				Daftar
+			</a>
+		</p>
 	</div>
-	<AuthBranding mode="login" />
-</main>
+</AuthSplitLayout>

@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { pageTitle } from '$lib/utils/page-title';
 	import GithubCallback from '$lib/features/auth/components/GithubCallback.svelte';
 </script>
 
 <svelte:head>
-	<title>Masuk dengan GitHub | Sakala Console</title>
+	<title>{pageTitle('Masuk dengan GitHub')}</title>
 </svelte:head>
 
 <GithubCallback />

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pageTitle } from '$lib/utils/page-title';
 	import AuthSplitLayout from '$lib/features/auth/components/AuthSplitLayout.svelte';
 	import ForgotPasswordForm from '$lib/features/auth/components/ForgotPasswordForm.svelte';
 	import { resolveAuthAvailability } from '$lib/features/auth/availability';
@@ -16,9 +17,9 @@
 </script>
 
 <svelte:head>
-	<title>Lupa Kata Sandi | Sakala Console</title>
+	<title>{pageTitle('Lupa kata sandi')}</title>
 </svelte:head>
 
-<AuthSplitLayout title="Lupa Kata Sandi" {description}>
+<AuthSplitLayout title="Lupa kata sandi" {description}>
 	<ForgotPasswordForm />
 </AuthSplitLayout>

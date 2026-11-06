@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from '$lib/components/ui/Button.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
 	import { resolveAuthAvailability } from '../availability';
@@ -67,11 +68,7 @@
 			/>
 		{/if}
 
-		<button
-			type="submit"
-			disabled={isDisabled}
-			class="w-full rounded-lg border border-primary bg-white px-4 py-3 text-sm font-semibold text-primary-600 transition-colors hover:bg-primary-50 cursor-pointer disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-muted"
-		>
+		<Button variant="secondary" size="lg" class="w-full" type="submit" disabled={isDisabled}>
 			{#if resend.isPending}
 				Mengirim...
 			{:else if cooldown.remaining > 0}
@@ -79,10 +76,10 @@
 			{:else}
 				Kirim ulang email verifikasi
 			{/if}
-		</button>
+		</Button>
 
 		{#if sentTo}
-			<p class="text-xs text-zinc-600" role="status">
+			<p class="text-xs text-muted" role="status">
 				Kalau {sentTo} terdaftar dan belum terverifikasi, tautan baru sudah kami kirim. Cek kotak masuk
 				dan folder spam.
 			</p>

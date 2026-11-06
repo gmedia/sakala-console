@@ -7,7 +7,6 @@ export function parseEmailLinkStatus(value: string | null): EmailLinkStatus {
 
 export type AuthStatusContent = {
 	tone: EmailLinkStatus;
-	badge: string;
 	title: string;
 	description: string;
 };
@@ -15,21 +14,18 @@ export type AuthStatusContent = {
 export const EMAIL_VERIFIED_CONTENT: Record<EmailLinkStatus, AuthStatusContent> = {
 	success: {
 		tone: 'success',
-		badge: 'Verifikasi Selesai',
-		title: 'Verifikasi Email Berhasil',
+		title: 'Verifikasi email berhasil',
 		description: 'Emailmu sudah terverifikasi. Masuk untuk mulai menyiapkan proyek pertamamu.'
 	},
 	error: {
 		tone: 'error',
-		badge: 'Verifikasi Gagal',
-		title: 'Tautan Verifikasi Tidak Berlaku',
+		title: 'Tautan verifikasi tidak berlaku',
 		description:
 			'Tautan ini salah atau sudah kedaluwarsa, jadi emailmu belum terverifikasi. Minta tautan baru di bawah.'
 	},
 	unknown: {
 		tone: 'unknown',
-		badge: 'Status Tidak Diketahui',
-		title: 'Status Verifikasi Tidak Diketahui',
+		title: 'Status verifikasi tidak diketahui',
 		description:
 			'Halaman ini tidak bisa memastikan hasil verifikasimu. Coba masuk: kalau emailmu belum terverifikasi, kamu bisa meminta tautan baru di sana.'
 	}
@@ -38,21 +34,18 @@ export const EMAIL_VERIFIED_CONTENT: Record<EmailLinkStatus, AuthStatusContent> 
 export const EMAIL_CHANGED_CONTENT: Record<EmailLinkStatus, AuthStatusContent> = {
 	success: {
 		tone: 'success',
-		badge: 'Email Diganti',
-		title: 'Email Berhasil Diganti',
+		title: 'Email berhasil diganti',
 		description: 'Mulai sekarang, masuk ke Sakala memakai alamat email yang baru.'
 	},
 	error: {
 		tone: 'error',
-		badge: 'Gagal Diganti',
-		title: 'Tautan Ganti Email Tidak Berlaku',
+		title: 'Tautan ganti email tidak berlaku',
 		description:
 			'Tautan ini salah, sudah dipakai, atau sudah kedaluwarsa, jadi emailmu belum berubah. Minta lagi dari Pengaturan.'
 	},
 	unknown: {
 		tone: 'unknown',
-		badge: 'Status Tidak Diketahui',
-		title: 'Status Ganti Email Tidak Diketahui',
+		title: 'Status ganti email tidak diketahui',
 		description: 'Halaman ini tidak bisa memastikan hasilnya. Cek email akunmu di Pengaturan.'
 	}
 };
