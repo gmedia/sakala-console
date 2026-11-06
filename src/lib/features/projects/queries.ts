@@ -3,7 +3,11 @@ import { createCoalescedTask } from '$lib/features/realtime/coalesced-task';
 import { queryKeys } from '$lib/api/query-keys';
 import { getDomainPreview, getListProjects } from '$lib/api/resources/projects';
 import { getPilotLimits } from '$lib/api/resources/pilot-limits';
-import type { ProjectsQueryParams } from '$lib/api/resources/projects';
+import type {
+	Project as ListedProject,
+	ProjectResponse,
+	ProjectsQueryParams
+} from '$lib/api/resources/projects';
 import { resolveRefetchInterval, rateLimitWait } from '$lib/features/deployments/queries';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 import { getProject, getDeployments, getEnvironmentVariables } from './api';
@@ -63,6 +67,37 @@ export function resolveProjectPollInterval(error?: unknown): number | false {
 	const wait = rateLimitWait(error);
 	if (wait !== undefined) return wait;
 	return realtimeState.status === 'connected' ? false : HEADER_POLL_IDLE_MS;
+}
+
+/*
+ * A list read is one request for six cards. While something deploys it polls gently, and with the
+ * socket up the notifications channel announces how a deployment ended, so this only catches a start.
+ */
+export const LIST_POLL_RUNNING_MS = 15_000;
+export const LIST_POLL_RUNNING_REALTIME_MS = 60_000;
+export const LIST_POLL_IDLE_MS = 60_000;
+export const LIST_POLL_IDLE_REALTIME_MS = 5 * 60_000;
+
+export function resolveProjectListPollInterval(hasActivity: boolean, error?: unknown): number {
+	const wait = rateLimitWait(error);
+	if (wait !== undefined) return wait;
+	const connected = realtimeState.status === 'connected';
+	if (hasActivity) return connected ? LIST_POLL_RUNNING_REALTIME_MS : LIST_POLL_RUNNING_MS;
+	return connected ? LIST_POLL_IDLE_REALTIME_MS : LIST_POLL_IDLE_MS;
+}
+
+/** The list reads its state from `runtime_status`, and from the newest attempt before that moves. */
+export function hasProjectInProgress(
+	projects: readonly Pick<ListedProject, 'runtime_status' | 'latest_deployment'>[]
+): boolean {
+	return projects.some(
+		(project) =>
+			project.runtime_status === 'deploying' ||
+			(project.latest_deployment !== null &&
+				ACTIVE_DEPLOYMENT_STATUSES.includes(
+					project.latest_deployment.status as Deployment['status']
+				))
+	);
 }
 
 const projectRefreshes = new Map<string, ReturnType<typeof createCoalescedTask>>();
@@ -182,18 +217,25 @@ export function createDeploymentsQuery(
 
 export function createListProjectsQuery(
 	params: () => ProjectsQueryParams,
-	options: () => { enabled?: boolean } = () => ({})
+	options: () => { enabled?: boolean; poll?: boolean } = () => ({})
 ) {
 	return createQuery(() => {
 		const queryParams = params();
-		const { enabled = true } = options();
+		const { enabled = true, poll = false } = options();
 
 		return {
 			queryKey: queryKeys.projects.list(queryParams),
 			queryFn: () => getListProjects(queryParams),
 			retry: false,
 			enabled,
-			select: (response) => ({
+			refetchInterval: poll
+				? (query) =>
+						resolveProjectListPollInterval(
+							hasProjectInProgress(query.state.data?.data ?? []),
+							query.state.error
+						)
+				: undefined,
+			select: (response: ProjectResponse) => ({
 				projects: response.data,
 				meta: response.meta
 			}),

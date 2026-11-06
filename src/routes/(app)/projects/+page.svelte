@@ -23,12 +23,15 @@
 		currentPage = 1;
 	});
 
-	const projectsQuery = createListProjectsQuery(() => ({
-		page: currentPage,
-		per_page: perPage,
-		search: search.trim() || undefined,
-		filter
-	}));
+	const projectsQuery = createListProjectsQuery(
+		() => ({
+			page: currentPage,
+			per_page: perPage,
+			search: search.trim() || undefined,
+			filter
+		}),
+		() => ({ poll: true })
+	);
 
 	const isCurrentResultEmpty = $derived(
 		!projectsQuery.isPending && (projectsQuery.data?.projects.length ?? 0) === 0

@@ -14,6 +14,8 @@ const baseProject: Project = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: null,
+	public_url: 'https://sakala-console.run.sakala.dev',
+	latest_deployment: null,
 	runtime_status: 'running',
 	stack: null,
 	last_deployed_at: '2026-09-10T10:00:00Z',
@@ -67,7 +69,11 @@ describe('ProjectCard — long content', () => {
 
 	test('repository name yang panjang tetap ada full text via title attribute', async () => {
 		const longRepo = 'gmedia/sebuah-nama-repository-yang-cukup-panjang-untuk-truncate';
-		await render(ProjectCard, { ...baseProject, repository_full_name: longRepo });
+		await render(ProjectCard, {
+			...baseProject,
+			runtime_status: 'stopped',
+			repository_full_name: longRepo
+		});
 
 		await expect.element(page.getByTitle(longRepo)).toBeInTheDocument();
 	});
@@ -138,5 +144,70 @@ describe('ProjectCard — last deployment', () => {
 		});
 
 		await expect.element(page.getByText('Belum pernah deploy', { exact: true })).toBeVisible();
+	});
+});
+
+describe('ProjectCard, what the list now knows', () => {
+	const latest = {
+		id: 'dep_9',
+		sequence: 9,
+		status: 'succeeded',
+		branch: 'develop',
+		commit_sha: 'a3f2c9d81be0',
+		commit_message: 'feat: tambah halaman menu',
+		created_at: '2026-09-10T10:00:00Z',
+		finished_at: '2026-09-10T10:02:00Z'
+	};
+
+	test('links a live project to its address, above the link to the project', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			public_url: 'https://toko.run.sakala.dev',
+			latest_deployment: latest
+		});
+
+		const url = page.getByTestId('project-card-url');
+		await expect.element(url).toHaveAttribute('href', 'https://toko.run.sakala.dev');
+		await expect.element(url).toHaveTextContent('toko.run.sakala.dev');
+		expect(url.element().className).toContain('z-10');
+	});
+
+	test('does not offer a site that is not up', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			runtime_status: 'failed',
+			public_url: 'https://toko.run.sakala.dev',
+			latest_deployment: latest
+		});
+
+		await expect.element(page.getByTestId('project-card-url')).not.toBeInTheDocument();
+		await expect.element(page.getByText('gmedia/sakala-console')).toBeVisible();
+	});
+
+	test('shows the last commit and its branch', async () => {
+		await render(ProjectCard, { ...baseProject, latest_deployment: latest });
+
+		await expect
+			.element(page.getByTestId('project-card-commit'))
+			.toHaveTextContent('feat: tambah halaman menu');
+		await expect.element(page.getByText('a3f2c9d')).toBeVisible();
+		await expect.element(page.getByText('develop')).toBeVisible();
+	});
+
+	test('holds up with no deployment at all, and with an empty commit', async () => {
+		const { unmount } = await render(ProjectCard, {
+			...baseProject,
+			last_deployed_at: null,
+			latest_deployment: null
+		});
+		await expect.element(page.getByText('Belum pernah deploy')).toBeVisible();
+		await expect.element(page.getByTestId('project-card-commit')).not.toBeInTheDocument();
+		unmount();
+
+		await render(ProjectCard, {
+			...baseProject,
+			latest_deployment: { ...latest, commit_message: null, commit_sha: null }
+		});
+		await expect.element(page.getByTestId('project-card-commit')).not.toBeInTheDocument();
 	});
 });

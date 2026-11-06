@@ -4,7 +4,7 @@ import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 
 /**
- * `notification.created` on `users.{id}` refreshes the bell and the list. Events sent while the
+ * `notification.created` on `users.{id}` refreshes the bell and both lists. Events sent while the
  * socket was down never arrive, so a reconnect refreshes too. The query cache stays the source of
  * what renders.
  */
@@ -13,6 +13,8 @@ export function useNotificationsLive(userId: () => number | null) {
 
 	function refresh() {
 		void client.invalidateQueries({ queryKey: queryKeys.notifications.all });
+		// A notification is how the end of a deployment or a crash reaches the project list.
+		void client.invalidateQueries({ queryKey: queryKeys.projects.lists });
 	}
 
 	usePrivateChannel(

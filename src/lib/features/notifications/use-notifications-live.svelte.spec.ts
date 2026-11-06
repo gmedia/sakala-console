@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync } from 'svelte';
+import { queryKeys } from '$lib/api/query-keys';
 import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 import { useNotificationsLive } from './use-notifications-live.svelte';
@@ -64,7 +65,10 @@ describe('useNotificationsLive', () => {
 		realtimeState.status = 'connected';
 		flushSync();
 
-		expect(client.invalidateQueries).toHaveBeenCalledTimes(1);
+		expect(client.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: queryKeys.notifications.all
+		});
+		expect(client.invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.projects.lists });
 		stop();
 	});
 });

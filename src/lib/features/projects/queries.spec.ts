@@ -9,6 +9,12 @@ import {
 	HEADER_POLL_IDLE_MS,
 	HEADER_POLL_RUNNING_MS,
 	HEADER_POLL_RUNNING_REALTIME_MS,
+	hasProjectInProgress,
+	LIST_POLL_IDLE_MS,
+	LIST_POLL_IDLE_REALTIME_MS,
+	LIST_POLL_RUNNING_MS,
+	LIST_POLL_RUNNING_REALTIME_MS,
+	resolveProjectListPollInterval,
 	resolveHeaderPollInterval,
 	resolveProjectPollInterval
 } from './queries';
@@ -178,5 +184,39 @@ describe('project header polling', () => {
 
 		expect(resolveHeaderPollInterval(true, limited)).toBe(30_000);
 		expect(resolveProjectPollInterval(limited)).toBe(30_000);
+	});
+});
+
+describe('polling the project list', () => {
+	const listed = (runtime_status: string, status?: string) => ({
+		runtime_status,
+		latest_deployment: status ? ({ status } as never) : null
+	});
+
+	it('notices a deployment that the runtime status has not caught up with', () => {
+		expect(hasProjectInProgress([listed('running', 'queued')])).toBe(true);
+		expect(hasProjectInProgress([listed('deploying')])).toBe(true);
+		expect(hasProjectInProgress([listed('running', 'succeeded'), listed('not_deployed')])).toBe(
+			false
+		);
+	});
+
+	it('stays well inside 60 requests a minute shared with the rest of the page', () => {
+		realtimeState.status = 'disconnected';
+		expect(resolveProjectListPollInterval(true)).toBe(LIST_POLL_RUNNING_MS);
+		expect(resolveProjectListPollInterval(false)).toBe(LIST_POLL_IDLE_MS);
+		expect(60_000 / LIST_POLL_RUNNING_MS).toBeLessThanOrEqual(4);
+	});
+
+	it('leans on the socket when it is up', () => {
+		realtimeState.status = 'connected';
+		expect(resolveProjectListPollInterval(true)).toBe(LIST_POLL_RUNNING_REALTIME_MS);
+		expect(resolveProjectListPollInterval(false)).toBe(LIST_POLL_IDLE_REALTIME_MS);
+		realtimeState.status = 'disconnected';
+	});
+
+	it('waits out a 429 instead of polling into it', () => {
+		const error = apiErrorFromResponse(429, { retryAfterSeconds: 90 });
+		expect(resolveProjectListPollInterval(true, error)).toBe(90_000);
 	});
 });
