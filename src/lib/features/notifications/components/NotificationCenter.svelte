@@ -1,11 +1,11 @@
 <script lang="ts">
+	import Button from '$lib/components/ui/Button.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Check from 'phosphor-svelte/lib/Check';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import { getErrorMessage } from '$lib/api/errors';
 	import type { Notification } from '$lib/api/resources/notifications';
-	import { cn } from '$lib/utils/cn';
 	import { useMarkAllNotificationsRead, useMarkNotificationRead } from '../mutations';
 	import { notificationHref } from '../presentation';
 	import { createNotificationsQuery, createUnreadNotificationCountQuery } from '../queries';
@@ -51,65 +51,51 @@
 </script>
 
 {#snippet filterButton(filter: FilterTab, label: string)}
-	<button
-		type="button"
+	<Button
+		variant={activeFilter === filter ? 'primary' : 'secondary'}
+		size="sm"
 		aria-pressed={activeFilter === filter}
 		onclick={() => selectFilter(filter)}
-		class={cn(
-			'rounded-xl px-4 py-2 font-sans text-xs md:text-sm font-semibold transition-colors cursor-pointer',
-			activeFilter === filter
-				? 'bg-primary-dark text-white shadow-xs'
-				: 'border border-border/80 bg-white text-muted hover:text-foreground'
-		)}
 	>
 		{label}
-	</button>
+	</Button>
 {/snippet}
 
-<div class="mx-auto max-w-7xl space-y-6 pb-12">
-	<div class="rounded-2xl border border-border/70 bg-white p-6 md:p-8 shadow-xs space-y-6">
+<div class="max-w-reading space-y-6 pb-12">
+	<div class="surface-card space-y-6 p-4 sm:p-6">
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div class="flex items-center gap-2">
 				{@render filterButton('all', 'Semua')}
-				{@render filterButton('unread', 'Belum Dibaca')}
+				{@render filterButton('unread', 'Belum dibaca')}
 			</div>
 
-			<button
-				type="button"
+			<Button
+				variant="link"
 				onclick={() => markAll.mutate()}
 				disabled={unreadCount === 0 || markAll.isPending}
-				class="flex min-h-6 items-center gap-1.5 font-sans text-xs md:text-sm font-semibold text-primary-dark hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
 			>
 				<Check size={16} class="size-4" />
 				<span>Tandai semua telah dibaca</span>
-			</button>
+			</Button>
 		</div>
 
 		{#if actionError}
-			<p class="font-sans text-xs text-error-base" role="alert">
+			<p class="text-xs text-error-base" role="alert">
 				{getErrorMessage(actionError, 'Gagal menandai notifikasi. Coba lagi.')}
 			</p>
 		{/if}
 
 		{#if notificationsQuery.isPending}
-			<p class="py-12 text-center font-sans text-sm text-muted" role="status">
-				Memuat notifikasi...
-			</p>
+			<p class="py-12 text-center text-sm text-muted" role="status">Memuat notifikasi...</p>
 		{:else if notificationsQuery.isError}
 			<div class="space-y-3 py-12 text-center" role="alert">
-				<p class="font-sans text-sm text-error-base">
+				<p class="text-sm text-error-base">
 					{getErrorMessage(notificationsQuery.error, 'Gagal memuat notifikasi.')}
 				</p>
-				<button
-					type="button"
-					onclick={() => notificationsQuery.refetch()}
-					class="font-sans text-sm font-semibold text-primary-dark hover:underline cursor-pointer"
-				>
-					Coba lagi
-				</button>
+				<Button variant="link" onclick={() => notificationsQuery.refetch()}>Coba lagi</Button>
 			</div>
 		{:else if notifications.length > 0}
-			<div class="divide-y divide-border/60 border-t border-b border-border/60">
+			<div class="divide-y divide-border border-t border-b border-border">
 				{#each notifications as notification (notification.id)}
 					<NotificationItemRow {notification} variant="full" onClick={handleItemClick} />
 				{/each}
@@ -125,12 +111,15 @@
 				</div>
 			{/if}
 		{:else}
-			<div class="py-12 border-t border-border/60">
-				<NotificationEmptyState
-					message={activeFilter === 'unread'
-						? 'Tidak ada notifikasi yang belum dibaca'
-						: 'Tidak Ada Notifikasi'}
-				/>
+			<div class="py-12 border-t border-border">
+				{#if activeFilter === 'unread'}
+					<NotificationEmptyState
+						title="Tidak ada notifikasi yang belum dibaca"
+						description="Semua notifikasi sudah kamu baca."
+					/>
+				{:else}
+					<NotificationEmptyState />
+				{/if}
 			</div>
 		{/if}
 	</div>

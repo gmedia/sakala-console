@@ -1,5 +1,7 @@
 <script lang="ts">
+	import Button from '$lib/components/ui/Button.svelte';
 	import { Popover } from 'bits-ui';
+	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import Bell from 'phosphor-svelte/lib/Bell';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -42,12 +44,12 @@
 
 <Popover.Root bind:open>
 	<Popover.Trigger
-		class="relative flex size-10 items-center justify-center rounded-lg bg-white shadow-xs transition-colors hover:bg-white/90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark"
+		class={buttonClasses('secondary', 'icon', 'relative')}
 		aria-label={unreadCount > 0
 			? `Buka notifikasi, ${unreadCount} belum dibaca`
 			: 'Buka notifikasi'}
 	>
-		<Bell size={24} class="size-6 text-black" />
+		<Bell size={20} class="text-foreground" aria-hidden="true" />
 		{#if unreadCount > 0}
 			<span
 				data-testid="bell-unread-dot"
@@ -62,40 +64,32 @@
 			side="bottom"
 			align="end"
 			sideOffset={8}
-			class="z-50 w-[420px] max-w-[calc(100vw-32px)] rounded-2xl border border-border/80 bg-white p-5 shadow-xl focus:outline-none"
+			class="z-50 w-105 max-w-[calc(100vw-2rem)] rounded-overlay border border-border bg-surface p-4 shadow-overlay focus:outline-none sm:p-5"
 		>
 			<div class="space-y-4">
 				<div class="flex items-center justify-between">
-					<h3 class="font-sans text-base font-semibold text-foreground">Notifikasi</h3>
+					<h2 class="text-base text-foreground">Notifikasi</h2>
 					<a
 						href={resolve('/notifications')}
 						onclick={handleSeeAll}
-						class="shrink-0 font-sans text-xs font-semibold text-primary-dark hover:underline"
+						class="inline-flex min-h-6 shrink-0 items-center text-sm font-semibold text-primary-dark hover:underline"
 					>
-						Lihat Semua
+						Lihat semua
 					</a>
 				</div>
 
 				{#if notificationsQuery.isPending}
-					<p class="py-6 text-center font-sans text-xs text-muted" role="status">
-						Memuat notifikasi...
-					</p>
+					<p class="py-6 text-center text-xs text-muted" role="status">Memuat notifikasi...</p>
 				{:else if notificationsQuery.isError}
 					<div class="space-y-2 py-6 text-center" role="alert">
-						<p class="font-sans text-xs text-error-base">
+						<p class="text-xs text-error-base">
 							{getErrorMessage(notificationsQuery.error, 'Gagal memuat notifikasi.')}
 						</p>
-						<button
-							type="button"
-							onclick={() => notificationsQuery.refetch()}
-							class="font-sans text-xs font-semibold text-primary-dark hover:underline cursor-pointer"
-						>
-							Coba lagi
-						</button>
+						<Button variant="link" onclick={() => notificationsQuery.refetch()}>Coba lagi</Button>
 					</div>
 				{:else if notifications.length > 0}
 					<div
-						class="max-h-[380px] space-y-1 overflow-y-auto pr-1 focus:outline-none"
+						class="max-h-[min(60dvh,24rem)] space-y-1 overflow-y-auto pr-1"
 						role="group"
 						aria-label="Daftar notifikasi"
 					>

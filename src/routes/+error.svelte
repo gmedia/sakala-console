@@ -1,19 +1,29 @@
 <script lang="ts">
+	import { pageTitle } from '$lib/utils/page-title';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/errors';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import { useCurrentUser } from '$lib/features/auth/queries';
 	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
 	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
 
 	const isNotFound = $derived(page.status === 404);
-	const links = [
-		{ label: 'Buka Proyek', href: resolve('/projects') },
-		{ label: 'Ke Halaman Masuk', href: resolve('/login') }
-	];
+
+	// Only a 401 says nobody is signed in. Anything else keeps the way to the projects.
+	const currentUser = useCurrentUser();
+	const isSignedOut = $derived(
+		currentUser.error instanceof ApiError && currentUser.error.isUnauthenticated
+	);
+	const links = $derived(
+		isSignedOut
+			? [{ label: 'Masuk', href: resolve('/login') }]
+			: [{ label: 'Buka proyek', href: resolve('/projects') }]
+	);
 </script>
 
 <svelte:head>
-	<title>{isNotFound ? 'Halaman Tidak Ditemukan' : 'Terjadi Kesalahan'} | Sakala Console</title>
+	<title>{pageTitle(isNotFound ? 'Halaman tidak ditemukan' : 'Terjadi kesalahan')}</title>
 </svelte:head>
 
 <main
@@ -25,6 +35,9 @@
 		headingTag="h1"
 		icon={isNotFound ? MagnifyingGlassIcon : WarningIcon}
 		iconText={`Error ${page.status}`}
+		iconClass={isNotFound ? 'text-muted' : undefined}
+		iconTextClass={isNotFound ? 'text-muted' : undefined}
+		iconBackgroundClass={isNotFound ? 'bg-background-soft' : undefined}
 		title={isNotFound ? 'Halaman tidak ditemukan' : 'Terjadi kesalahan'}
 		description={isNotFound
 			? 'Alamat ini tidak ada di Sakala Console. Mungkin tautannya salah ketik atau halamannya sudah dipindah.'

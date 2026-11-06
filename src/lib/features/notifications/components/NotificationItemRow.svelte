@@ -5,7 +5,7 @@
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import type { Notification } from '$lib/api/resources/notifications';
 	import { cn } from '$lib/utils/cn';
-	import { formatNotificationTime } from '../presentation';
+	import { formatRelativeTime } from '$lib/utils/date';
 
 	type Props = {
 		notification: Notification;
@@ -15,76 +15,79 @@
 
 	let { notification, variant = 'compact', onClick }: Props = $props();
 
+	/** The icon's shape and the title carry the meaning, and the colour helps scanning. */
 	function getIcon(category: string | null) {
 		switch (category) {
 			case 'deployment_success':
-				return CheckCircle;
+				return { icon: CheckCircle, tone: 'bg-success/10 text-success' };
 			case 'deployment_failure':
 			case 'project_issue':
-				return WarningCircle;
+				return { icon: WarningCircle, tone: 'bg-error/10 text-error' };
 			case 'account_security':
-				return ShieldCheck;
+				return { icon: ShieldCheck, tone: 'bg-primary-50 text-primary-dark' };
 			default:
-				return Bell;
+				return { icon: Bell, tone: 'bg-background-soft text-foreground/70' };
 		}
 	}
 
-	const Icon = $derived(getIcon(notification.category));
+	const icon = $derived(getIcon(notification.category));
+	const Icon = $derived(icon.icon);
 	const isUnread = $derived(notification.read_at === null);
 	const isFull = $derived(variant === 'full');
 </script>
 
+<!-- Below `md` and in the popover, the time sits under the text, so a long title keeps its width. -->
 <button
 	type="button"
 	class={cn(
-		'group flex w-full gap-3 rounded-xl text-left transition-colors hover:bg-background-soft focus-visible:bg-background-soft focus-visible:outline-none cursor-pointer',
-		isFull ? 'items-start px-3 py-4 md:items-center' : 'items-center px-2.5 py-2'
+		'grid w-full cursor-pointer grid-cols-[2rem_minmax(0,1fr)_0.5rem] gap-x-3 gap-y-0.5 rounded-control text-left transition-colors hover:bg-background-soft',
+		isFull ? 'px-3 py-4 md:grid-cols-[2rem_minmax(0,1fr)_auto_0.5rem]' : 'px-2.5 py-2'
 	)}
 	onclick={() => onClick?.(notification)}
 >
-	<div
-		class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-foreground/70 transition-colors group-hover:bg-black/10 group-hover:text-foreground"
-	>
-		<Icon size={16} class="size-4" aria-hidden="true" />
-	</div>
+	<span class={cn('row-span-2 flex size-8 items-center justify-center rounded-full', icon.tone)}>
+		<Icon size={16} aria-hidden="true" />
+	</span>
 
-	<div class="min-w-0 flex-1 pr-1">
+	<span class="min-w-0">
 		{#if notification.title}
-			<p
+			<span
 				class={cn(
-					'font-sans text-xs text-foreground md:text-sm',
-					isUnread ? 'font-semibold' : 'font-medium',
-					!isFull && 'truncate'
+					'block text-sm wrap-break-word text-foreground',
+					isUnread ? 'font-semibold' : 'font-medium'
 				)}
 			>
 				{notification.title}
-			</p>
+			</span>
 		{/if}
 		{#if notification.message}
-			<p
-				class={cn(
-					'font-sans text-xs text-foreground/80',
-					isFull ? 'leading-relaxed md:text-sm' : 'truncate'
-				)}
+			<span
+				class={cn('block text-sm wrap-break-word text-foreground/80', !isFull && 'line-clamp-2')}
 				title={isFull ? undefined : notification.message}
 			>
 				{notification.message}
-			</p>
+			</span>
 		{/if}
-	</div>
+	</span>
 
-	<span class="shrink-0 whitespace-nowrap font-sans text-xs text-muted">
-		{formatNotificationTime(notification.created_at)}
+	<span
+		class={cn(
+			'col-start-2 row-start-2 whitespace-nowrap text-xs text-muted',
+			isFull && 'md:col-start-3 md:row-start-1'
+		)}
+	>
+		{formatRelativeTime(notification.created_at)}
 	</span>
 
 	{#if isUnread}
 		<span
 			data-testid="unread-dot"
-			class="inline-block size-2 shrink-0 rounded-full bg-blue-600 ring-1 ring-white"
+			class={cn(
+				'col-start-3 row-start-1 mt-1.5 size-2 rounded-full bg-primary',
+				isFull && 'md:col-start-4'
+			)}
 		>
 			<span class="sr-only">Belum dibaca</span>
 		</span>
-	{:else}
-		<span class="inline-block size-2 shrink-0 opacity-0" aria-hidden="true"></span>
 	{/if}
 </button>

@@ -2,7 +2,9 @@
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	import SakalaLogo from '$lib/assets/sakala-logo-green.svg';
+	import { version } from '../../../../package.json';
+	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
+	import { REPOSITORY_URL } from '$lib/config/project';
 	import { cn } from '$lib/utils/cn';
 	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
 	import BookOpenText from 'phosphor-svelte/lib/BookOpenText';
@@ -55,7 +57,7 @@
 				projectId: page.params.id,
 				deploymentId: page.params.deploymentId
 			}),
-			label: 'Kirim Masukan',
+			label: 'Kirim masukan',
 			icon: ChatCircleText
 		},
 		{
@@ -116,7 +118,7 @@
 	}
 
 	// Past this width the drawer is hidden, and a hidden dialog would still hold focus and scroll.
-	const isDesktop = new MediaQuery('min-width: 768px', false);
+	const isDesktop = new MediaQuery('min-width: 1024px', false);
 	$effect(() => {
 		if (isDesktop.current && isMobileOpen) onCloseMobile?.();
 	});
@@ -132,39 +134,39 @@
 {#snippet profileMenu()}
 	{#if isProfileMenuOpen}
 		<div
-			class="absolute bottom-full left-0 right-0 mb-3 z-50 rounded-2xl border border-border/80 bg-white p-2.5 shadow-xl transition-all"
+			class="absolute bottom-full left-0 right-0 mb-3 z-50 rounded-overlay border border-border bg-surface p-2.5 shadow-overlay transition-all"
 		>
 			<div class="px-3 py-2">
-				<p class="font-sans text-sm font-semibold text-foreground truncate">
+				<p class="text-sm font-semibold text-foreground truncate">
 					{user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')}
 				</p>
 				{#if user.email}
-					<p class="font-sans text-xs text-muted truncate">{user.email}</p>
+					<p class="text-xs text-muted truncate">{user.email}</p>
 				{/if}
 			</div>
 
-			<div class="my-1.5 border-b border-border/60"></div>
+			<div class="my-1.5 border-b border-border"></div>
 
 			<div class="space-y-1">
 				<a
 					href={`${base}/profile`}
 					onclick={handleNavigationClick}
 					class={cn(
-						'flex items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium transition-colors',
+						'flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors',
 						isActive('/profile')
 							? 'bg-primary-50 text-primary-dark font-semibold'
 							: 'text-foreground hover:bg-background-soft'
 					)}
 				>
 					<UserIcon size={18} class="size-4.5 shrink-0" />
-					<span>Lihat Profil</span>
+					<span>Lihat profil</span>
 				</a>
 
 				<a
 					href={`${base}/settings`}
 					onclick={handleNavigationClick}
 					class={cn(
-						'flex items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium transition-colors',
+						'flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors',
 						isActive('/settings')
 							? 'bg-primary-50 text-primary-dark font-semibold'
 							: 'text-foreground hover:bg-background-soft'
@@ -175,12 +177,12 @@
 				</a>
 			</div>
 
-			<div class="my-1.5 border-b border-border/60"></div>
+			<div class="my-1.5 border-b border-border"></div>
 
 			<button
 				type="button"
 				onclick={openLogoutModal}
-				class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm font-medium text-error transition-colors hover:bg-error/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
+				class="flex w-full cursor-pointer items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium text-error transition-colors hover:bg-error/10"
 			>
 				<SignOut size={18} class="size-4.5 shrink-0" />
 				<span>Keluar</span>
@@ -195,10 +197,8 @@
 		type="button"
 		onclick={() => (isProfileMenuOpen = !isProfileMenuOpen)}
 		class={cn(
-			'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer',
-			isProfileMenuOpen
-				? 'border-primary/40 bg-primary-50 shadow-xs'
-				: 'border-border/60 bg-surface hover:bg-primary-50'
+			'flex w-full items-center justify-between gap-3 rounded-control px-3 py-2.5 text-left transition-all cursor-pointer',
+			isProfileMenuOpen ? 'bg-primary-50' : 'bg-surface hover:bg-primary-50'
 		)}
 		aria-expanded={isProfileMenuOpen}
 		aria-label="Menu akun pengguna"
@@ -212,17 +212,17 @@
 				/>
 			{:else}
 				<div
-					class="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-foreground"
+					class="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-soft text-foreground"
 				>
 					<UserIcon size={18} class="size-4.5 text-foreground/70" />
 				</div>
 			{/if}
 			<div class="flex flex-col min-w-0">
-				<span class="truncate font-sans text-sm font-semibold text-foreground">
+				<span class="truncate text-sm font-semibold text-foreground">
 					{user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')}
 				</span>
 				{#if user.email}
-					<span class="truncate font-sans text-xs font-normal text-muted">{user.email}</span>
+					<span class="truncate text-xs font-normal text-muted">{user.email}</span>
 				{/if}
 			</div>
 		</div>
@@ -234,16 +234,28 @@
 	</button>
 {/snippet}
 
-<aside
-	class="relative hidden h-[calc(100vh-48px)] w-66 flex-col rounded-2xl border border-border bg-surface shadow-xs md:flex"
->
-	<div class="mt-7 mb-10 px-6">
-		<a href={`${base}/projects`} class="inline-block" aria-label="Sakala">
-			<img src={SakalaLogo} alt="" class="h-10 w-auto object-contain" />
+{#snippet projectLine()}
+	<p class="flex items-center gap-2 px-3 pt-3 text-xs text-muted">
+		<a
+			href={REPOSITORY_URL}
+			target="_blank"
+			rel="noreferrer noopener"
+			class="inline-flex min-h-6 items-center underline underline-offset-2 hover:text-foreground"
+		>
+			GitHub
 		</a>
+		<span>v{version}</span>
+	</p>
+{/snippet}
+
+<aside
+	class="relative hidden h-full w-64 shrink-0 flex-col rounded-card border border-border bg-surface lg:flex"
+>
+	<div class="mt-6 mb-8 px-5">
+		<SakalaLogo class="h-10" />
 	</div>
 
-	<nav class="flex-1 space-y-1 px-6" aria-label="Navigasi utama">
+	<nav class="flex-1 space-y-1 px-3" aria-label="Navigasi utama">
 		{#each navigation as item (item.href)}
 			{@const Icon = item.icon}
 			<a
@@ -252,21 +264,22 @@
 				rel={item.isExternal ? 'noreferrer noopener' : undefined}
 				aria-current={isItemActive(item) ? 'page' : undefined}
 				class={cn(
-					'flex h-14 w-54 items-center gap-3 rounded-lg px-4 font-sans text-base font-medium transition-colors',
+					'flex h-11 w-full items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors',
 					isItemActive(item)
 						? 'bg-primary-50 font-semibold text-primary-dark'
 						: 'text-muted hover:bg-background-soft hover:text-foreground'
 				)}
 			>
-				<Icon size={24} class="size-6 shrink-0" />
+				<Icon size={20} class="shrink-0" aria-hidden="true" />
 				<span>{item.label}</span>
 			</a>
 		{/each}
 	</nav>
 
-	<div class="relative mt-auto px-6 py-4" bind:this={desktopProfileContainerRef}>
+	<div class="relative mt-auto px-3 py-3" bind:this={desktopProfileContainerRef}>
 		{@render profileMenu()}
 		{@render profileTrigger()}
+		{@render projectLine()}
 	</div>
 </aside>
 
@@ -279,31 +292,24 @@
 	}
 >
 	<DialogPrimitive.Portal>
-		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs md:hidden" />
+		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-scrim/40 lg:hidden" />
 		<DialogPrimitive.Content
 			onCloseAutoFocus={handleDrawerCloseFocus}
-			class="fixed inset-y-0 left-0 z-50 flex w-64 max-w-[calc(100vw-2rem)] flex-col rounded-r-2xl border border-border bg-surface p-6 shadow-xl md:hidden"
+			class="fixed inset-y-0 left-0 z-50 flex w-64 max-w-[calc(100vw-2rem)] flex-col rounded-r-overlay border border-border bg-surface p-5 shadow-overlay lg:hidden"
 		>
 			<DialogPrimitive.Title class="sr-only">Navigasi</DialogPrimitive.Title>
 			<DialogPrimitive.Close
 				aria-label="Tutup menu"
-				class="absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-foreground hover:bg-background-soft"
+				class="absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-control text-foreground hover:bg-background-soft"
 			>
-				<X size={20} />
+				<X size={20} aria-hidden="true" />
 			</DialogPrimitive.Close>
 
 			<nav class="flex min-h-0 flex-1 flex-col" aria-label="Navigasi mobile">
-				<div class="mt-2 mb-10">
-					<a
-						href={`${base}/projects`}
-						onclick={onCloseMobile}
-						class="inline-block"
-						aria-label="Sakala"
-					>
-						<img src={SakalaLogo} alt="" class="h-10 w-auto object-contain" />
-					</a>
+				<div class="mt-1 mb-8">
+					<SakalaLogo class="h-10" onclick={onCloseMobile} />
 				</div>
-				<div class="flex flex-col gap-1 pb-20">
+				<div class="flex flex-col gap-1 pb-8">
 					{#each navigation as item (item.href)}
 						{@const Icon = item.icon}
 						<a
@@ -313,13 +319,13 @@
 							onclick={onCloseMobile}
 							aria-current={isItemActive(item) ? 'page' : undefined}
 							class={cn(
-								'flex h-14 w-full items-center gap-3 rounded-lg px-4 font-sans text-base font-medium transition-colors',
+								'flex h-11 w-full items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors',
 								isItemActive(item)
 									? 'bg-primary-50 font-semibold text-primary-dark'
 									: 'text-muted hover:bg-background-soft hover:text-foreground'
 							)}
 						>
-							<Icon size={24} class="size-6 shrink-0" />
+							<Icon size={20} class="shrink-0" aria-hidden="true" />
 							<span>{item.label}</span>
 						</a>
 					{/each}
@@ -331,6 +337,7 @@
 				>
 					{@render profileMenu()}
 					{@render profileTrigger()}
+					{@render projectLine()}
 				</div>
 			</nav>
 		</DialogPrimitive.Content>
@@ -339,11 +346,15 @@
 
 <Dialog
 	bind:open={isLogoutModalOpen}
-	title="Yakin Ingin Keluar Akun?"
-	titleClass="text-base text-center"
+	title="Keluar dari Sakala?"
+	titleClass="text-center"
 	class="max-w-xs"
-	cancelLabel="Tidak"
-	confirmLabel={logoutMutation.isPending ? 'Keluar...' : logoutErrorMessage ? 'Coba Lagi' : 'Iya'}
+	cancelLabel="Tetap di sini"
+	confirmLabel={logoutMutation.isPending
+		? 'Keluar...'
+		: logoutErrorMessage
+			? 'Coba lagi'
+			: 'Keluar'}
 	emphasis="cancel"
 	loading={logoutMutation.isPending}
 	returnFocus={() => profileTriggerRef}
@@ -352,7 +363,7 @@
 >
 	{#if logoutErrorMessage}
 		<p
-			class="text-xs text-error font-medium bg-error/10 py-1.5 px-3 rounded-lg border border-error/20"
+			class="text-xs text-error font-medium bg-error/10 py-1.5 px-3 rounded-control border border-error/20"
 			role="alert"
 		>
 			{logoutErrorMessage}
