@@ -26,7 +26,26 @@
 	}
 </script>
 
-<ol class="mt-2 flex w-full items-start lg:items-center" aria-label="Langkah pembuatan proyek">
+<div class="mt-2 sm:hidden" data-testid="stepper-compact">
+	<p class="text-sm font-medium text-foreground" aria-current="step">
+		Langkah {currentStep} dari {steps.length}, {steps[currentStep - 1]?.title}
+	</p>
+	<div class="mt-2 flex gap-1" aria-hidden="true">
+		{#each steps as step (step.number)}
+			<span
+				class={[
+					'h-1 flex-1 rounded-full',
+					step.number <= currentStep ? 'bg-primary' : 'bg-muted/30'
+				]}
+			></span>
+		{/each}
+	</div>
+</div>
+
+<ol
+	class="mt-2 hidden w-full items-start sm:flex lg:items-center"
+	aria-label="Langkah pembuatan proyek"
+>
 	{#each steps as step, i (step.number)}
 		{@const status = getStatus(step.number)}
 

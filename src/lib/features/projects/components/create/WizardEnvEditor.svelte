@@ -48,15 +48,25 @@
 		return addDraft();
 	}
 
-	function handleEnter(event: KeyboardEvent) {
-		if (event.key !== 'Enter') return;
-		event.preventDefault();
-		addDraft();
+	/** Enter adds the pair and Esc drops it, the same as on the project's Variabel tab. */
+	function handleDraftKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			addDraft();
+		} else if (event.key === 'Escape' && (newKey || newValue)) {
+			event.preventDefault();
+			newKey = '';
+			newValue = '';
+			keyError = '';
+			valueError = '';
+			newIsSecret = true;
+			document.getElementById('wizard-env-key')?.focus();
+		}
 	}
 </script>
 
 <fieldset class="flex w-full min-w-0 flex-col gap-2 py-3">
-	<legend class="font-medium">Environment variable (opsional)</legend>
+	<legend class="text-sm font-medium text-foreground">Environment variable (opsional)</legend>
 
 	{#if wizard.envVars.length > 0}
 		<ul class="flex flex-col gap-1">
@@ -110,7 +120,7 @@
 						newKey = normalizeEnvKey(event.currentTarget.value);
 						keyError = '';
 					}}
-					onkeydown={handleEnter}
+					onkeydown={handleDraftKeydown}
 					placeholder="NAMA_VARIABEL"
 					autocomplete="off"
 					spellcheck="false"
@@ -129,7 +139,7 @@
 					type={newIsSecret ? 'password' : 'text'}
 					bind:value={newValue}
 					oninput={() => (valueError = '')}
-					onkeydown={handleEnter}
+					onkeydown={handleDraftKeydown}
 					placeholder="Isi nilai"
 					autocomplete="off"
 					aria-invalid={valueError ? 'true' : undefined}
@@ -146,13 +156,13 @@
 			</Button>
 		</div>
 		<label class="flex items-center gap-2 text-sm">
-			<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded-control" />
+			<input type="checkbox" bind:checked={newIsSecret} class="size-4" />
 			Simpan sebagai secret, nilainya disembunyikan setelah disimpan
 		</label>
 	</div>
 
 	<p class="text-sm text-foreground/70">
-		Tidak wajib diisi sekarang. Bisa ditambah atau diubah kapan saja lewat tab Environment variable
-		di halaman proyek.
+		Tidak wajib diisi sekarang. Bisa ditambah atau diubah kapan saja lewat tab Variabel di halaman
+		proyek.
 	</p>
 </fieldset>

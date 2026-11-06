@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
 	import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
@@ -139,6 +140,22 @@
 		return (touched ? clientErrors[field]?.[0] : undefined) ?? apiErrors[field];
 	}
 
+	// Open when coming back to this step with something filled in, and whenever a field in it is wrong.
+	let advancedOpen = $state(
+		Boolean(
+			wizard.configuredPort || wizard.buildCommand || wizard.startCommand || wizard.rootDirectory
+		)
+	);
+	const hasAdvancedError = $derived(
+		Boolean(
+			fieldError('configured_port') ||
+			fieldError('build_command') ||
+			fieldError('start_command') ||
+			fieldError('root_directory')
+		)
+	);
+	const advancedVisible = $derived(advancedOpen || hasAdvancedError);
+
 	let debouncedName = $state('');
 	$effect(() => {
 		const name = wizard.projectName;
@@ -213,7 +230,7 @@
 		>
 			<WarningCircleIcon class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
 			<div class="text-sm">
-				<p class="font-semibold">Gagal Membuat proyek</p>
+				<p class="font-semibold">Gagal membuat proyek</p>
 				<p class="mt-0.5">{apiErrors.general}</p>
 			</div>
 		</div>
@@ -239,7 +256,7 @@
 				label="Nama proyek"
 				bind:value={wizard.projectName}
 				error={nameError}
-				hint="Default diambil dari nama repository. Bisa diganti kapan saja lewat tab Pengaturan setelah proyek dibuat."
+				hint="Diambil dari nama repository, dan bisa diganti kapan saja lewat tab Pengaturan."
 				oninput={() => (nameTouched = true)}
 			/>
 			<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs" aria-live="polite">
@@ -259,7 +276,7 @@
 		</div>
 
 		<div class="flex w-full flex-col gap-2 py-3">
-			<label for="project-branch" class="font-medium">Branch</label>
+			<label for="project-branch" class="text-sm font-medium text-foreground">Branch</label>
 			{#key branchSource}
 				<BranchCombobox
 					id="project-branch"
@@ -294,54 +311,6 @@
 			{/if}
 		</div>
 
-		<div class="py-3">
-			<FormField
-				id="project-port"
-				label="Port (opsional)"
-				bind:value={wizard.configuredPort}
-				inputmode="numeric"
-				placeholder="3000"
-				error={fieldError('configured_port')}
-				hint="Sakala mengisi environment variable PORT dengan angka ini, dan aplikasimu harus mendengarkan di PORT. Kosong berarti 3000."
-			/>
-		</div>
-		<div class="py-3">
-			<FormField
-				id="project-build-command"
-				label="Build command (opsional)"
-				bind:value={wizard.buildCommand}
-				placeholder="npm run build"
-				spellcheck={false}
-				error={fieldError('build_command')}
-				hint={BUILD_COMMAND_HELP}
-				inputClass="font-mono"
-			/>
-		</div>
-		<div class="py-3">
-			<FormField
-				id="project-start-command"
-				label="Start command (opsional)"
-				bind:value={wizard.startCommand}
-				placeholder="npm start"
-				spellcheck={false}
-				error={fieldError('start_command')}
-				hint={START_COMMAND_HELP}
-				inputClass="font-mono"
-			/>
-		</div>
-		<div class="py-3">
-			<FormField
-				id="project-root-directory"
-				label="Root directory (opsional)"
-				bind:value={wizard.rootDirectory}
-				placeholder="apps/web"
-				spellcheck={false}
-				error={fieldError('root_directory')}
-				hint={ROOT_DIRECTORY_HELP}
-				inputClass="font-mono"
-			/>
-		</div>
-
 		<WizardEnvEditor bind:this={envEditor} />
 
 		{#if isGithub}
@@ -354,6 +323,75 @@
 		{:else}
 			<p class="py-3 text-sm text-foreground/70">{AUTO_DEPLOY_UNAVAILABLE_HELP}</p>
 		{/if}
+		<!-- Automatic detection fills these in. They only open by themselves when one needs fixing. -->
+		<div class="border-t border-border pt-3">
+			<button
+				type="button"
+				class="flex min-h-control-lg w-full cursor-pointer items-center justify-between gap-2 rounded-control text-left text-sm font-semibold text-foreground lg:min-h-control-md"
+				aria-expanded={advancedVisible}
+				aria-controls="wizard-advanced"
+				onclick={() => (advancedOpen = !advancedVisible)}
+			>
+				<span>Pengaturan lanjutan</span>
+				<CaretDownIcon
+					class={advancedVisible ? 'size-4 shrink-0 rotate-180' : 'size-4 shrink-0'}
+					aria-hidden="true"
+				/>
+			</button>
+			<p class="text-sm text-foreground/70">
+				Port, build command, start command, dan root directory. Boleh dikosongkan, Sakala
+				mendeteksinya dari repository.
+			</p>
+			<div id="wizard-advanced" class="mt-3 flex-col gap-5 {advancedVisible ? 'flex' : 'hidden'}">
+				<div>
+					<FormField
+						id="project-port"
+						label="Port (opsional)"
+						bind:value={wizard.configuredPort}
+						inputmode="numeric"
+						placeholder="3000"
+						error={fieldError('configured_port')}
+						hint="Aplikasimu harus mendengarkan di environment variable PORT. Kosong berarti 3000."
+					/>
+				</div>
+				<div>
+					<FormField
+						id="project-build-command"
+						label="Build command (opsional)"
+						bind:value={wizard.buildCommand}
+						placeholder="npm run build"
+						spellcheck={false}
+						error={fieldError('build_command')}
+						hint={BUILD_COMMAND_HELP}
+						inputClass="font-mono"
+					/>
+				</div>
+				<div>
+					<FormField
+						id="project-start-command"
+						label="Start command (opsional)"
+						bind:value={wizard.startCommand}
+						placeholder="npm start"
+						spellcheck={false}
+						error={fieldError('start_command')}
+						hint={START_COMMAND_HELP}
+						inputClass="font-mono"
+					/>
+				</div>
+				<div>
+					<FormField
+						id="project-root-directory"
+						label="Root directory (opsional)"
+						bind:value={wizard.rootDirectory}
+						placeholder="apps/web"
+						spellcheck={false}
+						error={fieldError('root_directory')}
+						hint={ROOT_DIRECTORY_HELP}
+						inputClass="font-mono"
+					/>
+				</div>
+			</div>
+		</div>
 	</Card>
 
 	{#if pilotLimits}

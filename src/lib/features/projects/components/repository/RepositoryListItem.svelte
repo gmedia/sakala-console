@@ -4,7 +4,6 @@
 	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
 	import LockSimpleIcon from 'phosphor-svelte/lib/LockSimpleIcon';
 	import DotIcon from 'phosphor-svelte/lib/DotIcon';
-	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
 	import type { Repository } from '../../type';
 
 	type Props = {
@@ -41,8 +40,6 @@
 		disabled && 'cursor-not-allowed opacity-50'
 	)}
 >
-	<span class="text-muted"><SocialLogo name="github" /></span>
-
 	<div class="min-w-0 flex-1">
 		<div class="flex gap-2">
 			<p class="min-w-0 text-left font-semibold wrap-anywhere">

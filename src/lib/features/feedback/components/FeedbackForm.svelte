@@ -231,7 +231,7 @@
 				</p>
 
 				<label class="flex min-h-6 items-start gap-2 text-sm">
-					<input type="checkbox" bind:checked={consent} class="mt-0.5 size-4 rounded-control" />
+					<input type="checkbox" bind:checked={consent} class="mt-0.5 size-4" />
 					Tim Sakala boleh memakai masukan ini untuk evaluasi pilot.
 				</label>
 			</Card>
