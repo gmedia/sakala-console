@@ -114,6 +114,23 @@ describe('while rate limited', () => {
 		expect(fetch).toHaveBeenCalledOnce();
 	});
 
+	it('a read behind its own limit neither stops other reads nor waits for the shared one', async () => {
+		stubResponse(429, { message: 'Too Many Attempts.' }, { 'Retry-After': '3600' });
+		await expect(
+			apiRequest('api/v1/auth/account/export', { separateRateLimit: true })
+		).rejects.toBeInstanceOf(ApiError);
+
+		stubResponse(200, { data: {} });
+		await apiRequest('api/v1/anything');
+		expect(fetch).toHaveBeenCalledOnce();
+
+		stubResponse(429, { message: 'Too Many Attempts.' }, { 'Retry-After': '30' });
+		await requestError();
+		stubResponse(200, { data: {} });
+		await apiRequest('api/v1/auth/account/export', { separateRateLimit: true });
+		expect(fetch).toHaveBeenCalledOnce();
+	});
+
 	it('still lets a write through, because the user asked for it', async () => {
 		stubResponse(429, { message: 'Too Many Attempts.' }, { 'Retry-After': '30' });
 		await requestError();

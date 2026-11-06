@@ -8,7 +8,10 @@ import {
 	getAuthOptions,
 	requestEmailChange,
 	resendVerificationEmail,
-	resetPassword
+	resetPassword,
+	acceptLegalDocuments,
+	deleteAccount,
+	exportAccountData
 } from './auth';
 import { apiRequest } from '../client';
 
@@ -34,6 +37,7 @@ describe('Auth Resource', () => {
 				onboarding_completed_at: '2026-08-25T10:00:00Z',
 				last_login_at: '2026-08-25T10:00:00Z',
 				has_password: true,
+				legal_acceptance_required: false,
 				pending_email: null,
 				created_at: '2026-01-01T00:00:00Z'
 			}
@@ -64,6 +68,7 @@ describe('Auth Resource', () => {
 				onboarding_completed_at: null,
 				last_login_at: null,
 				has_password: true,
+				legal_acceptance_required: false,
 				pending_email: null,
 				created_at: '2026-01-01T00:00:00Z'
 			}
@@ -104,6 +109,7 @@ describe('Auth Resource', () => {
 				onboarding_completed_at: null,
 				last_login_at: null,
 				has_password: true,
+				legal_acceptance_required: false,
 				pending_email: null,
 				created_at: '2026-01-01T00:00:00Z'
 			}
@@ -127,7 +133,10 @@ describe('Auth Resource', () => {
 			name: 'Budi Santoso',
 			email: 'budi@example.com',
 			password: 'password123',
-			password_confirmation: 'password123'
+			password_confirmation: 'password123',
+			accept_terms: true,
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1'
 		});
 
 		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/register', {
@@ -136,7 +145,10 @@ describe('Auth Resource', () => {
 				name: 'Budi Santoso',
 				email: 'budi@example.com',
 				password: 'password123',
-				password_confirmation: 'password123'
+				password_confirmation: 'password123',
+				accept_terms: true,
+				terms_version: 'syarat-v1',
+				acceptable_use_version: 'penggunaan-wajar-v1'
 			}
 		});
 	});
@@ -155,6 +167,7 @@ describe('account security endpoints', () => {
 		onboarding_completed_at: null,
 		last_login_at: null,
 		has_password: true,
+		legal_acceptance_required: false,
 		pending_email: 'baru@sakala.local',
 		created_at: null
 	};
@@ -230,7 +243,15 @@ describe('account security endpoints', () => {
 });
 
 describe('getAuthOptions', () => {
-	const options = { email_delivery_enabled: false, providers: { github: true, google: false } };
+	const options = {
+		email_delivery_enabled: false,
+		providers: { github: true, google: false },
+		legal: {
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1',
+			privacy_notice_version: 'privasi-v1'
+		}
+	};
 
 	it('reads the public options', async () => {
 		mockedApiRequest.mockResolvedValue({ data: options });
@@ -243,5 +264,66 @@ describe('getAuthOptions', () => {
 		mockedApiRequest.mockResolvedValue({ data: { email_delivery_enabled: 'no' } });
 
 		await expect(getAuthOptions()).rejects.toThrow();
+	});
+});
+
+describe('legal acceptance and account actions', () => {
+	const user = {
+		id: 1,
+		name: 'Rani',
+		username: 'rani',
+		email: 'rani@example.com',
+		avatar_url: null,
+		role: 'user',
+		onboarding_source: null,
+		onboarding_role: null,
+		onboarding_completed_at: null,
+		last_login_at: null,
+		has_password: false,
+		legal_acceptance_required: false,
+		pending_email: null,
+		created_at: null
+	};
+
+	it('accepts the versions the form showed and returns the updated user', async () => {
+		mockedApiRequest.mockResolvedValue({ data: user });
+		const payload = {
+			accept_terms: true,
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1'
+		};
+
+		await expect(acceptLegalDocuments(payload)).resolves.toMatchObject({
+			legal_acceptance_required: false
+		});
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/legal-acceptance', {
+			method: 'POST',
+			json: payload
+		});
+	});
+
+	it('leaves the password out for an account without one', async () => {
+		mockedApiRequest.mockResolvedValue(undefined);
+		await deleteAccount({ email: 'rani@example.com' });
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/account', {
+			method: 'DELETE',
+			json: { email: 'rani@example.com' }
+		});
+	});
+
+	it('keeps the export whole and outside the shared read limit', async () => {
+		const data = {
+			exported_at: '2026-11-06T00:00:00+00:00',
+			max_items_per_collection: 1000,
+			truncated: ['deployments'],
+			account: { email: 'rani@example.com' },
+			projects: []
+		};
+		mockedApiRequest.mockResolvedValue({ data });
+
+		await expect(exportAccountData()).resolves.toEqual(data);
+		expect(mockedApiRequest).toHaveBeenCalledWith('api/v1/auth/account/export', {
+			separateRateLimit: true
+		});
 	});
 });

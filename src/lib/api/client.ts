@@ -16,6 +16,8 @@ export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
 	body?: BodyInit | null;
 	skipCsrf?: boolean;
 	params?: Record<string, string | number | boolean | undefined>;
+	/** A read behind its own narrow limit: its 429 says nothing about the shared one, and vice versa. */
+	separateRateLimit?: boolean;
 };
 
 type ErrorPayload = {
@@ -26,7 +28,7 @@ type ErrorPayload = {
 };
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-	const { json, skipCsrf = false, params, ...requestOptions } = options;
+	const { json, skipCsrf = false, params, separateRateLimit = false, ...requestOptions } = options;
 	const method = (requestOptions.method ?? 'GET').toUpperCase();
 
 	if (!safeMethods.has(method) && !skipCsrf) {
@@ -56,7 +58,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 	}
 
 	// A read now would only extend the limit. A user's own write still goes through.
-	if (safeMethods.has(method)) {
+	if (safeMethods.has(method) && !separateRateLimit) {
 		const remaining = rateLimitRemainingSeconds();
 		if (remaining > 0) {
 			throw apiErrorFromResponse(429, { retryAfterSeconds: remaining });
@@ -80,7 +82,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 	if (!response.ok) {
 		const error = await createApiError(response);
 		// Writes have their own, narrower limits (login, feedback), which say nothing about reads.
-		if (error.isRateLimited && safeMethods.has(method)) noteRateLimited(error.retryAfterSeconds);
+		if (error.isRateLimited && safeMethods.has(method) && !separateRateLimit)
+			noteRateLimited(error.retryAfterSeconds);
 		throw error;
 	}
 

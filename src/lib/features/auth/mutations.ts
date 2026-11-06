@@ -1,6 +1,9 @@
 import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 import {
+	acceptLegalDocuments,
 	changePassword,
+	deleteAccount,
+	exportAccountData,
 	forgotPassword,
 	logout,
 	login,
@@ -9,6 +12,8 @@ import {
 	resendVerificationEmail,
 	resetPassword,
 	type ChangePasswordPayload,
+	type DeleteAccountPayload,
+	type LegalAcceptancePayload,
 	type LoginPayload,
 	type RegisterPayload,
 	type RequestEmailChangePayload,
@@ -17,7 +22,7 @@ import {
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { disconnectEcho } from '$lib/realtime/echo';
-import { forgetSession } from '$lib/features/auth/session-notice';
+import { forgetSession, noteAccountDeleted } from '$lib/features/auth/session-notice';
 import { queryKeys } from '$lib/api/query-keys';
 import { setLastLoginProvider, clearPendingOAuthProvider } from '$lib/features/auth/utils/oauth';
 
@@ -105,5 +110,35 @@ export function useRequestEmailChange() {
 	return createMutation(() => ({
 		mutationFn: (payload: RequestEmailChangePayload) => requestEmailChange(payload),
 		onSuccess: (user) => queryClient.setQueryData(queryKeys.auth.currentUser, user)
+	}));
+}
+
+export function useAcceptLegalDocuments() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (payload: LegalAcceptancePayload) => acceptLegalDocuments(payload),
+		onSuccess: (user) => queryClient.setQueryData(queryKeys.auth.currentUser, user)
+	}));
+}
+
+export function useDeleteAccount() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (payload: DeleteAccountPayload) => deleteAccount(payload),
+		onSuccess: () => {
+			forgetSession();
+			noteAccountDeleted();
+			queryClient.clear();
+			disconnectEcho();
+			goto(resolve('/login'));
+		}
+	}));
+}
+
+export function useExportAccountData() {
+	return createMutation(() => ({
+		mutationFn: () => exportAccountData()
 	}));
 }

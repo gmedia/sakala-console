@@ -4,7 +4,7 @@ import type { components } from '../generated/schema';
 
 export type PilotLimits = Pick<
 	components['schemas']['PilotLimitsResource'],
-	'quotas' | 'runtime_defaults' | 'timeouts'
+	'quotas' | 'runtime_defaults' | 'timeouts' | 'deleted_project_retention_days'
 >;
 
 const pilotLimitsResponseSchema = z.object({
@@ -25,7 +25,8 @@ const pilotLimitsResponseSchema = z.object({
 			build_timeout_seconds: z.number(),
 			start_timeout_seconds: z.number(),
 			command_timeout_seconds: z.number()
-		})
+		}),
+		deleted_project_retention_days: z.number()
 	})
 }) satisfies z.ZodType<{ data: PilotLimits }>;
 

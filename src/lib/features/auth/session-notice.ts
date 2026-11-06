@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'sakala_session_active';
 
 let ended = false;
+let accountDeleted = false;
 
 function withStorage<T>(use: (storage: Storage) => T): T | undefined {
 	try {
@@ -32,5 +33,16 @@ export function noteSessionEnded(): void {
 export function consumeSessionEndedNotice(): boolean {
 	const value = ended;
 	ended = false;
+	return value;
+}
+
+/** Said once on the login page, the only place left to say it. */
+export function noteAccountDeleted(): void {
+	accountDeleted = true;
+}
+
+export function consumeAccountDeletedNotice(): boolean {
+	const value = accountDeleted;
+	accountDeleted = false;
 	return value;
 }

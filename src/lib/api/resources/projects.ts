@@ -24,7 +24,20 @@ const projectSchema: z.ZodType<Project> = z.object({
 	github_repository_id: z.number().nullable(),
 	branch: z.string(),
 	thumbnail_url: z.string().nullable(),
+	public_url: z.string(),
 	runtime_status: z.string(),
+	latest_deployment: z
+		.object({
+			id: z.string(),
+			sequence: z.number(),
+			status: z.string(),
+			branch: z.string(),
+			commit_sha: z.string().nullable(),
+			commit_message: z.string().nullable(),
+			created_at: z.string(),
+			finished_at: z.string().nullable()
+		})
+		.nullable(),
 	stack: z
 		.object({
 			builder: z.enum(['dockerfile', 'railpack']),

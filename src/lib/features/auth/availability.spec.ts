@@ -10,7 +10,15 @@ import {
 
 const options = (email: boolean, github = true, google = false) => ({
 	isPending: false,
-	data: { email_delivery_enabled: email, providers: { github, google } }
+	data: {
+		email_delivery_enabled: email,
+		providers: { github, google },
+		legal: {
+			terms_version: 'syarat-v1',
+			acceptable_use_version: 'penggunaan-wajar-v1',
+			privacy_notice_version: 'privasi-v1'
+		}
+	}
 });
 const ids = (list: { id: string }[]) => list.map((provider) => provider.id);
 

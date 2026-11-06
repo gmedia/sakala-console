@@ -30,6 +30,11 @@ const GITHUB_RATE_LIMITED = 'GITHUB_RATE_LIMITED';
 /** A 503 that explains itself: this deployment cannot send email, so the API's words matter. */
 const EMAIL_DELIVERY_UNAVAILABLE = 'EMAIL_DELIVERY_UNAVAILABLE';
 
+/** Terms changed or were never accepted. Creating and deploying wait until they are. */
+export const LEGAL_ACCEPTANCE_REQUIRED = 'LEGAL_ACCEPTANCE_REQUIRED';
+/** An account without a password proves itself by logging in at its provider again. */
+export const REAUTHENTICATION_REQUIRED = 'REAUTHENTICATION_REQUIRED';
+
 export type ValidationErrors = Record<string, string[]>;
 
 export type ApiErrorMeta = {

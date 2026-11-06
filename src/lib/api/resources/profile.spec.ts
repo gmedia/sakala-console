@@ -17,6 +17,7 @@ const user = {
 	onboarding_completed_at: null,
 	last_login_at: null,
 	has_password: true,
+	legal_acceptance_required: false,
 	pending_email: null,
 	created_at: '2026-01-01T00:00:00+00:00'
 };

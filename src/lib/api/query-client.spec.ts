@@ -66,9 +66,31 @@ describe('session expiry on API errors', () => {
 	});
 });
 
+describe('a refusal because the terms are not accepted', () => {
+	it('re-reads the user, which brings up the acceptance screen, and keeps the session', () => {
+		const handler = vi.fn();
+		setSessionExpiredHandler(handler);
+		const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+		reportApiError(apiErrorFromResponse(403, { code: 'LEGAL_ACCEPTANCE_REQUIRED' }));
+
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
+		expect(handler).not.toHaveBeenCalled();
+		invalidate.mockRestore();
+	});
+});
+
 describe('clearSessionCache', () => {
 	it('forgets session data but keeps the public auth options a page may be waiting on', () => {
-		const options = { email_delivery_enabled: true, providers: { github: true, google: false } };
+		const options = {
+			email_delivery_enabled: true,
+			providers: { github: true, google: false },
+			legal: {
+				terms_version: 'syarat-v1',
+				acceptable_use_version: 'penggunaan-wajar-v1',
+				privacy_notice_version: 'privasi-v1'
+			}
+		};
 		queryClient.setQueryData(queryKeys.auth.currentUser, { id: 1 });
 		queryClient.setQueryData(['projects', 'list'], []);
 		queryClient.setQueryData(queryKeys.auth.options, options);

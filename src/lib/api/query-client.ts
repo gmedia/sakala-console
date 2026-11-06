@@ -1,5 +1,5 @@
 import { hashKey, MutationCache, QueryCache, QueryClient } from '@tanstack/svelte-query';
-import { ApiError } from './errors';
+import { ApiError, LEGAL_ACCEPTANCE_REQUIRED } from './errors';
 import { queryKeys } from './query-keys';
 
 type SessionExpiredHandler = () => void;
@@ -17,8 +17,13 @@ export function setSessionExpiredHandler(handler: SessionExpiredHandler | null):
  * login form, opts out with `meta: { handlesUnauthenticated: true }`.
  */
 export function reportApiError(error: unknown, meta?: Record<string, unknown>): void {
-	if (!(error instanceof ApiError) || !error.isUnauthenticated) return;
-	if (meta?.handlesUnauthenticated) return;
+	if (!(error instanceof ApiError)) return;
+	// The terms changed during this session. Re-reading the user brings up the acceptance screen.
+	if (error.code === LEGAL_ACCEPTANCE_REQUIRED) {
+		void queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser });
+		return;
+	}
+	if (!error.isUnauthenticated || meta?.handlesUnauthenticated) return;
 	sessionExpiredHandler?.();
 }
 

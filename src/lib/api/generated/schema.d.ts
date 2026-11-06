@@ -4,6 +4,49 @@
  */
 
 export interface paths {
+	'/v1/auth/account/export': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Download a JSON copy of the data this account owns
+		 * @description Each collection is capped, and `truncated` names the ones that hit the cap.
+		 *     Environment variables appear by name only, never with a value.
+		 */
+		get: operations['v1.auth.account.export'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/account': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Delete this account for good. There is no way to undo it
+		 * @description Body: `email`, plus `current_password` when the account has a password.
+		 *     An account without one must have logged in at its provider recently,
+		 *     otherwise this answers `403 REAUTHENTICATION_REQUIRED`.
+		 */
+		delete: operations['v1.auth.account.destroy'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/agent/v1/agents': {
 		parameters: {
 			query?: never;
@@ -614,6 +657,27 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/auth/legal-acceptance': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Accept the current terms and acceptable use policy, and acknowledge the
+		 *     privacy notice. Needed once after a provider login and after a version
+		 *     change, which `legal_acceptance_required` on the user shows
+		 */
+		post: operations['v1.auth.legal-acceptance'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/auth/login': {
 		parameters: {
 			query?: never;
@@ -979,6 +1043,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/admin/projects/{project}/unsuspend': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Lift a suspension. The workload does not restart: the owner deploys again */
+		post: operations['projectControl.unsuspend'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/admin/projects/{project}/reconcile': {
 		parameters: {
 			query?: never;
@@ -1072,6 +1153,123 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
+		/** AcceptLegalDocumentsRequest */
+		AcceptLegalDocumentsRequest: {
+			accept_terms: string;
+			/** @enum {string} */
+			terms_version: 'syarat-v1';
+			/** @enum {string} */
+			acceptable_use_version: 'penggunaan-wajar-v1';
+		};
+		/** AccountExportResource */
+		AccountExportResource: {
+			exported_at: string;
+			max_items_per_collection: number;
+			truncated: string[];
+			account: {
+				id: number;
+				name: string;
+				username: string;
+				email: string;
+				pending_email: string | null;
+				email_verified_at: string;
+				avatar_url: string | null;
+				role: string;
+				onboarding_source: string;
+				onboarding_role: string;
+				onboarding_completed_at: string;
+				notification_preferences: string;
+				last_login_at: string;
+				created_at: string;
+				legal_acceptances: {
+					document: string;
+					version: string;
+					action: string;
+					source: string;
+					occurred_at: string;
+				}[];
+				oauth_accounts: {
+					provider: string;
+					provider_username: string | null;
+					avatar_url: string | null;
+				}[];
+				github_installations: {
+					account_login: string;
+					account_type: string;
+					repository_selection: string;
+					status: string;
+				}[];
+			};
+			projects: {
+				[key: string]: {
+					id: string;
+					name: string;
+					slug: string;
+					repository_url: string;
+					repository_full_name: string | null;
+					branch: string;
+					default_domain: string;
+					status: string;
+					runtime_status: string;
+					build_command: string | null;
+					start_command: string | null;
+					root_directory: string | null;
+					configured_port: number | null;
+					auto_deploy: boolean;
+					thumbnail_url: string | null;
+					created_at: string;
+					deleted_at: string;
+				};
+			};
+			deployments: {
+				[key: string]: {
+					id: string;
+					project_id: string;
+					sequence: number;
+					status: string;
+					trigger: string;
+					branch: string;
+					commit_sha: string | null;
+					commit_message: string | null;
+					failure_code: string | null;
+					failure_summary: string | null;
+					started_at: string;
+					finished_at: string;
+					created_at: string;
+				};
+			};
+			/** @description Names and flags only: a value is never part of an export, secret or not. */
+			environment_variables: {
+				[key: string]: {
+					project_id: string;
+					name: string;
+					is_secret: boolean;
+				};
+			};
+			notifications: {
+				[key: string]: {
+					id: string;
+					category: unknown;
+					title: unknown;
+					message: unknown;
+					project_id: unknown;
+					deployment_id: unknown;
+					read_at: string;
+					created_at: string;
+				};
+			};
+			feedback: {
+				[key: string]: {
+					id: string;
+					category: string;
+					message: string;
+					project_id: string | null;
+					deployment_id: string | null;
+					consent: boolean;
+					created_at: string;
+				};
+			};
+		};
 		/** AgentCommandResource */
 		AgentCommandResource: {
 			id: string;
@@ -1253,6 +1451,11 @@ export interface components {
 			providers: {
 				github: boolean;
 				google: boolean;
+			};
+			legal: {
+				terms_version: string;
+				acceptable_use_version: string;
+				privacy_notice_version: string;
 			};
 		};
 		/** ChangePasswordRequest */
@@ -1475,7 +1678,9 @@ export interface components {
 			github_repository_id: number | null;
 			branch: string;
 			thumbnail_url: string | null;
+			public_url: string;
 			runtime_status: components['schemas']['RuntimeStatus'];
+			latest_deployment: components['schemas']['LatestDeploymentResource'] | null;
 			stack: {
 				/**
 				 * @description The choice auto mode makes: a Dockerfile wins, otherwise railpack.
@@ -1513,6 +1718,18 @@ export interface components {
 			default_branch: string;
 			pushed_at: string;
 			private: boolean;
+		};
+		/** LatestDeploymentResource */
+		LatestDeploymentResource: {
+			id: string;
+			sequence: number;
+			status: string;
+			branch: string;
+			commit_sha: string | null;
+			/** @description First line of the commit message, as plain text: its author controls it. */
+			commit_message: string | null;
+			created_at: string;
+			finished_at: string | null;
 		};
 		/**
 		 * LeaseRepositoryCredentialRequest
@@ -1597,6 +1814,7 @@ export interface components {
 				max_total_bytes: number;
 				max_request_bytes: number;
 			};
+			deleted_project_retention_days: number;
 		};
 		/** PilotValidationMetricsResource */
 		PilotValidationMetricsResource: {
@@ -1637,6 +1855,7 @@ export interface components {
 			auto_deploy: boolean;
 			redeploy_required: boolean;
 			active_deployment_id: string | null;
+			latest_deployment: components['schemas']['LatestDeploymentResource'] | null;
 			preview_status: string;
 			inspection: {
 				repository_url: string | null;
@@ -1689,6 +1908,11 @@ export interface components {
 			email: string;
 			password: string;
 			password_confirmation: string;
+			accept_terms: string;
+			/** @enum {string} */
+			terms_version: 'syarat-v1';
+			/** @enum {string} */
+			acceptable_use_version: 'penggunaan-wajar-v1';
 		};
 		/** ReportDeploymentEventRequest */
 		ReportDeploymentEventRequest: {
@@ -1827,6 +2051,10 @@ export interface components {
 		UnreadNotificationCountResource: {
 			count: string;
 		};
+		/** UnsuspendProjectRequest */
+		UnsuspendProjectRequest: {
+			reason: string;
+		};
 		/** UpdateEnvironmentVariableRequest */
 		UpdateEnvironmentVariableRequest: {
 			value?: string;
@@ -1879,6 +2107,7 @@ export interface components {
 			has_password: boolean;
 			pending_email: string | null;
 			created_at: string | null;
+			legal_acceptance_required: boolean;
 		};
 		/** ValidateUrlRequest */
 		ValidateUrlRequest: {
@@ -1947,6 +2176,54 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+	'v1.auth.account.export': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AccountExportResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AccountExportResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.auth.account.destroy': {
+		parameters: {
+			query: {
+				/** @description Typed by hand, so it cannot be done by accident. */
+				email: string;
+				current_password: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'agent.index': {
 		parameters: {
 			query?: never;
@@ -3194,6 +3471,35 @@ export interface operations {
 			};
 		};
 	};
+	'v1.auth.legal-acceptance': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['AcceptLegalDocumentsRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.auth.login': {
 		parameters: {
 			query?: never;
@@ -3923,6 +4229,42 @@ export interface operations {
 		requestBody: {
 			content: {
 				'application/json': components['schemas']['SuspendProjectRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': Record<string, never>;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'projectControl.unsuspend': {
+		parameters: {
+			query?: never;
+			header?: {
+				/**
+				 * @description Unique key used to safely retry the unsuspend request.
+				 * @example 550e8400-e29b-41d4-a716-446655440000
+				 */
+				'Idempotency-Key'?: string;
+			};
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['UnsuspendProjectRequest'];
 			};
 		};
 		responses: {

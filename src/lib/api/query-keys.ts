@@ -9,7 +9,8 @@ export const queryKeys = {
 	},
 	projects: {
 		all: ['projects'] as const,
-		list: (params: ProjectsQueryParams) => [...queryKeys.projects.all, 'list', params] as const,
+		lists: ['projects', 'list'] as const,
+		list: (params: ProjectsQueryParams) => [...queryKeys.projects.lists, params] as const,
 		detail: (projectId: string) => ['projects', 'detail', projectId] as const
 	},
 	deployments: {
