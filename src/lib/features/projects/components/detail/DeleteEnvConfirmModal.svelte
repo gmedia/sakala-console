@@ -16,27 +16,26 @@
 
 {#snippet icon()}
 	<div
-		class="mb-6 flex size-14 shrink-0 items-center justify-center rounded-full bg-error-50 text-error sm:size-16"
+		class="mb-4 flex size-12 shrink-0 items-center justify-center rounded-full bg-error-50 text-error"
 	>
-		<Trash size={32} weight="regular" />
+		<Trash size={24} aria-hidden="true" />
 	</div>
 {/snippet}
 
 {#snippet description()}
 	Perubahan ini berlaku setelah redeploy berikutnya. Aplikasi yang sedang live sekarang
-	<strong class="font-bold text-foreground">belum</strong> terpengaruh sampai kamu redeploy.
+	<strong class="font-semibold text-foreground">belum</strong> terpengaruh sampai kamu redeploy.
 {/snippet}
 
 <Dialog
 	{open}
 	{icon}
 	{description}
-	title={`Hapus Variabel ${envKey}?`}
-	titleClass="font-jetbrains-mono-semibold font-bold text-xl leading-tight sm:text-2xl 2xl:text-[28px]"
-	descriptionClass="mt-3 text-sm leading-snug text-foreground/70 sm:text-base 2xl:text-[20px]"
+	title={`Hapus variabel ${envKey}?`}
+	titleClass="wrap-anywhere"
 	footerClass="flex-col-reverse sm:flex-row"
-	class="max-w-lg rounded-2xl p-6 sm:p-8 2xl:max-w-133.5"
-	confirmLabel="Hapus Variabel"
+	class="max-w-lg"
+	confirmLabel="Hapus variabel"
 	variant="destructive"
 	initialFocus="cancel"
 	loading={isLoading}
@@ -44,6 +43,6 @@
 	onCancel={onClose}
 >
 	{#if error}
-		<p role="alert" class="font-montserrat text-sm text-error-dark">{error}</p>
+		<p role="alert" class="text-sm text-error-dark">{error}</p>
 	{/if}
 </Dialog>

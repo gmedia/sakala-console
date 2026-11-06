@@ -50,19 +50,18 @@
 
 {#snippet icon()}
 	<div
-		class="mb-6 flex size-14 shrink-0 items-center justify-center rounded-full bg-error-50 text-error sm:size-16"
+		class="mb-4 flex size-12 shrink-0 items-center justify-center rounded-full bg-error-50 text-error"
 	>
-		<Trash size={32} weight="regular" />
+		<Trash size={24} aria-hidden="true" />
 	</div>
 {/snippet}
 
 {#snippet title()}
-	Hapus proyek <span class="font-jetbrains-mono-semibold font-bold">{projectName}</span>?
+	Hapus proyek <span class="font-mono font-semibold">{projectName}</span>?
 {/snippet}
 
 {#snippet description()}
-	Tindakan ini <strong class="font-bold text-foreground">permanen</strong> dan tidak bisa dibatalkan.
-	Semua data berikut akan ikut terhapus:
+	Tindakan ini tidak bisa dibatalkan. Semua data berikut akan ikut terhapus:
 {/snippet}
 
 <Dialog
@@ -70,10 +69,8 @@
 	{icon}
 	{title}
 	{description}
-	titleClass="font-bold text-xl leading-tight sm:text-2xl 2xl:text-[28px]"
-	descriptionClass="mt-3 text-sm leading-snug text-foreground/70 sm:text-base 2xl:text-[20px]"
 	footerClass="flex-col-reverse sm:flex-row"
-	class="max-w-lg rounded-2xl p-6 sm:p-8 2xl:max-w-142.5"
+	class="max-w-lg"
 	confirmLabel="Hapus proyek ini"
 	variant="destructive"
 	initialFocus={() => inputEl}
@@ -82,22 +79,20 @@
 	onConfirm={handleConfirm}
 	onCancel={handleClose}
 >
-	<ul
-		class="list-inside list-disc space-y-1 font-montserrat text-sm leading-snug text-foreground/70 sm:text-base 2xl:text-[20px]"
-	>
+	<ul class="list-inside list-disc space-y-1 text-sm text-foreground">
 		<li>Semua riwayat deployment {deploymentCount > 0 ? `(${deploymentCount} deployment)` : ''}</li>
 		<li class="wrap-anywhere">Domain publik {defaultDomain || 'yang terhubung'}</li>
 		<li>Semua environment variable</li>
 	</ul>
 
+	<p class="mt-3 text-sm text-foreground">
+		Data proyek dihapus permanen setelah masa simpannya berakhir, dan alamatnya tidak bisa dipakai
+		lagi.
+	</p>
+
 	<div class="mt-6 flex flex-col">
-		<label
-			for="confirmInput"
-			class="mb-2 font-montserrat text-sm leading-snug text-foreground sm:text-base 2xl:text-[20px]"
-		>
-			Ketik <strong class="font-jetbrains-mono-semibold font-bold wrap-anywhere"
-				>{projectName}</strong
-			> untuk konfirmasi
+		<label for="confirmInput" class="mb-1.5 text-sm font-medium text-foreground">
+			Ketik <strong class="font-mono font-semibold wrap-anywhere">{projectName}</strong> untuk konfirmasi
 		</label>
 		<input
 			bind:this={inputEl}
@@ -105,14 +100,14 @@
 			onkeydown={handleInputKeydown}
 			type="text"
 			id="confirmInput"
-			placeholder="contoh: nama-project"
+			placeholder={projectName}
 			autocomplete="off"
 			disabled={isLoading}
-			class="h-12 w-full rounded-lg border border-border-strong bg-background px-4 font-jetbrains-mono-regular text-sm text-foreground transition-colors outline-none focus:border-primary disabled:opacity-50 sm:text-base"
+			class="control-input font-mono"
 		/>
 	</div>
 
 	{#if error}
-		<p role="alert" class="mt-3 font-montserrat text-sm text-error-dark">{error}</p>
+		<p role="alert" class="mt-3 text-sm text-error-dark">{error}</p>
 	{/if}
 </Dialog>

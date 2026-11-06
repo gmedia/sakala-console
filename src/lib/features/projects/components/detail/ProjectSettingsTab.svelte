@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { resolveRoute } from '$app/paths';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
@@ -193,6 +194,7 @@
 		deleteMutation.mutate(projectId, {
 			onSuccess: () => {
 				isDeleteDialogOpen = false;
+				toast.success(`Proyek ${projectQuery.data?.name ?? ''} dihapus.`.replace('  ', ' '));
 				goto(resolveRoute('/(app)/projects'));
 			},
 			onError: (error) => {
@@ -204,10 +206,8 @@
 		});
 	}
 
-	const editableInputClass =
-		'h-9 w-full min-w-0 rounded-lg border bg-background px-3 font-montserrat text-sm outline-none transition-colors';
-	const readonlyInputClass =
-		'h-9 w-full min-w-0 cursor-not-allowed rounded-lg border border-border bg-surface-elevated/50 px-3 font-montserrat text-sm text-foreground/70 outline-none';
+	const editableInputClass = 'control-input';
+	const readonlyInputClass = 'control-input';
 </script>
 
 {#snippet configField(
@@ -219,7 +219,7 @@
 	inputmode: 'text' | 'numeric' = 'text'
 )}
 	<div class="flex min-w-0 flex-col">
-		<label for={id} class="mb-2 font-montserrat-medium text-xs text-foreground">{label}</label>
+		<label for={id} class="mb-2 font-medium text-xs text-foreground">{label}</label>
 		<input
 			type="text"
 			{id}
@@ -236,9 +236,7 @@
 		/>
 		<p
 			id="{id}-help"
-			class="mt-1 font-montserrat text-xs {configErrors[field]
-				? 'text-error-dark'
-				: 'text-foreground/70'}"
+			class="mt-1 text-xs {configErrors[field] ? 'text-error-dark' : 'text-foreground/70'}"
 		>
 			{configErrors[field] ?? help}
 		</p>
@@ -247,29 +245,27 @@
 
 <div class="flex w-full max-w-280 flex-col">
 	{#if projectQuery.isLoading}
-		<div class="p-6 text-center font-montserrat text-sm text-muted">Memuat pengaturan...</div>
+		<div class="p-6 text-center text-sm text-muted">Memuat pengaturan...</div>
 	{:else if projectQuery.isError}
-		<div class="p-6 text-center font-montserrat text-sm text-error">
-			Gagal memuat data pengaturan proyek.
-		</div>
+		<div class="p-6 text-center text-sm text-error">Gagal memuat data pengaturan proyek.</div>
 	{:else if projectQuery.data}
 		<form
 			onsubmit={handleSave}
 			novalidate
-			class="@container w-full rounded-lg border border-border bg-surface p-4 shadow-none sm:p-6"
+			class="@container w-full rounded-control border border-border bg-surface p-4 sm:p-6"
 		>
 			<div class="grid grid-cols-1 gap-4 @2xl:grid-cols-2 @2xl:gap-6">
 				<div class="flex min-w-0 flex-col gap-4">
 					<div class="flex min-w-0 flex-col">
-						<label for="projectName" class="mb-2 font-montserrat-medium text-xs text-foreground">
-							Nama Proyek
+						<label for="projectName" class="mb-2 font-medium text-xs text-foreground">
+							Nama proyek
 						</label>
 						<input
 							type="text"
 							id="projectName"
 							value={name}
 							oninput={handleNameInput}
-							placeholder="Nama Proyek"
+							placeholder="Nama proyek"
 							required
 							aria-invalid={nameError ? 'true' : undefined}
 							aria-describedby={nameError ? 'projectName-error' : undefined}
@@ -278,16 +274,14 @@
 								: 'border-border-strong focus:border-primary'}"
 						/>
 						{#if nameError}
-							<p id="projectName-error" class="mt-1 font-montserrat text-xs text-error-dark">
+							<p id="projectName-error" class="mt-1 text-xs text-error-dark">
 								{nameError}
 							</p>
 						{/if}
 					</div>
 
 					<div class="flex min-w-0 flex-col">
-						<label for="branch" class="mb-2 font-montserrat-medium text-xs text-foreground">
-							Branch
-						</label>
+						<label for="branch" class="mb-2 font-medium text-xs text-foreground"> Branch </label>
 						<input
 							type="text"
 							id="branch"
@@ -302,7 +296,7 @@
 								: 'border-border-strong focus:border-primary'}"
 						/>
 						{#if branchError}
-							<p id="branch-error" class="mt-1 font-montserrat text-xs text-error-dark">
+							<p id="branch-error" class="mt-1 text-xs text-error-dark">
 								{branchError}
 							</p>
 						{/if}
@@ -310,7 +304,7 @@
 
 					{@render configField(
 						'rootDirectory',
-						'Root Directory',
+						'Root directory',
 						'root_directory',
 						'apps/web',
 						ROOT_DIRECTORY_HELP
@@ -320,10 +314,10 @@
 				<div class="flex min-w-0 flex-col gap-4">
 					<div class="flex min-w-0 flex-col">
 						<div class="mb-2 flex items-center gap-1.5">
-							<label for="subdomain" class="font-montserrat-medium text-xs text-foreground">
+							<label for="subdomain" class="font-medium text-xs text-foreground">
 								Subdomain (URL Publik)
 							</label>
-							<span class="font-montserrat text-[10px] text-foreground/70">(Otomatis)</span>
+							<span class="text-xs text-foreground/70">(Otomatis)</span>
 						</div>
 						<input
 							type="text"
@@ -372,12 +366,11 @@
 
 			<div class="mt-4 flex flex-wrap items-center justify-end gap-3">
 				{#if formError}
-					<p role="alert" class="mr-auto font-montserrat text-sm text-error-dark">{formError}</p>
+					<p role="alert" class="mr-auto text-sm text-error-dark">{formError}</p>
 				{/if}
-				<span role="status" class="font-montserrat text-sm text-foreground/70">{saveMessage}</span>
+				<span role="status" class="text-sm text-foreground/70">{saveMessage}</span>
 				<Button
 					type="submit"
-					class="min-h-10 px-4"
 					disabled={!draft.isDirty || updateMutation.isPending}
 					aria-busy={updateMutation.isPending}
 				>
@@ -389,32 +382,25 @@
 			</div>
 		</form>
 
-		<p class="mt-2 font-montserrat text-xs text-foreground/70">
+		<p class="mt-2 text-xs text-foreground/70">
 			Branch, port, command, dan root directory baru dipakai mulai deployment berikutnya.
 			<strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan yang belum tersimpan.
 		</p>
 
 		<div
-			class="mt-6 flex w-full flex-col justify-between gap-4 rounded-lg border border-error/50 bg-error-50 p-4 shadow-none sm:flex-row sm:items-center sm:p-5"
+			class="mt-6 flex w-full flex-col justify-between gap-4 rounded-control border border-error/50 bg-error-50 p-4 sm:flex-row sm:items-center sm:p-5"
 		>
 			<div class="flex min-w-0 flex-col justify-center">
-				<h3 class="mb-1.5 font-montserrat-semibold text-base leading-none text-error">
-					Hapus Proyek
-				</h3>
-				<p class="font-montserrat text-sm leading-relaxed text-error sm:text-base">
+				<h3 class="mb-1.5 font-semibold text-base leading-none text-error">Hapus proyek</h3>
+				<p class="text-sm text-error sm:text-base">
 					Tindakan ini permanen dan tidak bisa dibatalkan.
 				</p>
 			</div>
 
-			<button
-				type="button"
-				onclick={handleOpenDelete}
-				disabled={deleteMutation.isPending}
-				class="flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-error/50 bg-error-50 px-4 text-error transition-colors hover:bg-error/10 disabled:opacity-50 sm:w-auto sm:justify-between"
-			>
+			<Button variant="danger" onclick={handleOpenDelete} disabled={deleteMutation.isPending}>
 				<Trash size={20} weight="regular" />
-				<span class="font-montserrat-semibold text-sm">Hapus Proyek</span>
-			</button>
+				<span class="font-semibold text-sm">Hapus proyek</span>
+			</Button>
 		</div>
 
 		<DeleteProjectConfirmModal
