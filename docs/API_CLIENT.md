@@ -99,7 +99,7 @@ Preferensi di `app/notification-preferences` punya empat kategori, sehingga peng
 Wizard di `/projects/new` punya tiga langkah, dan project baru ada setelah langkah kedua. Figma menaruh "Buat Proyek" di langkah yang sama tapi dialognya bilang project belum dibuat, jadi kode mengikuti keadaan yang benar di backend.
 
 1. Repository. `GET app/github/installations/{id}/repositories` dipanggil per halaman (5 repository) dengan `search` di server, dan jumlah "Menampilkan x dari y" memakai `meta.total`. API hanya mencari di 1.000 repository pertama. Instalasi lebih dari satu memunculkan pilihan akun. `409` berarti instalasi tidak aktif, dan tombol hubungkan ulang menuju `auth/github/installations/{id}/configure`, atau `auth/github/install` kalau statusnya `removed`.
-2. Konfigurasi. Branch berasal dari `.../repositories/{id}/branches` atau `repositories/branches?repository_url=`. Yang pertama dipotong API di 100 branch, jadi hanya di situ nama lain boleh diketik. Domain berasal dari `GET app/projects/domain-preview`, tidak dipatok di console. Validasi field meniru `ValidatesBuildConfiguration` di API, dan `422` dipetakan ke field-nya. "Buat Proyek" menjalankan `POST app/projects`, lalu menyimpan env satu per satu. Env yang gagal dijelaskan dan dicoba ulang tanpa membuat project lagi.
+2. Konfigurasi. Port, build, start, dan root directory terlipat di "Pengaturan lanjutan", dan terbuka sendiri kalau ada isinya atau salah satunya error. Branch berasal dari `.../repositories/{id}/branches` atau `repositories/branches?repository_url=`. Yang pertama dipotong API di 100 branch, jadi hanya di situ nama lain boleh diketik. Domain berasal dari `GET app/projects/domain-preview`, tidak dipatok di console. Validasi field meniru `ValidatesBuildConfiguration` di API, dan `422` dipetakan ke field-nya. "Buat Proyek" menjalankan `POST app/projects`, lalu menyimpan env satu per satu. Env yang gagal dijelaskan dan dicoba ulang tanpa membuat project lagi.
 3. Auto Detect. `preview_status` dibaca ulang tiap 3 detik selama `pending`. `null` di `stack` berarti tidak diketahui dan ditampilkan begitu. "Detect ulang" memakai `POST app/projects/{id}/inspection`, dan "Deploy sekarang" membuat deployment lalu membuka halaman detail deployment, yang menjadi langkah deploy-nya.
 
 Setelah project dibuat, id-nya masuk ke URL (`?project=`) dengan `replaceState`. Reload membuka langkah 3, bukan form, karena mengirim form lagi akan membuat project kedua. Keluar dari langkah 3 tidak menghapus project.
@@ -116,6 +116,12 @@ Setelah project dibuat, id-nya masuk ke URL (`?project=`) dengan `replaceState`.
 
 PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` mengirim `POST app/profile` dengan field `_method=PATCH`, dan Laravel meneruskannya ke route `PATCH` yang sama. Field teks tetap memakai `PATCH` dengan JSON.
 
+## Daftar Project
+
+`GET app/projects` mengirim `public_url` dan `latest_deployment`, yang boleh `null` untuk project tanpa deployment. Kartu hanya menautkan URL saat `runtime_status` bernilai `running`. Satu baca daftar berarti satu request untuk enam kartu.
+
+Daftar di-poll dengan `resolveProjectListPollInterval()`: 15 detik saat ada yang sedang berjalan dan 60 detik saat tidak, atau 60 detik dan 5 menit saat socket tersambung. `notification.created` di `users.{id}` juga membaca ulang daftar, karena notifikasi itulah yang mengabarkan akhir deployment. API belum punya channel per project untuk daftar ini.
+
 ## Project Header
 
 `deriveProjectHeaderState()` di `features/projects/presentation.ts` adalah satu-satunya tempat yang menentukan klaim header project: badge, boleh tidaknya Redeploy, URL, dan pesan. `project.status` tetap `draft` sampai deployment pertama berhasil, dan deployment yang masih `queued` belum mengubah `runtime_status`, jadi fungsi ini juga membaca deployment terbaru.
@@ -123,6 +129,10 @@ PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` meng
 `useProjectLiveStatus()` mengikuti `deployment.updated` pada deployment yang berjalan, atau pada deployment aktif kalau tidak ada yang berjalan, karena `project_runtime_status` saat crash dikirim ke sana. Polling menjadi cadangannya: 10 detik saat ada deployment berjalan, 60 detik kalau realtime terhubung atau idle.
 
 `crashed` berarti aplikasi sedang restart atau crash loop, jadi URL tetap tampil dan pesannya bilang URL bisa kadang terbuka. Port yang tampil adalah `serving_port` kalau API mengirimnya, dan `effective_port` ditandai berlaku di deploy berikutnya kalau berbeda.
+
+## Alasan Penangguhan
+
+API belum menaruh alasan penangguhan di project. Alasan itu dikirim sekali lewat notifikasi `project_issue` berjudul `Proyek ditangguhkan`, jadi `findSuspensionReason()` membacanya dari 50 notifikasi terbaru. Kalau notifikasinya sudah tidak ada, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.
 
 ## Hemat Request
 
@@ -132,6 +142,8 @@ PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` meng
 - Selama realtime terhubung, polling deployment dan event hanya tiap 60 detik sebagai jaring pengaman. Tanpa realtime tiap 5 detik.
 - Tab di background tidak polling dan menunda baca ulang sampai dilihat.
 - GET yang kena `429` mengisi gerbang di `api/rate-limit.ts`. Sampai `Retry-After` habis, GET lain tidak dikirim, termasuk dari tab lain lewat `localStorage`. Write tetap dikirim, dan `429` dari write tidak menutup gerbang karena limit-nya lebih sempit.
+- Event deployment hanya bertambah dan API membatasi 10 per halaman, jadi baca ulang melanjutkan dari halaman terakhir (`resumeCursor`), bukan mengulang semua halaman dari awal.
+- Unduh data (`separateRateLimit`) punya limit sendiri, jadi tidak ikut gerbang di atas.
 - `AuthGuard` menampilkan waktu tunggu dan mencoba lagi sendiri saat `429`.
 
 `request-budget.svelte.spec.ts` mengukur satu tab pada deployment 5 menit dengan timeline tiruan: paling sibuk 9 request per 60 detik dengan realtime, 64 dengan polling saja.

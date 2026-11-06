@@ -52,6 +52,8 @@ docker build \
 docker run --rm -p 8080:8080 sakala-console:local
 ```
 
+Image menyajikan `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, dan `Referrer-Policy`, dan menolak dibingkai situs lain lewat `frame-ancestors 'none'`. Policy-nya ditulis `docker/security-headers.mjs` saat build dari file env yang sama, jadi origin API dan Reverb milik instalasi self-hosted atau staging ikut tanpa konfigurasi kedua. Build gagal kalau `PUBLIC_API_URL` tidak ada.
+
 Domain, TLS, reverse proxy host, dan environment deployment dikelola oleh repository deployment terpisah. Image ini tidak menyimpan credential atau origin production.
 
 ## Commands
