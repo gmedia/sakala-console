@@ -279,6 +279,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/auth/options': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Show which sign-in options this deployment can actually honour
+		 * @description Public, because the signed-out login page reads it to decide what to offer.
+		 */
+		get: operations['v1.auth.options'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/auth/user': {
 		parameters: {
 			query?: never;
@@ -353,9 +373,73 @@ export interface paths {
 			path?: never;
 			cookie?: never;
 		};
+		/**
+		 * List deployment logs
+		 * @description Oldest first by default. `order=desc` starts from the newest line, and
+		 *     the cursor then walks back through older ones.
+		 */
 		get: operations['deployment.logs'];
 		put?: never;
 		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/deployments/{deployment}/cancel': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Cancel a deployment
+		 * @description Answers 200 once the deployment is `cancelled`, including on a repeat, and
+		 *     202 while a node still has to stop it. Answers 409
+		 *     `DEPLOYMENT_ALREADY_FINISHED` when it already succeeded or failed.
+		 */
+		post: operations['v1.app.projects.deployments.cancel'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/domain-preview': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Preview the domain a new project with this name would get
+		 * @description The result is not reserved: creating the project resolves collisions
+		 *     again, so the final domain can differ if someone takes it first.
+		 */
+		get: operations['v1.app.projects.domain-preview'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/email/change': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.email.change'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -394,7 +478,11 @@ export interface paths {
 		delete: operations['v1.app.projects.environment-variables.destroy'];
 		options?: never;
 		head?: never;
-		patch?: never;
+		/**
+		 * Update a value or its secret flag. The running deployment keeps the old
+		 *     value until the next deployment: see `redeploy_required`
+		 */
+		patch: operations['v1.app.projects.environment-variables.update'];
 		trace?: never;
 	};
 	'/v1/app/projects/{project}/environment-variables/{environmentVariable}/value': {
@@ -558,6 +646,87 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/v1/app/notifications': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.notifications.index'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/notifications/unread-count': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.notifications.unread-count'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/notifications/read-all': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.app.notifications.read-all'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/notifications/{notification}/read': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Idempotent: an already read notification keeps its first `read_at` */
+		post: operations['v1.app.notifications.read'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/notification-preferences': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get: operations['v1.app.notification-preferences.show'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch: operations['v1.app.notification-preferences.update'];
+		trace?: never;
+	};
 	'/v1/onboarding/source': {
 		parameters: {
 			query?: never;
@@ -600,6 +769,54 @@ export interface paths {
 		get?: never;
 		put?: never;
 		post: operations['v1.onboarding.complete'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/forgot-password': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.password.forgot'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/reset-password': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post: operations['v1.auth.password.reset'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/auth/password': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put: operations['v1.auth.password.update'];
+		post?: never;
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -654,6 +871,22 @@ export interface paths {
 		patch: operations['v1.app.profile.update'];
 		trace?: never;
 	};
+	'/v1/app/profile/avatar': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		delete: operations['v1.app.profile.avatar.destroy'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/v1/app/projects': {
 		parameters: {
 			query?: never;
@@ -686,6 +919,27 @@ export interface paths {
 		post?: never;
 		/** Remove the specified resource from storage */
 		delete: operations['projects.destroy'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/v1/app/projects/{project}/inspection': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Inspect the project again
+		 * @description Answers 202: the result arrives later as `preview_status` and `stack`.
+		 *     Reuses an inspection of the same commit that is running or finished.
+		 */
+		post: operations['v1.app.projects.inspection'];
+		delete?: never;
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -751,6 +1005,10 @@ export interface paths {
 		};
 		get?: never;
 		put?: never;
+		/**
+		 * Always 202 with the same body, whether or not the email already has an
+		 *     account, so this endpoint cannot be used to learn which emails exist
+		 */
 		post: operations['v1.auth.register'];
 		delete?: never;
 		options?: never;
@@ -854,6 +1112,11 @@ export interface components {
 					stale_routes?: number;
 					stale_images?: number;
 					compatibility_issues?: number;
+					/**
+					 * @description Additive within protocol revision 4: v0.2.0 sends detail_counts
+					 *     without this key, so it is tied to the list, not to detail_counts.
+					 */
+					crashed_details?: number;
 				};
 				resources: {
 					cpu_total: number | null;
@@ -870,6 +1133,20 @@ export interface components {
 					unhealthy: number | null;
 					stopped: number | null;
 					unhealthy_details: string[];
+					/**
+					 * @description Optional: agents without crash reporting omit the list, and only
+					 *     a present list may change runtime state.
+					 */
+					crashed_details?: {
+						/** Format: uuid */
+						project_id: string;
+						/** Format: uuid */
+						deployment_id: string;
+						exit_code: number | null;
+						oom_killed: boolean;
+						/** Format: date-time */
+						finished_at: string | null;
+					}[];
 				};
 				disk_pressure: {
 					state: string;
@@ -970,6 +1247,21 @@ export interface components {
 			created_at: string;
 			updated_at: string;
 		};
+		/** AuthOptionsResource */
+		AuthOptionsResource: {
+			email_delivery_enabled: boolean;
+			providers: {
+				github: boolean;
+				google: boolean;
+			};
+		};
+		/** ChangePasswordRequest */
+		ChangePasswordRequest: {
+			/** @description An OAuth-only account has nothing to confirm with yet. */
+			current_password: string;
+			password: string;
+			password_confirmation: string;
+		};
 		/** CleanupAgentNodeRequest */
 		CleanupAgentNodeRequest: {
 			reason: string;
@@ -1003,6 +1295,23 @@ export interface components {
 				package_manager: string | null;
 				inspected_at: string;
 			} | null;
+			stack: {
+				/**
+				 * @description The choice auto mode makes: a Dockerfile wins, otherwise railpack.
+				 * @enum {string}
+				 */
+				builder: 'dockerfile' | 'railpack';
+				provider: string | null;
+				framework: string | null;
+				/** @description The agent's value comes from a lockfile; railpack also decides without one. */
+				package_manager: string | null;
+			} | null;
+			configured_port: number | null;
+			effective_port: number;
+			build_command: string | null;
+			start_command: string | null;
+			root_directory: string | null;
+			auto_deploy: boolean;
 			inspection_error_code: string | null;
 			created_at: string;
 		};
@@ -1064,14 +1373,18 @@ export interface components {
 				};
 			} | null;
 			applied_resources: {
-				memory_mb: number;
-				cpu_millis: number;
-				pids_limit: number;
+				memory_mb: number | null;
+				cpu_millis: number | null;
+				pids_limit: number | null;
 			} | null;
 			finalization_deferred: boolean;
 			/** @enum {string|null} */
 			finalization_deferred_reason: 'grace_elapsed' | 'runtime_error' | null;
 			agent_node_id: string | null;
+			is_active: boolean;
+			cancel_requested_at: string | null;
+			/** @enum {string|null} */
+			queue_state: 'assigned' | 'waiting_for_node' | null;
 			started_at: string | null;
 			finished_at: string | null;
 			cancelled_at: string | null;
@@ -1082,6 +1395,18 @@ export interface components {
 				category: string;
 				summary: string;
 				recovery_hint: string;
+				user_fixable: boolean;
+				detail: string | null;
+				/** @enum {string|null} */
+				stage:
+					| 'queued'
+					| 'cloning'
+					| 'analyzing'
+					| 'building'
+					| 'deploying'
+					| 'routing'
+					| 'health_checking'
+					| null;
 			} | null;
 			created_at: string | null;
 			updated_at: string | null;
@@ -1092,6 +1417,11 @@ export interface components {
 		 * @enum {string}
 		 */
 		DesiredWorkloadState: 'running' | 'stopped' | 'missing';
+		/** DomainPreviewResource */
+		DomainPreviewResource: {
+			slug: string;
+			domain: string;
+		};
 		/** DrainAgentNodeRequest */
 		DrainAgentNodeRequest: {
 			reason: string;
@@ -1100,14 +1430,20 @@ export interface components {
 		EnvironmentVariableRequest: {
 			key: string;
 			value: string;
-			is_secret: boolean;
+			/**
+			 * @description Secret unless the client says otherwise, so a forgotten flag never
+			 *     makes a value readable.
+			 */
+			is_secret?: boolean;
 		};
 		/** EnvironmentVariableResource */
 		EnvironmentVariableResource: {
 			id: number;
 			key: string;
 			is_secret: boolean;
+			value?: string;
 			created_at: string;
+			redeploy_required?: boolean;
 		};
 		/** EnvironmentVariableValueResource */
 		EnvironmentVariableValueResource: {
@@ -1123,6 +1459,11 @@ export interface components {
 		 * @enum {string}
 		 */
 		FeedbackCategory: 'general' | 'bug' | 'feature_request' | 'experience' | 'performance';
+		/** ForgotPasswordRequest */
+		ForgotPasswordRequest: {
+			/** Format: email */
+			email: string;
+		};
 		/** GetCollectionProjectResource */
 		GetCollectionProjectResource: {
 			id: string;
@@ -1135,6 +1476,17 @@ export interface components {
 			branch: string;
 			thumbnail_url: string | null;
 			runtime_status: components['schemas']['RuntimeStatus'];
+			stack: {
+				/**
+				 * @description The choice auto mode makes: a Dockerfile wins, otherwise railpack.
+				 * @enum {string}
+				 */
+				builder: 'dockerfile' | 'railpack';
+				provider: string | null;
+				framework: string | null;
+				/** @description The agent's value comes from a lockfile; railpack also decides without one. */
+				package_manager: string | null;
+			} | null;
 			last_deployed_at: string | null;
 			created_at: string;
 		};
@@ -1179,11 +1531,29 @@ export interface components {
 			email: string;
 			password: string;
 		};
+		/** NotificationPreferenceResource */
+		NotificationPreferenceResource: {
+			deployment_success: boolean;
+			deployment_failure: boolean;
+			project_issue: boolean;
+			account_security: boolean;
+		};
+		/** NotificationResource */
+		NotificationResource: {
+			id: string;
+			category: unknown;
+			title: unknown;
+			message: unknown;
+			project_id: unknown;
+			deployment_id: unknown;
+			read_at: string;
+			created_at: string;
+		};
 		/**
 		 * OnboardingProfile
 		 * @enum {string}
 		 */
-		OnboardingProfile: 'developer' | 'devops' | 'architect' | 'other';
+		OnboardingProfile: 'developer' | 'devops' | 'architect' | 'student' | 'mentor' | 'other';
 		/**
 		 * OnboardingSource
 		 * @enum {string}
@@ -1254,9 +1624,19 @@ export interface components {
 			github_repository_id: number | null;
 			branch: string;
 			default_domain: string;
+			public_url: string;
 			status: components['schemas']['ProjectStatus'];
 			runtime_status: components['schemas']['RuntimeStatus'];
 			detected_port: number | null;
+			configured_port: number | null;
+			effective_port: number;
+			serving_port: number | null;
+			build_command: string | null;
+			start_command: string | null;
+			root_directory: string | null;
+			auto_deploy: boolean;
+			redeploy_required: boolean;
+			active_deployment_id: string | null;
 			preview_status: string;
 			inspection: {
 				repository_url: string | null;
@@ -1267,6 +1647,17 @@ export interface components {
 				manifests: unknown[];
 				package_manager: string | null;
 				inspected_at: string;
+			} | null;
+			stack: {
+				/**
+				 * @description The choice auto mode makes: a Dockerfile wins, otherwise railpack.
+				 * @enum {string}
+				 */
+				builder: 'dockerfile' | 'railpack';
+				provider: string | null;
+				framework: string | null;
+				/** @description The agent's value comes from a lockfile; railpack also decides without one. */
+				package_manager: string | null;
 			} | null;
 			inspection_error_code: string | null;
 			last_deployed_at: string | null;
@@ -1326,10 +1717,28 @@ export interface components {
 			username: string;
 			token: string;
 		};
+		/** RequestEmailChangeRequest */
+		RequestEmailChangeRequest: {
+			/** Format: email */
+			email: string;
+			/**
+			 * @description Without a password there is nothing to confirm with: such an
+			 *     account sets one first (`has_password` tells the console).
+			 */
+			current_password: string;
+		};
 		/** ResendVerificationNotificationRequest */
 		ResendVerificationNotificationRequest: {
 			/** Format: email */
 			email: string;
+		};
+		/** ResetPasswordRequest */
+		ResetPasswordRequest: {
+			/** Format: email */
+			email: string;
+			token: string;
+			password: string;
+			password_confirmation: string;
 		};
 		/** ResumeAgentNodeRequest */
 		ResumeAgentNodeRequest: {
@@ -1395,6 +1804,11 @@ export interface components {
 		StoreProjectRequest: {
 			name: string;
 			branch: string;
+			configured_port?: number | null;
+			build_command?: string | null;
+			start_command?: string | null;
+			root_directory?: string | null;
+			auto_deploy?: boolean;
 			repository: {
 				/** @enum {string} */
 				type: 'public_url' | 'github_installation';
@@ -1409,6 +1823,22 @@ export interface components {
 		SuspendProjectRequest: {
 			reason: string;
 		};
+		/** UnreadNotificationCountResource */
+		UnreadNotificationCountResource: {
+			count: string;
+		};
+		/** UpdateEnvironmentVariableRequest */
+		UpdateEnvironmentVariableRequest: {
+			value?: string;
+			is_secret?: boolean;
+		};
+		/** UpdateNotificationPreferencesRequest */
+		UpdateNotificationPreferencesRequest: {
+			deployment_success?: boolean;
+			deployment_failure?: boolean;
+			project_issue?: boolean;
+			account_security?: boolean;
+		};
 		/** UpdateProfileRequest */
 		UpdateProfileRequest: {
 			name?: string;
@@ -1422,6 +1852,11 @@ export interface components {
 			/** Format: uri */
 			thumbnail_url?: string | null;
 			branch?: string;
+			configured_port?: number | null;
+			build_command?: string | null;
+			start_command?: string | null;
+			root_directory?: string | null;
+			auto_deploy?: boolean;
 		};
 		/** UsageSignalsResource */
 		UsageSignalsResource: {
@@ -1441,6 +1876,9 @@ export interface components {
 			onboarding_role: string | null;
 			onboarding_completed_at: string | null;
 			last_login_at: string | null;
+			has_password: boolean;
+			pending_email: string | null;
+			created_at: string | null;
 		};
 		/** ValidateUrlRequest */
 		ValidateUrlRequest: {
@@ -2012,6 +2450,28 @@ export interface operations {
 			422: components['responses']['ValidationException'];
 		};
 	};
+	'v1.auth.options': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `AuthOptionsResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['AuthOptionsResource'];
+					};
+				};
+			};
+		};
+	};
 	'v1.auth.user': {
 		parameters: {
 			query?: never;
@@ -2218,6 +2678,7 @@ export interface operations {
 			query?: {
 				cursor?: string;
 				per_page?: number;
+				order?: 'asc' | 'desc';
 			};
 			header?: never;
 			path: {
@@ -2260,6 +2721,86 @@ export interface operations {
 			401: components['responses']['AuthenticationException'];
 			403: components['responses']['AuthorizationException'];
 			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.projects.deployments.cancel': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The deployment ID */
+				deployment: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': string;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
+	'v1.app.projects.domain-preview': {
+		parameters: {
+			query: {
+				name: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `DomainPreviewResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['DomainPreviewResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.auth.email.change': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['RequestEmailChangeRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 202;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
 			422: components['responses']['ValidationException'];
 		};
 	};
@@ -2350,6 +2891,41 @@ export interface operations {
 			404: components['responses']['ModelNotFoundException'];
 		};
 	};
+	'v1.app.projects.environment-variables.update': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+				/** @description The environment variable ID */
+				environmentVariable: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['UpdateEnvironmentVariableRequest'];
+			};
+		};
+		responses: {
+			/** @description `EnvironmentVariableResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['EnvironmentVariableResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.app.projects.environment-variables.value': {
 		parameters: {
 			query?: never;
@@ -2434,6 +3010,7 @@ export interface operations {
 			query?: {
 				page?: number;
 				per_page?: number;
+				search?: string;
 			};
 			header?: never;
 			path: {
@@ -2444,7 +3021,7 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description Paginated set of `GithubResource` */
+			/** @description Array of `GithubResource` */
 			200: {
 				headers: {
 					[name: string]: unknown;
@@ -2452,31 +3029,6 @@ export interface operations {
 				content: {
 					'application/json': {
 						data: components['schemas']['GithubResource'][];
-						links: {
-							first: string | null;
-							last: string | null;
-							prev: string | null;
-							next: string | null;
-						};
-						meta: {
-							current_page: number;
-							from: number | null;
-							last_page: number;
-							/** @description Generated paginator links. */
-							links: {
-								url: string | null;
-								label: string;
-								active: boolean;
-							}[];
-							/** @description Base path for paginator generated URLs. */
-							path: string | null;
-							/** @description Number of items shown per page. */
-							per_page: number;
-							/** @description Number of the last item in the slice. */
-							to: number | null;
-							/** @description Total number of items being paginated. */
-							total: number;
-						};
 					};
 				};
 			};
@@ -2688,6 +3240,179 @@ export interface operations {
 			401: components['responses']['AuthenticationException'];
 		};
 	};
+	'v1.app.notifications.index': {
+		parameters: {
+			query?: {
+				page?: number;
+				per_page?: number;
+				unread?: boolean;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Paginated set of `NotificationResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['NotificationResource'][];
+						links: {
+							first: string | null;
+							last: string | null;
+							prev: string | null;
+							next: string | null;
+						};
+						meta: {
+							current_page: number;
+							from: number | null;
+							last_page: number;
+							/** @description Generated paginator links. */
+							links: {
+								url: string | null;
+								label: string;
+								active: boolean;
+							}[];
+							/** @description Base path for paginator generated URLs. */
+							path: string | null;
+							/** @description Number of items shown per page. */
+							per_page: number;
+							/** @description Number of the last item in the slice. */
+							to: number | null;
+							/** @description Total number of items being paginated. */
+							total: number;
+						};
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.app.notifications.unread-count': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `UnreadNotificationCountResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UnreadNotificationCountResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.notifications.read-all': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.notifications.read': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				notification: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `NotificationResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['NotificationResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.notification-preferences.show': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `NotificationPreferenceResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['NotificationPreferenceResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.app.notification-preferences.update': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['UpdateNotificationPreferencesRequest'];
+			};
+		};
+		responses: {
+			/** @description `NotificationPreferenceResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['NotificationPreferenceResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
+		};
+	};
 	'v1.onboarding.source': {
 		parameters: {
 			query?: never;
@@ -2767,6 +3492,82 @@ export interface operations {
 				};
 			};
 			401: components['responses']['AuthenticationException'];
+		};
+	};
+	'v1.auth.password.forgot': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ForgotPasswordRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 202;
+				};
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.auth.password.reset': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResetPasswordRequest'];
+			};
+		};
+		responses: {
+			/** @description No content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			422: components['responses']['ValidationException'];
+		};
+	};
+	'v1.auth.password.update': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ChangePasswordRequest'];
+			};
+		};
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			422: components['responses']['ValidationException'];
 		};
 	};
 	'v1.app.pilot-limits.show': {
@@ -2849,13 +3650,36 @@ export interface operations {
 			422: components['responses']['ValidationException'];
 		};
 	};
+	'v1.app.profile.avatar.destroy': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description `UserResource` */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						data: components['schemas']['UserResource'];
+					};
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+		};
+	};
 	'projects.index': {
 		parameters: {
 			query?: {
 				page?: number;
 				per_page?: number;
 				search?: string;
-				filter?: '7_days' | '30_days' | 'all';
+				filter?: '7_days' | '30_days' | '90_days' | 'all';
 			};
 			header?: never;
 			path?: never;
@@ -3019,6 +3843,31 @@ export interface operations {
 			404: components['responses']['ModelNotFoundException'];
 		};
 	};
+	'v1.app.projects.inspection': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description The project ID */
+				project: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': 202;
+				};
+			};
+			401: components['responses']['AuthenticationException'];
+			403: components['responses']['AuthorizationException'];
+			404: components['responses']['ModelNotFoundException'];
+		};
+	};
 	'projectControl.stop': {
 		parameters: {
 			query?: never;
@@ -3145,7 +3994,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': 201;
+					'application/json': 202;
 				};
 			};
 			422: components['responses']['ValidationException'];

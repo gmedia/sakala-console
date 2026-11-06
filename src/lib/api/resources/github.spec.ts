@@ -5,7 +5,9 @@ import {
 	getInstallationRepositories,
 	parseGithubRepositoriesResponse,
 	parseGithubRepositoryResponse,
-	validateGithubRepository
+	validateGithubRepository,
+	getInstallationRepositoryBranches,
+	getPublicRepositoryBranches
 } from './github';
 import { apiRequest } from '../client';
 
@@ -67,18 +69,49 @@ describe('github resource', () => {
 					pushed_at: '2026-02-01T00:00:00Z',
 					private: false
 				}
-			]
+			],
+			meta: { current_page: 2, last_page: 3, per_page: 5, total: 11 }
 		};
 
 		const result = parseGithubRepositoriesResponse(raw);
-		expect(result).toHaveLength(1);
-		expect(result[0].id).toBe('987654');
-		expect(result[0].full_name).toBe('octocat/awesome-repo');
+		expect(result.data).toHaveLength(1);
+		expect(result.data[0].id).toBe('987654');
+		expect(result.data[0].full_name).toBe('octocat/awesome-repo');
+		expect(result.meta.total).toBe(11);
+		expect(result.meta.last_page).toBe(3);
+	});
+
+	it('menolak daftar repository tanpa pagination, karena jumlahnya tidak bisa dipercaya', () => {
+		expect(() => parseGithubRepositoriesResponse({ data: [] })).toThrow();
+	});
+
+	it('membaca branch sebuah instalasi dari endpoint repository-nya', async () => {
+		vi.mocked(apiRequest).mockResolvedValueOnce({
+			data: [{ name: 'main' }, { name: 'develop' }]
+		});
+
+		await expect(getInstallationRepositoryBranches('inst-1', '42')).resolves.toEqual([
+			'main',
+			'develop'
+		]);
+		expect(apiRequest).toHaveBeenCalledWith(
+			'/api/v1/app/github/installations/inst-1/repositories/42/branches'
+		);
+	});
+
+	it('membaca branch repository publik lewat URL-nya', async () => {
+		vi.mocked(apiRequest).mockResolvedValueOnce({ data: [{ name: 'trunk' }] });
+
+		await expect(getPublicRepositoryBranches('https://github.com/a/b')).resolves.toEqual(['trunk']);
+		expect(apiRequest).toHaveBeenCalledWith('/api/v1/app/github/repositories/branches', {
+			params: { repository_url: 'https://github.com/a/b' }
+		});
 	});
 
 	it('berhasil memanggil endpoint getInstallationRepositories dengan query params', async () => {
 		vi.mocked(apiRequest).mockResolvedValueOnce({
-			data: []
+			data: [],
+			meta: { current_page: 2, last_page: 2, per_page: 10, total: 10 }
 		});
 
 		await getInstallationRepositories('inst-uuid-1', { page: 2, per_page: 10 });

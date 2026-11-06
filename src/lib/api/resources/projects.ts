@@ -25,6 +25,14 @@ const projectSchema: z.ZodType<Project> = z.object({
 	branch: z.string(),
 	thumbnail_url: z.string().nullable(),
 	runtime_status: z.string(),
+	stack: z
+		.object({
+			builder: z.enum(['dockerfile', 'railpack']),
+			provider: z.string().nullable(),
+			framework: z.string().nullable(),
+			package_manager: z.string().nullable()
+		})
+		.nullable(),
 	last_deployed_at: z.string().nullable(),
 	created_at: z.string()
 });
@@ -114,4 +122,22 @@ export async function createProject(payload: StoreProjectRequest): Promise<Creat
 		json: payload
 	});
 	return parseCreateProjectResponse(response);
+}
+
+export type DomainPreview = components['schemas']['DomainPreviewResource'];
+
+const domainPreviewResponseSchema = z.object({
+	data: z.object({ slug: z.string(), domain: z.string() })
+});
+
+export function parseDomainPreviewResponse(response: unknown): DomainPreview {
+	return domainPreviewResponseSchema.parse(response).data;
+}
+
+/** The API's own generator, with collision suffixes. It reserves nothing. */
+export async function getDomainPreview(name: string): Promise<DomainPreview> {
+	const response = await apiRequest<unknown>('/api/v1/app/projects/domain-preview', {
+		params: { name }
+	});
+	return parseDomainPreviewResponse(response);
 }

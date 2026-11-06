@@ -29,6 +29,9 @@ importers:
       pusher-js:
         specifier: ^8.6.0
         version: 8.6.0
+      strip-ansi:
+        specifier: 7.2.0
+        version: 7.2.0
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0

@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiRequest } from '../client';
 import {
+	cancelDeployment,
 	getDeployment,
 	getDeploymentEvents,
 	getAllDeploymentEvents,
+	getDeploymentLogs,
+	parseDeploymentLogsResponse,
 	parseDeploymentResponse,
 	parseDeploymentEventsResponse,
 	DeploymentEventsTruncationError,
@@ -57,6 +60,9 @@ const validDeployment: Deployment = {
 	},
 	finalization_deferred: false,
 	finalization_deferred_reason: null,
+	is_active: true,
+	cancel_requested_at: null,
+	queue_state: null,
 	agent_node_id: null,
 	started_at: '2024-01-01T00:00:00Z',
 	finished_at: '2024-01-01T00:01:00Z',
@@ -172,68 +178,68 @@ describe('parseDeploymentResponse', () => {
 		expect(result.data.applied_resources).toBeNull();
 	});
 
-	it('melempar error jika applied_resources berbentuk array', () => {
-		expect(() =>
-			parseDeploymentResponse({
-				data: {
-					...validDeployment,
-					applied_resources: [{ memory_mb: 256 }]
-				}
-			})
-		).toThrow();
+	it('membaca applied_resources berbentuk array sebagai kosong', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				applied_resources: [{ memory_mb: 256 }]
+			}
+		});
+
+		expect(result.data.applied_resources).toBeNull();
 	});
 
-	it('melempar error jika applied_resources object tidak lengkap', () => {
-		expect(() =>
-			parseDeploymentResponse({
-				data: {
-					...validDeployment,
-					applied_resources: { memory_mb: 256, cpu_millis: 500 }
-				}
-			})
-		).toThrow();
+	it('membaca applied_resources yang tidak lengkap sebagai kosong', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				applied_resources: { memory_mb: 256, cpu_millis: 500 }
+			}
+		});
+
+		expect(result.data.applied_resources).toBeNull();
 	});
 
 	it('melempar error jika response deployment tidak valid', () => {
 		expect(() => parseDeploymentResponse({ data: {} })).toThrow();
 	});
 
-	it('melempar error jika requested_resources field-nya salah tipe', () => {
-		expect(() =>
-			parseDeploymentResponse({
-				data: {
-					...validDeployment,
-					requested_resources: {
-						memory_mb: 'bukan-angka',
-						cpu_millis: 500,
-						pids_limit: 128
-					}
+	it('membaca requested_resources yang salah tipe sebagai kosong', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				requested_resources: {
+					memory_mb: 'bukan-angka',
+					cpu_millis: 500,
+					pids_limit: 128
 				}
-			})
-		).toThrow();
+			}
+		});
+
+		expect(result.data.requested_resources).toBeNull();
 	});
 
-	it('melempar error jika effective_resources.resources tidak lengkap', () => {
-		expect(() =>
-			parseDeploymentResponse({
-				data: {
-					...validDeployment,
-					effective_resources: {
-						resources: { memory_mb: 256 },
-						timeouts: {
-							build_timeout_seconds: 600,
-							start_timeout_seconds: 120,
-							command_timeout_seconds: 900
-						},
-						log_bounds: {
-							max_line_length: 4096,
-							max_batch_lines: 500,
-							max_total_bytes: 10485760
-						}
+	it('membaca effective_resources yang tidak lengkap sebagai kosong', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				effective_resources: {
+					resources: { memory_mb: 256 },
+					timeouts: {
+						build_timeout_seconds: 600,
+						start_timeout_seconds: 120,
+						command_timeout_seconds: 900
+					},
+					log_bounds: {
+						max_line_length: 4096,
+						max_batch_lines: 500,
+						max_total_bytes: 10485760
 					}
 				}
-			})
-		).toThrow();
+			}
+		});
+
+		expect(result.data.effective_resources).toBeNull();
 	});
 
 	it('menerima finalization_deferred_reason grace_elapsed', () => {
@@ -268,15 +274,15 @@ describe('parseDeploymentResponse', () => {
 		expect(result.data.finalization_deferred_reason).toBeNull();
 	});
 
-	it('melempar error jika finalization_deferred_reason bukan enum valid', () => {
-		expect(() =>
-			parseDeploymentResponse({
-				data: {
-					...validDeployment,
-					finalization_deferred_reason: 'unknown_value'
-				}
-			})
-		).toThrow();
+	it('membaca finalization_deferred_reason yang tidak dikenal sebagai kosong', () => {
+		const result = parseDeploymentResponse({
+			data: {
+				...validDeployment,
+				finalization_deferred_reason: 'unknown_value'
+			}
+		});
+
+		expect(result.data.finalization_deferred_reason).toBeNull();
 	});
 });
 
@@ -286,18 +292,18 @@ describe('parseDeploymentEventsResponse', () => {
 		expect(result).toEqual(validDeploymentEventsResponse);
 	});
 
-	it('melempar error jika level event tidak valid', () => {
-		expect(() =>
-			parseDeploymentEventsResponse({
-				...validDeploymentEventsResponse,
-				data: [
-					{
-						...validDeploymentEvent,
-						level: 'debug'
-					}
-				]
-			})
-		).toThrow();
+	it('melewati event dengan level yang tidak dikenal', () => {
+		const result = parseDeploymentEventsResponse({
+			...validDeploymentEventsResponse,
+			data: [
+				{
+					...validDeploymentEvent,
+					level: 'debug'
+				}
+			]
+		});
+
+		expect(result.data).toEqual([]);
 	});
 
 	it('menerima events dengan metadata null dan type null', () => {
@@ -361,18 +367,18 @@ describe('parseDeploymentEventsResponse', () => {
 		expect(result.data[0].metadata).toEqual({});
 	});
 
-	it('melempar error jika metadata berbentuk array', () => {
-		expect(() =>
-			parseDeploymentEventsResponse({
-				...validDeploymentEventsResponse,
-				data: [
-					{
-						...validDeploymentEvent,
-						metadata: [{ step: 'build' }]
-					}
-				]
-			})
-		).toThrow();
+	it('membaca metadata berbentuk array sebagai kosong, tanpa menjatuhkan timeline', () => {
+		const result = parseDeploymentEventsResponse({
+			...validDeploymentEventsResponse,
+			data: [
+				{
+					...validDeploymentEvent,
+					metadata: [{ step: 'build' }]
+				}
+			]
+		});
+
+		expect(result.data[0].metadata).toBeNull();
 	});
 });
 
@@ -474,7 +480,7 @@ describe('getAllDeploymentEvents', () => {
 		expect(mockApiRequest).toHaveBeenCalledTimes(1);
 		expect(mockApiRequest).toHaveBeenCalledWith(
 			'api/v1/app/projects/proj_1/deployments/dep_1/events',
-			{ params: { cursor: undefined } }
+			{ params: { cursor: undefined, per_page: 10 } }
 		);
 		expect(result.data).toEqual([validDeploymentEvent]);
 		expect(result.meta.next_cursor).toBeNull();
@@ -507,13 +513,13 @@ describe('getAllDeploymentEvents', () => {
 		expect(mockApiRequest).toHaveBeenNthCalledWith(
 			1,
 			'api/v1/app/projects/proj_1/deployments/dep_1/events',
-			{ params: { cursor: undefined } }
+			{ params: { cursor: undefined, per_page: 10 } }
 		);
 
 		expect(mockApiRequest).toHaveBeenNthCalledWith(
 			2,
 			'api/v1/app/projects/proj_1/deployments/dep_1/events',
-			{ params: { cursor: 'cursor_next' } }
+			{ params: { cursor: 'cursor_next', per_page: 10 } }
 		);
 	});
 
@@ -631,5 +637,184 @@ describe('DeploymentEventsTruncationError', () => {
 			expect(e.remainingCursor).toBe('cursor_49');
 			expect(e.isRetryable).toBe(false);
 		}
+	});
+});
+
+describe('deployment logs resource', () => {
+	const validResponse = {
+		data: [
+			{
+				sequence: 1,
+				stream: 'stderr',
+				message: 'npm warn deprecated',
+				recorded_at: '2026-09-20T08:41:02.000000Z'
+			}
+		],
+		links: { first: null, last: null, prev: null, next: null },
+		meta: { path: null, per_page: 10, next_cursor: 'abc', prev_cursor: null }
+	};
+
+	it('requests the logs path with the cursor and page size', async () => {
+		mockApiRequest.mockResolvedValueOnce(validResponse);
+
+		const result = await getDeploymentLogs('proj_1', 'dep_1', { cursor: 'abc', per_page: 10 });
+
+		expect(mockApiRequest).toHaveBeenCalledWith(
+			'api/v1/app/projects/proj_1/deployments/dep_1/logs',
+			{ params: { cursor: 'abc', per_page: 10 } }
+		);
+		expect(result.meta.next_cursor).toBe('abc');
+	});
+
+	it('skips a line with a stream value outside the contract', () => {
+		const result = parseDeploymentLogsResponse({
+			...validResponse,
+			data: [{ ...validResponse.data[0], stream: 'build' }]
+		});
+
+		expect(result.data).toEqual([]);
+	});
+});
+
+describe('new deployment contract', () => {
+	const failure = {
+		code: 'runtime_build_failed',
+		category: 'build',
+		summary: 'Proses build berhenti.',
+		recovery_hint: 'Perbaiki di repository.',
+		user_fixable: true,
+		detail: 'npm ERR! code 1',
+		stage: 'building'
+	} as const;
+
+	it('keeps is_active, queue_state, and the failure fields', () => {
+		const { data } = parseDeploymentResponse({
+			data: { ...validDeployment, status: 'failed', queue_state: 'waiting_for_node', failure }
+		});
+
+		expect(data.is_active).toBe(true);
+		expect(data.queue_state).toBe('waiting_for_node');
+		expect(data.failure).toEqual(failure);
+	});
+
+	it('keeps the failure when its stage is outside the contract', () => {
+		const result = parseDeploymentResponse({
+			data: { ...validDeployment, failure: { ...failure, stage: 'somewhere' } }
+		});
+
+		expect(result.data.failure?.summary).toBe(failure.summary);
+		expect(result.data.failure?.stage).toBeNull();
+	});
+
+	it('cancelDeployment posts to the cancel route and returns the deployment', async () => {
+		mockApiRequest.mockResolvedValueOnce({
+			data: { ...validDeployment, cancel_requested_at: '2026-09-20T10:00:00Z' }
+		});
+
+		const result = await cancelDeployment('proj_1', 'dep_1');
+
+		expect(mockApiRequest).toHaveBeenCalledWith(
+			'api/v1/app/projects/proj_1/deployments/dep_1/cancel',
+			{ method: 'POST' }
+		);
+		expect(result.data.cancel_requested_at).toBe('2026-09-20T10:00:00Z');
+	});
+
+	it('getDeploymentLogs forwards order and per_page', async () => {
+		mockApiRequest.mockResolvedValueOnce({
+			data: [],
+			links: { first: null, last: null, prev: null, next: null },
+			meta: { path: null, per_page: 200, next_cursor: null, prev_cursor: null }
+		});
+
+		await getDeploymentLogs('proj_1', 'dep_1', { per_page: 200, order: 'desc' });
+
+		expect(mockApiRequest).toHaveBeenCalledWith(
+			'api/v1/app/projects/proj_1/deployments/dep_1/logs',
+			{ params: { per_page: 200, order: 'desc' } }
+		);
+	});
+});
+
+describe('real API shapes (from the end-to-end run)', () => {
+	const eventsPage = (rows: unknown[]) => ({
+		data: rows,
+		links: { first: null, last: null, prev: null, next: null },
+		meta: { path: null, per_page: 10, next_cursor: null, prev_cursor: null }
+	});
+
+	it('reads metadata: [] as nothing, because PHP encodes an empty map as a list', () => {
+		const result = parseDeploymentEventsResponse(
+			eventsPage([{ ...validDeploymentEvent, metadata: [] }])
+		);
+
+		expect(result.data).toHaveLength(1);
+		expect(result.data[0].metadata).toBeNull();
+	});
+
+	it('keeps metadata that is a real object', () => {
+		const result = parseDeploymentEventsResponse(
+			eventsPage([{ ...validDeploymentEvent, metadata: { image: 'abc' } }])
+		);
+
+		expect(result.data[0].metadata).toEqual({ image: 'abc' });
+	});
+
+	it('drops one malformed event, and keeps the rest of the timeline', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const result = parseDeploymentEventsResponse(
+			eventsPage([
+				{ ...validDeploymentEvent, sequence: 1 },
+				{ sequence: 2, level: 'surprise' },
+				'not even an object',
+				{ ...validDeploymentEvent, sequence: 3 }
+			])
+		);
+
+		expect(result.data.map((event) => event.sequence)).toEqual([1, 3]);
+		expect(warn).toHaveBeenCalledTimes(2);
+		warn.mockRestore();
+	});
+
+	it('drops one malformed log line, and keeps the others', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const line = {
+			sequence: 1,
+			stream: 'stdout',
+			message: 'ok',
+			recorded_at: '2026-09-20T08:41:02Z'
+		};
+		const result = parseDeploymentLogsResponse(
+			eventsPage([line, { ...line, sequence: 2, stream: 'surprise' }])
+		);
+
+		expect(result.data.map((row) => row.sequence)).toEqual([1]);
+		warn.mockRestore();
+	});
+
+	it.each(['requested_resources', 'effective_resources', 'applied_resources', 'failure'])(
+		'a page still opens when %s comes as an empty list',
+		(field) => {
+			const result = parseDeploymentResponse({
+				data: { ...validDeployment, [field]: [] }
+			});
+
+			expect(result.data[field as 'failure']).toBeNull();
+		}
+	);
+
+	it.each(['queue_state', 'finalization_deferred_reason'])(
+		'a page still opens when %s is a value it does not know',
+		(field) => {
+			const result = parseDeploymentResponse({
+				data: { ...validDeployment, [field]: 'something_new' }
+			});
+
+			expect(result.data[field as 'queue_state']).toBeNull();
+		}
+	);
+
+	it('still refuses a broken envelope, which no single row can explain', () => {
+		expect(() => parseDeploymentEventsResponse({ data: 'nope' })).toThrow();
 	});
 });
