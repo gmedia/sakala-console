@@ -12,6 +12,7 @@ const validUser = {
 	onboarding_completed_at: new Date().toISOString(),
 	last_login_at: new Date().toISOString(),
 	has_password: true,
+	legal_acceptance_required: false,
 	pending_email: null,
 	created_at: '2026-01-01T00:00:00Z'
 };
@@ -25,6 +26,8 @@ const validProject = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: 'https://example.com/thumb.png',
+	public_url: 'https://sakala-console.run.sakala.dev',
+	latest_deployment: null,
 	runtime_status: 'running',
 	stack: null,
 	last_deployed_at: '2026-09-10T10:00:00Z',
@@ -440,20 +443,18 @@ test.describe('Deployment detail page', () => {
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
 	});
 
-	test('shows failed state and "Lihat detail error" CTA scrolls to failure summary', async ({
-		page
-	}) => {
+	test('shows failed state and "Lihat error di log" CTA reaches the log', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
 		await mockDeploymentDetail(page, 'failed');
 		await page.goto('/projects/sakala-console/deployments/12');
 
 		await expect(page.getByText('Deployment gagal')).toBeVisible();
 
-		const cta = page.getByRole('button', { name: /lihat detail error/i });
+		const cta = page.getByRole('button', { name: /lihat error di log/i });
 		await expect(cta).toBeVisible();
 
 		await cta.click();
-		await expect(page.locator('#failure-summary')).toBeInViewport();
+		await expect(page.locator('#deployment-logs')).toBeInViewport();
 	});
 });
 

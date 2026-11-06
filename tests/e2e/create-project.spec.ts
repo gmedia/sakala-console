@@ -96,6 +96,7 @@ test.describe('create project wizard, from GitHub', () => {
 		await page.getByRole('option', { name: 'develop', exact: true }).click();
 		await expect(page.getByLabel('Branch', { exact: true })).toHaveValue('develop');
 
+		await page.getByRole('button', { name: 'Pengaturan lanjutan' }).click();
 		await page.getByLabel('Port (opsional)').fill('8080');
 		await page.getByLabel('Build command (opsional)').fill('pnpm build');
 		await page.getByLabel('Start command (opsional)').fill('pnpm start');
@@ -209,6 +210,7 @@ test.describe('create project wizard, from GitHub', () => {
 			})
 		});
 		await chooseFirstRepository(page);
+		await page.getByRole('button', { name: 'Pengaturan lanjutan' }).click();
 		await page.getByLabel('Root directory (opsional)').fill('apps/web');
 
 		await buatProyek(page).click();
@@ -225,6 +227,7 @@ test.describe('create project wizard, from GitHub', () => {
 		const calls = await mockWizardApi(page);
 		await chooseFirstRepository(page);
 
+		await page.getByRole('button', { name: 'Pengaturan lanjutan' }).click();
 		await page.getByLabel('Port (opsional)').fill('70000');
 		await page.getByLabel('Root directory (opsional)').fill('../rahasia');
 		await page.getByLabel('Nama variabel').fill('9_SALAH');
@@ -277,6 +280,8 @@ test.describe('create project wizard, from a public URL', () => {
 				name: 'situs',
 				repository_source: 'public_url',
 				repository_full_name: 'publik/situs',
+				public_url: 'https://situs.run.sakala.dev',
+				latest_deployment: null,
 				branch: 'gh-pages',
 				inspection: {
 					...succeededInspection.inspection,
@@ -597,6 +602,7 @@ test.describe('leaving the wizard', () => {
 	test('keeps going when the dialog is dismissed, with the form intact', async ({ page }) => {
 		await mockWizardApi(page);
 		await chooseFirstRepository(page);
+		await page.getByRole('button', { name: 'Pengaturan lanjutan' }).click();
 		await page.getByLabel('Port (opsional)').fill('8080');
 
 		await page.getByRole('button', { name: 'Batal', exact: true }).click();
@@ -817,4 +823,76 @@ test.describe('narrow screens', () => {
 			expect(await overflows()).toBe(false);
 		});
 	}
+});
+
+test.describe('the configuration step stays short', () => {
+	const advanced = (page: Page) => page.getByRole('button', { name: 'Pengaturan lanjutan' });
+
+	test('folds what detection fills in, and keeps name, branch, and variables open', async ({
+		page
+	}) => {
+		await mockWizardApi(page);
+		await chooseFirstRepository(page);
+
+		await expect(advanced(page)).toHaveAttribute('aria-expanded', 'false');
+		await expect(page.getByLabel('Port (opsional)')).toBeHidden();
+		await expect(page.getByLabel('Build command (opsional)')).toBeHidden();
+		await expect(page.getByLabel('Nama proyek')).toBeVisible();
+		await expect(page.getByLabel('Branch', { exact: true })).toBeVisible();
+		await expect(page.getByLabel('Nama variabel')).toBeVisible();
+
+		await advanced(page).click();
+		await expect(page.getByLabel('Port (opsional)')).toBeVisible();
+	});
+
+	test('opens by itself on an error inside, and focuses the field', async ({ page }) => {
+		await mockWizardApi(page);
+		await chooseFirstRepository(page);
+
+		await advanced(page).click();
+		await page.getByLabel('Port (opsional)').fill('70000');
+		await advanced(page).click();
+		await expect(page.getByLabel('Port (opsional)')).toBeHidden();
+
+		await buatProyek(page).click();
+
+		await expect(advanced(page)).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.getByLabel('Port (opsional)')).toBeFocused();
+	});
+
+	test('Esc drops a variable being typed, and leaves added ones alone', async ({ page }) => {
+		await mockWizardApi(page);
+		await chooseFirstRepository(page);
+		await addEnv(page, 'API_KEY', 'isi');
+
+		await page.getByLabel('Nama variabel').fill('SETENGAH');
+		await page.getByLabel('Nilai variabel').fill('jalan');
+		await page.getByLabel('Nilai variabel').press('Escape');
+
+		await expect(page.getByLabel('Nama variabel')).toHaveValue('');
+		await expect(page.getByLabel('Nilai variabel')).toHaveValue('');
+		await expect(page.getByLabel('Nama variabel')).toBeFocused();
+		await expect(page.getByText('API_KEY', { exact: true })).toBeVisible();
+	});
+
+	test('a failed variable save offers to retry, without creating the project twice', async ({
+		page
+	}) => {
+		let attempts = 0;
+		await mockWizardApi(page, {
+			addEnv: () => {
+				attempts += 1;
+				return attempts === 1 ? { status: 500, body: {} } : { status: 201, body: { data: {} } };
+			}
+		});
+		await chooseFirstRepository(page);
+		await addEnv(page, 'API_KEY', 'isi');
+		await buatProyek(page).click();
+
+		await expect(page.getByRole('heading', { name: /1 variabel belum tersimpan/ })).toBeVisible();
+		await expect(page.getByLabel('Nama variabel')).toHaveValue('API_KEY');
+		await page.getByRole('button', { name: 'Simpan ulang variabel' }).click();
+
+		await expect(page.getByRole('heading', { name: /belum tersimpan/ })).toHaveCount(0);
+	});
 });

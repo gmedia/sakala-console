@@ -11,7 +11,15 @@ function reply(route: Route, status: number, body: unknown) {
 async function mockOptions(page: Page, email_delivery_enabled: boolean, google = false) {
 	await page.route('**/api/v1/auth/options', (route) =>
 		reply(route, 200, {
-			data: { email_delivery_enabled, providers: { github: true, google } }
+			data: {
+				email_delivery_enabled,
+				providers: { github: true, google },
+				legal: {
+					terms_version: 'syarat-v1',
+					acceptable_use_version: 'penggunaan-wajar-v1',
+					privacy_notice_version: 'privasi-v1'
+				}
+			}
 		})
 	);
 }
@@ -89,7 +97,15 @@ test.describe('the flag is not known', () => {
 		await page.route('**/api/v1/auth/options', async (route) => {
 			await held;
 			await reply(route, 200, {
-				data: { email_delivery_enabled: false, providers: { github: true, google: false } }
+				data: {
+					email_delivery_enabled: false,
+					providers: { github: true, google: false },
+					legal: {
+						terms_version: 'syarat-v1',
+						acceptable_use_version: 'penggunaan-wajar-v1',
+						privacy_notice_version: 'privasi-v1'
+					}
+				}
 			});
 		});
 

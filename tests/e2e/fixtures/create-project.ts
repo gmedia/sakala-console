@@ -75,6 +75,7 @@ export const pilotLimits = {
 		start_timeout_seconds: 120,
 		command_timeout_seconds: 900
 	},
+	deleted_project_retention_days: 30,
 	log_bounds: {
 		max_line_length: 4096,
 		max_batch_lines: 500,
@@ -89,6 +90,7 @@ export const createdProject = {
 	slug: 'repo-1',
 	repository_provider: 'github',
 	thumbnail_url: null,
+	latest_deployment: null,
 	repository_url: 'https://github.com/rani/repo-1',
 	repository_full_name: 'rani/repo-1',
 	repository_source: 'github_installation',

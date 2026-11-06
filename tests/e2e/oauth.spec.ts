@@ -12,6 +12,7 @@ type UserMock = {
 	onboarding_completed_at: string | null;
 	last_login_at: string | null;
 	has_password: boolean;
+	legal_acceptance_required: boolean;
 	pending_email: string | null;
 	created_at: string | null;
 };
@@ -28,6 +29,7 @@ const userCompletedOnboarding: UserMock = {
 	onboarding_completed_at: new Date().toISOString(),
 	last_login_at: new Date().toISOString(),
 	has_password: true,
+	legal_acceptance_required: false,
 	pending_email: null,
 	created_at: '2026-01-01T00:00:00Z'
 };

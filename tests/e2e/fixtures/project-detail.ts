@@ -163,6 +163,7 @@ export const baseProject = {
 	slug: 'toko-kopi-web',
 	repository_provider: 'github',
 	thumbnail_url: null,
+	latest_deployment: null,
 	repository_url: 'https://github.com/raniw/toko-kopi-web',
 	repository_full_name: 'raniw/toko-kopi-web',
 	repository_source: 'github_installation',
@@ -257,6 +258,7 @@ export async function mockProjectApi(page: Page, handlers: ApiHandlers = {}) {
 					onboarding_completed_at: '2026-01-01T00:00:00Z',
 					last_login_at: '2026-01-01T00:00:00Z',
 					has_password: true,
+					legal_acceptance_required: false,
 					pending_email: null,
 					created_at: '2026-01-01T00:00:00Z'
 				}

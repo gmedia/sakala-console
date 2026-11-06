@@ -17,6 +17,7 @@ import {
 	succeededDeployment,
 	unknownFailureDeployment
 } from './fixtures/project-detail';
+import { pilotLimits } from './fixtures/create-project';
 
 const ENV_URL = `/projects/${PROJECT_ID}/environments`;
 const SETTINGS_URL = `/projects/${PROJECT_ID}/settings`;
@@ -300,7 +301,7 @@ test.describe('failure banner (#13)', () => {
 		await page.goto(DETAIL_URL);
 
 		await expect(page.locator('pre', { hasText: 'npm ERR! code ELIFECYCLE' })).toBeVisible();
-		await expect(page.getByText(/Berhenti di tahap Build proyek/)).toBeVisible();
+		await expect(page.getByText('Build proyek - gagal')).toBeVisible();
 	});
 
 	test('a platform failure does not blame the user, and its hint comes from the API', async ({
@@ -325,7 +326,7 @@ test.describe('failure banner (#13)', () => {
 
 		await expect(page.getByRole('heading', { name: 'Deployment dibatalkan' })).toBeVisible();
 		await expect(page.getByText(/gagal/i)).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Lihat detail error' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Lihat error di log' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Redeploy' })).toBeVisible();
 	});
 
@@ -338,7 +339,7 @@ test.describe('failure banner (#13)', () => {
 			page.getByRole('heading', { name: 'Deployment gagal', exact: true })
 		).toBeVisible();
 		await expect(page.getByText(unknownFailureDeployment.failure.summary)).toBeVisible();
-		await expect(page.getByText(/lihat log di bawah/i)).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Lihat error di log' })).toBeVisible();
 	});
 
 	test('a failure without summary points to the logs', async ({ page }) => {
@@ -350,20 +351,29 @@ test.describe('failure banner (#13)', () => {
 			page.getByRole('heading', { name: 'Deployment gagal', exact: true })
 		).toBeVisible();
 		await expect(page.locator('#failure-summary')).toHaveCount(0);
-		await expect(page.getByText(/lihat log di bawah/i)).toBeVisible();
+		await expect(page.getByText(/lihat log untuk/i)).toBeVisible();
 	});
 
-	test('"Lihat detail error" focuses the failure summary when there is one', async ({ page }) => {
-		await mockProjectApi(page, { deployment: () => failedDeployment });
+	test('"Lihat error di log" jumps to the first line written to stderr', async ({ page }) => {
+		const lines = Array.from({ length: 80 }, (_, index) =>
+			logLine(index + 1, `baris ${index + 1}`)
+		);
+		lines[20] = logLine(21, 'npm ERR! pertama', 'stderr');
+		lines[60] = logLine(61, 'npm ERR! kedua', 'stderr');
+		await mockProjectApi(page, {
+			deployment: () => failedDeployment,
+			logs: () => ({ body: logPage([...lines].reverse()) })
+		});
 		await page.goto(DETAIL_URL);
+		await expect(page.getByText('baris 80')).toBeInViewport();
 
-		await page.getByRole('button', { name: 'Lihat detail error' }).click();
+		await page.getByRole('button', { name: 'Lihat error di log' }).click();
 
-		await expect(page.locator('#failure-summary')).toBeFocused();
-		await expect(page.locator('#failure-summary')).toBeInViewport();
+		await expect(page.getByRole('log')).toBeFocused();
+		await expect(page.getByText('npm ERR! pertama')).toBeInViewport();
 	});
 
-	test('"Lihat detail error" falls back to the log panel when details are missing', async ({
+	test('"Lihat error di log" falls back to the log panel when no line is on stderr', async ({
 		page
 	}) => {
 		await mockProjectApi(page, {
@@ -374,14 +384,14 @@ test.describe('failure banner (#13)', () => {
 		await page.setViewportSize({ width: 1280, height: 500 });
 		await page.goto(DETAIL_URL);
 
-		await page.getByRole('button', { name: 'Lihat detail error' }).click();
+		await page.getByRole('button', { name: 'Lihat error di log' }).click();
 
 		await expect(page.locator('#deployment-logs')).toBeFocused();
 		await expect(page.getByRole('log').getByText('npm ERR! build')).toBeInViewport();
 	});
 
 	test.describe('with reduced motion', () => {
-		test('"Lihat detail error" jumps without animating', async ({ page }) => {
+		test('"Lihat error di log" jumps without animating', async ({ page }) => {
 			await page.emulateMedia({ reducedMotion: 'reduce' });
 			await mockProjectApi(page, { deployment: () => failedWithoutDetails });
 			await page.setViewportSize({ width: 1280, height: 500 });
@@ -399,7 +409,7 @@ test.describe('failure banner (#13)', () => {
 			});
 			expect(behavior).toBe(true);
 
-			await page.getByRole('button', { name: 'Lihat detail error' }).click();
+			await page.getByRole('button', { name: 'Lihat error di log' }).click();
 
 			await expect(page.locator('#deployment-logs')).toBeFocused();
 			expect(
@@ -574,7 +584,7 @@ test.describe('deployment detail', () => {
 
 		const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
 		await expect(trail.getByText('Deployment #3')).toHaveAttribute('aria-current', 'page');
-		await trail.getByRole('link', { name: 'Riwayat deployment' }).click();
+		await trail.getByRole('link', { name: 'Riwayat' }).click();
 		await expect(page).toHaveURL(new RegExp(`/projects/${PROJECT_ID}/deployments$`));
 	});
 
@@ -676,7 +686,7 @@ test.describe('project header states', () => {
 		await expect(page.getByText(/belum ada server Sakala yang siap/)).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Sedang men-deploy' })).toBeDisabled();
 		await expect(page.getByText(url)).toHaveCount(0);
-		await expect(page.getByText('Tidak ada URL yang melayani saat ini')).toBeVisible();
+		await expect(page.getByText('Situs belum bisa dibuka')).toBeVisible();
 	});
 
 	test('active with a failed attempt: previous version still serves, URL stays', async ({
@@ -861,7 +871,7 @@ test.describe('project header states', () => {
 test.describe('deployment history', () => {
 	const projectsUrl = `/projects/${PROJECT_ID}/deployments`;
 
-	test('cards name what really happened, in Indonesian', async ({ page }) => {
+	test('rows name what really happened, in Indonesian', async ({ page }) => {
 		await mockProjectApi(page, {
 			deploymentList: () => [
 				{ ...failedDeployment, id: 'a', sequence: 5 },
@@ -874,40 +884,101 @@ test.describe('deployment history', () => {
 
 		await expect(page.getByText('Gagal di tahap Build proyek')).toBeVisible();
 		await expect(page.getByText('Dibatalkan sebelum selesai')).toBeVisible();
-		await expect(page.getByText('Mengantre', { exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Deployment #3, Mengantre/ })).toBeVisible();
 		await expect(page.getByText('Menunggu server siap')).toBeVisible();
 		await expect(page.getByText('Build error')).toHaveCount(0);
 		await expect(page.getByText('Deploying')).toHaveCount(0);
 	});
 
-	test('an empty 30 days does not claim there is no history, and offers all time', async ({
-		page
-	}) => {
-		let requested: string[] = [];
-		page.on('request', (request) => {
-			const url = new URL(request.url());
-			if (url.pathname.endsWith('/deployments')) {
-				requested = [...requested, url.searchParams.get('filter') ?? ''];
-			}
-		});
+	test('a project that never deployed offers no filter, and says so', async ({ page }) => {
 		await mockProjectApi(page, { deploymentList: () => [] });
 
 		await page.goto(projectsUrl);
 
-		await expect(page.getByText('Tidak ada deployment dalam 30 hari terakhir.')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Belum ada riwayat' })).toBeVisible();
+		await expect(page.getByText(/belum pernah di-deploy/)).toBeVisible();
+		await expect(page.getByRole('button', { name: /Filter waktu/ })).toHaveCount(0);
+		await expect(page.getByPlaceholder('Cari deployment')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Lihat semua waktu' })).toHaveCount(0);
+	});
+
+	test('an empty 7 days does not claim there is no history, and offers all time', async ({
+		page
+	}) => {
+		await mockProjectApi(page);
+		// Registered last so it runs first, ahead of the shared mock.
+		await page.route(`**/api/v1/app/projects/${PROJECT_ID}/deployments?*`, (route) => {
+			const filter = new URL(route.request().url()).searchParams.get('filter');
+			const meta = {
+				current_page: 1,
+				from: 1,
+				last_page: filter === 'all' ? 2 : 1,
+				links: [],
+				path: null,
+				per_page: 6,
+				to: 1,
+				total: filter === 'all' ? 7 : 0
+			};
+			return route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					data: filter === 'all' ? [succeededDeployment] : [],
+					links: { first: null, last: null, prev: null, next: null },
+					meta
+				})
+			});
+		});
+
+		await page.goto(projectsUrl);
+		await page.getByRole('button', { name: /Filter waktu/ }).click();
+		await page.getByRole('option', { name: '7 hari terakhir' }).click();
+
+		await expect(page.getByText('Tidak ada deployment dalam 7 hari terakhir.')).toBeVisible();
 		await expect(page.getByText(/Belum ada riwayat/)).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Lihat semua waktu' }).click();
 
-		await expect(page.getByRole('heading', { name: 'Belum ada riwayat' })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Deployment #3/ })).toBeVisible();
 	});
+
+	test('the whole row opens the deployment', async ({ page }) => {
+		await mockProjectApi(page, { deploymentList: () => [succeededDeployment] });
+
+		await page.goto(projectsUrl);
+		const row = page.getByRole('listitem').filter({ hasText: 'feat: something' });
+		const box = await row.boundingBox();
+		expect(box).not.toBeNull();
+		await page.mouse.click(box!.x + box!.width - 8, box!.y + box!.height / 2);
+
+		await expect(page).toHaveURL(DETAIL_URL);
+	});
+
+	for (const width of [320, 1280]) {
+		test(`a row shows status, number, commit, SHA, branch, and duration at ${width} px`, async ({
+			page
+		}) => {
+			await page.setViewportSize({ width, height: 800 });
+			await mockProjectApi(page, { deploymentList: () => [succeededDeployment] });
+
+			await page.goto(projectsUrl);
+			const row = page.getByRole('listitem').filter({ hasText: 'feat: something' });
+
+			await expect(row.getByText('Berhasil').filter({ visible: true })).toBeVisible();
+			await expect(row.getByText('#3')).toBeVisible();
+			await expect(row.getByText('a3f2c9d')).toBeVisible();
+			await expect(row.getByText('main')).toBeVisible();
+			await expect(row.getByText(/47 detik/)).toBeVisible();
+			expect(await pageOverflowsHorizontally(page)).toBe(false);
+		});
+	}
 
 	test('a 500 offers a retry that recovers', async ({ page }) => {
 		let failing = true;
 		await mockProjectApi(page, { deploymentList: () => [succeededDeployment] });
 		// Registered last so it runs first, ahead of the shared mock.
 		await page.route(`**/api/v1/app/projects/${PROJECT_ID}/deployments?*`, (route) =>
-			failing && route.request().url().includes('30_days')
+			failing && route.request().url().includes('filter=all')
 				? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
 				: route.fallback()
 		);
@@ -918,7 +989,7 @@ test.describe('deployment history', () => {
 		failing = false;
 		await page.getByRole('button', { name: 'Coba lagi' }).click();
 
-		await expect(page.getByText('Deployment #3')).toBeVisible();
+		await expect(page.getByRole('link', { name: /Deployment #3/ })).toBeVisible();
 	});
 });
 
@@ -1343,12 +1414,19 @@ test.describe('delete modals', () => {
 		page
 	}) => {
 		await mockProjectApi(page);
+		await page.route('**/api/v1/app/pilot-limits', (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ data: { ...pilotLimits, deleted_project_retention_days: 30 } })
+			})
+		);
 		await page.goto(SETTINGS_URL);
 
 		await page.getByRole('button', { name: 'Hapus proyek' }).click();
 		const dialog = page.getByRole('dialog', { name: /Hapus proyek toko-kopi-web/ });
 		await expect(dialog).toContainText(
-			'Data proyek dihapus permanen setelah masa simpannya berakhir, dan alamatnya tidak bisa dipakai lagi.'
+			'Datanya disimpan 30 hari lalu dihapus permanen, dan selama itu proyek ini tidak bisa dipulihkan.'
 		);
 		await expect(dialog.getByLabel(/untuk konfirmasi/)).toHaveAttribute(
 			'placeholder',
@@ -1391,21 +1469,26 @@ test.describe('delete modals', () => {
 	}
 });
 
+async function chooseBranch(page: Page, name: string) {
+	await page.getByRole('combobox', { name: 'Branch' }).fill(name);
+	await page.getByRole('option', { name: new RegExp(name) }).click();
+}
+
 test.describe('project settings', () => {
 	test('a draft survives switching tabs, with all six fields intact', async ({ page }) => {
 		await mockProjectApi(page, { envList: () => envVars });
 		await page.goto(SETTINGS_URL);
 
 		await page.getByLabel('Nama proyek').fill('nama-baru');
-		await page.getByLabel('Branch').fill('develop');
+		await chooseBranch(page, 'develop');
 
-		await page.getByRole('link', { name: 'Environment variable' }).click();
+		await page.getByRole('link', { name: 'Variabel', exact: true }).click();
 		await expect(page.getByText('DATABASE_URL')).toBeVisible();
 		await page.getByRole('link', { name: 'Pengaturan', exact: true }).click();
 
 		await expect(page.getByLabel('Nama proyek')).toHaveValue('nama-baru');
-		await expect(page.getByLabel('Branch')).toHaveValue('develop');
-		await expect(page.getByLabel('Subdomain (URL Publik)')).toHaveValue('toko-kopi-web');
+		await expect(page.getByRole('combobox', { name: 'Branch' })).toHaveValue('develop');
+		await expect(page.getByLabel('Subdomain, dibuat otomatis')).toHaveValue('toko-kopi-web');
 		// Nothing configured: the fields stay empty and editable, and the port names what is used.
 		await expect(page.getByLabel('Port')).toHaveValue('');
 		await expect(page.getByLabel('Port')).toHaveAccessibleDescription(/Sekarang 3000/);
@@ -1429,8 +1512,8 @@ test.describe('project settings', () => {
 		});
 		await page.goto(SETTINGS_URL);
 
-		await page.getByLabel('Branch').fill('develop');
-		await page.getByRole('link', { name: 'Environment variable' }).click();
+		await chooseBranch(page, 'develop');
+		await page.getByRole('link', { name: 'Variabel', exact: true }).click();
 		await expect(page.getByText('DATABASE_URL')).toBeVisible();
 		await page.getByRole('button', { name: 'Redeploy' }).click();
 
@@ -1478,11 +1561,12 @@ test.describe('project settings', () => {
 		});
 		await page.goto(SETTINGS_URL);
 
-		await page.getByLabel('Branch').fill('tidak-ada');
+		await chooseBranch(page, 'tidak-ada');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
-		await expect(page.getByLabel('Branch')).toHaveAccessibleDescription('Branch tidak ditemukan.');
-		await expect(page.getByLabel('Branch')).toHaveValue('tidak-ada');
+		const branch = page.getByRole('combobox', { name: 'Branch' });
+		await expect(branch).toHaveAccessibleDescription('Branch tidak ditemukan.');
+		await expect(branch).toHaveValue('tidak-ada');
 	});
 
 	test('an emptied name is refused before the request', async ({ page }) => {
@@ -1524,7 +1608,7 @@ test.describe('project settings', () => {
 });
 
 test.describe('project detail shell (#75)', () => {
-	test('tabs scroll inside their own strip on a narrow screen', async ({ page }) => {
+	test('the three tabs fit a narrow screen with short names', async ({ page }) => {
 		await mockProjectApi(page, {
 			project: () => ({ ...baseProject, name: `nama-${'panjang'.repeat(20)}` })
 		});
@@ -1533,11 +1617,8 @@ test.describe('project detail shell (#75)', () => {
 
 		const tabs = page.getByRole('navigation', { name: 'Bagian proyek' });
 		const settingsTab = tabs.getByRole('link', { name: 'Pengaturan', exact: true });
-		// Without this the tabs wrap onto a second row, and the strip has nothing to scroll.
-		expect(await tabs.evaluate((nav) => nav.scrollWidth > nav.clientWidth)).toBe(true);
-		await settingsTab.scrollIntoViewIfNeeded();
-		await expect(settingsTab).toBeInViewport();
-		expect(await tabs.evaluate((nav) => nav.scrollLeft)).toBeGreaterThan(0);
+		expect(await tabs.evaluate((nav) => nav.scrollWidth > nav.clientWidth)).toBe(false);
+		await expect(settingsTab).toBeInViewport({ ratio: 1 });
 		expect(await pageOverflowsHorizontally(page)).toBe(false);
 	});
 });

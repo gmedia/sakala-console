@@ -12,6 +12,7 @@ const user = {
 	onboarding_completed_at: '2026-01-01T00:00:00+00:00' as string | null,
 	last_login_at: '2026-01-01T00:00:00+00:00',
 	has_password: true,
+	legal_acceptance_required: false,
 	pending_email: null as string | null,
 	created_at: '2026-03-15T00:00:00+00:00' as string | null
 };
@@ -265,11 +266,26 @@ test.describe('unverified login and resend', () => {
 			return reply(route, 202, { data: { request_accepted: true } });
 		});
 
+		await page.route('**/api/v1/auth/options', (route) =>
+			reply(route, 200, {
+				data: {
+					email_delivery_enabled: true,
+					providers: { github: true, google: false },
+					legal: {
+						terms_version: 'syarat-v1',
+						acceptable_use_version: 'penggunaan-wajar-v1',
+						privacy_notice_version: 'privasi-v1'
+					}
+				}
+			})
+		);
+
 		await page.goto('/register?method=email');
 		await page.getByLabel('Email').fill('rani@sakala.local');
 		await page.getByLabel('Nama lengkap').fill('Rani');
 		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi-baru');
 		await page.getByLabel('Konfirmasi kata sandi', { exact: true }).fill('kata-sandi-baru');
+		await page.getByRole('checkbox').check();
 		await page.getByRole('button', { name: 'Buat akun' }).click();
 
 		// The API answers the same for a new and an existing email, so the screen cannot say which.
@@ -434,7 +450,9 @@ test.describe('account settings', () => {
 
 		await page.goto('/settings');
 
-		await expect(page.getByRole('status')).toContainText('baru@sakala.local');
+		await expect(page.getByRole('status').filter({ hasText: 'Cek email baru' })).toContainText(
+			'baru@sakala.local'
+		);
 	});
 
 	test('a wrong password on email change shows on that field', async ({ page }) => {
@@ -1147,13 +1165,17 @@ test.describe('honest copy', () => {
 		);
 	});
 
-	test('register does not promise legal pages that do not exist', async ({ page }) => {
+	test('register points to the published documents, and no longer says there are none', async ({
+		page
+	}) => {
 		await page.goto('/register');
 
 		const main = page.locator('main');
-		await expect(main).toContainText('belum memiliki Ketentuan Layanan');
-		await expect(main).not.toContainText('Dengan mendaftar');
-		await expect(main).not.toContainText('menyetujui');
+		await expect(main).not.toContainText('belum memiliki Ketentuan Layanan');
+		await expect(main.getByRole('link', { name: 'Pemberitahuan Privasi' })).toHaveAttribute(
+			'href',
+			'https://sakala.dev/privasi'
+		);
 	});
 
 	test('register states the password rule the API actually has', async ({ page }) => {

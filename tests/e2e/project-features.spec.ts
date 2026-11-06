@@ -121,7 +121,7 @@ test.describe('project settings: build configuration', () => {
 		await page.goto(SETTINGS_URL);
 
 		await page.getByLabel('Build command').fill('pnpm build');
-		await page.getByRole('link', { name: 'Environment variable' }).click();
+		await page.getByRole('link', { name: 'Variabel', exact: true }).click();
 		await page.getByRole('link', { name: 'Pengaturan', exact: true }).click();
 		await expect(page.getByLabel('Build command')).toHaveValue('pnpm build');
 
@@ -210,6 +210,8 @@ const listProject = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: null,
+	public_url: 'https://toko-kopi.run.sakala.dev',
+	latest_deployment: null,
 	runtime_status: 'running',
 	stack: null,
 	last_deployed_at: '2026-09-10T10:00:00Z',
@@ -618,5 +620,58 @@ test.describe('rate limits', () => {
 		await page.waitForTimeout(3_000);
 
 		expect(userRequests).toBe(1);
+	});
+});
+
+test.describe('project cards with what the list now sends', () => {
+	const live = {
+		...listProject,
+		runtime_status: 'running',
+		public_url: 'https://toko-kopi.run.sakala.dev',
+		latest_deployment: {
+			id: 'dep-1',
+			sequence: 4,
+			status: 'succeeded',
+			branch: 'main',
+			commit_sha: 'a3f2c9d81be0',
+			commit_message: 'feat: tambah halaman menu',
+			created_at: '2026-09-10T10:00:00Z',
+			finished_at: '2026-09-10T10:02:00Z'
+		}
+	};
+
+	test('the address opens the site, and the rest of the card opens the project', async ({
+		page
+	}) => {
+		await mockDashboard(page, [live]);
+		await page.goto('/projects');
+
+		const url = page.getByTestId('project-card-url');
+		await expect(url).toHaveAttribute('href', 'https://toko-kopi.run.sakala.dev');
+		await expect(page.getByText('feat: tambah halaman menu')).toBeVisible();
+		await expect(page.getByText('a3f2c9d', { exact: true })).toBeVisible();
+
+		const box = await url.boundingBox();
+		const hit = await page.evaluate(
+			([x, y]) => document.elementFromPoint(x, y)?.closest('a')?.href,
+			[box!.x + 4, box!.y + box!.height / 2]
+		);
+		expect(hit).toContain('toko-kopi.run.sakala.dev');
+	});
+
+	test('a project with no deployment still renders a whole card', async ({ page }) => {
+		await mockDashboard(page, [
+			{
+				...listProject,
+				runtime_status: 'not_deployed',
+				latest_deployment: null,
+				last_deployed_at: null
+			}
+		]);
+		await page.goto('/projects');
+
+		await expect(page.getByText('Belum pernah deploy')).toBeVisible();
+		await expect(page.getByTestId('project-card-url')).toHaveCount(0);
+		await expect(page.getByTestId('project-card-commit')).toHaveCount(0);
 	});
 });

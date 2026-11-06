@@ -89,6 +89,7 @@ test.describe('very long names, commits, and domains stay inside the page', () =
 		await mockEveryRoute(page, { long: true });
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
 
+		await page.getByRole('button', { name: /^Tahapan/ }).click();
 		const branch = page.getByTestId('deployment-branch');
 		await expect(branch).toBeVisible();
 		expect(await branch.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);

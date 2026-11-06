@@ -19,6 +19,7 @@ export const signedInUser = {
 	onboarding_completed_at: '2026-01-01T00:00:00Z' as string | null,
 	last_login_at: '2026-01-01T00:00:00Z',
 	has_password: true,
+	legal_acceptance_required: false,
 	pending_email: null as string | null,
 	created_at: '2026-01-01T00:00:00Z'
 };
