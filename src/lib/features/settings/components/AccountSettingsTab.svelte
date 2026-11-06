@@ -12,6 +12,9 @@
 		resolveAuthAvailability
 	} from '$lib/features/auth/availability';
 
+	import AccountDataSection from './AccountDataSection.svelte';
+	import DeleteAccountSection from './DeleteAccountSection.svelte';
+
 	const MIN_PASSWORD_LENGTH = 8;
 
 	const currentUserQuery = useCurrentUser();
@@ -272,4 +275,7 @@
 			</form>
 		{/if}
 	</section>
+
+	<AccountDataSection />
+	<DeleteAccountSection />
 </div>

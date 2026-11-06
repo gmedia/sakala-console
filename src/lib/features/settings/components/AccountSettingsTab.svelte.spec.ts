@@ -6,6 +6,9 @@ import { apiErrorFromResponse } from '$lib/api/errors';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import AccountSettingsTab from './AccountSettingsTab.svelte';
 
+vi.mock('$lib/api/resources/pilot-limits', () => ({
+	getPilotLimits: vi.fn(() => new Promise(() => {}))
+}));
 vi.mock('$lib/config/public', () => ({
 	publicConfig: { apiUrl: 'http://api.test', appUrl: 'http://app.test' }
 }));
@@ -17,6 +20,9 @@ vi.mock('$lib/api/resources/auth', () => ({
 	login: vi.fn(),
 	logout: vi.fn(),
 	register: vi.fn(),
+	acceptLegalDocuments: vi.fn(),
+	deleteAccount: vi.fn(),
+	exportAccountData: vi.fn(),
 	requestEmailChange: vi.fn(),
 	resendVerificationEmail: vi.fn(),
 	resetPassword: vi.fn()
@@ -34,12 +40,18 @@ const user = {
 	onboarding_completed_at: null,
 	last_login_at: null,
 	has_password: true,
+	legal_acceptance_required: false,
 	pending_email: null as string | null,
 	created_at: null
 };
 const options = (email_delivery_enabled: boolean) => ({
 	email_delivery_enabled,
-	providers: { github: true, google: false }
+	providers: { github: true, google: false },
+	legal: {
+		terms_version: 'syarat-v1',
+		acceptable_use_version: 'penggunaan-wajar-v1',
+		privacy_notice_version: 'privasi-v1'
+	}
 });
 const renderTab = () => render(QueryTestHost, { props: { component: AccountSettingsTab } });
 const emailField = () => page.getByLabelText('Email baru');
