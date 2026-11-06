@@ -7,6 +7,18 @@
 	encode zstd gzip
 	root * /srv
 
+	# The console is never meant to sit in someone else's frame. X-Frame-Options covers
+	# browsers older than the frame-ancestors in the policy below.
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Content-Security-Policy, generated at image build from the same env file as the bundle,
+	# so it names this installation's API and Reverb. See docker/security-headers.mjs.
+	import /etc/caddy/security-headers.caddy
+
 	# `route` preserves handler order. Without it, Caddy runs `try_files`
 	# before `respond`, causing the SPA fallback to mask this health endpoint.
 	route {
