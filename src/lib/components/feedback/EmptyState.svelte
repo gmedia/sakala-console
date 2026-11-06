@@ -14,9 +14,9 @@
 
 	const tones = {
 		neutral: 'bg-primary-50 text-primary',
-		failed: 'bg-error/20 text-error',
-		warning: 'bg-warning/10 text-warning',
-		muted: 'bg-muted/10 text-muted'
+		failed: 'bg-error/10 text-error',
+		warning: 'bg-accent-soft text-warning',
+		muted: 'bg-background-soft text-muted'
 	};
 
 	let {
@@ -29,12 +29,14 @@
 	}: Props = $props();
 </script>
 
-<Card class={`py-12 text-center sm:py-16 ${cardClass || ''}`}>
-	<div class={cn('mx-auto flex size-12 items-center justify-center rounded-xl p-2', tones[tone])}>
-		<Icon size={42} aria-hidden="true" />
-	</div>
-	<h2 class="mt-5 text-xl font-montserrat-semibold tracking-tight">{title}</h2>
-	<p class="mx-auto mt-2 max-w-xl font-montserrat leading-tight">{description}</p>
+<Card class={cn('py-12 text-center sm:py-16', cardClass)}>
+	{#if Icon}
+		<div class={cn('mx-auto flex size-12 items-center justify-center rounded-card', tones[tone])}>
+			<Icon size={24} aria-hidden="true" />
+		</div>
+	{/if}
+	<h2 class="mt-4 text-xl">{title}</h2>
+	<p class="mx-auto mt-2 max-w-xl text-sm text-muted">{description}</p>
 	{#if action}
 		<div class="mt-6">{@render action()}</div>
 	{/if}

@@ -14,6 +14,7 @@
 		error?: string | null;
 		autocomplete?: FullAutoFill;
 		inputmode?: 'text' | 'numeric';
+		required?: boolean;
 		spellcheck?: boolean;
 		disabled?: boolean;
 		readonly?: boolean;
@@ -31,6 +32,7 @@
 		error,
 		autocomplete,
 		inputmode,
+		required,
 		spellcheck,
 		disabled = false,
 		readonly = false,
@@ -44,8 +46,8 @@
 	const describedBy = $derived(error ? `${id}-error` : hint ? `${id}-hint` : undefined);
 </script>
 
-<div class="space-y-2">
-	<label for={id} class="block font-sans text-sm font-medium text-foreground">{label}</label>
+<div class="space-y-1.5">
+	<label for={id} class="block text-sm font-medium text-foreground">{label}</label>
 	<div class="relative">
 		<input
 			{id}
@@ -54,27 +56,21 @@
 			{placeholder}
 			{autocomplete}
 			{inputmode}
+			{required}
 			{spellcheck}
 			{disabled}
 			{readonly}
 			{oninput}
 			aria-invalid={error ? 'true' : undefined}
 			aria-describedby={describedBy}
-			class={cn(
-				'w-full rounded-xl border bg-white px-4 py-3 font-sans text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:bg-background-soft/60 read-only:bg-background-soft/60',
-				isPassword && 'pr-11',
-				error
-					? 'border-error-base focus:border-error-base focus:ring-error-base'
-					: 'border-border-strong focus:border-primary-dark focus:ring-primary-dark',
-				inputClass
-			)}
+			class={cn('control-input', isPassword && 'pr-11', inputClass)}
 		/>
 		{#if isPassword}
 			<button
 				type="button"
 				onclick={() => (revealed = !revealed)}
-				class="absolute right-1 top-0.5 flex size-10 cursor-pointer items-center justify-center text-muted hover:text-foreground"
-				aria-label={revealed ? `Sembunyikan ${label}` : `Tampilkan ${label}`}
+				class="absolute inset-y-0 right-0 flex w-11 cursor-pointer items-center justify-center text-muted hover:text-foreground"
+				aria-label={`${revealed ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`}
 			>
 				{#if revealed}
 					<EyeSlash size={18} />
@@ -85,8 +81,8 @@
 		{/if}
 	</div>
 	{#if error}
-		<p id="{id}-error" class="font-sans text-xs text-error-base">{error}</p>
+		<p id="{id}-error" class="text-xs text-error-base">{error}</p>
 	{:else if hint}
-		<p id="{id}-hint" class="font-sans text-xs text-foreground/70">{hint}</p>
+		<p id="{id}-hint" class="text-xs text-foreground/70">{hint}</p>
 	{/if}
 </div>

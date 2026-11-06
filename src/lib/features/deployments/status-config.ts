@@ -41,7 +41,7 @@ const deploymentStageLabel: Record<DeploymentStage, string> = {
 	Deploying: 'Deploy proyek',
 	HealthChecking: 'Mengecek aplikasi',
 	Routing: 'Menyiapkan routing',
-	Succeeded: 'Selesai',
+	Succeeded: 'Berhasil',
 	Failed: 'Gagal',
 	Cancelled: 'Dibatalkan'
 };
@@ -115,11 +115,11 @@ function titleForStatus(status: StatusDeployment, title: string): string {
 }
 
 const bannerIconColorMap: Partial<Record<BannerStatus, string>> = {
-	running: 'bg-warning-dark text-white'
+	running: 'bg-primary text-white'
 };
 
 const bannerBgMap: Record<BannerStatus, string> = {
-	running: 'bg-warning/10',
+	running: 'bg-primary-50',
 	success: 'bg-success-soft',
 	failed: 'bg-error/10',
 	cancelled: 'bg-muted/10'
@@ -247,6 +247,7 @@ export function getStatusDisplay({
 	queueState,
 	cancelRequested
 }: StatusDisplayInput) {
+	const isQueued = status === 'running' && Boolean(queueState) && !cancelRequested;
 	const messages = {
 		running: getRunningMessage(currentStepLabel, queueState, cancelRequested),
 		success: {
@@ -266,8 +267,9 @@ export function getStatusDisplay({
 	return {
 		...messages[status],
 		recoveryHint: status === 'failed' ? recoveryHint : undefined,
-		bannerBgClass: bannerBgMap[status],
-		iconColorClass: bannerIconColorMap[status]
+		// Running is healthy, so teal. Waiting in a queue is the one state that may need a look.
+		bannerBgClass: isQueued ? 'bg-queued-soft' : bannerBgMap[status],
+		iconColorClass: isQueued ? 'bg-queued text-white' : bannerIconColorMap[status]
 	};
 }
 

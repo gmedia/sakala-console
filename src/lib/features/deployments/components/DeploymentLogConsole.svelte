@@ -92,14 +92,14 @@
 	}
 </script>
 
-<div class="relative overflow-hidden rounded-lg bg-terminal font-jetbrains-mono-regular text-sm">
+<div class="relative overflow-hidden rounded-control bg-terminal font-mono text-sm">
 	{#if hasOlder}
 		<div class="border-b border-white/10 px-4 py-2 text-center">
 			<button
 				type="button"
 				onclick={onLoadOlder}
 				disabled={loadingOlder}
-				class="inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-xs text-terminal-text hover:bg-white/10 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60"
+				class="inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-control px-2 text-xs text-terminal-text hover:bg-white/10 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60"
 			>
 				{#if loadingOlder}
 					<CircleNotch size={14} weight="bold" class="animate-spin motion-reduce:animate-none" />
@@ -122,7 +122,7 @@
 		aria-label={labelledBy ? undefined : 'Log deployment'}
 		aria-live={following && !busy ? 'polite' : 'off'}
 		aria-busy={busy}
-		class="max-h-[min(70vh,36rem)] min-h-40 overflow-y-auto p-4 leading-relaxed [overflow-anchor:none] focus-visible:outline-white focus-visible:[outline-offset:-3px] sm:p-6"
+		class="max-h-[min(70vh,36rem)] min-h-40 overflow-y-auto p-4 [overflow-anchor:none] focus-visible:outline-white focus-visible:[outline-offset:-3px] sm:p-6"
 	>
 		{#each lines as line (line.sequence)}
 			<div class="wrap-anywhere">
@@ -141,7 +141,7 @@
 		<button
 			type="button"
 			onclick={handleJumpToLatest}
-			class="absolute right-3 bottom-3 inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-lg border border-white/20 bg-terminal px-3 font-montserrat-semibold text-xs text-terminal-text shadow-lg hover:bg-white/10 focus-visible:outline-white"
+			class="absolute right-3 bottom-3 inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-control border border-white/20 bg-terminal px-3 font-semibold text-xs text-terminal-text shadow-overlay hover:bg-white/10 focus-visible:outline-white"
 		>
 			<ArrowDown size={14} weight="bold" />
 			{newLineCount > 0 ? `${newLineCount} baris baru, ke log terbaru` : 'Ke log terbaru'}

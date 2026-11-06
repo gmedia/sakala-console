@@ -1,6 +1,7 @@
 <script lang="ts">
-	import CircleAlert from '@lucide/svelte/icons/circle-alert';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import { pageTitle } from '$lib/utils/page-title';
+	import ArrowCounterClockwise from 'phosphor-svelte/lib/ArrowCounterClockwise';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import {
@@ -50,7 +51,7 @@
 	});
 
 	const breadcrumb = $derived([
-		{ label: 'Riwayat Deployment', href: `/projects/${page.params.id}/deployments` as const },
+		{ label: 'Riwayat deployment', href: `/projects/${page.params.id}/deployments` as const },
 		{ label: `Deployment #${detail.deployment?.sequence ?? ''}`, current: true }
 	]);
 
@@ -86,48 +87,46 @@
 
 <svelte:head>
 	<title>
-		{detail.deployment
-			? `Deployment #${detail.deployment.sequence} | `
-			: 'Detail Deployment | '}{detail.project?.name ?? 'Sakala Console'}
+		{pageTitle(
+			detail.deployment ? `Deployment #${detail.deployment.sequence}` : 'Detail deployment',
+			detail.project?.name
+		)}
 	</title>
 </svelte:head>
 
 {#if detail.isLoading && !detail.deployment}
-	<EmptyState
-		icon={CircleAlert}
-		tone="muted"
-		title="Memuat detail deployment..."
-		description="Harap tunggu, ini mungkin memakan waktu beberapa detik."
-		class="col-span-full border-none bg-transparent shadow-none"
-	/>
+	<div class="flex flex-col gap-4" role="status">
+		<span class="sr-only">Memuat detail deployment...</span>
+		<div class="skeleton h-5 w-48"></div>
+		<div class="skeleton h-24 w-full"></div>
+		<div class="skeleton h-16 w-full"></div>
+		<div class="skeleton h-64 w-full"></div>
+	</div>
 {:else if detail.deploymentError && !detail.deployment}
 	<EmptyState
-		icon={CircleAlert}
+		icon={WarningCircle}
 		tone="failed"
 		title={detail.deploymentError.title}
 		description={detail.deploymentError.description}
-		class="col-span-full border-none bg-transparent shadow-none"
+		class="col-span-full border-none bg-transparent"
 	>
 		{#snippet action()}
 			{#if detail.deploymentError?.showRetry}
-				<Button
-					class="gap-2 px-4 py-3 font-montserrat-semibold text-base"
-					onclick={() => detail.deploymentQuery.refetch()}
-				>
-					<RotateCcw class="h-6 w-6" />
+				<Button onclick={() => detail.deploymentQuery.refetch()}>
+					<ArrowCounterClockwise size={18} aria-hidden="true" />
 					Coba lagi
 				</Button>
 			{/if}
 		{/snippet}
 	</EmptyState>
 {:else if detail.deployment}
-	<div class="md:px-6">
-		<Breadcrumb items={breadcrumb} class="mb-3 font-montserrat-semibold text-sm" />
+	<div>
+		<Breadcrumb items={breadcrumb} class="mb-3 font-semibold text-sm" />
 
 		{#if detail.deploymentError}
 			<div
 				role="status"
-				class="mb-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning-dark"
+				class="mb-3 rounded-control border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning-dark"
 			>
 				{detail.isWaitingForRateLimit
 					? 'Permintaan ke server sedang dibatasi, jadi data di sini bisa sedikit tertinggal. Sakala mengambil data terbaru otomatis sebentar lagi.'
@@ -167,29 +166,26 @@
 			resourceLimit={formatResourceLimit(detail.deployment)}
 		/>
 
-		<h2 class="font-montserrat-semibold py-2 text-base">Timeline</h2>
+		<h2 class="font-semibold py-2 text-base">Tahapan</h2>
 		{#if detail.eventsError}
 			<EmptyState
-				icon={CircleAlert}
+				icon={WarningCircle}
 				tone="failed"
 				title={detail.eventsError.title}
 				description={detail.eventsError.description}
-				class="col-span-full border-none bg-transparent shadow-none"
+				class="col-span-full border-none bg-transparent"
 			>
 				{#snippet action()}
 					{#if detail.eventsError?.showRetry}
-						<Button
-							class="gap-2 px-4 py-3 font-montserrat-semibold text-base"
-							onclick={() => detail.deploymentEventsQuery.refetch()}
-						>
-							<RotateCcw class="h-6 w-6" />
+						<Button onclick={() => detail.deploymentEventsQuery.refetch()}>
+							<ArrowCounterClockwise size={18} aria-hidden="true" />
 							Coba lagi
 						</Button>
 					{/if}
 				{/snippet}
 			</EmptyState>
 		{:else if detail.steps.length === 0}
-			<p class="font-montserrat text-sm text-muted">
+			<p class="text-sm text-muted">
 				Tahapan deployment ini tidak tercatat, jadi timeline-nya tidak bisa ditampilkan. Log di
 				bawah mungkin masih bisa membantu.
 			</p>
@@ -202,7 +198,7 @@
 		{/key}
 
 		{#if isFinished}
-			<p class="font-montserrat text-sm text-foreground/70">
+			<p class="text-sm text-foreground/70">
 				Ada yang perlu kami tahu dari deployment ini?
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
 				<a
@@ -220,10 +216,10 @@
 	</div>
 {:else}
 	<EmptyState
-		icon={CircleAlert}
+		icon={WarningCircle}
 		tone="muted"
 		title="Deployment tidak tersedia"
 		description="Data deployment ini belum bisa ditampilkan. Coba muat ulang halaman."
-		class="col-span-full border-none bg-transparent shadow-none"
+		class="col-span-full border-none bg-transparent"
 	/>
 {/if}

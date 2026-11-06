@@ -32,13 +32,13 @@
 		{status}
 		size="lg"
 		showLabel={false}
-		colorClassOverride={isRunningEmphasized ? 'bg-warning-dark text-white' : undefined}
+		colorClassOverride={isRunningEmphasized ? 'bg-primary text-white' : undefined}
 		showIcon={!isRunningEmphasized}
 	/>
 	<div class="ml-4 flex flex-col gap-1">
-		<span class="text-base font-montserrat-medium">{display.title}</span>
+		<span class="text-base font-medium">{display.title}</span>
 		{#if display.subtitle}
-			<span class="text-sm text-muted font-montserrat">{display.subtitle}</span>
+			<span class="text-sm text-muted">{display.subtitle}</span>
 		{/if}
 	</div>
 </div>

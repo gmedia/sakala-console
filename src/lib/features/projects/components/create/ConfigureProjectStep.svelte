@@ -200,42 +200,33 @@
 
 <form bind:this={formEl} class="mt-3 flex flex-col gap-4" onsubmit={handleSubmit} novalidate>
 	<div>
-		<h2 tabindex="-1" data-step-heading class="text-lg font-montserrat-semibold outline-none">
-			Persiapan deployment
-		</h2>
-		<p class="font-montserrat">Atur konfigurasi proyek sebelum dibuat.</p>
+		<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Persiapan deployment</h2>
+		<p>Atur konfigurasi proyek sebelum dibuat.</p>
 	</div>
 
 	<PilotQuotaNotice limits={pilotLimits} />
 
 	{#if apiErrors.general}
 		<div
-			class="flex items-start gap-3 rounded-lg border border-error/30 bg-error/10 p-4 text-error-dark"
+			class="flex items-start gap-3 rounded-control border border-error/30 bg-error/10 p-4 text-error-dark"
 			role="alert"
 		>
 			<WarningCircleIcon class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
 			<div class="text-sm">
-				<p class="font-montserrat-semibold">Gagal Membuat Proyek</p>
-				<p class="mt-0.5 font-montserrat">{apiErrors.general}</p>
+				<p class="font-semibold">Gagal Membuat proyek</p>
+				<p class="mt-0.5">{apiErrors.general}</p>
 			</div>
 		</div>
 	{/if}
 
-	<Card class="flex flex-col gap-1 rounded-lg">
+	<Card class="flex flex-col gap-1 rounded-control">
 		<div
-			class="flex w-full flex-wrap items-center justify-between gap-x-2 rounded-lg border border-muted/20 bg-background px-4 py-1"
+			class="flex w-full flex-wrap items-center justify-between gap-x-2 rounded-control border border-border bg-background px-4 py-1"
 		>
-			<p class="min-w-0 font-jetbrains-mono-medium wrap-anywhere">
+			<p class="min-w-0 font-mono font-medium wrap-anywhere">
 				{repo?.full_name || wizard.gitUrl || 'Repository'}
 			</p>
-			<Button
-				type="button"
-				onclick={onRepositoryChange}
-				variant="ghost"
-				class="px-0 font-montserrat text-primary hover:text-primary-dark"
-			>
-				Ganti repository
-			</Button>
+			<Button variant="link" onclick={onRepositoryChange}>Ganti repository</Button>
 		</div>
 
 		{#if fieldError('repository', true)}
@@ -245,34 +236,30 @@
 		<div class="flex w-full flex-col gap-2 py-3">
 			<FormField
 				id="project-name"
-				label="Nama Proyek"
+				label="Nama proyek"
 				bind:value={wizard.projectName}
 				error={nameError}
 				hint="Default diambil dari nama repository. Bisa diganti kapan saja lewat tab Pengaturan setelah proyek dibuat."
-				inputClass="bg-primary-50/40"
 				oninput={() => (nameTouched = true)}
 			/>
-			<div
-				class="flex flex-wrap items-center gap-x-1.5 gap-y-1 font-montserrat text-xs"
-				aria-live="polite"
-			>
+			<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs" aria-live="polite">
 				<span>Domain preview:</span>
 				<span
 					data-testid="domain-preview"
-					class="rounded border border-muted/20 bg-muted/10 px-1.5 py-0.5 font-jetbrains-mono-regular wrap-anywhere text-foreground"
+					class="rounded-control border border-border bg-muted/10 px-1.5 py-0.5 font-mono wrap-anywhere text-foreground"
 				>
 					{previewText}
 				</span>
 			</div>
 			{#if previewQuery.data && previewIsCurrent}
-				<p class="font-montserrat text-xs text-foreground/70">
+				<p class="text-xs text-foreground/70">
 					Domain belum dipesan, jadi bisa berbeda kalau keburu dipakai proyek lain.
 				</p>
 			{/if}
 		</div>
 
 		<div class="flex w-full flex-col gap-2 py-3">
-			<label for="project-branch" class="font-montserrat-medium">Branch</label>
+			<label for="project-branch" class="font-medium">Branch</label>
 			{#key branchSource}
 				<BranchCombobox
 					id="project-branch"
@@ -292,23 +279,11 @@
 				<div class="flex flex-wrap items-center gap-2 text-sm" role="alert">
 					<p class="min-w-0 flex-1 basis-60">{branchesErrorMessage}</p>
 					{#if branchesInactive}
-						<Button
-							externalHref={reconnectUrl ?? undefined}
-							sameTab
-							variant="outline"
-							class="px-3 py-2"
-						>
+						<Button variant="secondary" externalHref={reconnectUrl ?? undefined} sameTab>
 							Hubungkan ulang GitHub
 						</Button>
 					{:else}
-						<Button
-							type="button"
-							variant="outline"
-							class="px-3 py-2"
-							onclick={() => branchesQuery.refetch()}
-						>
-							Coba lagi
-						</Button>
+						<Button variant="secondary" onclick={() => branchesQuery.refetch()}>Coba lagi</Button>
 					{/if}
 				</div>
 			{:else if branchesCutOff}
@@ -328,7 +303,6 @@
 				placeholder="3000"
 				error={fieldError('configured_port')}
 				hint="Sakala mengisi environment variable PORT dengan angka ini, dan aplikasimu harus mendengarkan di PORT. Kosong berarti 3000."
-				inputClass="bg-primary-50/40"
 			/>
 		</div>
 		<div class="py-3">
@@ -340,7 +314,7 @@
 				spellcheck={false}
 				error={fieldError('build_command')}
 				hint={BUILD_COMMAND_HELP}
-				inputClass="bg-primary-50/40 font-jetbrains-mono-regular"
+				inputClass="font-mono"
 			/>
 		</div>
 		<div class="py-3">
@@ -352,7 +326,7 @@
 				spellcheck={false}
 				error={fieldError('start_command')}
 				hint={START_COMMAND_HELP}
-				inputClass="bg-primary-50/40 font-jetbrains-mono-regular"
+				inputClass="font-mono"
 			/>
 		</div>
 		<div class="py-3">
@@ -364,7 +338,7 @@
 				spellcheck={false}
 				error={fieldError('root_directory')}
 				hint={ROOT_DIRECTORY_HELP}
-				inputClass="bg-primary-50/40 font-jetbrains-mono-regular"
+				inputClass="font-mono"
 			/>
 		</div>
 
@@ -383,20 +357,15 @@
 	</Card>
 
 	{#if pilotLimits}
-		<p class="font-montserrat text-sm text-foreground/70">{formatPilotRuntime(pilotLimits)}</p>
+		<p class="text-sm text-foreground/70">{formatPilotRuntime(pilotLimits)}</p>
 	{/if}
 
-	<Button
-		type="submit"
-		variant="primary"
-		class="flex w-full cursor-pointer items-center justify-center gap-2 py-3"
-		disabled={isSubmitting || atQuota}
-	>
+	<Button size="lg" class="w-full" type="submit" disabled={isSubmitting || atQuota}>
 		{#if isSubmitting}
 			<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
-			<span>Membuat Proyek...</span>
+			<span>Membuat proyek...</span>
 		{:else}
-			<span>Buat Proyek</span>
+			<span>Buat proyek</span>
 		{/if}
 	</Button>
 </form>

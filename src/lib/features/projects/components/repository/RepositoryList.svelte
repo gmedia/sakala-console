@@ -31,7 +31,7 @@
 	role="radiogroup"
 	aria-label="Pilih repository"
 	aria-busy={fetching}
-	class="flex flex-col overflow-hidden rounded-xl border border-muted/40 transition-opacity duration-150 {fetching
+	class="flex flex-col overflow-hidden rounded-card border border-border transition-opacity duration-150 {fetching
 		? 'opacity-60'
 		: ''}"
 >
@@ -41,8 +41,8 @@
 </div>
 <div class="flex w-full flex-wrap items-center justify-between gap-2">
 	<p class="text-sm" role="status">
-		Menampilkan <span class="font-montserrat-semibold">{repositories.length}</span> dari
-		<span class="font-montserrat-semibold">{total}</span> repository
+		Menampilkan <span class="font-semibold">{repositories.length}</span> dari
+		<span class="font-semibold">{total}</span> repository
 	</p>
 	{#if lastPage > 1}
 		<Pagination {currentPage} totalPages={lastPage} {onPageChange} disabled={fetching} />

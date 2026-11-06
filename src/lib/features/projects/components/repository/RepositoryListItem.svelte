@@ -4,7 +4,7 @@
 	import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
 	import LockSimpleIcon from 'phosphor-svelte/lib/LockSimpleIcon';
 	import DotIcon from 'phosphor-svelte/lib/DotIcon';
-	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
+	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
 	import type { Repository } from '../../type';
 
 	type Props = {
@@ -37,18 +37,15 @@
 	onclick={handleClick}
 	onkeydown={handleKeydown}
 	class={cn(
-		'flex cursor-pointer items-center gap-3 border border-muted/40 bg-white p-3 transition-colors sm:gap-4 sm:p-4 focus-visible:outline-2 focus-visible:outline-primary',
+		'flex cursor-pointer items-center gap-3 border border-border bg-surface p-3 transition-colors sm:gap-4 sm:p-4 focus-visible:outline-2 focus-visible:outline-primary',
 		disabled && 'cursor-not-allowed opacity-50'
 	)}
 >
-	<GithubLogoIcon
-		class="hidden size-12 shrink-0 rounded-lg bg-muted/20 p-2 sm:block"
-		aria-hidden="true"
-	/>
+	<span class="text-muted"><SocialLogo name="github" /></span>
 
 	<div class="min-w-0 flex-1">
 		<div class="flex gap-2">
-			<p class="min-w-0 text-left font-montserrat-semibold font-medium wrap-anywhere">
+			<p class="min-w-0 text-left font-semibold wrap-anywhere">
 				{repository.full_name}
 			</p>
 			{#if repository.private}

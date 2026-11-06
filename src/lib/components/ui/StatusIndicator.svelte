@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Check from '@lucide/svelte/icons/check';
-	import X from '@lucide/svelte/icons/x';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
+	import Check from 'phosphor-svelte/lib/Check';
+	import X from 'phosphor-svelte/lib/X';
 	type Status = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 	type Size = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -41,7 +41,7 @@
 
 	const colorMap: Record<Status, string> = {
 		pending: 'bg-muted ring-1 ring-inset ring-muted/50',
-		running: 'bg-muted text-white',
+		running: 'bg-primary text-white',
 		success: 'bg-success-dark text-white',
 		failed: 'bg-error text-white',
 		cancelled: 'bg-muted text-white'
@@ -67,11 +67,11 @@
 		aria-hidden="true"
 	>
 		{#if status === 'running' && showIcon}
-			<RefreshCw size={iconSizePx} strokeWidth={2.5} class={animateIcon ? 'animate-spin' : ''} />
+			<ArrowsClockwise size={iconSizePx} weight="bold" class={animateIcon ? 'animate-spin' : ''} />
 		{:else if status === 'success'}
-			<Check size={iconSizePx} strokeWidth={3} />
+			<Check size={iconSizePx} weight="bold" />
 		{:else if status === 'failed' || status === 'cancelled'}
-			<X size={iconSizePx} strokeWidth={3} />
+			<X size={iconSizePx} weight="bold" />
 		{/if}
 	</span>
 

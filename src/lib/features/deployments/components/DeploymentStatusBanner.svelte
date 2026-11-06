@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
@@ -87,7 +88,7 @@
 	let descColorClass = $derived(
 		cn(
 			'text-muted',
-			status === 'running' && 'text-warning-dark',
+			status === 'running' && 'text-foreground',
 			status === 'failed' && 'text-error',
 			status === 'success' && 'text-success-dark',
 			status === 'cancelled' && 'text-foreground/80'
@@ -110,7 +111,7 @@
 	}
 </script>
 
-<div class="rounded-lg p-4 mt-2 font-montserrat {display.bannerBgClass}">
+<div class="rounded-control p-4 mt-2 {display.bannerBgClass}">
 	<div class="flex items-start gap-3">
 		<StatusIndicator
 			{status}
@@ -128,11 +129,7 @@
 				</div>
 
 				{#if status === 'running' && onCancel && !cancelRequested}
-					<Button
-						variant="outline"
-						class="border border-border-strong bg-background hover:bg-muted/10"
-						onclick={onCancel}
-					>
+					<Button variant="secondary" onclick={onCancel}>
 						<XCircle size={16} weight="bold" />
 						Batalkan deployment
 					</Button>
@@ -141,20 +138,14 @@
 				{#if (status === 'failed' || status === 'cancelled') && (onViewError || onRedeploy)}
 					<div class="flex flex-wrap items-center gap-2">
 						{#if onViewError && status === 'failed'}
-							<Button
-								variant="outline"
-								class="border border-border-strong bg-background hover:bg-muted/10"
-								onclick={onViewError}
-							>
+							<Button variant="secondary" onclick={onViewError}>
 								<MagnifyingGlass size={16} weight="bold" />
 								Lihat detail error
 							</Button>
 						{/if}
 						{#if onRedeploy}
 							<Button
-								class={status === 'failed'
-									? 'border-error bg-error hover:border-error-dark hover:bg-error-dark'
-									: undefined}
+								variant={status === 'failed' ? 'danger' : 'primary'}
 								disabled={redeployPending || redeployDisabled}
 								aria-busy={redeployPending}
 								onclick={onRedeploy}
@@ -173,13 +164,13 @@
 			</div>
 
 			{#if redeployBlockedReason && (status === 'failed' || status === 'cancelled')}
-				<p class="mt-3 text-sm font-montserrat text-foreground">{redeployBlockedReason}</p>
+				<p class="mt-3 text-sm text-foreground">{redeployBlockedReason}</p>
 			{/if}
 
 			{#if redeployError}
 				<p
 					role="alert"
-					class="mt-3 rounded-lg border border-error/30 bg-background px-4 py-2 text-sm text-error-dark"
+					class="mt-3 rounded-control border border-error/30 bg-background px-4 py-2 text-sm text-error-dark"
 				>
 					{redeployError}
 				</p>
@@ -192,41 +183,37 @@
 			<div
 				id="failure-summary"
 				tabindex="-1"
-				class="mt-3 scroll-mt-4 rounded-lg border border-error/30 bg-background p-4 focus:ring-2 focus:ring-error focus:outline-none"
+				class="mt-3 scroll-mt-4 rounded-control border border-error/30 bg-background p-4 focus:ring-2 focus:ring-error focus:outline-none"
 			>
 				<div class="flex flex-wrap items-center gap-2">
 					{#if failureCode}
 						<span
-							class="inline-flex items-center rounded border border-error/40 px-2 py-0.5 font-jetbrains-mono text-xs wrap-anywhere text-error"
+							class="inline-flex items-center rounded-control border border-error/40 px-2 py-0.5 font-mono text-xs wrap-anywhere text-error"
 						>
 							{failureCode}
 						</span>
 					{/if}
-					<span class="font-montserrat-semibold text-xs uppercase tracking-wide text-muted">
-						Ringkasan
-					</span>
+					<span class="font-semibold text-xs text-muted"> Ringkasan </span>
 				</div>
 
 				{#if failureSummary}
-					<p class="mt-2 text-sm font-montserrat text-foreground">{failureSummary}</p>
+					<p class="mt-2 text-sm text-foreground">{failureSummary}</p>
 				{/if}
 
 				{#if failureDetail}
 					<div class="mt-3">
-						<p class="font-montserrat-semibold text-xs uppercase tracking-wide text-muted">
-							Detail error
-						</p>
+						<p class="font-semibold text-xs text-muted">Detail error</p>
 						<pre
-							class="mt-1 rounded-lg bg-terminal p-3 font-jetbrains-mono-regular text-xs whitespace-pre-wrap wrap-anywhere text-terminal-text">{failureDetail}</pre>
+							class="mt-1 rounded-control bg-terminal p-3 font-mono text-xs whitespace-pre-wrap wrap-anywhere text-terminal-text">{failureDetail}</pre>
 					</div>
 				{/if}
 
 				{#if recoveryHint}
 					<div
-						class="mt-3 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3"
+						class="mt-3 flex items-start gap-2 rounded-control border border-warning/30 bg-warning/10 p-3"
 					>
 						<WarningCircle size={18} weight="fill" class="mt-0.5 shrink-0 text-warning-dark" />
-						<p class="min-w-0 text-sm font-montserrat wrap-anywhere text-foreground">
+						<p class="min-w-0 text-sm wrap-anywhere text-foreground">
 							<span class="font-semibold">{getRecoveryHintLabel(userFixable)}</span>
 							{recoveryHint}
 						</p>
@@ -238,20 +225,20 @@
 		{#if status === 'success' && servingState === 'live' && publicUrl && displayUrl}
 			<div class="mt-3 flex w-full flex-wrap items-center justify-between gap-3">
 				<div class="flex min-w-0 items-center gap-2">
-					<div class="min-w-0 rounded-lg border border-primary bg-background px-3 py-2">
+					<div class="min-w-0 rounded-control border border-primary bg-background px-3 py-2">
 						<a
 							href={publicUrl}
 							target="_blank"
 							rel="external noopener noreferrer"
-							class="block wrap-anywhere text-primary font-jetbrains-mono-semibold hover:underline"
+							class="block wrap-anywhere text-primary font-mono font-semibold hover:underline"
 						>
-							{displayUrl}
+							<BreakableUrl text={displayUrl} />
 						</a>
 					</div>
 
 					<Button
-						class="shrink-0 border border-primary bg-background p-2"
-						variant="outline"
+						variant="secondary"
+						size="icon"
 						onclick={copyToClipboard}
 						aria-label={copied ? 'Tersalin' : 'Salin URL'}
 						title={copied ? 'URL berhasil disalin' : 'Salin URL'}
@@ -268,16 +255,14 @@
 					href={publicUrl}
 					target="_blank"
 					rel="external noopener noreferrer"
-					class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-primary bg-primary px-4 py-2.5 font-montserrat-semibold text-sm text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+					class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-control border border-primary bg-primary px-4 py-2.5 font-semibold text-sm text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
 				>
 					Kunjungi situs
 					<ArrowSquareOut size={18} weight="bold" />
 				</a>
 			</div>
 		{:else if status === 'success' && servingState === 'live'}
-			<p class="mt-3 text-sm font-montserrat text-foreground">
-				URL publik proyek ini belum tersedia.
-			</p>
+			<p class="mt-3 text-sm text-foreground">URL publik proyek ini belum tersedia.</p>
 		{/if}
 	</div>
 </div>

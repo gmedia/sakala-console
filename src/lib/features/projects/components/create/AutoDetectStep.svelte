@@ -4,7 +4,7 @@
 	import ArrowCounterClockwiseIcon from 'phosphor-svelte/lib/ArrowCounterClockwiseIcon';
 	import CheckCircleIcon from 'phosphor-svelte/lib/CheckCircleIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
-	import LightningIcon from 'phosphor-svelte/lib/LightningIcon';
+	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import LinkIcon from 'phosphor-svelte/lib/LinkIcon';
 	import QuestionIcon from 'phosphor-svelte/lib/QuestionIcon';
 	import XCircleIcon from 'phosphor-svelte/lib/XCircleIcon';
@@ -155,7 +155,7 @@
 			Mendeteksi konfigurasi...
 		</span>
 	{:else if value.kind === 'known'}
-		<span class="flex items-center gap-1 font-montserrat-semibold wrap-anywhere">
+		<span class="flex items-center gap-1 font-semibold wrap-anywhere">
 			<CheckCircleIcon class="size-5 shrink-0 text-primary" aria-hidden="true" />
 			{value.text}
 		</span>
@@ -174,41 +174,39 @@
 
 <div class="mt-3 flex flex-col gap-4">
 	<div>
-		<h2 tabindex="-1" data-step-heading class="text-xl font-montserrat-semibold outline-none">
+		<h2 tabindex="-1" data-step-heading class="text-xl font-semibold outline-none">
 			Sakala membaca proyekmu
 		</h2>
-		<p class="font-montserrat wrap-anywhere" role="status">{headline}</p>
+		<p class="wrap-anywhere" role="status">{headline}</p>
 	</div>
 
 	{#if projectQuery.isPending}
-		<Card class="flex flex-col gap-3 rounded-xl border p-4">
-			<p class="font-montserrat text-sm text-foreground/70">Memuat data proyek...</p>
+		<Card class="flex flex-col gap-3 rounded-card border p-4">
+			<p class="text-sm text-foreground/70">Memuat data proyek...</p>
 		</Card>
 	{:else if !project}
-		<div class="rounded-lg border border-error/30 bg-error/10 p-4 text-sm" role="alert">
+		<div class="rounded-control border border-error/30 bg-error/10 p-4 text-sm" role="alert">
 			<p>
 				{getErrorMessage(projectQuery.error, 'Data proyek belum bisa dimuat.')} Proyeknya tidak ikut terhapus.
 			</p>
-			<Button variant="outline" class="mt-3 px-3 py-2" onclick={() => projectQuery.refetch()}>
-				Coba lagi
-			</Button>
+			<Button variant="secondary" onclick={() => projectQuery.refetch()}>Coba lagi</Button>
 		</div>
 	{:else}
-		<Card class="rounded-xl border p-4">
+		<Card class="rounded-card border p-4">
 			<dl class="flex flex-col">
 				{#each facts as fact (fact.label)}
 					<div
-						class="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-muted/20 py-3"
+						class="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border py-3"
 					>
-						<dt class="font-montserrat">{fact.label}</dt>
-						<dd class="min-w-0 font-jetbrains-mono-semibold wrap-anywhere">{fact.value}</dd>
+						<dt>{fact.label}</dt>
+						<dd class="min-w-0 font-mono font-semibold wrap-anywhere">{fact.value}</dd>
 					</div>
 				{/each}
 				{#each detections as detection (detection.label)}
 					<div
-						class="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-muted/20 py-3 last:border-b-0"
+						class="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border py-3 last:border-b-0"
 					>
-						<dt class="font-montserrat">{detection.label}</dt>
+						<dt>{detection.label}</dt>
 						<dd class="min-w-0">{@render detectedValue(detection.value)}</dd>
 					</div>
 				{/each}
@@ -218,36 +216,36 @@
 		{#if inspectionState === 'succeeded'}
 			{@const files = getInspectedFiles(project)}
 			{#if files.length > 0}
-				<p class="font-montserrat text-sm wrap-anywhere">Berkas yang terbaca: {files.join(', ')}</p>
+				<p class="text-sm wrap-anywhere">Berkas yang terbaca: {files.join(', ')}</p>
 			{/if}
 			{#each getInspectionNotes(project) as note (note)}
-				<p class="font-montserrat text-sm">{note}</p>
+				<p class="text-sm">{note}</p>
 			{/each}
 		{:else if inspectionState === 'failed'}
-			<p class="rounded-lg border border-error/30 bg-error/10 p-3 text-sm" role="alert">
+			<p class="rounded-control border border-error/30 bg-error/10 p-3 text-sm" role="alert">
 				{getInspectionFailureMessage(project)}
 			</p>
 		{:else if waitedLong}
-			<p class="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+			<p class="rounded-control border border-warning/40 bg-warning/10 p-3 text-sm">
 				Analisis masih berjalan, dan ini belum berarti gagal. Kamu tidak perlu menunggu hasilnya:
 				Sakala tetap memilih cara build saat deploy.
 			</p>
 		{/if}
 
-		<div class="flex items-center gap-2 rounded-lg bg-primary/8 p-4 text-primary-dark">
+		<div class="flex items-center gap-2 rounded-control bg-primary/8 p-4 text-primary-dark">
 			<LinkIcon class="size-6 shrink-0" aria-hidden="true" />
 			<div class="min-w-0">
-				<p class="font-jetbrains-mono-regular wrap-anywhere" data-testid="project-domain">
+				<p class="font-mono wrap-anywhere" data-testid="project-domain">
 					{project.default_domain ?? 'Domain belum tersedia'}
 				</p>
-				<p class="font-montserrat text-xs text-foreground/70">
+				<p class="text-xs text-foreground/70">
 					Alamat ini baru aktif setelah deploy pertama berhasil.
 				</p>
 			</div>
 		</div>
 
 		{#if deployLimitNotice}
-			<p class="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+			<p class="rounded-control border border-warning/40 bg-warning/10 p-3 text-sm">
 				{deployLimitNotice}
 			</p>
 		{/if}
@@ -261,32 +259,33 @@
 		<div class="flex flex-col gap-2">
 			{#if inspectionState === 'failed'}
 				<Button
-					variant="primary"
-					class="w-full gap-2 py-3"
+					size="lg"
+					class="w-full"
 					disabled={inspectMutation.isPending}
 					onclick={handleDetectAgain}
 				>
 					<ArrowCounterClockwiseIcon class="size-5" aria-hidden="true" />
-					Detect ulang
+					Deteksi ulang
 				</Button>
 			{:else}
 				<Button
-					variant="primary"
-					class="w-full gap-2 py-3"
+					size="lg"
+					class="w-full"
 					disabled={deployMutation.isPending || (inspectionState === 'pending' && !waitedLong)}
 					onclick={handleDeploy}
 				>
 					{#if deployMutation.isPending}
 						<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
 					{:else}
-						<LightningIcon class="size-5" aria-hidden="true" />
+						<ArrowsClockwise size={18} aria-hidden="true" />
 					{/if}
 					Deploy sekarang
 				</Button>
 			{/if}
 			<Button
 				variant="ghost"
-				class="w-full border-none py-3 text-primary hover:text-primary-dark"
+				size="lg"
+				class="w-full text-primary hover:text-primary-dark"
 				onclick={() => (showSkipConfirm = true)}
 			>
 				Lewati

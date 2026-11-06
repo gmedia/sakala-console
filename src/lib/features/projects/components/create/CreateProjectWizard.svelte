@@ -240,13 +240,13 @@
 
 	const itemsBreadcrumb: BreadCrumbItem[] = [
 		{ label: 'Proyek' },
-		{ label: 'Proyek Baru', current: true }
+		{ label: 'Proyek baru', current: true }
 	];
 </script>
 
 <div class="flex flex-col items-center justify-center">
 	<div class="flex w-full items-center justify-between">
-		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-montserrat-semibold" />
+		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-semibold" />
 		<CancelCreateProjectAction />
 	</div>
 
@@ -256,14 +256,14 @@
 		<div class="mx-2 mt-4 flex flex-col gap-2">
 			{#if installationResult?.kind === 'connected'}
 				<p
-					class="rounded-lg border border-primary/30 bg-primary-50 p-3 text-sm text-foreground"
+					class="rounded-control border border-primary/30 bg-primary-50 p-3 text-sm text-foreground"
 					role="status"
 				>
 					{installationResult.message}
 				</p>
 			{:else if installationResult?.kind === 'error'}
 				<p
-					class="rounded-lg border border-error/30 bg-error/10 p-3 text-sm text-foreground"
+					class="rounded-control border border-error/30 bg-error/10 p-3 text-sm text-foreground"
 					role="alert"
 				>
 					{installationResult.message}

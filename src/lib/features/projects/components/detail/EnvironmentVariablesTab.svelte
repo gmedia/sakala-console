@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Key from 'phosphor-svelte/lib/Key';
+	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { tick } from 'svelte';
 	import Eye from 'phosphor-svelte/lib/Eye';
@@ -308,50 +310,43 @@
 		);
 	}
 
-	const inputClass =
-		'h-11 w-full min-w-0 rounded-lg border bg-surface px-4 font-montserrat text-sm text-foreground outline-none transition-colors placeholder:font-montserrat placeholder:text-muted @2xl:h-13 @2xl:text-base';
+	const inputClass = 'control-input min-w-0';
 </script>
 
 <div class="flex w-full max-w-280 flex-col">
 	{#if projectQuery.data?.redeploy_required}
 		<div
 			role="status"
-			class="mb-4 flex flex-col justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 md:flex-row md:items-center"
+			class="mb-4 flex flex-col justify-between gap-3 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 md:flex-row md:items-center"
 		>
-			<p class="min-w-0 font-montserrat text-sm text-foreground">
+			<p class="min-w-0 text-sm text-foreground">
 				Perubahan variabel belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya
 				berlaku.
 			</p>
-			<Button
-				type="button"
-				onclick={redeploy.trigger}
-				disabled={redeploy.isProcessing}
-				class="min-h-10 shrink-0 rounded-lg px-4 font-montserrat-semibold"
-			>
+			<Button onclick={redeploy.trigger} disabled={redeploy.isProcessing}>
 				{redeploy.isProcessing ? 'Menjalankan...' : 'Redeploy sekarang'}
 			</Button>
 		</div>
 		{#if redeploy.errorMessage}
-			<p role="alert" class="mb-4 font-montserrat text-sm text-error-dark">
+			<p role="alert" class="mb-4 text-sm text-error-dark">
 				{redeploy.errorMessage}
 			</p>
 		{/if}
 	{/if}
 
-	<div class="@container w-full rounded-lg border border-border bg-surface shadow-none">
+	<div class="@container w-full rounded-control border border-border bg-surface">
 		{#if query.isLoading}
-			<div class="p-6 text-center font-montserrat text-sm text-muted">
-				Memuat environment variables...
-			</div>
+			<div class="p-6 text-center text-sm text-muted">Memuat environment variables...</div>
 		{:else if query.isError}
-			<div class="p-6 text-center font-montserrat text-sm text-error">
-				Gagal memuat data environment variables.
-			</div>
+			<div class="p-6 text-center text-sm text-error">Gagal memuat data environment variables.</div>
 		{:else if query.data}
 			{#if query.data.length === 0 && !isAdding}
-				<div class="p-8 text-center font-montserrat text-sm text-muted">
-					Belum ada environment variable untuk proyek ini.
-				</div>
+				<EmptyState
+					icon={Key}
+					title="Belum ada variabel"
+					description="Belum ada environment variable untuk proyek ini."
+					class="border-none py-8 sm:py-8"
+				/>
 			{:else}
 				<ul class="flex w-full flex-col divide-y divide-border">
 					{#each query.data as env (env.id)}
@@ -360,12 +355,12 @@
 						>
 							<span class="flex min-w-0 flex-wrap items-center gap-x-2">
 								<span
-									class="min-w-0 font-jetbrains-mono-semibold text-sm font-bold wrap-anywhere text-foreground @2xl:text-base"
+									class="min-w-0 font-mono font-semibold text-sm wrap-anywhere text-foreground @2xl:text-base"
 								>
 									{env.key}
 								</span>
 								{#if env.is_secret}
-									<span class="font-montserrat text-xs text-foreground/70">Secret</span>
+									<span class="text-xs text-foreground/70">Secret</span>
 								{/if}
 							</span>
 
@@ -374,19 +369,19 @@
 							>
 								{#if !env.is_secret}
 									<span
-										class="truncate font-montserrat-semibold text-sm text-foreground/70 select-all @2xl:text-base"
+										class="truncate font-semibold text-sm text-foreground/70 select-all @2xl:text-base"
 									>
 										{env.value ?? ''}
 									</span>
 								{:else if visibleIds.has(env.id)}
 									<span
-										class="truncate font-montserrat-semibold text-sm text-foreground/70 select-all @2xl:text-base"
+										class="truncate font-semibold text-sm text-foreground/70 select-all @2xl:text-base"
 									>
 										{revealedValues[env.id] ?? ''}
 									</span>
 								{:else}
 									<span
-										class="truncate font-montserrat-semibold text-sm tracking-widest text-muted select-none @2xl:text-base"
+										class="truncate font-semibold text-sm text-muted select-none @2xl:text-base"
 										aria-label="Nilai disembunyikan"
 										role="img"
 									>
@@ -397,9 +392,9 @@
 
 							<span class="flex shrink-0 items-center gap-1 @2xl:col-start-3">
 								{#if env.is_secret}
-									<button
-										type="button"
-										class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground disabled:opacity-50"
+									<Button
+										variant="ghost"
+										size="icon"
 										onclick={() => toggleReveal(env.id)}
 										disabled={loadingRevealIds.has(env.id)}
 										aria-pressed={visibleIds.has(env.id)}
@@ -413,32 +408,33 @@
 										{:else}
 											<Eye size={24} weight="regular" />
 										{/if}
-									</button>
+									</Button>
 								{/if}
 
-								<button
+								<Button
+									variant="ghost"
+									size="sm"
 									id={`env-edit-button-${env.id}`}
-									type="button"
-									class="min-h-10 shrink-0 cursor-pointer rounded-lg px-2 font-montserrat-medium text-sm text-foreground/70 transition-colors hover:text-foreground disabled:opacity-50"
 									onclick={() => handleOpenEdit(env)}
 									aria-label={`Ubah ${env.key}`}
 								>
 									Ubah
-								</button>
+								</Button>
 							</span>
 
-							<button
-								type="button"
-								class="min-h-10 shrink-0 cursor-pointer rounded-lg px-2 font-montserrat-medium text-sm text-foreground/70 transition-colors hover:text-error disabled:opacity-50"
+							<Button
+								variant="ghost"
+								size="sm"
+								class="hover:text-error"
 								onclick={() => handlePromptDelete(env)}
 								disabled={deleteMutation.isPending}
 								aria-label={`Hapus ${env.key}`}
 							>
 								Hapus
-							</button>
+							</Button>
 
 							{#if revealErrors.has(env.id)}
-								<p role="alert" class="col-span-full font-montserrat text-xs text-error-dark">
+								<p role="alert" class="col-span-full text-xs text-error-dark">
 									{revealErrors.get(env.id)}
 								</p>
 							{/if}
@@ -451,12 +447,9 @@
 									onkeydown={handleEditKeydown}
 									novalidate
 									aria-label={`Ubah ${env.key}`}
-									class="col-span-full mt-2 rounded-lg bg-primary-50/50 p-3"
+									class="col-span-full mt-2 rounded-control bg-primary-50/50 p-3"
 								>
-									<label
-										for="env-edit-value"
-										class="font-montserrat-medium text-xs text-foreground"
-									>
+									<label for="env-edit-value" class="font-medium text-xs text-foreground">
 										Nilai baru
 									</label>
 									<input
@@ -467,7 +460,7 @@
 										type="text"
 										placeholder={env.is_secret
 											? 'Kosongkan untuk mempertahankan nilai'
-											: 'Isi value'}
+											: 'Isi nilai'}
 										autocomplete="off"
 										spellcheck="false"
 										aria-invalid={editValueError ? 'true' : undefined}
@@ -477,38 +470,29 @@
 											: 'border-border-strong focus:border-primary'}"
 									/>
 									{#if editValueError}
-										<p
-											id="env-edit-value-error"
-											class="mt-1 font-montserrat text-xs text-error-dark"
-										>
+										<p id="env-edit-value-error" class="mt-1 text-xs text-error-dark">
 											{editValueError}
 										</p>
 									{/if}
 
-									<label class="mt-3 flex min-h-6 items-center gap-2 font-montserrat text-sm">
-										<input type="checkbox" bind:checked={editIsSecret} class="size-4 rounded" />
+									<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
+										<input
+											type="checkbox"
+											bind:checked={editIsSecret}
+											class="size-4 rounded-control"
+										/>
 										Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
 									</label>
 
 									{#if editFormError}
-										<p role="alert" class="mt-2 font-montserrat text-xs text-error-dark">
+										<p role="alert" class="mt-2 text-xs text-error-dark">
 											{editFormError}
 										</p>
 									{/if}
 
 									<div class="mt-3 flex justify-end gap-2">
-										<button
-											type="button"
-											onclick={handleCancelEdit}
-											class="min-h-10 cursor-pointer rounded-lg px-4 font-montserrat-medium text-sm text-foreground/70 hover:bg-black/5"
-										>
-											Batal
-										</button>
-										<Button
-											type="submit"
-											disabled={updateMutation.isPending}
-											class="min-h-10 rounded-lg px-4 font-montserrat-semibold"
-										>
+										<Button variant="ghost" onclick={handleCancelEdit}>Batal</Button>
+										<Button type="submit" disabled={updateMutation.isPending}>
 											{updateMutation.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
 										</Button>
 									</div>
@@ -528,11 +512,11 @@
 				onkeydown={handleFormKeydown}
 				novalidate
 				aria-label="Tambah variabel"
-				class="w-full rounded-b-lg border-t border-border bg-primary-50/50 p-4 @2xl:px-6"
+				class="w-full rounded-b-control border-t border-border bg-primary-50/50 p-4 @2xl:px-6"
 			>
 				<div class="flex flex-col gap-3 @2xl:flex-row @2xl:items-start">
 					<div class="flex min-w-0 flex-col gap-1 @2xl:w-58 @2xl:shrink-0">
-						<label for="env-new-key" class="font-montserrat-medium text-xs text-foreground">
+						<label for="env-new-key" class="font-medium text-xs text-foreground">
 							Nama variabel
 						</label>
 						<input
@@ -551,21 +535,19 @@
 								: 'border-border-strong focus:border-primary'}"
 						/>
 						{#if keyError}
-							<p id="env-new-key-error" class="font-montserrat text-xs text-error-dark">
+							<p id="env-new-key-error" class="text-xs text-error-dark">
 								{keyError}
 							</p>
 						{/if}
 					</div>
 
 					<div class="flex min-w-0 flex-1 flex-col gap-1">
-						<label for="env-new-value" class="font-montserrat-medium text-xs text-foreground">
-							Nilai
-						</label>
+						<label for="env-new-value" class="font-medium text-xs text-foreground"> Nilai </label>
 						<input
 							bind:this={valueInput}
 							id="env-new-value"
 							type="text"
-							placeholder="Isi value"
+							placeholder="Isi nilai"
 							bind:value={newValue}
 							oninput={handleValueInput}
 							autocomplete="off"
@@ -577,7 +559,7 @@
 								: 'border-border-strong focus:border-primary'}"
 						/>
 						{#if valueError}
-							<p id="env-new-value-error" class="font-montserrat text-xs text-error-dark">
+							<p id="env-new-value-error" class="text-xs text-error-dark">
 								{valueError}
 							</p>
 						{/if}
@@ -585,8 +567,8 @@
 
 					<div class="flex shrink-0 items-center justify-end gap-2 @2xl:pt-6.5">
 						<Button
+							size="icon"
 							type="submit"
-							class="size-11 shrink-0 rounded-lg p-0"
 							disabled={addMutation.isPending}
 							aria-label="Simpan"
 							title="Simpan"
@@ -598,47 +580,48 @@
 							{/if}
 						</Button>
 
-						<button
-							type="button"
-							class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-transparent text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+						<Button
+							variant="ghost"
+							size="icon"
 							onclick={handleCancelAdd}
 							aria-label="Batal"
 							title="Batal"
 						>
 							<X size={24} weight="regular" />
-						</button>
+						</Button>
 					</div>
 				</div>
 
-				<label class="mt-3 flex min-h-6 items-center gap-2 font-montserrat text-sm">
-					<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded" />
+				<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
+					<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded-control" />
 					Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
 				</label>
 
 				{#if formError}
-					<p role="alert" class="mt-2 font-montserrat text-xs text-error-dark">{formError}</p>
+					<p role="alert" class="mt-2 text-xs text-error-dark">{formError}</p>
 				{/if}
 			</form>
 		{/if}
 	</div>
 
 	{#if isAdding}
-		<p class="mt-3 font-montserrat text-xs text-foreground/70">
+		<p class="mt-3 text-xs text-foreground/70">
 			Nama variabel otomatis jadi UPPERCASE_SNAKE_CASE. Tekan Enter atau centang untuk simpan, Esc
 			atau silang untuk batal.
 		</p>
 	{/if}
 
 	{#if !isAdding}
-		<button
-			bind:this={addButton}
-			type="button"
+		<Button
+			variant="secondary"
+			size="lg"
+			class="mt-4 w-full"
+			bind:ref={addButton}
 			onclick={handleOpenAdd}
-			class="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-black bg-surface font-montserrat-semibold text-base text-foreground transition-colors hover:bg-surface-elevated"
 		>
 			<Plus size={24} weight="regular" />
-			<span>Tambah Variabel</span>
-		</button>
+			<span>Tambah variabel</span>
+		</Button>
 	{/if}
 
 	<DeleteEnvConfirmModal

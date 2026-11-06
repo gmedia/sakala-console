@@ -62,30 +62,20 @@
 </script>
 
 {#if preferencesQuery.isPending}
-	<p class="py-12 text-center font-sans text-sm text-muted" role="status">
-		Memuat pengaturan notifikasi...
-	</p>
+	<p class="py-12 text-center text-sm text-muted" role="status">Memuat pengaturan notifikasi...</p>
 {:else if preferencesQuery.isError || !current}
 	<div class="space-y-3 py-12 text-center" role="alert">
-		<p class="font-sans text-sm text-error-base">
+		<p class="text-sm text-error-base">
 			{getErrorMessage(preferencesQuery.error, 'Gagal memuat pengaturan notifikasi.')}
 		</p>
-		<button
-			type="button"
-			onclick={() => preferencesQuery.refetch()}
-			class="font-sans text-sm font-semibold text-primary-dark hover:underline cursor-pointer"
-		>
-			Coba lagi
-		</button>
+		<Button variant="link" onclick={() => preferencesQuery.refetch()}>Coba lagi</Button>
 	</div>
 {:else}
 	<div class="space-y-6">
-		<div
-			class="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-white p-6 shadow-xs"
-		>
+		<div class="surface-card flex items-center justify-between gap-4 p-6">
 			<div>
-				<h3 class="font-sans text-base font-semibold text-foreground">Aktifkan Semua Notifikasi</h3>
-				<p class="mt-0.5 font-sans text-xs text-muted">
+				<h2 class="font-sans text-base font-semibold text-foreground">Aktifkan semua notifikasi</h2>
+				<p class="mt-0.5 text-xs text-muted">
 					Mengatur notifikasi di lonceng Sakala, bukan email. Kategori yang dimatikan tidak membuat
 					notifikasi sama sekali.
 				</p>
@@ -94,48 +84,48 @@
 			<button
 				type="button"
 				role="switch"
-				aria-label="Aktifkan Semua Notifikasi"
+				aria-label="Aktifkan semua notifikasi"
 				aria-checked={allEnabled}
 				onclick={toggleAll}
 				class={cn(
 					'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2',
-					allEnabled ? 'bg-primary-dark' : 'bg-muted/30'
+					allEnabled ? 'bg-primary-dark' : 'bg-muted'
 				)}
 			>
 				<span
 					class={cn(
-						'pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out',
+						'pointer-events-none inline-block size-5 transform rounded-full bg-surface ring-0 transition duration-200 ease-in-out',
 						allEnabled ? 'translate-x-5' : 'translate-x-0'
 					)}
 				></span>
 			</button>
 		</div>
 
-		<NotificationSectionCard title="Aktivitas Proyek" icon={Bell}>
+		<NotificationSectionCard title="Aktivitas proyek" icon={Bell}>
 			<NotificationToggleItem
-				title="Deployment Berhasil"
+				title="Deployment berhasil"
 				description="Deployment selesai dan aplikasimu berjalan."
 				checked={current.deployment_success}
 				onToggle={() => setCategory('deployment_success', !current.deployment_success)}
 			/>
 			<NotificationToggleItem
-				title="Deployment Gagal"
+				title="Deployment gagal"
 				description="Deployment gagal sebelum aplikasimu berjalan."
 				checked={current.deployment_failure}
 				onToggle={() => setCategory('deployment_failure', !current.deployment_failure)}
 			/>
 			<NotificationToggleItem
-				title="Masalah Proyek"
+				title="Masalah proyek"
 				description="Aplikasi berhenti sendiri, atau auto-deploy dilewati."
 				checked={current.project_issue}
 				onToggle={() => setCategory('project_issue', !current.project_issue)}
 			/>
 		</NotificationSectionCard>
 
-		<NotificationSectionCard title="Keamanan Akun" icon={ShieldCheck}>
+		<NotificationSectionCard title="Keamanan akun" icon={ShieldCheck}>
 			<NotificationToggleItem
-				title="Keamanan Akun"
-				description="Kata sandi atau email akunmu berubah."
+				title="Perubahan kata sandi dan email"
+				description="Kabari kalau kata sandi atau email akunmu berubah."
 				checked={current.account_security}
 				onToggle={() => setCategory('account_security', !current.account_security)}
 			/>
@@ -143,21 +133,18 @@
 
 		<div class="flex flex-col items-end gap-2 pt-2">
 			{#if updatePreferences.isError}
-				<p class="font-sans text-xs text-error-base" role="alert">
+				<p class="text-xs text-error-base" role="alert">
 					{getErrorMessage(updatePreferences.error, 'Gagal menyimpan. Coba lagi.')}
 				</p>
 			{:else if justSaved}
-				<p class="font-sans text-xs text-primary-dark" role="status">
-					Pengaturan notifikasi tersimpan.
-				</p>
+				<p class="text-xs text-primary-dark" role="status">Pengaturan notifikasi tersimpan.</p>
 			{/if}
 			<Button
-				type="button"
+				class="w-full md:w-auto"
 				onclick={handleSave}
 				disabled={!isDirty || updatePreferences.isPending}
-				class="w-full min-w-48 rounded-xl border-primary-dark bg-primary-dark px-6 py-3 font-sans text-sm shadow-xs hover:bg-primary-dark/90 md:w-auto"
 			>
-				{updatePreferences.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+				{updatePreferences.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
 			</Button>
 		</div>
 	</div>

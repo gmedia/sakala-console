@@ -15,15 +15,15 @@
 	];
 </script>
 
-<div class="grid w-full grid-cols-2 rounded-lg bg-muted/10 p-2">
+<div class="grid w-full grid-cols-2 rounded-control bg-muted/10 p-2">
 	{#each tabs as tab (tab.value)}
 		<Button
 			variant="ghost"
 			aria-pressed={value === tab.value}
 			class={cn(
-				'w-full rounded-md border-none py-3 cursor-pointer',
+				'w-full rounded-control border-none py-3 cursor-pointer',
 				value === tab.value
-					? 'bg-white text-foreground'
+					? 'bg-surface text-foreground'
 					: 'bg-transparent text-foreground/70 hover:bg-muted/10'
 			)}
 			onclick={() => (value = tab.value)}

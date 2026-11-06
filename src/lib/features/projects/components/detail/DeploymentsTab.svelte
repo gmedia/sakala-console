@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { createDeploymentsQuery } from '../../queries';
 	import type { DeploymentFilter } from '../../type';
-	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
+	import ClockCounterClockwise from 'phosphor-svelte/lib/ClockCounterClockwise';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import List from 'phosphor-svelte/lib/List';
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
-	import Empty from 'phosphor-svelte/lib/Empty';
-	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
-	import CaretRight from 'phosphor-svelte/lib/CaretRight';
+	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import DeploymentCard from './DeploymentCard.svelte';
 
@@ -50,31 +50,14 @@
 
 	const deployments = $derived(query.data?.data ?? []);
 	const totalPages = $derived(query.data?.meta.last_page ?? 1);
-
-	function getPaginationRange(current: number, total: number) {
-		if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-
-		if (current <= 3) return [1, 2, 3, 4, '...', total];
-		if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
-
-		return [1, '...', current - 1, current, current + 1, '...', total];
-	}
-
-	const paginationRange = $derived(getPaginationRange(currentPage, totalPages));
 </script>
 
 <div class="flex flex-col gap-6 w-full">
 	<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-		<button
-			type="button"
-			onclick={toggleFilter}
-			class="flex items-center min-w-35.75 h-6 px-3 rounded-none bg-primary-50 text-primary transition-colors hover:bg-primary-100 cursor-pointer"
-		>
-			<span class="py-1">
-				<List size={16} />
-			</span>
-			<span class="pl-2 text-[12px] font-montserrat-semibold">{filterText}</span>
-		</button>
+		<Button variant="secondary" size="sm" class="w-fit" onclick={toggleFilter}>
+			<List size={16} aria-hidden="true" />
+			{filterText}
+		</Button>
 
 		<SearchInput
 			class="w-full md:w-54"
@@ -88,61 +71,52 @@
 	</div>
 
 	{#if query.isPending}
-		<div class="flex items-center justify-center p-24">
-			<CircleNotch size={32} class="animate-spin text-muted" />
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3" role="status">
+			<span class="sr-only">Memuat riwayat deployment...</span>
+			{#each [1, 2, 3] as item (item)}
+				<div class="surface-card flex flex-col gap-3 p-5" aria-hidden="true">
+					<div class="skeleton h-5 w-2/3"></div>
+					<div class="skeleton h-4 w-1/3"></div>
+					<div class="skeleton h-24 w-full"></div>
+					<div class="skeleton h-8 w-1/2"></div>
+				</div>
+			{/each}
 		</div>
 	{:else if query.isError}
 		<div
 			role="alert"
-			class="p-6 bg-error/5 text-error rounded-xl flex flex-wrap items-center gap-3 border border-error/20"
+			class="p-6 bg-error/5 text-error rounded-card flex flex-wrap items-center gap-3 border border-error/20"
 		>
 			<WarningCircle size={24} weight="fill" />
 			<p class="min-w-0 flex-1 font-medium text-sm">
 				Gagal memuat riwayat deployment. Riwayatnya sendiri tidak hilang.
 			</p>
-			<button
-				type="button"
-				onclick={() => query.refetch()}
-				disabled={query.isFetching}
-				class="min-h-10 shrink-0 cursor-pointer rounded-lg border border-error/30 bg-surface px-4 font-montserrat-semibold text-sm text-error-dark transition-colors hover:bg-error/10 disabled:cursor-not-allowed disabled:opacity-60"
-			>
+			<Button variant="secondary" onclick={() => query.refetch()} disabled={query.isFetching}>
 				{query.isFetching ? 'Memuat...' : 'Coba lagi'}
-			</button>
+			</Button>
 		</div>
 	{:else if deployments.length === 0 && !searchQuery.trim() && selectedFilter !== 'all'}
-		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
-			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
-				<Empty size={32} weight="regular" />
-			</div>
-			<p class="text-center text-foreground text-[20px] font-montserrat-light">
-				Tidak ada deployment dalam {filterText}.
-			</p>
-			<button
-				type="button"
-				onclick={showAllTime}
-				class="min-h-10 cursor-pointer rounded-lg border border-border-strong bg-surface px-4 font-montserrat-semibold text-sm text-foreground transition-colors hover:bg-background-soft"
-			>
-				Lihat semua waktu
-			</button>
-		</div>
+		<EmptyState
+			icon={ClockCounterClockwise}
+			title="Tidak ada deployment"
+			description={`Tidak ada deployment dalam ${filterText}.`}
+		>
+			{#snippet action()}
+				<Button variant="secondary" onclick={showAllTime}>Lihat semua waktu</Button>
+			{/snippet}
+		</EmptyState>
 	{:else if deployments.length === 0 && !searchQuery.trim()}
-		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
-			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
-				<Empty size={32} weight="regular" />
-			</div>
-			<p class="text-center text-foreground text-[20px] font-montserrat-light">
-				Belum ada riwayat deployment untuk proyek ini.
-			</p>
-		</div>
+		<EmptyState
+			icon={ClockCounterClockwise}
+			title="Belum ada riwayat"
+			description="Belum ada riwayat deployment untuk proyek ini."
+		/>
 	{:else if deployments.length === 0 && searchQuery.trim()}
-		<div class="flex flex-col items-center justify-center mt-10 pb-24 gap-6">
-			<div class="w-13 h-13 rounded-xl bg-primary-50 flex items-center justify-center text-primary">
-				<MagnifyingGlass size={32} weight="regular" />
-			</div>
-			<p class="text-center text-foreground text-[20px] font-montserrat-light">
-				Tidak ada deployment yang sesuai dengan pencarian.
-			</p>
-		</div>
+		<EmptyState
+			icon={MagnifyingGlass}
+			title="Tidak ada yang cocok"
+			description="Tidak ada deployment yang sesuai dengan pencarian."
+		/>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 			{#each deployments as deployment (deployment.id)}
@@ -150,54 +124,6 @@
 			{/each}
 		</div>
 
-		{#if totalPages > 1}
-			<nav
-				class="flex flex-wrap items-center justify-center gap-2 mt-4 mb-8"
-				aria-label="Navigasi halaman"
-			>
-				<button
-					type="button"
-					onclick={() => currentPage > 1 && (currentPage -= 1)}
-					disabled={currentPage === 1}
-					aria-label="Halaman sebelumnya"
-					class="flex items-center justify-center w-14 h-12 rounded-lg bg-surface text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
-				>
-					<CaretLeft size={16} weight="bold" />
-				</button>
-
-				{#each paginationRange as pageNum (pageNum)}
-					{#if pageNum === '...'}
-						<div
-							class="flex items-center justify-center w-10.5 h-12 rounded-lg bg-white text-muted font-bold tracking-widest text-sm"
-						>
-							...
-						</div>
-					{:else}
-						<button
-							type="button"
-							onclick={() => (currentPage = Number(pageNum))}
-							aria-label={`Halaman ${pageNum}`}
-							aria-current={currentPage === pageNum ? 'page' : undefined}
-							class="flex items-center justify-center h-12 rounded-lg text-sm font-semibold transition-colors cursor-pointer {currentPage ===
-							pageNum
-								? 'bg-primary text-white w-9.75'
-								: 'bg-white text-muted hover:bg-muted/10 w-10.5'}"
-						>
-							{pageNum}
-						</button>
-					{/if}
-				{/each}
-
-				<button
-					type="button"
-					onclick={() => currentPage < totalPages && (currentPage += 1)}
-					disabled={currentPage === totalPages}
-					aria-label="Halaman berikutnya"
-					class="flex items-center justify-center w-14 h-12 rounded-lg bg-surface text-muted hover:text-foreground disabled:opacity-50 transition-colors cursor-pointer"
-				>
-					<CaretRight size={16} weight="bold" />
-				</button>
-			</nav>
-		{/if}
+		<Pagination {currentPage} {totalPages} onPageChange={(next) => (currentPage = next)} />
 	{/if}
 </div>

@@ -23,16 +23,14 @@
 	const projectQuery = createProjectQuery(() => projectId, { poll: true });
 </script>
 
-<div class="flex flex-col gap-6 w-full min-w-0 max-w-7xl mx-auto">
+<div class="flex flex-col gap-6 w-full min-w-0">
 	{#if projectQuery.isLoading}
-		<div class="flex flex-col gap-4 mb-4 animate-pulse">
-			<div class="h-10 bg-background-soft rounded-lg w-1/3"></div>
-			<div class="h-12 bg-background-soft rounded-lg w-full"></div>
+		<div class="flex flex-col gap-4 mb-4">
+			<div class="skeleton h-10 w-1/3"></div>
+			<div class="skeleton h-12 w-full"></div>
 		</div>
 	{:else if projectQuery.isError}
-		<div
-			class="p-4 rounded-lg border border-error/50 bg-error-50 text-error font-montserrat text-sm mb-4"
-		>
+		<div class="p-4 rounded-control border border-error/50 bg-error-50 text-error text-sm mb-4">
 			Gagal memuat detail proyek. Proyek mungkin tidak ditemukan atau terjadi kesalahan server.
 		</div>
 	{:else if projectQuery.data}
@@ -49,7 +47,7 @@
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Riwayat Deployment
+				Riwayat deployment
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/environments', { id: projectId || '' })}
@@ -59,7 +57,7 @@
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
-				Environment Variables
+				Environment variable
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/settings', { id: projectId || '' })}

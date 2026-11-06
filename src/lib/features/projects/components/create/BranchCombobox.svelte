@@ -81,10 +81,7 @@
 			onclick={() => (open = true)}
 			onfocus={(event) => event.currentTarget.select()}
 			placeholder="Cari branch..."
-			class={cn(
-				'w-full rounded-lg border bg-primary-50/40 px-4 py-2 pr-11 font-jetbrains-mono-regular text-sm focus:ring-primary',
-				invalid ? 'border-error ring-1 ring-error' : 'border-border-strong'
-			)}
+			class={cn('control-input pr-11 font-mono', invalid && 'border-error')}
 		/>
 		<Combobox.Trigger
 			aria-label="Tampilkan daftar branch"
@@ -96,21 +93,19 @@
 	<Combobox.Portal>
 		<Combobox.Content
 			sideOffset={4}
-			class="z-50 max-h-64 w-(--bits-combobox-anchor-width) overflow-y-auto rounded-lg border border-border-strong bg-surface py-1 shadow-md"
+			class="z-50 max-h-64 w-(--bits-combobox-anchor-width) overflow-y-auto rounded-overlay border border-border bg-surface py-1 shadow-overlay"
 		>
 			<Combobox.Viewport>
 				{#if loading}
-					<p class="px-3 py-2 font-montserrat text-sm text-foreground/70">Memuat branch...</p>
+					<p class="px-3 py-2 text-sm text-foreground/70">Memuat branch...</p>
 				{:else if matches.length === 0 && !otherBranch}
-					<p class="px-3 py-2 font-montserrat text-sm text-foreground/70">
-						Tidak ada branch dengan nama itu.
-					</p>
+					<p class="px-3 py-2 text-sm text-foreground/70">Tidak ada branch dengan nama itu.</p>
 				{/if}
 				{#each matches as branch (branch)}
 					<Combobox.Item
 						value={branch}
 						label={branch}
-						class="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 font-jetbrains-mono-regular text-sm wrap-anywhere data-highlighted:bg-primary data-highlighted:text-white"
+						class="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 font-mono text-sm wrap-anywhere data-highlighted:bg-primary data-highlighted:text-white"
 					>
 						{#snippet children({ selected })}
 							{branch}
@@ -124,7 +119,7 @@
 					<Combobox.Item
 						value={otherBranch}
 						label={otherBranch}
-						class="cursor-pointer px-3 py-2 font-montserrat text-sm wrap-anywhere data-highlighted:bg-primary data-highlighted:text-white"
+						class="cursor-pointer px-3 py-2 text-sm wrap-anywhere data-highlighted:bg-primary data-highlighted:text-white"
 					>
 						Pakai branch "{otherBranch}"
 					</Combobox.Item>

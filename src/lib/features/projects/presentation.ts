@@ -6,7 +6,7 @@ import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './typ
 
 export type RuntimeStatusPresentation = {
 	label: string;
-	variant: 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'muted';
+	variant: 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'muted' | 'running' | 'queued';
 };
 
 export const runtimeStatusPresentation: Record<RuntimeStatus, RuntimeStatusPresentation> = {
@@ -27,11 +27,11 @@ export const runtimeStatusPresentation: Record<RuntimeStatus, RuntimeStatusPrese
 		variant: 'error'
 	},
 	deploying: {
-		label: 'Mendeploy',
-		variant: 'warning'
+		label: 'Men-deploy',
+		variant: 'running'
 	},
 	not_deployed: {
-		label: 'Belum Deploy',
+		label: 'Belum deploy',
 		variant: 'muted'
 	}
 };
@@ -309,14 +309,19 @@ export function deriveProjectHeaderState(
 	}
 }
 
-/** The label on a deployment card: short, in Indonesian, and never a generic build error. */
-export function getDeploymentCardStatusLabel(status: string): string {
-	if (status === 'succeeded') return 'Selesai';
-	if (status === 'failed') return 'Gagal';
-	if (status === 'cancelled') return 'Dibatalkan';
-	if (status === 'queued') return 'Mengantre';
-	if (ACTIVE_DEPLOYMENT_STATUSES.includes(status as Deployment['status'])) return 'Berjalan';
-	return status.replaceAll('_', ' ');
+/**
+ * One name per deployment status, for the card, the header, and the timeline's last step. Short, in
+ * Indonesian, and never a generic build error. `Live` is about a project, so a deployment never says it.
+ */
+export function getDeploymentBadge(status: string): RuntimeStatusPresentation {
+	if (status === 'succeeded') return { label: 'Berhasil', variant: 'success' };
+	if (status === 'failed') return { label: 'Gagal', variant: 'error' };
+	if (status === 'cancelled') return { label: 'Dibatalkan', variant: 'muted' };
+	if (status === 'queued') return { label: 'Mengantre', variant: 'queued' };
+	if (ACTIVE_DEPLOYMENT_STATUSES.includes(status as Deployment['status'])) {
+		return { label: 'Men-deploy', variant: 'running' };
+	}
+	return { label: status.replaceAll('_', ' '), variant: 'muted' };
 }
 
 export function getDeploymentCardNote(
@@ -336,6 +341,35 @@ export function getDeploymentCardNote(
 		return `Tahap: ${getDeploymentStatusLabel(status)}`;
 	}
 	return null;
+}
+
+const FRAMEWORK_LABELS: Record<string, string> = {
+	astro: 'Astro',
+	django: 'Django',
+	express: 'Express',
+	fastapi: 'FastAPI',
+	flask: 'Flask',
+	gatsby: 'Gatsby',
+	hono: 'Hono',
+	laravel: 'Laravel',
+	nest: 'NestJS',
+	nestjs: 'NestJS',
+	next: 'Next.js',
+	nextjs: 'Next.js',
+	nuxt: 'Nuxt',
+	rails: 'Rails',
+	react: 'React',
+	remix: 'Remix',
+	spring: 'Spring',
+	svelte: 'Svelte',
+	sveltekit: 'SvelteKit',
+	vite: 'Vite',
+	vue: 'Vue'
+};
+
+/** A framework the map does not know keeps the API's own word rather than a guess. */
+export function getFrameworkLabel(framework: string): string {
+	return FRAMEWORK_LABELS[framework.toLowerCase()] ?? framework;
 }
 
 type PilotQuotas = PilotLimits['quotas'];

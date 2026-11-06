@@ -16,8 +16,8 @@
 
 <div class="flex items-center justify-between gap-4 py-3">
 	<div class="min-w-0">
-		<p class="font-sans text-sm font-semibold text-foreground">{title}</p>
-		<p id={descriptionId} class="mt-0.5 font-sans text-xs text-foreground/70">{description}</p>
+		<p class="text-sm font-semibold text-foreground">{title}</p>
+		<p id={descriptionId} class="mt-0.5 text-xs text-muted">{description}</p>
 	</div>
 	<button
 		type="button"
@@ -34,7 +34,7 @@
 	>
 		<span
 			class={cn(
-				'pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out',
+				'pointer-events-none inline-block size-5 transform rounded-full bg-surface ring-0 transition duration-200 ease-in-out',
 				checked ? 'translate-x-5' : 'translate-x-0'
 			)}
 		></span>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Search from '@lucide/svelte/icons/search';
+	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import { cn } from '$lib/utils/cn';
 
 	type Props = {
@@ -38,12 +38,12 @@
 
 <div
 	class={cn(
-		'flex items-center rounded-lg border border-border-strong bg-surface px-3 py-0.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary',
+		'flex min-h-control-lg items-center gap-2 rounded-control border border-border-strong bg-surface px-3 focus-within:border-primary focus-within:outline-3 focus-within:outline-offset-1 focus-within:outline-primary',
 		disabled && 'opacity-50',
 		className
 	)}
 >
-	<Search class="h-5 w-5 text-muted" />
+	<MagnifyingGlass size={18} class="shrink-0 text-muted" aria-hidden="true" />
 	<input
 		type="text"
 		bind:value
@@ -52,6 +52,14 @@
 		{disabled}
 		aria-label={placeholder}
 		{id}
-		class="min-w-0 flex-1 bg-transparent placeholder:text-muted placeholder:font-montserrat text-sm border-none ps-1 focus:ring-0 focus:outline-none"
+		class="search-input min-h-control-md min-w-0 flex-1 border-none bg-transparent p-0 text-sm placeholder:text-muted"
 	/>
 </div>
+
+<style>
+	/* The box around this input shows the focus. */
+	.search-input:focus {
+		outline: none;
+		box-shadow: none;
+	}
+</style>

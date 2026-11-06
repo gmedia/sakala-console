@@ -9,7 +9,8 @@
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
 	import type { GithubInstallation } from '$lib/api/resources/github';
-	import GithubLogoIcon from 'phosphor-svelte/lib/GithubLogoIcon';
+	import GitBranch from 'phosphor-svelte/lib/GitBranch';
+	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
 	import ArrowRightIcon from 'phosphor-svelte/lib/ArrowRightIcon';
 	import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
 	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
@@ -157,17 +158,15 @@
 
 <div class="mt-3 flex flex-col gap-4">
 	<div>
-		<h2 tabindex="-1" data-step-heading class="text-lg font-montserrat-semibold outline-none">
-			Pilih repository
-		</h2>
-		<p class="font-montserrat">Pilih repository yang ingin kamu deploy ke Sakala.</p>
+		<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Pilih repository</h2>
+		<p>Pilih repository yang ingin kamu deploy ke Sakala.</p>
 	</div>
 
 	<RepositorySourceTab bind:value={wizard.repositorySource} />
 
 	{#if wizard.repositorySource === 'github'}
 		{#if loading}
-			<div class="flex flex-col overflow-hidden rounded-xl border border-muted/40">
+			<div class="flex flex-col overflow-hidden rounded-card border border-border">
 				{#each [0, 1, 2, 3, 4] as index (index)}
 					<RepositoryListSkeleton />
 				{/each}
@@ -177,13 +176,13 @@
 				<EmptyState
 					icon={WarningCircleIcon}
 					tone="failed"
-					title="Gagal Memuat Repository"
+					title="Gagal memuat repository"
 					description={errorMessage}
-					class="bg-background border-none shadow-none sm:py-4"
+					class="bg-background border-none sm:py-4"
 				>
 					{#snippet action()}
 						{#if onRetry}
-							<Button variant="outline" onclick={onRetry}>Coba Lagi</Button>
+							<Button variant="secondary" onclick={onRetry}>Coba lagi</Button>
 						{/if}
 					{/snippet}
 				</EmptyState>
@@ -191,37 +190,31 @@
 		{:else if !githubConnected}
 			<div class="flex flex-col items-center justify-center border-b border-muted pb-6">
 				<EmptyState
-					icon={GithubLogoIcon}
-					class="bg-background border-none shadow-none sm:py-4"
+					icon={GitBranch}
+					class="bg-background border-none sm:py-4"
 					title="Belum ada akun GitHub yang terhubung"
 					description="Hubungkan akun GitHub kamu supaya Sakala bisa menampilkan repository yang bisa kamu deploy."
 				/>
-				<Button class="inline-flex max-w-max p-3" onclick={onConnectGithub}>
-					<GithubLogoIcon class="h-6 w-6" />
+				<Button class="w-fit" onclick={onConnectGithub}>
+					<SocialLogo name="github" />
 					Hubungkan GitHub
 				</Button>
 			</div>
 			<p class="text-center text-foreground/70">
 				Tidak ingin menghubungkan akun?
-				<button
-					type="button"
-					class="cursor-pointer text-primary underline-offset-2 hover:underline"
-					onclick={() => (wizard.repositorySource = 'git-url')}
-				>
+				<Button variant="link" onclick={() => (wizard.repositorySource = 'git-url')}>
 					Gunakan Public Git URL
-				</button>
+				</Button>
 			</p>
 		{:else}
 			{#if installations.length > 1}
 				<div class="flex flex-col gap-1">
-					<label for="github-installation" class="text-sm font-montserrat-semibold">
-						Akun GitHub
-					</label>
+					<label for="github-installation" class="text-sm font-semibold"> Akun GitHub </label>
 					<select
 						id="github-installation"
 						value={installationId}
 						onchange={handleInstallationChange}
-						class="w-full rounded-lg border border-border-strong bg-surface font-montserrat text-sm"
+						class="control-input"
 					>
 						{#each installations as installation (installation.id)}
 							<option value={installation.id}>
@@ -241,16 +234,16 @@
 						tone="failed"
 						title="Instalasi GitHub tidak aktif"
 						description={errorMessage}
-						class="bg-background border-none shadow-none sm:py-4"
+						class="bg-background border-none sm:py-4"
 					>
 						{#snippet action()}
 							<div class="flex flex-wrap justify-center gap-2">
-								<Button externalHref={reconnectUrl ?? undefined} sameTab class="p-3">
-									<GithubLogoIcon class="h-5 w-5" />
+								<Button externalHref={reconnectUrl ?? undefined} sameTab>
+									<SocialLogo name="github" />
 									Hubungkan ulang GitHub
 								</Button>
 								{#if onRetry}
-									<Button variant="outline" class="p-3" onclick={onRetry}>Coba Lagi</Button>
+									<Button variant="secondary" onclick={onRetry}>Coba lagi</Button>
 								{/if}
 							</div>
 						{/snippet}
@@ -284,13 +277,13 @@
 						tone="muted"
 						title="Tidak ada repository yang cocok"
 						description={`Tidak ada repository dengan nama "${searchQuery.trim()}" di 1.000 repository pertama akun ini. Periksa ejaannya, atau atur akses Sakala kalau repository-nya memang belum dibagikan.`}
-						class="border-none bg-transparent shadow-none"
+						class="border-none bg-transparent"
 					>
 						{#snippet action()}
 							<div class="flex flex-wrap justify-center gap-2">
-								<Button variant="outline" class="p-3" onclick={clearSearch}>Hapus pencarian</Button>
+								<Button variant="secondary" onclick={clearSearch}>Hapus pencarian</Button>
 								{#if configureUrl}
-									<Button variant="outline" class="p-3" externalHref={configureUrl} sameTab>
+									<Button variant="secondary" externalHref={configureUrl} sameTab>
 										Atur akses repository
 									</Button>
 								{/if}
@@ -303,13 +296,11 @@
 						tone="muted"
 						title="Belum ada repository yang bisa dipilih"
 						description={`Sakala belum diberi akses ke repository mana pun di ${accountName ?? 'akun ini'}. Atur aksesnya di GitHub, lalu kamu kembali ke halaman ini.`}
-						class="border-none bg-transparent shadow-none"
+						class="border-none bg-transparent"
 					>
 						{#snippet action()}
 							{#if configureUrl}
-								<Button class="p-3" externalHref={configureUrl} sameTab>
-									Atur akses repository
-								</Button>
+								<Button externalHref={configureUrl} sameTab>Atur akses repository</Button>
 							{/if}
 						{/snippet}
 					</EmptyState>
@@ -341,18 +332,13 @@
 	{#if wizard.repositorySource === 'github' && wizard.selectedRepository}
 		<p class="text-sm" data-testid="selected-repository">
 			Terpilih:
-			<span class="font-montserrat-semibold wrap-anywhere">
+			<span class="font-semibold wrap-anywhere">
 				{wizard.selectedRepository.full_name}
 			</span>
 		</p>
 	{/if}
 
-	<Button
-		variant="primary"
-		class="w-full cursor-pointer py-3"
-		disabled={isDisabled}
-		onclick={handleNext}
-	>
+	<Button size="lg" class="w-full" disabled={isDisabled} onclick={handleNext}>
 		{#if isValidating}
 			<CircleNotchIcon class="h-5 w-5 animate-spin" />
 			Memvalidasi...

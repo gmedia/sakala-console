@@ -6,6 +6,34 @@ export function formatDate(date: string): string {
 	});
 }
 
+const relativeFormat = new Intl.RelativeTimeFormat('id-ID');
+const yesterdayFormat = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' });
+
+function capitalize(text: string): string {
+	return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The one way to say how long ago: relative for a week, then the date. `Kemarin`, `3 jam yang lalu`. */
+export function formatRelativeTime(
+	date: string | null | undefined,
+	now: number = Date.now()
+): string {
+	if (!date) return '';
+	const time = new Date(date);
+	const elapsed = now - time.getTime();
+	if (Number.isNaN(elapsed)) return '';
+
+	const minutes = Math.floor(elapsed / 60_000);
+	if (minutes < 1) return 'Baru saja';
+	if (minutes < 60) return relativeFormat.format(-minutes, 'minute');
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return relativeFormat.format(-hours, 'hour');
+	const days = Math.floor(hours / 24);
+	if (days === 1) return capitalize(yesterdayFormat.format(-1, 'day'));
+	if (days < 7) return relativeFormat.format(-days, 'day');
+	return shortDateFormat.format(time);
+}
+
 const clockFormat = new Intl.DateTimeFormat('id-ID', {
 	hour: '2-digit',
 	minute: '2-digit',

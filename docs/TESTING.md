@@ -18,7 +18,7 @@ Gunakan Vitest node untuk utility, parsing, API error mapping, query key, dan lo
 
 Gunakan Vitest Browser + Playwright untuk behavior component yang membutuhkan DOM. Jangan menguji detail class visual yang mudah berubah; uji role, label, state, dan interaction.
 
-Import ikon satu per satu (`phosphor-svelte/lib/Check`, `@lucide/svelte/icons/check`), dan ESLint menolak import dari barrel. Barrel `phosphor-svelte` di-prebundle Vite menjadi 20 MB JavaScript, dan dengan cache Vite yang kosong, seperti di CI, renderer Chromium crash di 8 dari 10 run dengan pesan `Browser connection was closed`. Kalau pesan itu muncul di mesinmu, cek dulu apakah ada import dari barrel. Untuk mengulang kondisi CI, hapus `node_modules/.vite` lalu jalankan `pnpm test:component`.
+Import ikon satu per satu (`phosphor-svelte/lib/Check`), dan ESLint menolak import dari barrel. Barrel `phosphor-svelte` di-prebundle Vite menjadi 20 MB JavaScript, dan dengan cache Vite yang kosong, seperti di CI, renderer Chromium crash di 8 dari 10 run dengan pesan `Browser connection was closed`. Kalau pesan itu muncul di mesinmu, cek dulu apakah ada import dari barrel. Untuk mengulang kondisi CI, hapus `node_modules/.vite` lalu jalankan `pnpm test:component`.
 
 ## End-to-End
 

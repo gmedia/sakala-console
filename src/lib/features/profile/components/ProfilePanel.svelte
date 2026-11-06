@@ -128,17 +128,10 @@
 	}
 </script>
 
-<div class="mx-auto space-y-8 max-w-4xl pb-12">
-	<div>
-		<h2 class="font-sans text-2xl font-bold text-foreground">Profil Saya</h2>
-		<p class="mt-1 font-sans text-sm text-muted">Info dasar akun kamu di Sakala.</p>
-	</div>
+<div class="max-w-reading space-y-8 pb-12">
+	<p class="text-sm text-muted">Info dasar akun kamu di Sakala.</p>
 
-	<form
-		class="rounded-2xl border border-border/70 bg-white p-8 shadow-xs space-y-8"
-		onsubmit={handleSave}
-		novalidate
-	>
+	<form class="surface-card space-y-8 p-6" onsubmit={handleSave} novalidate>
 		<div class="flex items-center gap-6">
 			<button
 				type="button"
@@ -153,13 +146,7 @@
 				{/if}
 			</button>
 
-			<button
-				type="button"
-				onclick={openPhotoModal}
-				class="min-h-6 font-sans text-sm font-semibold text-primary-dark hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark rounded-md px-1"
-			>
-				Edit Foto
-			</button>
+			<Button variant="link" onclick={openPhotoModal}>Ubah foto</Button>
 		</div>
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -180,26 +167,22 @@
 			/>
 		</div>
 
-		<div class="pt-2 space-y-2">
+		<div class="flex flex-col items-end gap-2 pt-2">
 			{#if errors.general}
-				<p class="font-sans text-xs text-error-base" role="alert">{errors.general}</p>
+				<p class="text-xs text-error-base" role="alert">{errors.general}</p>
 			{:else if saved && !isDirty}
-				<p class="font-sans text-xs text-primary-dark" role="status">Profil tersimpan.</p>
+				<p class="text-xs text-primary-dark" role="status">Profil tersimpan.</p>
 			{/if}
-			<Button
-				type="submit"
-				disabled={!canSave}
-				class="rounded-xl border-primary-dark bg-primary-dark px-6 py-3 font-sans text-sm shadow-xs hover:bg-primary-dark/90"
-			>
-				{updateProfile.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+			<Button type="submit" disabled={!canSave}>
+				{updateProfile.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
 			</Button>
 		</div>
 	</form>
 
-	<div class="rounded-2xl border border-border/70 bg-white p-8 shadow-xs space-y-6">
+	<div class="surface-card space-y-6 p-6">
 		<div>
-			<h3 class="font-sans text-base font-semibold text-foreground">Detail Akun</h3>
-			<p class="mt-0.5 font-sans text-xs text-muted">
+			<h2 class="font-sans text-base font-semibold text-foreground">Detail akun</h2>
+			<p class="mt-0.5 text-xs text-muted">
 				Email diganti lewat
 				<a href={resolve('/settings')} class="font-semibold text-primary-dark hover:underline">
 					Pengaturan
@@ -208,30 +191,22 @@
 		</div>
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-			<div class="space-y-2">
-				<label for="email-field" class="block font-sans text-sm font-medium text-foreground">
-					Email
-				</label>
+			<div class="space-y-1.5">
+				<label for="email-field" class="block text-sm font-medium text-foreground"> Email </label>
 				<input
 					id="email-field"
 					type="email"
 					value={user?.email ?? ''}
 					disabled
-					class="w-full rounded-xl border border-border/60 bg-background-soft/60 px-4 py-3 font-sans text-sm text-foreground/80 cursor-not-allowed"
+					class="control-input"
 				/>
 			</div>
 
-			<div class="space-y-2">
-				<label for="joined-field" class="block font-sans text-sm font-medium text-foreground">
+			<div class="space-y-1.5">
+				<label for="joined-field" class="block text-sm font-medium text-foreground">
 					Bergabung sejak
 				</label>
-				<input
-					id="joined-field"
-					type="text"
-					value={joinedDate}
-					disabled
-					class="w-full rounded-xl border border-border/60 bg-background-soft/60 px-4 py-3 font-sans text-sm text-foreground/80 cursor-not-allowed"
-				/>
+				<input id="joined-field" type="text" value={joinedDate} disabled class="control-input" />
 			</div>
 		</div>
 	</div>
@@ -248,28 +223,29 @@
 
 <Dialog
 	bind:open={isEditPhotoModalOpen}
-	title="Ubah Foto Profil"
+	title="Ubah foto profil"
 	description="PNG, JPG, atau WebP. Maksimal 1 MB."
 	class="max-w-sm"
-	confirmLabel={uploadAvatar.isPending ? 'Mengunggah...' : 'Unggah Foto'}
+	confirmLabel={uploadAvatar.isPending ? 'Mengunggah...' : 'Unggah foto'}
 	loading={isPhotoBusy}
 	returnFocus={() => lastTriggerElement}
 	onConfirm={() => fileInputRef?.click()}
 	onCancel={() => (photoErrorMessage = null)}
 >
 	{#if user?.avatar_url}
-		<button
-			type="button"
+		<Button
+			variant="secondary"
+			size="lg"
+			class="w-full text-error hover:text-error"
 			disabled={isPhotoBusy}
 			onclick={handleRemovePhoto}
-			class="min-h-11 w-full cursor-pointer rounded-lg border border-border-strong font-sans text-sm font-medium text-error transition-colors hover:bg-error/10 disabled:cursor-not-allowed disabled:opacity-60"
 		>
-			{removeAvatar.isPending ? 'Menghapus...' : 'Hapus Foto Saat Ini'}
-		</button>
+			{removeAvatar.isPending ? 'Menghapus...' : 'Hapus foto saat ini'}
+		</Button>
 	{/if}
 
 	{#if photoErrorMessage}
-		<p class="mt-3 rounded-lg bg-error-50 p-3 font-sans text-xs text-error-base" role="alert">
+		<p class="mt-3 rounded-control bg-error-50 p-3 text-xs text-error-base" role="alert">
 			{photoErrorMessage}
 		</p>
 	{/if}

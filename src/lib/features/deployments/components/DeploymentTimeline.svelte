@@ -11,7 +11,7 @@
 	let { steps, showSubtitle = true, emphasizeRunning = false }: Props = $props();
 </script>
 
-<div class="rounded-lg">
+<div class="rounded-control">
 	<div class="flex flex-col gap-2">
 		{#each steps as step (step.key)}
 			<DeploymentTimelineItem

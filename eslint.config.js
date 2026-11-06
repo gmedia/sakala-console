@@ -44,10 +44,6 @@ export default defineConfig(
 						{
 							name: 'phosphor-svelte',
 							message: "Import the icon on its own: 'phosphor-svelte/lib/<Name>'."
-						},
-						{
-							name: '@lucide/svelte',
-							message: "Import the icon on its own: '@lucide/svelte/icons/<name>'."
 						}
 					]
 				}

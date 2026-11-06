@@ -24,10 +24,8 @@
 
 {#if wizard.envSaveStatus === 'saving'}
 	<div class="mt-3 flex flex-col gap-2" role="status">
-		<h2 tabindex="-1" data-step-heading class="text-lg font-montserrat-semibold outline-none">
-			Proyek sudah dibuat
-		</h2>
-		<p class="flex items-center gap-2 font-montserrat">
+		<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Proyek sudah dibuat</h2>
+		<p class="flex items-center gap-2">
 			<CircleNotchIcon class="size-5 animate-spin text-primary" aria-hidden="true" />
 			Menyimpan environment variable...
 		</p>
@@ -35,10 +33,10 @@
 {:else}
 	<div class="mt-3 flex flex-col gap-4">
 		<div>
-			<h2 tabindex="-1" data-step-heading class="text-lg font-montserrat-semibold outline-none">
+			<h2 tabindex="-1" data-step-heading class="text-xl outline-none">
 				Proyek sudah dibuat, tapi {wizard.envFailures.length} variabel belum tersimpan
 			</h2>
-			<p class="font-montserrat">
+			<p>
 				{wizard.createdProjectName ?? 'Proyek ini'} sudah ada dan tidak perlu dibuat lagi.
 				{wizard.envSavedCount} dari {total} variabel sudah tersimpan. Perbaiki yang di bawah kalau perlu,
 				lalu simpan ulang. Nilainya hilang kalau halaman ini ditutup.
@@ -47,10 +45,10 @@
 
 		<ul class="flex flex-col gap-3">
 			{#each wizard.envFailures as failure (failure.env.id)}
-				<li class="flex flex-col gap-2 rounded-lg border border-error/30 bg-white p-3">
+				<li class="flex flex-col gap-2 rounded-control border border-error/30 bg-surface p-3">
 					<div class="grid gap-2 sm:grid-cols-2">
 						<div class="min-w-0">
-							<label for="retry-key-{failure.env.id}" class="text-sm font-montserrat-medium">
+							<label for="retry-key-{failure.env.id}" class="text-sm font-medium">
 								Nama variabel
 							</label>
 							<input
@@ -63,14 +61,14 @@
 								disabled={retrying}
 								spellcheck="false"
 								aria-invalid={failure.keyError ? 'true' : undefined}
-								class="w-full rounded-lg border border-border-strong font-jetbrains-mono-regular text-sm focus:ring-primary"
+								class="control-input font-mono"
 							/>
 							{#if failure.keyError}
 								<p class="mt-1 text-xs text-error-dark">{failure.keyError}</p>
 							{/if}
 						</div>
 						<div class="min-w-0">
-							<label for="retry-value-{failure.env.id}" class="text-sm font-montserrat-medium">
+							<label for="retry-value-{failure.env.id}" class="text-sm font-medium">
 								Nilai variabel
 							</label>
 							<input
@@ -81,7 +79,7 @@
 								disabled={retrying}
 								autocomplete="off"
 								aria-invalid={failure.valueError ? 'true' : undefined}
-								class="w-full rounded-lg border border-border-strong font-montserrat text-sm focus:ring-primary"
+								class="control-input"
 							/>
 							{#if failure.valueError}
 								<p class="mt-1 text-xs text-error-dark">{failure.valueError}</p>
@@ -95,12 +93,7 @@
 			{/each}
 		</ul>
 
-		<Button
-			variant="primary"
-			class="w-full gap-2 py-3"
-			disabled={retrying || invalid}
-			onclick={onRetry}
-		>
+		<Button size="lg" class="w-full" disabled={retrying || invalid} onclick={onRetry}>
 			{#if retrying}
 				<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
 				Menyimpan...
@@ -109,8 +102,9 @@
 			{/if}
 		</Button>
 		<Button
-			variant="outline"
-			class="w-full border-none py-3 text-primary"
+			variant="ghost"
+			size="lg"
+			class="w-full text-primary hover:text-primary-dark"
 			disabled={retrying}
 			onclick={onContinue}
 		>

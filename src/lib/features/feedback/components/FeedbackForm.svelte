@@ -113,42 +113,33 @@
 	}
 </script>
 
-<div class="mx-auto flex w-full max-w-2xl flex-col gap-4">
-	<div>
-		<h2 class="text-[22px] font-semibold text-foreground">Kirim masukan</h2>
-		<p class="font-montserrat text-foreground/70">
-			Ceritakan yang kamu alami saat memakai Sakala selama pilot. Tidak wajib, dan tidak mengganggu
-			deployment yang sedang berjalan.
-		</p>
-	</div>
+<div class="flex w-full max-w-reading flex-col gap-4">
+	<p class="text-sm text-muted">
+		Ceritakan yang kamu alami saat memakai Sakala selama pilot. Tidak wajib, dan tidak mengganggu
+		deployment yang sedang berjalan.
+	</p>
 
 	{#if sent}
-		<Card class="flex flex-col gap-3 rounded-lg p-4">
+		<Card class="flex flex-col gap-3 rounded-control p-4">
 			<div role="status" class="flex flex-col gap-3">
-				<h2
-					bind:this={successEl}
-					tabindex="-1"
-					class="font-montserrat-semibold text-lg outline-none"
-				>
+				<h2 bind:this={successEl} tabindex="-1" class="text-xl outline-none">
 					Masukanmu sudah tersimpan
 				</h2>
-				<p class="font-montserrat text-sm">
+				<p class="text-sm">
 					Tim Sakala membacanya untuk memperbaiki produk. Form ini bukan jalur bantuan, jadi kamu
 					belum tentu mendapat balasan.
 				</p>
 			</div>
 			<div>
-				<Button variant="outline" class="px-3 py-2" onclick={writeAnother}>
-					Tulis masukan lain
-				</Button>
+				<Button variant="secondary" onclick={writeAnother}>Tulis masukan lain</Button>
 			</div>
 		</Card>
 	{:else}
 		<form onsubmit={handleSubmit} novalidate class="flex flex-col gap-4">
-			<Card class="flex flex-col gap-4 rounded-lg p-4">
+			<Card class="flex flex-col gap-4 rounded-control p-4">
 				{#if projectId}
 					<div class="flex flex-col gap-2">
-						<p class="font-montserrat-medium text-sm">Terkait dengan</p>
+						<p class="font-medium text-sm">Terkait dengan</p>
 						<ul class="flex flex-wrap gap-2">
 							<li
 								class="flex min-w-0 items-center gap-1 rounded-full border border-border-strong py-1 pl-3 pr-1 text-sm"
@@ -195,14 +186,13 @@
 				{/if}
 
 				<div class="flex flex-col gap-1">
-					<label for="feedback-category" class="font-montserrat-medium text-sm">Jenis masukan</label
-					>
+					<label for="feedback-category" class="font-medium text-sm">Jenis masukan</label>
 					<select
 						id="feedback-category"
 						bind:value={category}
 						aria-invalid={categoryError ? 'true' : undefined}
 						aria-describedby={categoryError ? 'feedback-category-error' : undefined}
-						class="w-full rounded-lg border border-border-strong bg-white font-montserrat text-sm"
+						class="control-input"
 					>
 						{#each categories as option (option.value)}
 							<option value={option.value}>{option.label}</option>
@@ -216,7 +206,7 @@
 				</div>
 
 				<div class="flex flex-col gap-1">
-					<label for="feedback-message" class="font-montserrat-medium text-sm">Masukanmu</label>
+					<label for="feedback-message" class="font-medium text-sm">Masukanmu</label>
 					<textarea
 						id="feedback-message"
 						bind:this={messageEl}
@@ -225,9 +215,7 @@
 						rows="6"
 						aria-invalid={messageError ? 'true' : undefined}
 						aria-describedby="feedback-message-help"
-						class="w-full rounded-lg border bg-white font-montserrat text-sm {messageError
-							? 'border-error-dark'
-							: 'border-border-strong'}"></textarea>
+						class="control-input {messageError ? 'border-error' : ''}"></textarea>
 					<p
 						id="feedback-message-help"
 						class="text-xs {messageError ? 'text-error-dark' : 'text-foreground/70'}"
@@ -237,13 +225,13 @@
 					</p>
 				</div>
 
-				<p class="rounded-lg bg-primary-50 p-3 font-montserrat text-sm">
-					Jangan menulis password, token, atau isi environment variable di sini. Masukan disimpan di
-					akunmu dan dibaca tim Sakala.
+				<p class="rounded-control bg-primary-50 p-3 text-sm">
+					Jangan menulis kata sandi, token, atau isi environment variable di sini. Masukan disimpan
+					di akunmu dan dibaca tim Sakala.
 				</p>
 
-				<label class="flex min-h-6 items-start gap-2 font-montserrat text-sm">
-					<input type="checkbox" bind:checked={consent} class="mt-0.5 size-4 rounded" />
+				<label class="flex min-h-6 items-start gap-2 text-sm">
+					<input type="checkbox" bind:checked={consent} class="mt-0.5 size-4 rounded-control" />
 					Tim Sakala boleh memakai masukan ini untuk evaluasi pilot.
 				</label>
 			</Card>
@@ -252,12 +240,7 @@
 				<p class="text-sm text-error-dark" role="alert">{formError}</p>
 			{/if}
 
-			<Button
-				type="submit"
-				variant="primary"
-				class="w-full gap-2 py-3"
-				disabled={mutation.isPending}
-			>
+			<Button class="self-end" type="submit" disabled={mutation.isPending}>
 				{#if mutation.isPending}
 					<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
 					Mengirim...

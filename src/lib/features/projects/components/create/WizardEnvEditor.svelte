@@ -56,26 +56,25 @@
 </script>
 
 <fieldset class="flex w-full min-w-0 flex-col gap-2 py-3">
-	<legend class="font-montserrat-medium">Environment Variables (opsional)</legend>
+	<legend class="font-medium">Environment variable (opsional)</legend>
 
 	{#if wizard.envVars.length > 0}
 		<ul class="flex flex-col gap-1">
 			{#each wizard.envVars as env (env.id)}
 				{@const visible = visibleIds.has(env.id)}
 				<li
-					class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-muted/20 bg-white px-3 py-2"
+					class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-control border border-border bg-surface px-3 py-2"
 				>
-					<p class="min-w-0 font-jetbrains-mono-semibold text-sm wrap-anywhere sm:w-1/3">
+					<p class="min-w-0 font-mono font-semibold text-sm wrap-anywhere sm:w-1/3">
 						{env.key}
 					</p>
-					<p class="min-w-0 flex-1 basis-32 font-jetbrains-mono-regular text-sm wrap-anywhere">
+					<p class="min-w-0 flex-1 basis-32 font-mono text-sm wrap-anywhere">
 						{visible ? env.value : '••••••••••••'}
 					</p>
 					<div class="ml-auto flex items-center gap-1">
 						<Button
-							type="button"
 							variant="ghost"
-							class="size-8 border-none p-0"
+							size="icon"
 							aria-label={visible ? `Sembunyikan nilai ${env.key}` : `Tampilkan nilai ${env.key}`}
 							onclick={() => (visible ? visibleIds.delete(env.id) : visibleIds.add(env.id))}
 						>
@@ -86,9 +85,9 @@
 							{/if}
 						</Button>
 						<Button
-							type="button"
 							variant="ghost"
-							class="border-none px-2 text-error-dark hover:text-error-dark"
+							size="sm"
+							class="text-error-dark hover:text-error-dark"
 							aria-label={`Hapus ${env.key}`}
 							onclick={() => wizard.removeEnvVar(env.id)}
 						>
@@ -100,7 +99,7 @@
 		</ul>
 	{/if}
 
-	<div class="flex flex-col gap-2 rounded-lg bg-primary-50 p-2">
+	<div class="flex flex-col gap-2 rounded-control bg-primary-50 p-2">
 		<div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
 			<div class="min-w-0">
 				<label for="wizard-env-key" class="sr-only">Nama variabel</label>
@@ -117,10 +116,7 @@
 					spellcheck="false"
 					aria-invalid={keyError ? 'true' : undefined}
 					aria-describedby={keyError ? 'wizard-env-key-error' : undefined}
-					class={cn(
-						'w-full rounded-lg border font-jetbrains-mono-regular text-sm focus:ring-primary',
-						keyError ? 'border-error' : 'border-border-strong'
-					)}
+					class={cn('control-input font-mono', keyError ? 'border-error' : '')}
 				/>
 				{#if keyError}
 					<p id="wizard-env-key-error" class="mt-1 text-xs text-error-dark">{keyError}</p>
@@ -134,38 +130,29 @@
 					bind:value={newValue}
 					oninput={() => (valueError = '')}
 					onkeydown={handleEnter}
-					placeholder="Isi value"
+					placeholder="Isi nilai"
 					autocomplete="off"
 					aria-invalid={valueError ? 'true' : undefined}
 					aria-describedby={valueError ? 'wizard-env-value-error' : undefined}
-					class={cn(
-						'w-full rounded-lg border font-montserrat text-sm focus:ring-primary',
-						valueError ? 'border-error' : 'border-border-strong'
-					)}
+					class={cn('control-input', valueError ? 'border-error' : '')}
 				/>
 				{#if valueError}
 					<p id="wizard-env-value-error" class="mt-1 text-xs text-error-dark">{valueError}</p>
 				{/if}
 			</div>
-			<Button
-				type="button"
-				variant="primary"
-				class="min-h-10 px-3"
-				aria-label="Tambah variabel"
-				onclick={addDraft}
-			>
+			<Button aria-label="Tambah variabel" onclick={addDraft}>
 				<PlusIcon class="size-5" />
 				<span class="sm:hidden">Tambah variabel</span>
 			</Button>
 		</div>
-		<label class="flex items-center gap-2 font-montserrat text-sm">
-			<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded" />
-			Simpan sebagai rahasia, nilainya disembunyikan setelah disimpan
+		<label class="flex items-center gap-2 text-sm">
+			<input type="checkbox" bind:checked={newIsSecret} class="size-4 rounded-control" />
+			Simpan sebagai secret, nilainya disembunyikan setelah disimpan
 		</label>
 	</div>
 
 	<p class="text-sm text-foreground/70">
-		Tidak wajib diisi sekarang. Bisa ditambah atau diubah kapan saja lewat tab Environment Variables
+		Tidak wajib diisi sekarang. Bisa ditambah atau diubah kapan saja lewat tab Environment variable
 		di halaman proyek.
 	</p>
 </fieldset>

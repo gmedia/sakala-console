@@ -11,11 +11,11 @@
 
 ## Ikon
 
-Import ikon satu per satu, misalnya `phosphor-svelte/lib/Check` atau `@lucide/svelte/icons/check`, bukan dari barrel-nya. ESLint menolak import dari barrel. Barrel `phosphor-svelte` di-prebundle Vite menjadi 20 MB JavaScript, dan itu membuat test browser crash saat cache Vite kosong. Alasannya ada di [Testing](TESTING.md#component).
+Import ikon satu per satu, misalnya `phosphor-svelte/lib/Check`, bukan dari barrel-nya. Console hanya memakai Phosphor. ESLint menolak import dari barrel. Barrel `phosphor-svelte` di-prebundle Vite menjadi 20 MB JavaScript, dan itu membuat test browser crash saat cache Vite kosong. Alasannya ada di [Testing](TESTING.md#component).
 
 ## Warna
 
-Pakai token di `src/app.css`, bukan hex. ESLint menolak hex di class `.svelte`, dan `src/lib/design-tokens.spec.ts` menguji kontras tiap token. Ilustrasi SVG dan logo pihak ketiga boleh memakai hex di `fill` dan `stroke`.
+Pakai token di `src/app.css`, bukan hex. Ukuran teks, weight, radius, dan shadow juga token, dan nilai di luar skala gagal di `design-tokens.spec.ts`. ESLint menolak hex di class `.svelte`, dan `src/lib/design-tokens.spec.ts` menguji kontras tiap token. Ilustrasi SVG dan logo pihak ketiga boleh memakai hex di `fill` dan `stroke`.
 
 ## State Policy
 
