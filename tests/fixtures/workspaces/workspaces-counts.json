@@ -1,0 +1,32 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1cb86-d552-72e8-91c0-b069107f3089",
+				"name": "Rani Putri",
+				"slug": "rani",
+				"type": "personal",
+				"role": "owner",
+				"limit_profile": null,
+				"projects_count": 0,
+				"active_deployments_count": 0,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cb86-d559-7120-a516-63f62f26efab",
+				"name": "Tim Facility",
+				"slug": "tim-facility-reporting",
+				"type": "team",
+				"role": "owner",
+				"limit_profile": {
+					"id": "01a1cb86-d558-7105-b8cc-6a72767f96c9",
+					"name": "Magang GMEDIA"
+				},
+				"projects_count": 2,
+				"active_deployments_count": 1,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			}
+		]
+	}
+}

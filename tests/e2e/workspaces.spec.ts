@@ -1,5 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MEMBERS, MY_INVITATION, PROJECT_ID, TEAM, mockWorkspaceApi } from './fixtures/workspaces';
+import {
+	CLOSED_LINK_TOKENS,
+	LINK_INVITATION,
+	MEMBERS,
+	MY_INVITATION,
+	OWNER_LINK_INVITATION,
+	PROJECT_ID,
+	TEAM,
+	captured,
+	mockWorkspaceApi
+} from './fixtures/workspaces';
 
 const switcher = (page: Page) => page.getByTestId('workspace-switcher').first();
 const teamPage = `/workspaces/${TEAM.id}`;
@@ -188,6 +198,105 @@ test.describe('team workspaces', () => {
 		await page.goto('/workspace-invitations/01a1cb4a-ffff-7000-8000-000000000000');
 		await expect(page.getByTestId('invitation-unreachable')).toContainText(
 			'Undangan tidak ditemukan'
+		);
+	});
+
+	test('opens a link sent to another address of the invitee and accepts it with the token', async ({
+		page
+	}) => {
+		const { calls } = await mockWorkspaceApi(page, { persona: 'invitee' });
+		await page.goto(`/workspace-invitations/${LINK_INVITATION.id}?token=kampus`);
+
+		const card = page.getByTestId('invitation-card');
+		await expect(card).toContainText(`Undangan ke ${LINK_INVITATION.workspace.name}`);
+		await expect(card).toContainText('Rani Putri mengundangmu sebagai anggota');
+		expect(calls.reads).toEqual([{ id: LINK_INVITATION.id, token: 'kampus' }]);
+
+		await card.getByRole('button', { name: 'Terima undangan' }).click();
+		await expect(page).toHaveURL(/\/projects$/);
+		expect(calls.accept).toEqual([{ id: LINK_INVITATION.id, body: { token: 'kampus' } }]);
+	});
+
+	test('explains a closed link by what happened to it', async ({ page }) => {
+		await mockWorkspaceApi(page, { persona: 'invitee' });
+		const titles: Record<keyof typeof CLOSED_LINK_TOKENS, string> = {
+			'sudah-diterima': 'Undangan sudah diterima',
+			'sudah-ditolak': 'Undangan sudah ditolak',
+			'sudah-dibatalkan': 'Undangan sudah dibatalkan',
+			kedaluwarsa: 'Undangan sudah kedaluwarsa'
+		};
+
+		for (const [token, title] of Object.entries(titles)) {
+			await page.goto(`/workspace-invitations/${LINK_INVITATION.id}?token=${token}`);
+			await expect(page.getByTestId('invitation-unreachable')).toContainText(title);
+			await expect(page.getByRole('button', { name: 'Terima undangan' })).toHaveCount(0);
+		}
+	});
+
+	test('an owner invitation for another address cannot be accepted from this account', async ({
+		page
+	}) => {
+		const { calls } = await mockWorkspaceApi(page, { persona: 'invitee' });
+		await page.goto(`/workspace-invitations/${OWNER_LINK_INVITATION.id}?token=diteruskan`);
+
+		const card = page.getByTestId('invitation-card');
+		await expect(card).toContainText('mengundangmu sebagai pemilik');
+		await expect(card.getByTestId('invitation-problem')).toContainText(
+			'Undangan ini untuk email lain'
+		);
+		await expect(card.getByRole('button', { name: 'Terima undangan' })).toHaveCount(0);
+		expect(calls.accept).toEqual([]);
+	});
+
+	test('a workspace notification opens its invitation', async ({ page }) => {
+		const { calls } = await mockWorkspaceApi(page, { persona: 'invitee' });
+		const [capturedNotice] = captured('notifications-workspace-invitation').body!.data as {
+			message: string;
+			[key: string]: unknown;
+		}[];
+		const notice = { ...capturedNotice, invitation_id: MY_INVITATION.id };
+		await page.route('**/api/v1/app/notifications?*', (route) =>
+			route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({ data: [notice], meta: { current_page: 1, last_page: 1, total: 1 } })
+			})
+		);
+		await page.route('**/api/v1/app/notifications/unread-count', (route) =>
+			route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({ data: { count: 1 } })
+			})
+		);
+		await page.route('**/api/v1/app/notifications/*/read', (route) =>
+			route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({ data: { ...notice, read_at: '2026-11-11T10:06:00+00:00' } })
+			})
+		);
+
+		await page.goto('/notifications');
+		await page.getByText(notice.message).click();
+
+		await expect(page).toHaveURL(new RegExp(`/workspace-invitations/${MY_INVITATION.id}$`));
+		await expect(page.getByTestId('invitation-card')).toContainText(
+			`Undangan ke ${MY_INVITATION.workspace.name}`
+		);
+		expect(calls.reads).toEqual([{ id: MY_INVITATION.id, token: null }]);
+	});
+
+	test('the switcher and the team page show how many projects a workspace has', async ({
+		page
+	}) => {
+		await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto(teamPage);
+
+		await expect(page.getByTestId('workspace-counts')).toHaveText('1 proyek');
+		await switcher(page).click();
+		await expect(page.getByRole('menuitemradio', { name: new RegExp(TEAM.name) })).toContainText(
+			'Pemilik · 1 proyek'
+		);
+		await expect(page.getByRole('menuitemradio', { name: /Pribadi/ })).toContainText(
+			'Workspace pribadi · 1 proyek'
 		);
 	});
 

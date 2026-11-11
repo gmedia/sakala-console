@@ -9,6 +9,8 @@
 				"type": "personal",
 				"role": "owner",
 				"limit_profile": null,
+				"projects_count": 0,
+				"active_deployments_count": 0,
 				"created_at": "2026-11-11T10:00:00+00:00"
 			},
 			{
@@ -21,6 +23,8 @@
 					"id": "01a1cb4a-de3d-722c-8c31-0ec12726c91e",
 					"name": "Magang GMEDIA"
 				},
+				"projects_count": 1,
+				"active_deployments_count": 0,
 				"created_at": "2026-11-11T10:00:00+00:00"
 			}
 		]

@@ -1,5 +1,6 @@
 import { ApiError, getErrorMessage } from '$lib/api/errors';
 import type {
+	AcceptErrorCode,
 	Workspace,
 	WorkspaceMember,
 	WorkspaceRole,
@@ -71,6 +72,20 @@ export function leaveGuard(
 	return myRole === 'owner' && countOwners(members) <= 1 ? LAST_OWNER_LEAVE_REASON : null;
 }
 
+export function projectCountLabel(count: number): string {
+	return count === 0 ? 'Belum ada proyek' : `${count} proyek`;
+}
+
+/** "3 proyek", with deployments running now when there are any. */
+export function workspaceCountsLabel(
+	workspace: Pick<Workspace, 'projects_count' | 'active_deployments_count'>
+): string {
+	const projects = projectCountLabel(workspace.projects_count);
+	return workspace.active_deployments_count > 0
+		? `${projects} · ${workspace.active_deployments_count} deployment berjalan`
+		: projects;
+}
+
 export function deleteGuard(projectCount: number | undefined): string | null {
 	if (!projectCount) return null;
 	return `Workspace ini masih punya ${projectCount} proyek. Hapus proyeknya dulu lewat tab Pengaturan di halaman proyek, lalu hapus workspace-nya.`;
@@ -105,27 +120,45 @@ export function workspaceErrorMessage(error: unknown, fallback: string): string 
 }
 
 export type InvitationProblem =
-	'expired' | 'not_found' | 'email_mismatch' | 'already_member' | 'unverified' | 'other';
+	| 'expired'
+	| 'already_accepted'
+	| 'declined'
+	| 'revoked'
+	| 'not_found'
+	| 'email_mismatch'
+	| 'already_member'
+	| 'team_limit'
+	| 'unverified'
+	| 'other';
 
+const PROBLEM_BY_CODE: Record<string, Exclude<InvitationProblem, 'not_found' | 'other'>> = {
+	INVITATION_EXPIRED: 'expired',
+	INVITATION_ALREADY_ACCEPTED: 'already_accepted',
+	INVITATION_DECLINED: 'declined',
+	INVITATION_REVOKED: 'revoked',
+	INVITATION_EMAIL_MISMATCH: 'email_mismatch',
+	ALREADY_WORKSPACE_MEMBER: 'already_member',
+	TEAM_LIMIT_EXCEEDED: 'team_limit',
+	EMAIL_VERIFICATION_REQUIRED: 'unverified'
+};
+
+/**
+ * What a refused read, accept, or decline means. A wrong or incomplete token is a plain 404 whatever
+ * the invitation's state; with the right token the API names the state with a code.
+ */
 export function invitationProblem(error: unknown): InvitationProblem {
 	if (!(error instanceof ApiError)) return 'other';
-	switch (error.code) {
-		case 'INVITATION_EXPIRED':
-			return 'expired';
-		case 'INVITATION_EMAIL_MISMATCH':
-			return 'email_mismatch';
-		case 'ALREADY_WORKSPACE_MEMBER':
-			return 'already_member';
-		case 'EMAIL_VERIFICATION_REQUIRED':
-			return 'unverified';
-	}
+	const known = error.code ? PROBLEM_BY_CODE[error.code] : undefined;
+	if (known) return known;
 	return error.status === 404 ? 'not_found' : 'other';
 }
 
-/**
- * What a refused accept or decline means for the person holding the link. The API answers a
- * revoked, used, or mistyped invitation with the same 404, so the copy names all three.
- */
+/** Why this account cannot accept an open invitation, as its read reports it. */
+export function acceptBlockedProblem(code: AcceptErrorCode): InvitationProblem {
+	return PROBLEM_BY_CODE[code] ?? 'other';
+}
+
+/** What each problem means for the person holding the link. */
 export const INVITATION_PROBLEM_COPY: Record<
 	Exclude<InvitationProblem, 'other'>,
 	{ title: string; message: string }
@@ -135,10 +168,25 @@ export const INVITATION_PROBLEM_COPY: Record<
 		message:
 			'Masa berlaku undangan ini sudah lewat. Minta pemilik workspace mengirim undangan baru ke email kamu.'
 	},
+	already_accepted: {
+		title: 'Undangan sudah diterima',
+		message:
+			'Undangan ini sudah dipakai untuk bergabung. Kalau kamu yang menerimanya, workspace-nya ada di pengalih workspace. Kalau bukan, minta pemilik workspace mengirim undangan baru.'
+	},
+	declined: {
+		title: 'Undangan sudah ditolak',
+		message:
+			'Undangan ini sudah ditolak, jadi tidak bisa dipakai lagi. Minta pemilik workspace mengirim undangan baru kalau kamu ingin bergabung.'
+	},
+	revoked: {
+		title: 'Undangan sudah dibatalkan',
+		message:
+			'Pemilik workspace membatalkan undangan ini atau menggantinya dengan undangan baru. Cek email undangan terbaru, atau minta pemilik workspace mengundangmu lagi.'
+	},
 	not_found: {
 		title: 'Undangan tidak ditemukan',
 		message:
-			'Undangan ini mungkin sudah dibatalkan pemilik workspace, sudah dipakai, atau tautannya tidak lengkap. Minta pemilik workspace mengirim undangan baru kalau kamu masih perlu bergabung.'
+			'Tautan undangan ini tidak lengkap atau sudah tidak berlaku. Buka lagi tautan dari email undangan, atau minta pemilik workspace mengirim undangan baru.'
 	},
 	email_mismatch: {
 		title: 'Undangan ini untuk email lain',
@@ -148,6 +196,11 @@ export const INVITATION_PROBLEM_COPY: Record<
 	already_member: {
 		title: 'Kamu sudah menjadi anggota',
 		message: 'Akunmu sudah tergabung di workspace ini, jadi undangan ini tidak perlu diterima lagi.'
+	},
+	team_limit: {
+		title: 'Batas workspace tim tercapai',
+		message:
+			'Kamu sudah memiliki workspace tim sebanyak batasnya, jadi belum bisa menerima undangan sebagai pemilik. Hapus tim yang tidak dipakai, atau minta admin Sakala menaikkan batasnya.'
 	},
 	unverified: {
 		title: 'Verifikasi email dulu',

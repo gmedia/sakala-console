@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
 import { apiRequest } from '../client';
 import {
 	getNotificationPreferences,
@@ -27,7 +28,8 @@ const preferences = {
 	deployment_success: true,
 	deployment_failure: true,
 	project_issue: false,
-	account_security: true
+	account_security: true,
+	workspace: false
 };
 
 beforeEach(() => mockedApiRequest.mockReset());
@@ -82,6 +84,32 @@ describe('notifications resource', () => {
 		expect(mockedApiRequest).toHaveBeenNthCalledWith(2, 'api/v1/app/notifications/read-all', {
 			method: 'POST'
 		});
+	});
+
+	it('reads the workspace category and the invitation ID, as captured from sakala-api', async () => {
+		mockedApiRequest.mockResolvedValueOnce(getWorkspaceFixture('notification-preferences').body);
+		await expect(getNotificationPreferences()).resolves.toMatchObject({ workspace: true });
+
+		mockedApiRequest.mockResolvedValueOnce(
+			getWorkspaceFixture('notifications-workspace-invitation').body
+		);
+		const page = await listNotifications();
+		expect(page.data[0]).toMatchObject({
+			category: 'workspace',
+			invitation_id: expect.any(String),
+			workspace_id: null
+		});
+	});
+
+	it('reads an API that does not return the newer fields yet with their defaults', async () => {
+		const older = {
+			deployment_success: true,
+			deployment_failure: true,
+			project_issue: false,
+			account_security: true
+		};
+		mockedApiRequest.mockResolvedValueOnce({ data: older });
+		await expect(getNotificationPreferences()).resolves.toMatchObject({ workspace: true });
 	});
 
 	it('reads preferences and saves only what changed', async () => {

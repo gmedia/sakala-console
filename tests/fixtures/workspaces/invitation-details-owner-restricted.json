@@ -1,0 +1,24 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cb86-d5b0-7196-9885-effb6edb8a1e",
+			"role": "owner",
+			"expires_at": "2026-11-18T10:00:00+00:00",
+			"created_at": "2026-11-11T10:00:00+00:00",
+			"workspace": {
+				"id": "01a1cb86-d559-7120-a516-63f62f26efab",
+				"name": "Tim Facility",
+				"slug": "tim-facility-reporting"
+			},
+			"invited_by": {
+				"id": 1,
+				"name": "Rani Putri",
+				"username": "rani"
+			},
+			"restricted_to_invited_email": true,
+			"can_accept": false,
+			"accept_error_code": "INVITATION_EMAIL_MISMATCH"
+		}
+	}
+}

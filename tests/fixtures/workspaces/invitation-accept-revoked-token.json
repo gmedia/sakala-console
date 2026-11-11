@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Undangan ini sudah dibatalkan. Minta pemilik workspace mengirim undangan baru kalau masih perlu.",
+		"code": "INVITATION_REVOKED"
+	}
+}

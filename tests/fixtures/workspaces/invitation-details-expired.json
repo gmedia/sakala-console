@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Undangan ini sudah kedaluwarsa. Minta pemilik workspace mengirim undangan baru.",
+		"code": "INVITATION_EXPIRED"
+	}
+}

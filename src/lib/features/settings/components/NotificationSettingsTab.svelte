@@ -2,6 +2,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Bell from 'phosphor-svelte/lib/Bell';
 	import ShieldCheck from 'phosphor-svelte/lib/ShieldCheck';
+	import UsersThree from 'phosphor-svelte/lib/UsersThree';
 	import { getErrorMessage } from '$lib/api/errors';
 	import type { NotificationPreferences } from '$lib/api/resources/notifications';
 	import { useUpdateNotificationPreferences } from '$lib/features/notifications/mutations';
@@ -16,7 +17,8 @@
 		'deployment_success',
 		'deployment_failure',
 		'project_issue',
-		'account_security'
+		'account_security',
+		'workspace'
 	];
 
 	const preferencesQuery = createNotificationPreferencesQuery();
@@ -119,6 +121,15 @@
 				description="Aplikasi berhenti sendiri, atau auto-deploy dilewati."
 				checked={current.project_issue}
 				onToggle={() => setCategory('project_issue', !current.project_issue)}
+			/>
+		</NotificationSectionCard>
+
+		<NotificationSectionCard title="Tim" icon={UsersThree}>
+			<NotificationToggleItem
+				title="Undangan dan keanggotaan tim"
+				description="Undangan ke emailmu, undangan yang kamu kirim diterima, serta peranmu diubah atau kamu dikeluarkan dari tim. Email undangan tetap dikirim."
+				checked={current.workspace}
+				onToggle={() => setCategory('workspace', !current.workspace)}
 			/>
 		</NotificationSectionCard>
 

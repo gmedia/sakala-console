@@ -25,6 +25,7 @@
 		leaveGuard,
 		limitsWorkspaceId,
 		memberGuard,
+		workspaceCountsLabel,
 		workspaceErrorMessage
 	} from '../presentation';
 	import {
@@ -230,6 +231,8 @@
 							>{ROLE_LABELS[workspace.role]}</strong
 						></span
 					>
+					<span aria-hidden="true">·</span>
+					<span data-testid="workspace-counts">{workspaceCountsLabel(workspace)}</span>
 				</p>
 			</div>
 			{#if isOwner}

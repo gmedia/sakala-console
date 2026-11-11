@@ -1,0 +1,12 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"deployment_success": true,
+			"deployment_failure": true,
+			"project_issue": true,
+			"account_security": true,
+			"workspace": true
+		}
+	}
+}

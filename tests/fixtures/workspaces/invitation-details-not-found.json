@@ -1,0 +1,6 @@
+{
+	"status": 404,
+	"body": {
+		"message": "No query results for model [App\\Models\\WorkspaceInvitation] 01a1cb86-d588-70ab-801b-33fdb3872ebc"
+	}
+}

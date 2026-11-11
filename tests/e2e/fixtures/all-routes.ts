@@ -168,6 +168,8 @@ export async function mockEveryRoute(page: Page, { long = false }: { long?: bool
 					message: long ? LONG : 'Deployment toko-kopi-web gagal saat build.',
 					project_id: PROJECT_ID,
 					deployment_id: DEPLOYMENT_ID,
+					invitation_id: null,
+					workspace_id: null,
 					read_at: null,
 					created_at: '2026-10-01T00:00:00Z'
 				}
@@ -176,14 +178,7 @@ export async function mockEveryRoute(page: Page, { long = false }: { long?: bool
 		})
 	);
 	await page.route('**/api/v1/app/notification-preferences', (route) =>
-		json(route, {
-			data: {
-				deployment_success: true,
-				deployment_failure: true,
-				project_issue: true,
-				account_security: true
-			}
-		})
+		json(route, { data: capturedData('notification-preferences') })
 	);
 	// A user in one team, so the switcher, the workspace page, and the cards' workspace all render.
 	const teamName = long ? `Tim ${LONG}` : 'Tim Facility';
@@ -215,6 +210,22 @@ export async function mockEveryRoute(page: Page, { long = false }: { long?: bool
 			data: [{ ...INVITATION, workspace: { ...INVITATION.workspace, name: teamName } }]
 		})
 	);
+	// The invitation link page reads one invitation; this account is the invited address.
+	await page.route(/\/api\/v1\/app\/workspace-invitations\/[^/?]+(\?.*)?$/, (route) => {
+		return json(route, {
+			data: {
+				id: INVITATION.id,
+				role: INVITATION.role,
+				expires_at: INVITATION.expires_at,
+				created_at: INVITATION.created_at,
+				workspace: { ...INVITATION.workspace, name: teamName },
+				invited_by: INVITATION.invited_by,
+				restricted_to_invited_email: false,
+				can_accept: true,
+				accept_error_code: null
+			}
+		});
+	});
 	await page.route(/\/api\/v1\/app\/pilot-limits\?workspace_id=/, (route) =>
 		json(route, { data: capturedData('pilot-limits-team') })
 	);

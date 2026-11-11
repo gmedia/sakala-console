@@ -2,6 +2,7 @@ import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-keys';
 import { getPilotLimits } from '$lib/api/resources/pilot-limits';
 import {
+	getWorkspaceInvitation,
 	listMyInvitations,
 	listWorkspaceInvitations,
 	listWorkspaceMembers,
@@ -48,6 +49,29 @@ export function createMyInvitationsQuery() {
 		queryKey: queryKeys.workspaces.myInvitations,
 		queryFn: listMyInvitations
 	}));
+}
+
+/**
+ * The invitation behind a link. Read once: the API shares a rate limit of 5 a minute between this
+ * read, accept, and decline, and a 404 or 409 will not change on a second try.
+ */
+export function createInvitationDetailsQuery(
+	invitationId: () => string,
+	token: () => string | null
+) {
+	return createQuery(() => {
+		const id = invitationId();
+		const linkToken = token();
+		return {
+			queryKey: queryKeys.workspaceInvitation(id, linkToken),
+			queryFn: () => getWorkspaceInvitation(id, linkToken ?? undefined),
+			enabled: Boolean(id),
+			retry: false,
+			staleTime: Infinity,
+			refetchOnWindowFocus: false,
+			refetchOnReconnect: false
+		};
+	});
 }
 
 /** `null` asks for the personal workspace, which the API answers without a parameter. */

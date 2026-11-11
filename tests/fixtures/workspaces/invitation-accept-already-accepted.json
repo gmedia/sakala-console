@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Undangan ini sudah diterima dan tidak bisa dipakai lagi.",
+		"code": "INVITATION_ALREADY_ACCEPTED"
+	}
+}

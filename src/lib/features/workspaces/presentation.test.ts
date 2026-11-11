@@ -6,6 +6,7 @@ import {
 	INVITATION_PROBLEM_COPY,
 	LAST_OWNER_LEAVE_REASON,
 	LAST_OWNER_REASON,
+	acceptBlockedProblem,
 	canManageProjects,
 	canManageWorkspace,
 	deleteGuard,
@@ -13,6 +14,8 @@ import {
 	leaveGuard,
 	limitsWorkspaceId,
 	memberGuard,
+	projectCountLabel,
+	workspaceCountsLabel,
 	workspaceErrorMessage,
 	workspaceLabel
 } from './presentation';
@@ -55,6 +58,19 @@ describe('deleteGuard', () => {
 		expect(deleteGuard(2)).toMatch(/masih punya 2 proyek/);
 		expect(deleteGuard(0)).toBeNull();
 		expect(deleteGuard(undefined)).toBeNull();
+	});
+});
+
+describe('counts', () => {
+	it('says how many projects a workspace has, and deployments running when there are any', () => {
+		expect(projectCountLabel(0)).toBe('Belum ada proyek');
+		expect(projectCountLabel(3)).toBe('3 proyek');
+		expect(workspaceCountsLabel({ projects_count: 2, active_deployments_count: 0 })).toBe(
+			'2 proyek'
+		);
+		expect(workspaceCountsLabel({ projects_count: 2, active_deployments_count: 1 })).toBe(
+			'2 proyek · 1 deployment berjalan'
+		);
 	});
 });
 
@@ -110,15 +126,31 @@ describe('invitationProblem', () => {
 	it.each([
 		['invitation-accept-expired', 'expired'],
 		['invitation-accept-revoked', 'not_found'],
+		['invitation-details-not-found', 'not_found'],
+		['invitation-details-accepted', 'already_accepted'],
+		['invitation-details-declined', 'declined'],
+		['invitation-details-revoked', 'revoked'],
+		['invitation-details-expired', 'expired'],
+		['invitation-details-unverified', 'unverified'],
 		['invitation-accept-email-mismatch', 'email_mismatch'],
-		['invitation-accept-already-member', 'already_member']
+		['invitation-accept-already-member', 'already_member'],
+		['workspace-create-cap', 'team_limit']
 	] as const)('reads %s as %s', (name, problem) => {
 		expect(invitationProblem(errorFromFixture(name))).toBe(problem);
 	});
 
-	it('names every reason a link can stop working when the API only says 404', () => {
-		expect(INVITATION_PROBLEM_COPY.not_found.message).toMatch(/dibatalkan/);
-		expect(INVITATION_PROBLEM_COPY.not_found.message).toMatch(/sudah dipakai/);
+	it('gives each closed state its own message', () => {
+		const messages = (
+			['already_accepted', 'declined', 'revoked', 'expired', 'not_found'] as const
+		).map((problem) => INVITATION_PROBLEM_COPY[problem].title);
+		expect(new Set(messages).size).toBe(messages.length);
+		expect(INVITATION_PROBLEM_COPY.not_found.message).toMatch(/tidak lengkap/);
+	});
+
+	it('reads why an open invitation cannot be accepted from its read', () => {
+		expect(acceptBlockedProblem('INVITATION_EMAIL_MISMATCH')).toBe('email_mismatch');
+		expect(acceptBlockedProblem('ALREADY_WORKSPACE_MEMBER')).toBe('already_member');
+		expect(acceptBlockedProblem('TEAM_LIMIT_EXCEEDED')).toBe('team_limit');
 	});
 
 	it('treats anything else as a generic problem', () => {
