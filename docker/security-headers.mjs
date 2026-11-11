@@ -5,10 +5,15 @@
  * which API and Reverb this image talks to, and the HTML whose inline script needs a hash. So a
  * self-hosted or staging image gets its own origins without a second place to configure them.
  *
- * Usage: node docker/security-headers.mjs <env-file> <build-dir> <output-file>
+ * With a fourth argument it also writes what docker/entrypoint.sh needs to point the same image at
+ * another installation when the container starts: `csp.caddy.template`, the same policy with the
+ * API and Reverb origins left as placeholders, and `build.env`, the public values this image was
+ * built with. Both hold only what the browser already sees.
+ *
+ * Usage: node docker/security-headers.mjs <env-file> <build-dir> <output-file> [<runtime-template-dir>]
  */
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -58,14 +63,71 @@ export function inlineScriptHashes(html) {
 	return [...new Set(hashes)];
 }
 
+/** Stand-ins that docker/entrypoint.sh replaces with origins it has validated. */
+export const API_ORIGIN_PLACEHOLDER = '__SAKALA_API_ORIGIN__';
+export const REVERB_ORIGIN_PLACEHOLDER = '__SAKALA_REVERB_ORIGIN__';
+
+/** The public values docker/entrypoint.sh may override; nothing else from the env file is kept. */
+export const PUBLIC_KEYS = [
+	'PUBLIC_API_URL',
+	'PUBLIC_APP_URL',
+	'PUBLIC_REVERB_HOST',
+	'PUBLIC_REVERB_PORT',
+	'PUBLIC_REVERB_SCHEME',
+	'PUBLIC_REVERB_KEY'
+];
+
 /**
  * @param {{ env: Record<string, string | undefined>, scriptHashes: string[] }} input
  * @returns {string}
  */
 export function buildContentSecurityPolicy({ env, scriptHashes }) {
-	const api = httpOrigin(env.PUBLIC_API_URL);
-	const reverb = reverbOrigin(env);
+	return renderPolicy({
+		api: httpOrigin(env.PUBLIC_API_URL),
+		reverb: reverbOrigin(env),
+		scriptHashes
+	});
+}
 
+/**
+ * The policy with both origins left for docker/entrypoint.sh. The Reverb placeholder always
+ * appears, so the entrypoint can drop it when realtime is off.
+ *
+ * @param {string[]} scriptHashes
+ * @returns {string}
+ */
+export function buildPolicyTemplate(scriptHashes) {
+	return renderPolicy({
+		api: API_ORIGIN_PLACEHOLDER,
+		reverb: REVERB_ORIGIN_PLACEHOLDER,
+		scriptHashes
+	});
+}
+
+/**
+ * One `KEY=value` line per public value, unquoted, for a POSIX shell to read without evaluating it.
+ * A value the shell could misread is refused, which fails the build instead of the container.
+ *
+ * @param {Record<string, string | undefined>} env
+ * @returns {string}
+ */
+export function renderBuildEnv(env) {
+	const lines = [];
+	for (const key of PUBLIC_KEYS) {
+		const value = env[key];
+		if (value === undefined) continue;
+		if (/[\s"'`$\\]/.test(value))
+			throw new Error(`${key} contains a character the entrypoint cannot read.`);
+		lines.push(`${key}=${value}`);
+	}
+	return `${lines.join('\n')}\n`;
+}
+
+/**
+ * @param {{ api: string, reverb: string | null, scriptHashes: string[] }} input
+ * @returns {string}
+ */
+function renderPolicy({ api, reverb, scriptHashes }) {
 	return [
 		"default-src 'self'",
 		`script-src 'self' ${scriptHashes.join(' ')}`.trim(),
@@ -104,9 +166,11 @@ function htmlFiles(directory) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-	const [envFile, buildDirectory, outputFile] = process.argv.slice(2);
+	const [envFile, buildDirectory, outputFile, templateDirectory] = process.argv.slice(2);
 	if (!envFile || !buildDirectory || !outputFile) {
-		throw new Error('Usage: security-headers.mjs <env-file> <build-dir> <output-file>');
+		throw new Error(
+			'Usage: security-headers.mjs <env-file> <build-dir> <output-file> [<runtime-template-dir>]'
+		);
 	}
 
 	const scriptHashes = [
@@ -114,10 +178,17 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 			htmlFiles(buildDirectory).flatMap((file) => inlineScriptHashes(readFileSync(file, 'utf8')))
 		)
 	];
-	const policy = buildContentSecurityPolicy({
-		env: parseEnv(readFileSync(envFile, 'utf8')),
-		scriptHashes
-	});
+	const env = parseEnv(readFileSync(envFile, 'utf8'));
+	const policy = buildContentSecurityPolicy({ env, scriptHashes });
 	writeFileSync(outputFile, renderCaddySnippet(policy));
 	console.log(`Content-Security-Policy: ${policy}`);
+
+	if (templateDirectory) {
+		mkdirSync(templateDirectory, { recursive: true });
+		writeFileSync(
+			join(templateDirectory, 'csp.caddy.template'),
+			renderCaddySnippet(buildPolicyTemplate(scriptHashes))
+		);
+		writeFileSync(join(templateDirectory, 'build.env'), renderBuildEnv(env));
+	}
 }

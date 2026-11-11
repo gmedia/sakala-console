@@ -54,6 +54,37 @@ docker run --rm -p 8080:8080 sakala-console:local
 
 Image menyajikan `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, dan `Referrer-Policy`, dan menolak dibingkai situs lain lewat `frame-ancestors 'none'`. Policy-nya ditulis `docker/security-headers.mjs` saat build dari file env yang sama, jadi origin API dan Reverb milik instalasi self-hosted atau staging ikut tanpa konfigurasi kedua. Build gagal kalau `PUBLIC_API_URL` tidak ada.
 
+### Konfigurasi saat container start
+
+Image yang sudah jadi, termasuk yang terbit di `ghcr.io`, bisa diarahkan ke instalasi lain tanpa build ulang. Isi variabel yang sama sebagai environment container:
+
+| Variabel               | Isi                                                                 | Contoh                    |
+| ---------------------- | ------------------------------------------------------------------- | ------------------------- |
+| `PUBLIC_API_URL`       | URL `sakala-api`, wajib `http://` atau `https://`                   | `https://api.example.com` |
+| `PUBLIC_APP_URL`       | URL console ini, wajib `http://` atau `https://`                    | `https://app.example.com` |
+| `PUBLIC_REVERB_HOST`   | host Reverb, huruf, angka, titik, dan tanda hubung saja             | `api.example.com`         |
+| `PUBLIC_REVERB_PORT`   | port Reverb, 1 sampai 65535                                         | `443`                     |
+| `PUBLIC_REVERB_SCHEME` | `http` atau `https`                                                 | `https`                   |
+| `PUBLIC_REVERB_KEY`    | app key publik Reverb (`REVERB_APP_KEY`); kosong mematikan realtime | `isi-app-key-publik`      |
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e PUBLIC_API_URL=https://api.example.com \
+  -e PUBLIC_APP_URL=https://app.example.com \
+  -e PUBLIC_REVERB_HOST=api.example.com -e PUBLIC_REVERB_PORT=443 \
+  -e PUBLIC_REVERB_SCHEME=https -e PUBLIC_REVERB_KEY=isi-app-key-publik \
+  ghcr.io/gmedia/sakala-console:<versi>
+```
+
+Saat container start, `docker/entrypoint.sh` memeriksa setiap nilai, lalu menulis dua file: `/runtime-config.js`, yang dimuat `src/app.html` sebelum aplikasi jalan, dan `Content-Security-Policy` yang menyebut origin API dan Reverb yang baru. Nilai yang tidak valid menghentikan container dengan pesan yang menyebut variabelnya, jadi console yang tidak bisa menghubungi API-nya tidak pernah tersaji.
+
+- Variabel yang tidak diisi memakai nilai saat build. Container yang tidak mengisi satu pun menyajikan file hasil build apa adanya, jadi deployment yang sudah ada tidak berubah.
+- Mengisi variabel dengan nilai kosong tetap dihitung mengisi. `PUBLIC_REVERB_KEY=` mematikan realtime, dan console kembali ke polling.
+- `/runtime-config.js` berasal dari origin yang sama dan dikirim dengan `Cache-Control: no-cache`, jadi CSP tetap `script-src 'self'` plus hash script inline SvelteKit, tanpa `unsafe-inline`. Nilai baru berlaku setelah container dibuat ulang.
+- Dengan root filesystem read-only, pasang tmpfs di `/run/sakala-console`; entrypoint mengisinya setiap start.
+
+`tests/container/runtime-config.sh` membuktikan perilaku ini terhadap image sungguhan: build, jalankan dengan beberapa set env, lalu periksa file config, CSP, dan penolakan nilai yang salah. Tambahkan `BROWSER=1` untuk membuka console di Chromium dan memastikan ia memanggil API yang dikonfigurasi. Skrip ini butuh Docker dan tidak dijalankan CI.
+
 Domain, TLS, reverse proxy host, dan environment deployment dikelola oleh repository deployment terpisah. Image ini tidak menyimpan credential atau origin production.
 
 ## Commands

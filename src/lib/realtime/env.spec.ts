@@ -104,4 +104,30 @@ describe('getRealtimeEnv', () => {
 			expect(getRealtimeEnv()?.scheme).toBe(scheme);
 		}
 	});
+
+	it('uses the settings the container rendered at start over the built ones', () => {
+		Object.assign(mockEnv, {
+			PUBLIC_REVERB_HOST: 'api.sakala.dev',
+			PUBLIC_REVERB_KEY: 'built-key',
+			PUBLIC_REVERB_PORT: '443',
+			PUBLIC_REVERB_SCHEME: 'https'
+		});
+		vi.stubGlobal('__SAKALA_RUNTIME_CONFIG__', {
+			PUBLIC_REVERB_HOST: 'api.example.com',
+			PUBLIC_REVERB_KEY: 'self-hosted-key'
+		});
+		try {
+			expect(getRealtimeEnv()).toEqual({
+				host: 'api.example.com',
+				key: 'self-hosted-key',
+				port: 443,
+				scheme: 'https'
+			});
+
+			vi.stubGlobal('__SAKALA_RUNTIME_CONFIG__', { PUBLIC_REVERB_KEY: '' });
+			expect(getRealtimeEnv()).toBeNull();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
 });

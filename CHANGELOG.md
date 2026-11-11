@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- The image can be pointed at any installation when the container starts: `PUBLIC_API_URL`, `PUBLIC_APP_URL`, and `PUBLIC_REVERB_*` set on the container replace the values baked in at build. `docker/entrypoint.sh` validates them, renders a same-origin `/runtime-config.js` that the app reads before it starts, and rewrites the Content-Security-Policy to name the configured API and Reverb. A container that sets none of them serves exactly what was built, so existing deployments do not change.
+
 ## [0.4.0] - 2026-11-11
 
 ### Added

@@ -15,15 +15,25 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	# Content-Security-Policy, generated at image build from the same env file as the bundle,
-	# so it names this installation's API and Reverb. See docker/security-headers.mjs.
-	import /etc/caddy/security-headers.caddy
+	# Content-Security-Policy naming this installation's API and Reverb. The image build writes it
+	# from the same env file as the bundle (docker/security-headers.mjs), and docker/entrypoint.sh
+	# rewrites it when the container sets other public values.
+	import /run/sakala-console/security-headers.caddy
 
 	# `route` preserves handler order. Without it, Caddy runs `try_files`
 	# before `respond`, causing the SPA fallback to mask this health endpoint.
 	route {
 		@health path /healthz
 		respond @health "ok" 200
+
+		# Public settings rendered by docker/entrypoint.sh, read by src/app.html before the app
+		# starts. Revalidated on every load, so a restarted container's values apply at once.
+		@runtimeConfig path /runtime-config.js
+		handle @runtimeConfig {
+			root * /run/sakala-console
+			header Cache-Control "no-cache"
+			file_server
+		}
 
 		try_files {path} /index.html
 		file_server

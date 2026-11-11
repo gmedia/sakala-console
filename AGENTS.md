@@ -19,7 +19,7 @@ Panduan ini berlaku untuk AI agent dan Codex yang bekerja di `sakala-console`.
 - HTTP hanya melalui `src/lib/api`; jangan memakai `fetch` tersebar di component.
 - API Resource dan Scramble OpenAPI `sakala-api` adalah source of truth kontrak.
 - Jangan menduplikasi type yang sama di `api`, `features`, dan `types`.
-- Gunakan `$env/static/public` untuk environment variable yang boleh masuk browser.
+- Gunakan `$env/static/public` untuk environment variable yang boleh masuk browser. Nilai `PUBLIC_*` yang boleh diganti saat container start dibaca lewat `withRuntimeConfig` di `src/lib/config/runtime.ts`; variabel publik baru yang perlu bisa diganti harus ditambahkan di sana, di `docker/entrypoint.sh`, dan di `PUBLIC_KEYS` pada `docker/security-headers.mjs`.
 
 ## Authentication
 
