@@ -30,6 +30,8 @@ CI memasang Chromium sekali, lalu menjalankan unit, component, build, dan E2E te
 
 `tests/e2e/a11y-floor.spec.ts` membuka semua route di lebar 320, 768, 1024, 1280, dan 1366 px, dengan data biasa dan string sangat panjang, lalu mengukur DOM yang benar-benar dirender lewat `tests/e2e/fixtures/dom-audit.ts`: tidak ada yang melewati viewport, kontras teks 4,5:1, tepi input 3:1, target minimal 24 px (44 px untuk aksi utama di bawah 768 px), satu `h1`, satu `main`, dan `<title>` sendiri. Spec yang sama berjalan lewat keyboard: skip link, focus trap drawer, focus yang terlihat, dan debounce pencarian.
 
+`tests/e2e/runtime-config.spec.ts` mengganti `/runtime-config.js` dan memastikan bundle hasil build memanggil API yang disebut di sana. Entrypoint container diuji tanpa Docker di `src/lib/config/entrypoint.spec.ts`, dan terhadap image sungguhan lewat `tests/container/runtime-config.sh` (butuh Docker, tidak dijalankan CI; tambahkan `BROWSER=1` untuk cek Chromium).
+
 Token warna diuji terpisah di `src/lib/design-tokens.spec.ts`, jadi perubahan nilai di `app.css` yang menjatuhkan kontras gagal tanpa perlu browser.
 
 ## Tip: host dengan jaringan tidak stabil

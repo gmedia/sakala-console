@@ -6,6 +6,8 @@
 		<meta name="robots" content="noindex, nofollow" />
 		<meta name="theme-color" content="#f8faf7" />
 		<meta name="text-scale" content="scale" />
+		<!-- Same-origin, so the CSP allows it with script-src 'self'. Must run before the app starts. -->
+		<script src="/runtime-config.js"></script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

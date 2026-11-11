@@ -20,7 +20,7 @@ SvelteKit memakai `adapter-static` dengan fallback `index.html`, `ssr = false`, 
 
 Hosting wajib mengarahkan unknown browser route ke `index.html` agar deep link seperti `/projects/{id}` tetap dapat dibuka.
 
-Header keamanan ada di image, bukan di aplikasi: `docker/Caddyfile` mengirimnya, dan `docker/security-headers.mjs` menulis `Content-Security-Policy` saat build dari env publik dan HTML hasil build. Script inline milik SvelteKit diizinkan lewat hash, bukan `unsafe-inline`. `style-src` tetap memakai `unsafe-inline`, karena transisi Svelte dan posisi menu memasang style inline.
+Header keamanan ada di image, bukan di aplikasi: `docker/Caddyfile` mengirimnya, dan `docker/security-headers.mjs` menulis `Content-Security-Policy` saat build dari env publik dan HTML hasil build. Kalau container mengisi `PUBLIC_*` sendiri, `docker/entrypoint.sh` menulis ulang policy itu dan `/runtime-config.js` saat start, jadi satu image bisa melayani instalasi mana pun. Script inline milik SvelteKit diizinkan lewat hash, bukan `unsafe-inline`. `style-src` tetap memakai `unsafe-inline`, karena transisi Svelte dan posisi menu memasang style inline.
 
 ## Layering
 
