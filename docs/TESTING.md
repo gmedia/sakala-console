@@ -32,6 +32,8 @@ CI memasang Chromium sekali, lalu menjalankan unit, component, build, dan E2E te
 
 `tests/e2e/runtime-config.spec.ts` mengganti `/runtime-config.js` dan memastikan bundle hasil build memanggil API yang disebut di sana. Entrypoint container diuji tanpa Docker di `src/lib/config/entrypoint.spec.ts`, dan terhadap image sungguhan lewat `tests/container/runtime-config.sh` (butuh Docker, tidak dijalankan CI; tambahkan `BROWSER=1` untuk cek Chromium).
 
+`tests/e2e/admin.spec.ts` menjalankan perjalanan utama area admin terhadap `tests/e2e/fixtures/admin.ts`, mock yang menyajikan respons asli API dari `tests/fixtures/admin`, termasuk penolakan untuk akun bukan admin. Spec yang sama mengukur semua halaman admin di 320 dan 1280 px dengan `auditDom`.
+
 Token warna diuji terpisah di `src/lib/design-tokens.spec.ts`, jadi perubahan nilai di `app.css` yang menjatuhkan kontras gagal tanpa perlu browser.
 
 ## Tip: host dengan jaringan tidak stabil

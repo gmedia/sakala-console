@@ -151,3 +151,18 @@ Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan 
 Skema field yang hanya pelengkap tampilan (`metadata`, `*_resources`, `queue_state`) membaca bentuk tak dikenal sebagai `null`, karena PHP mengirim map kosong sebagai `[]`. Baris event atau log yang rusak dilewati satu per satu, bukan menjatuhkan seluruh daftar.
 
 `image_reference` dan `agent_node_id` ikut diparse tetapi sengaja tidak ditampilkan. `image_reference` adalah tag image lokal di node, misalnya `sakala/project-<id>:<sha>`, yang tidak bisa di-pull atau dipakai user. `agent_node_id` adalah ID internal node. Keduanya tidak membantu user memperbaiki apa pun. Yang menandai build sudah tampil, yaitu commit SHA dan nomor deployment, dan link "Kirim masukan" membawa ID deployment, sehingga admin bisa menemukan image dan node-nya dari situ.
+
+## Area Admin
+
+Halaman `/admin/*` memakai endpoint `api/v1/admin` dari `sakala-api`. Kontraknya ada di `src/lib/api/resources/admin/`: file OpenAPI yang di-generate belum memuat endpoint admin, jadi schema Zod di sana menjadi kontraknya dan tipe diturunkan dengan `z.infer`. Schema itu diuji terhadap respons yang benar-benar dikirim API (`tests/fixtures/admin/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan), dan mock e2e (`tests/e2e/fixtures/admin.ts`) menyajikan respons yang sama. Kalau resource admin di API berubah, ambil ulang fixture-nya; `admin.spec.ts` gagal kalau ada fixture sukses yang tidak diuji.
+
+Akses ditentukan API. Console menampilkan menu "Area admin" dan membuka `/admin/*` hanya untuk `role: 'admin'` dari `GET auth/user`; selain itu `AdminGuard` menampilkan halaman 403. Kalau API menjawab 403 di tengah sesi, misalnya peran admin baru dicabut, halaman menampilkan penolakan itu, bukan data kosong.
+
+- Daftar memakai pagination server, 25 baris per halaman. Halaman, pencarian, filter, dan rentang waktu ada di query string (`features/admin/url-state.ts`), jadi tampilan bisa dibagikan dan tombol Back membatalkan filter. Nilai yang akan ditolak API dibuang saat URL dibaca, sehingga tautan rusak membuka daftar tanpa filter.
+- Rentang waktu (`7d`, `30d`, `90d`, `custom`, dan `all` di kegagalan dan audit) selalu hari penuh WIB. `to` dari API eksklusif, jadi hari terakhir yang ditampilkan adalah hari sebelumnya. Semua tanggal di area admin ditulis dalam WIB, apa pun zona waktu browser.
+- Overview di-cache API 60 detik dan dibaca ulang Console tiap 5 menit; `generated_at` tampil sebagai "Dihitung ...". Kartu "Perlu perhatian" memakai `meta.total` dari daftar masukan berstatus `open` dan node `offline`, satu baris per query.
+- Setiap mutasi wajib membawa `reason` (maks. 500) dan melewati `ReasonDialog`, yang menyebut objek dan akibatnya, memberi fokus ke kolom alasan, dan hanya mengirim satu kali. Stop, suspend, unsuspend, dan reconcile juga mengirim `Idempotency-Key` yang dibuat per dialog, jadi mengirim ulang setelah jaringan putus tidak membuat command kedua. `202` berarti command sudah diantrekan, belum selesai.
+- `409` tanpa `code` (state proyek tidak mengizinkan) ditampilkan dengan pesan API. `409 LIMIT_PROFILE_IN_USE` menautkan ke daftar workspace yang memakai profil itu.
+- Token node dari `POST agents` dan `POST agents/{id}/rotate` hanya disimpan di state dialog, tidak di cache query (mutasinya `gcTime: 0` dan di-`reset()`), dan dialognya baru bisa ditutup setelah admin mencentang "Saya sudah menyimpan token ini".
+- Setiap perubahan admin meng-invalidate semua query yang diawali `['admin']`.
+- Yang tidak ditampilkan karena API tidak punya datanya: log proses agent, restart agent, alamat IP node, laporan abuse, dan suspend akun pengguna.

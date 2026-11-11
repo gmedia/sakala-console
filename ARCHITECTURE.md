@@ -80,7 +80,12 @@ src/routes/(app)
 
 src/routes/(onboarding)
   -> onboarding: butuh session user, tanpa AppShell
+
+src/routes/(admin)
+  -> area admin di /admin: butuh session admin, dengan AdminShell dan navigasinya sendiri
 ```
+
+Grup `(admin)` tidak memakai `AppShell`, supaya konteks proyek milik member (nama proyek di header, notifikasi) tidak ikut ke halaman admin. `AdminGuard` menampilkan 403 untuk akun yang bukan admin; API tetap menolak dengan `403` apa pun yang ditampilkan Console. Lihat [API Client](docs/API_CLIENT.md#area-admin).
 
 Nama route group tidak ikut muncul di URL. Contoh `src/routes/(app)/projects/+page.svelte` tetap menjadi `/projects`.
 
