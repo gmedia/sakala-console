@@ -11,7 +11,11 @@ permissions:
 jobs:
   quality:
     name: Quality and Test
-    runs-on: ubuntu-latest
+    # Pinned: on 2026-11-11 the ubuntu-latest image moved to 26.04, whose
+    # runners could not resolve the Ubuntu apt mirrors, so "Install Chromium"
+    # (playwright --with-deps) failed on every run. Move to a newer image on
+    # purpose once it installs cleanly.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
