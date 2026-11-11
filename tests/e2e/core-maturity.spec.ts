@@ -918,7 +918,7 @@ test.describe('deployment history', () => {
 
 		await expect(page.getByRole('heading', { name: 'Belum ada riwayat' })).toBeVisible();
 		await expect(page.getByText(/belum pernah di-deploy/)).toBeVisible();
-		await expect(page.getByRole('button', { name: /Filter waktu/ })).toHaveCount(0);
+		await expect(page.getByRole('combobox', { name: /Filter waktu/ })).toHaveCount(0);
 		await expect(page.getByPlaceholder('Cari deployment')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Lihat semua waktu' })).toHaveCount(0);
 	});
@@ -952,7 +952,7 @@ test.describe('deployment history', () => {
 		});
 
 		await page.goto(projectsUrl);
-		await page.getByRole('button', { name: /Filter waktu/ }).click();
+		await page.getByRole('combobox', { name: /Filter waktu/ }).click();
 		await page.getByRole('option', { name: '7 hari terakhir' }).click();
 
 		await expect(page.getByText('Tidak ada deployment dalam 7 hari terakhir.')).toBeVisible();
