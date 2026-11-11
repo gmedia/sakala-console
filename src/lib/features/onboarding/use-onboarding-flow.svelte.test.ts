@@ -64,6 +64,22 @@ const sourceMutate = sourceMutationStub.mutate;
 const profileMutate = profileMutationStub.mutate;
 const completeMutate = completeMutationStub.mutate;
 
+const currentUserStub = (() => {
+	let data = $state<{ name: string } | undefined>(undefined);
+	return {
+		get data() {
+			return data;
+		},
+		set data(next) {
+			data = next;
+		}
+	};
+})();
+
+vi.mock('$lib/features/auth/queries', () => ({
+	useCurrentUser: vi.fn(() => currentUserStub)
+}));
+
 vi.mock('./mutations', () => ({
 	useSubmitOnboardingSource: vi.fn(() => sourceMutationStub),
 	useSubmitOnboardingProfile: vi.fn(() => profileMutationStub),
@@ -74,6 +90,7 @@ const mockedGoto = vi.mocked(goto);
 const mockedResolve = vi.mocked(resolve);
 
 beforeEach(() => {
+	currentUserStub.data = undefined;
 	sourceMutate.mockClear();
 	profileMutate.mockClear();
 	completeMutate.mockClear();
@@ -149,6 +166,41 @@ describe('useOnboardingFlow', () => {
 			flow.updateProfile({ role: 'developer' });
 			expect(flow.profileName).toBe('sakala_programmer');
 			expect(flow.profileRole).toBe('developer');
+		});
+	});
+
+	describe('prefilled name', () => {
+		it('starts from the name on the account and sends it unchanged', () => {
+			currentUserStub.data = { name: 'Rani Wulandari' };
+			const flow = useOnboardingFlow();
+
+			expect(flow.profileName).toBe('Rani Wulandari');
+
+			flow.updateProfile({ role: 'developer' });
+			flow.submitProfile();
+			expect(profileMutate).toHaveBeenCalledWith(
+				{ name: 'Rani Wulandari', role: 'developer' },
+				expect.anything()
+			);
+		});
+
+		it('fills in once the account arrives, if the user has not typed yet', () => {
+			const flow = useOnboardingFlow();
+			expect(flow.profileName).toBeUndefined();
+
+			currentUserStub.data = { name: 'Rani Wulandari' };
+			expect(flow.profileName).toBe('Rani Wulandari');
+		});
+
+		it('never overwrites what the user typed, even an emptied field', () => {
+			const flow = useOnboardingFlow();
+			flow.updateProfile({ name: 'Rani W.' });
+
+			currentUserStub.data = { name: 'Rani Wulandari' };
+			expect(flow.profileName).toBe('Rani W.');
+
+			flow.updateProfile({ name: '' });
+			expect(flow.profileName).toBe('');
 		});
 	});
 
