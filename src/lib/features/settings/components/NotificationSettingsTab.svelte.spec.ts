@@ -22,7 +22,8 @@ const saved = {
 	deployment_success: true,
 	deployment_failure: true,
 	project_issue: false,
-	account_security: true
+	account_security: true,
+	workspace: false
 };
 
 beforeEach(() => {
@@ -50,7 +51,7 @@ describe('NotificationSettingsTab', () => {
 		await renderTab();
 
 		await expect.element(page.getByRole('switch', { name: 'Masalah proyek' })).toBeVisible();
-		await expect.element(page.getByRole('switch')).toHaveLength(5);
+		await expect.element(page.getByRole('switch')).toHaveLength(6);
 		await expect.element(page.getByText('Penawaran Khusus')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Peringatan Suara')).not.toBeInTheDocument();
 	});
@@ -71,6 +72,20 @@ describe('NotificationSettingsTab', () => {
 		});
 		await expect.element(page.getByText('Pengaturan notifikasi tersimpan.')).toBeVisible();
 		await expect.element(saveButton()).toBeDisabled();
+	});
+
+	it('shows the workspace category and saves it on its own', async () => {
+		vi.mocked(updateNotificationPreferences).mockResolvedValue({ ...saved, workspace: true });
+		await renderTab();
+
+		const toggle = page.getByRole('switch', { name: 'Undangan dan keanggotaan tim' });
+		await expect.element(toggle).toHaveAttribute('aria-checked', 'false');
+		await expect.element(page.getByText('Email undangan tetap dikirim.')).toBeVisible();
+		await toggle.click();
+		await saveButton().click();
+
+		await vi.waitFor(() => expect(updateNotificationPreferences).toHaveBeenCalled());
+		expect(vi.mocked(updateNotificationPreferences).mock.calls[0][0]).toEqual({ workspace: true });
 	});
 
 	it('keeps the edit and says so when saving fails', async () => {
@@ -98,7 +113,8 @@ describe('NotificationSettingsTab', () => {
 
 		await vi.waitFor(() => expect(updateNotificationPreferences).toHaveBeenCalled());
 		expect(vi.mocked(updateNotificationPreferences).mock.calls[0][0]).toEqual({
-			project_issue: true
+			project_issue: true,
+			workspace: true
 		});
 	});
 

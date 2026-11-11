@@ -21,6 +21,8 @@ type Workspace = {
 	type: 'personal' | 'team';
 	role: Role;
 	limit_profile: { id: string; name: string } | null;
+	projects_count: number;
+	active_deployments_count: number;
 	created_at: string | null;
 };
 type Member = {
@@ -48,6 +50,24 @@ export const MEMBERS = captured('members').body!.data as Member[];
 const pendingInvitations = captured('invitations').body!.data as Invitation[];
 export const MY_INVITATION = (captured('invitations-mine').body!.data as Invitation[])[0];
 export const EXPIRED_INVITATION_ID = '01a1cb4a-0000-7000-8000-00000000dead';
+
+type InvitationDetails = Omit<Invitation, 'email'> & {
+	restricted_to_invited_email: boolean;
+	can_accept: boolean;
+	accept_error_code: string | null;
+};
+/** An invitation sent to another address of the invitee, so it is not in their own list. */
+export const LINK_INVITATION = captured('invitation-details').body!.data as InvitationDetails;
+/** An owner invitation for another address. */
+export const OWNER_LINK_INVITATION = captured('invitation-details-owner-restricted').body!
+	.data as InvitationDetails;
+/** Tokens in links that the API answers with a closed state. */
+export const CLOSED_LINK_TOKENS = {
+	'sudah-diterima': 'invitation-details-accepted',
+	'sudah-ditolak': 'invitation-details-declined',
+	'sudah-dibatalkan': 'invitation-details-revoked',
+	kedaluwarsa: 'invitation-details-expired'
+} as const;
 
 export type Persona = 'owner' | 'viewer' | 'invitee';
 
@@ -92,6 +112,7 @@ export type WorkspaceCalls = {
 	removeMember: string[];
 	accept: { id: string; body: Record<string, unknown> }[];
 	decline: string[];
+	reads: { id: string; token: string | null }[];
 	projectLists: URL[];
 	createProject: Record<string, unknown>[];
 };
@@ -128,6 +149,7 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 		removeMember: [],
 		accept: [],
 		decline: [],
+		reads: [],
 		projectLists: [],
 		createProject: []
 	};
@@ -180,6 +202,12 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 				(!workspaceId && workspaces.some((item) => item.id === project.workspace.id)) ||
 				project.workspace.id === workspaceId
 		);
+	// As WorkspaceResource counts them; nothing is deploying in these scenarios.
+	const withCounts = (workspace: Workspace): Workspace => ({
+		...workspace,
+		projects_count: projectsIn(workspace.id).length,
+		active_deployments_count: 0
+	});
 
 	const wizard = await mockWizardApi(page, {
 		project: () => (persona === 'viewer' ? teamProject : createdProject),
@@ -251,7 +279,7 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 		const owners = () => list.filter((member) => member.role === 'owner').length;
 
 		if (!workspaceId) {
-			if (method === 'GET') return json(route, 200, { data: workspaces });
+			if (method === 'GET') return json(route, 200, { data: workspaces.map(withCounts) });
 			calls.createWorkspace.push(body());
 			const owned = workspaces.filter((item) => item.type === 'team' && item.role === 'owner');
 			if (owned.length >= ownedTeamCap) return replay(route, 'workspace-create-cap');
@@ -270,10 +298,10 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 		if (!workspace) return json(route, 403, { message: 'This action is unauthorized.' });
 
 		if (!sub) {
-			if (method === 'GET') return json(route, 200, { data: workspace });
+			if (method === 'GET') return json(route, 200, { data: withCounts(workspace) });
 			if (method === 'PATCH') {
 				workspace.name = String(body().name);
-				return json(route, 200, { data: workspace });
+				return json(route, 200, { data: withCounts(workspace) });
 			}
 			if (method === 'DELETE') {
 				if (projectsIn(workspace.id).length > 0) return replay(route, 'workspace-delete-not-empty');
@@ -347,7 +375,13 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 
 	await page.route(/\/api\/v1\/app\/workspace-invitations(\/.*)?(\?.*)?$/, (route) => {
 		const request = route.request();
-		const path = new URL(request.url()).pathname;
+		const url = new URL(request.url());
+		const path = url.pathname;
+		const [, readId] = path.match(/workspace-invitations\/([^/]+)$/) ?? [];
+		if (request.method() === 'GET' && readId) {
+			calls.reads.push({ id: readId, token: url.searchParams.get('token') });
+			return readInvitation(route, readId, url.searchParams.get('token'));
+		}
 		if (request.method() === 'GET') return json(route, 200, { data: mine });
 
 		const [, id, action] = path.match(/workspace-invitations\/([^/]+)\/(accept|decline)$/) ?? [];
@@ -368,6 +402,37 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 		if (invitation) mine.splice(mine.indexOf(invitation), 1);
 		return json(route, 200, { data: joined });
 	});
+
+	/**
+	 * GET workspace-invitations/{id}, as the API answers it: through the token, or for an invitation
+	 * in the caller's own list; a closed one with its code, anything else with the plain 404.
+	 */
+	function readInvitation(route: Route, id: string, token: string | null) {
+		if (token && token in CLOSED_LINK_TOKENS) {
+			return replay(route, CLOSED_LINK_TOKENS[token as keyof typeof CLOSED_LINK_TOKENS]);
+		}
+		if (id === EXPIRED_INVITATION_ID) return replay(route, 'invitation-details-expired');
+		if (token && id === LINK_INVITATION.id) return replay(route, 'invitation-details');
+		if (token && id === OWNER_LINK_INVITATION.id) {
+			return replay(route, 'invitation-details-owner-restricted');
+		}
+		const own = mine.find((item) => item.id === id);
+		if (own) {
+			const details: InvitationDetails = {
+				id: own.id,
+				role: own.role,
+				expires_at: own.expires_at,
+				created_at: own.created_at,
+				workspace: own.workspace,
+				invited_by: own.invited_by,
+				restricted_to_invited_email: own.role === 'owner',
+				can_accept: true,
+				accept_error_code: null
+			};
+			return json(route, 200, { data: details });
+		}
+		return replay(route, 'invitation-details-not-found');
+	}
 
 	return { calls, wizard, workspaces, members };
 }

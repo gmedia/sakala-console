@@ -6,7 +6,9 @@ import { parsePilotLimitsResponse } from './pilot-limits';
 import {
 	acceptWorkspaceInvitation,
 	declineWorkspaceInvitation,
+	getWorkspaceInvitation,
 	parseInvitation,
+	parseInvitationDetails,
 	parseInvitationList,
 	parseMember,
 	parseMemberList,
@@ -27,6 +29,20 @@ describe('workspace resources, against responses captured from sakala-api', () =
 		]);
 		expect(workspaces[1].limit_profile?.name).toBe('Magang GMEDIA');
 		expect(workspaces[2].limit_profile).toBeNull();
+	});
+
+	it('reads project and active deployment counts', () => {
+		const workspaces = parseWorkspaceList(getWorkspaceFixture('workspaces-counts').body);
+		expect(
+			workspaces.map((workspace) => [
+				workspace.type,
+				workspace.projects_count,
+				workspace.active_deployments_count
+			])
+		).toEqual([
+			['personal', 0, 0],
+			['team', 2, 1]
+		]);
 	});
 
 	it('reads a viewer membership', () => {
@@ -113,10 +129,48 @@ describe('workspace resources, against responses captured from sakala-api', () =
 		expect(error.message).toBe((fixture.body as { message: string }).message);
 	});
 
-	it('a revoked or used invitation is a plain 404 without a code', () => {
-		const fixture = getWorkspaceFixture('invitation-accept-revoked');
-		expect(fixture.status).toBe(404);
-		expect(errorFromFixture('invitation-accept-revoked').code).toBeUndefined();
+	it('reads an invitation through its link, without the invited address', () => {
+		const details = parseInvitationDetails(getWorkspaceFixture('invitation-details').body);
+		expect(details).toMatchObject({
+			role: 'member',
+			workspace: { name: 'Tim Facility' },
+			invited_by: { name: 'Rani Putri' },
+			restricted_to_invited_email: false,
+			can_accept: true,
+			accept_error_code: null
+		});
+		expect(JSON.stringify(getWorkspaceFixture('invitation-details').body)).not.toContain('@');
+	});
+
+	it.each([
+		['invitation-details-owner-restricted', true, 'INVITATION_EMAIL_MISMATCH'],
+		['invitation-details-already-member', false, 'ALREADY_WORKSPACE_MEMBER']
+	] as const)('reads %s as one this account cannot accept', (name, restricted, code) => {
+		const details = parseInvitationDetails(getWorkspaceFixture(name).body);
+		expect(details.restricted_to_invited_email).toBe(restricted);
+		expect(details.can_accept).toBe(false);
+		expect(details.accept_error_code).toBe(code);
+	});
+
+	it.each([
+		['invitation-details-accepted', 409, 'INVITATION_ALREADY_ACCEPTED'],
+		['invitation-details-declined', 409, 'INVITATION_DECLINED'],
+		['invitation-details-revoked', 409, 'INVITATION_REVOKED'],
+		['invitation-details-expired', 409, 'INVITATION_EXPIRED'],
+		['invitation-details-unverified', 403, 'EMAIL_VERIFICATION_REQUIRED'],
+		['invitation-accept-already-accepted', 409, 'INVITATION_ALREADY_ACCEPTED'],
+		['invitation-accept-revoked-token', 409, 'INVITATION_REVOKED']
+	])('%s names why the link stopped working', (name, status, code) => {
+		const fixture = getWorkspaceFixture(name);
+		expect(fixture.status).toBe(status);
+		expect(errorFromFixture(name).code).toBe(code);
+	});
+
+	it('a wrong token is a plain 404 without a code', () => {
+		for (const name of ['invitation-accept-revoked', 'invitation-details-not-found']) {
+			expect(getWorkspaceFixture(name).status).toBe(404);
+			expect(errorFromFixture(name).code).toBeUndefined();
+		}
 	});
 
 	it('a viewer is refused secret values and project creation with 403', () => {
@@ -126,6 +180,23 @@ describe('workspace resources, against responses captured from sakala-api', () =
 });
 
 describe('invitation responses', () => {
+	it('reads one invitation with the token, behind its own rate limit', async () => {
+		vi.mocked(apiRequest).mockResolvedValueOnce(getWorkspaceFixture('invitation-details').body);
+		const details = await getWorkspaceInvitation('inv-1', 'secret-token');
+		expect(details.can_accept).toBe(true);
+		expect(apiRequest).toHaveBeenLastCalledWith('/api/v1/app/workspace-invitations/inv-1', {
+			params: { token: 'secret-token' },
+			separateRateLimit: true
+		});
+
+		vi.mocked(apiRequest).mockResolvedValueOnce(getWorkspaceFixture('invitation-details').body);
+		await getWorkspaceInvitation('inv-1');
+		expect(apiRequest).toHaveBeenLastCalledWith('/api/v1/app/workspace-invitations/inv-1', {
+			params: undefined,
+			separateRateLimit: true
+		});
+	});
+
 	it('sends the token from the email link when there is one', async () => {
 		vi.mocked(apiRequest).mockResolvedValueOnce(getWorkspaceFixture('invitation-accept').body);
 		await acceptWorkspaceInvitation('inv-1', 'secret-token');

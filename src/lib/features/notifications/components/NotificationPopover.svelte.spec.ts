@@ -31,6 +31,8 @@ const unread: Notification = {
 	message: 'Build sakala-console gagal.',
 	project_id: 'p1',
 	deployment_id: 'd1',
+	invitation_id: null,
+	workspace_id: null,
 	read_at: null,
 	created_at: '2026-10-01T00:00:00+00:00'
 };

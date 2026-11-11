@@ -41,6 +41,8 @@ const item = (id: string, overrides = {}) => ({
 	message: `Pesan ${id}`,
 	project_id: null,
 	deployment_id: null,
+	invitation_id: null,
+	workspace_id: null,
 	read_at: null,
 	created_at: '2026-10-01T00:00:00+00:00',
 	...overrides

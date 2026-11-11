@@ -11,7 +11,7 @@
 	import UserIcon from 'phosphor-svelte/lib/User';
 	import { cn } from '$lib/utils/cn';
 	import { useActiveWorkspace } from '../access.svelte';
-	import { ROLE_LABELS, workspaceLabel } from '../presentation';
+	import { ROLE_LABELS, projectCountLabel, workspaceLabel } from '../presentation';
 	import { createMyInvitationsQuery } from '../queries';
 	import CreateWorkspaceDialog from './CreateWorkspaceDialog.svelte';
 
@@ -67,8 +67,8 @@
 				<span class="truncate text-sm font-semibold text-foreground">{workspaceLabel(active)}</span>
 				<span class="truncate text-xs text-muted">
 					{active.type === 'personal'
-						? 'Workspace pribadi'
-						: `Workspace tim · ${ROLE_LABELS[active.role]}`}
+						? `Workspace pribadi · ${projectCountLabel(active.projects_count)}`
+						: `Workspace tim · ${ROLE_LABELS[active.role]} · ${projectCountLabel(active.projects_count)}`}
 				</span>
 			</span>
 			{#if invitationCount > 0}
@@ -101,7 +101,9 @@
 										<span class="truncate text-xs text-muted">
 											{workspace.type === 'personal'
 												? 'Workspace pribadi'
-												: ROLE_LABELS[workspace.role]}
+												: ROLE_LABELS[workspace.role]} · {projectCountLabel(
+												workspace.projects_count
+											)}
 										</span>
 									</span>
 									<Check

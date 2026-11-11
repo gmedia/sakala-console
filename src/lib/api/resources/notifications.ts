@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
-import type { components } from '../generated/schema';
 
 /**
  * Written from NotificationResource in sakala-api rather than `satisfies` the generated type:
@@ -13,6 +12,10 @@ const notificationSchema = z.object({
 	message: z.string().nullable(),
 	project_id: z.string().nullable(),
 	deployment_id: z.string().nullable(),
+	/** The invitation a `workspace` notification is about. Older notifications lack the field. */
+	invitation_id: z.string().nullable().default(null),
+	/** The team a `workspace` notification is about, while the recipient still belongs to it. */
+	workspace_id: z.string().nullable().default(null),
 	read_at: z.string().nullable(),
 	created_at: z.string().nullable()
 });
@@ -69,14 +72,23 @@ export async function markAllNotificationsRead(): Promise<void> {
 	await apiRequest<void>('api/v1/app/notifications/read-all', { method: 'POST' });
 }
 
-export type NotificationPreferences = components['schemas']['NotificationPreferenceResource'];
-
+/**
+ * Written from NotificationPreferenceResource in sakala-api: the generated OpenAPI types predate
+ * the `workspace` category.
+ */
 const notificationPreferencesSchema = z.object({
 	deployment_success: z.boolean(),
 	deployment_failure: z.boolean(),
 	project_issue: z.boolean(),
-	account_security: z.boolean()
-}) satisfies z.ZodType<NotificationPreferences>;
+	account_security: z.boolean(),
+	/**
+	 * Team invitations and membership changes. Invitation emails are sent regardless. On by
+	 * default in the API, which is also what an API that does not return it yet has stored.
+	 */
+	workspace: z.boolean().default(true)
+});
+
+export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
 
 const preferencesResponseSchema = z.object({ data: notificationPreferencesSchema });
 

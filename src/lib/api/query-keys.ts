@@ -39,6 +39,12 @@ export const queryKeys = {
 		/** Under `pilot-limits`, so invalidating that prefix still refreshes every workspace's limits. */
 		limits: (workspaceId: string | null) => ['pilot-limits', workspaceId ?? 'personal'] as const
 	},
+	/**
+	 * One invitation behind a link. Outside `workspaces` on purpose: accepting refreshes every
+	 * workspace read, and reading this one again would only answer that it was accepted.
+	 */
+	workspaceInvitation: (id: string, token: string | null) =>
+		['workspace-invitation', id, token] as const,
 	github: {
 		all: ['github'] as const,
 		installations: () => ['github', 'installations'] as const,

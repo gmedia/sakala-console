@@ -1,0 +1,7 @@
+{
+	"status": 403,
+	"body": {
+		"message": "Verifikasi email kamu dulu sebelum membuat atau bergabung ke workspace tim.",
+		"code": "EMAIL_VERIFICATION_REQUIRED"
+	}
+}

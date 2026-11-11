@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Undangan ini sudah ditolak. Minta pemilik workspace mengirim undangan baru kalau ingin bergabung.",
+		"code": "INVITATION_DECLINED"
+	}
+}

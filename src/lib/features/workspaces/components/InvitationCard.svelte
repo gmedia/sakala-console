@@ -3,7 +3,10 @@
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import EnvelopeSimple from 'phosphor-svelte/lib/EnvelopeSimple';
-	import type { WorkspaceInvitation, WorkspaceRole } from '$lib/api/resources/workspaces';
+	import type {
+		WorkspaceInvitation,
+		WorkspaceInvitationDetails
+	} from '$lib/api/resources/workspaces';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import { formatDate } from '$lib/utils/date';
@@ -13,19 +16,24 @@
 		INVITATION_PROBLEM_COPY,
 		ROLE_DESCRIPTIONS,
 		ROLE_LABELS,
+		acceptBlockedProblem,
 		invitationProblem,
-		workspaceErrorMessage
+		workspaceErrorMessage,
+		type InvitationProblem
 	} from '../presentation';
 
 	type Props = {
 		invitationId: string;
-		/** Details from the caller's invitation list; a link for another address has none. */
-		invitation?: WorkspaceInvitation | null;
+		/**
+		 * From the caller's invitation list, or read through the link. Only the read says whether
+		 * this account may accept.
+		 */
+		invitation: WorkspaceInvitation | WorkspaceInvitationDetails;
 		/** From the email link. */
 		token?: string;
 	};
 
-	let { invitationId, invitation = null, token }: Props = $props();
+	let { invitationId, invitation, token }: Props = $props();
 
 	const workspaces = useActiveWorkspace();
 	const acceptMutation = createAcceptInvitationMutation();
@@ -37,18 +45,30 @@
 	let busy = false;
 
 	const pending = $derived(acceptMutation.isPending || declineMutation.isPending);
-	const role = $derived<WorkspaceRole | null>(invitation?.role ?? null);
+	const restricted = $derived(
+		'restricted_to_invited_email' in invitation && invitation.restricted_to_invited_email
+	);
+	// Known before anyone clicks: the read says when this account cannot accept, and why.
+	const blocked = $derived.by(() => {
+		const code = 'accept_error_code' in invitation ? invitation.accept_error_code : null;
+		return code ? describe(acceptBlockedProblem(code)) : null;
+	});
+
+	// A refused answer wins over what the read said before.
+	const notice = $derived(problem ?? blocked);
+
+	function describe(kind: InvitationProblem, error?: unknown, fallback = '') {
+		return kind === 'other'
+			? {
+					title: 'Belum berhasil',
+					message: workspaceErrorMessage(error, fallback),
+					alreadyMember: false
+				}
+			: { ...INVITATION_PROBLEM_COPY[kind], alreadyMember: kind === 'already_member' };
+	}
 
 	function explain(error: unknown, fallback: string) {
-		const kind = invitationProblem(error);
-		problem =
-			kind === 'other'
-				? {
-						title: 'Belum berhasil',
-						message: workspaceErrorMessage(error, fallback),
-						alreadyMember: false
-					}
-				: { ...INVITATION_PROBLEM_COPY[kind], alreadyMember: kind === 'already_member' };
+		problem = describe(invitationProblem(error), error, fallback);
 	}
 
 	async function handleAccept() {
@@ -87,9 +107,9 @@
 	}
 
 	function openWorkspace() {
-		const target = invitation
-			? workspaces.workspaces.find((workspace) => workspace.id === invitation?.workspace.id)
-			: undefined;
+		const target = workspaces.workspaces.find(
+			(workspace) => workspace.id === invitation.workspace.id
+		);
 		if (target) workspaces.select(target.id);
 		void goto(resolve('/projects'));
 	}
@@ -105,27 +125,23 @@
 		</span>
 		<div class="flex min-w-0 flex-col gap-1">
 			<h2 class="text-base font-semibold wrap-anywhere text-foreground">
-				{invitation ? `Undangan ke ${invitation.workspace.name}` : 'Undangan workspace tim'}
+				Undangan ke {invitation.workspace.name}
 			</h2>
-			{#if invitation}
-				<p class="text-sm text-foreground">
-					{invitation.invited_by?.name ?? 'Pemilik workspace'} mengundangmu sebagai
-					<strong class="font-medium">{ROLE_LABELS[invitation.role].toLowerCase()}</strong>.
-				</p>
-				{#if role}
-					<p class="text-sm text-muted">{ROLE_DESCRIPTIONS[role]}</p>
-				{/if}
-				<p class="text-xs text-muted">
-					Berlaku sampai <time datetime={invitation.expires_at}
-						>{formatDate(invitation.expires_at)}</time
-					>.
-				</p>
-			{:else}
+			<p class="text-sm text-foreground">
+				{invitation.invited_by?.name ?? 'Pemilik workspace'} mengundangmu sebagai
+				<strong class="font-medium">{ROLE_LABELS[invitation.role].toLowerCase()}</strong>.
+			</p>
+			<p class="text-sm text-muted">{ROLE_DESCRIPTIONS[invitation.role]}</p>
+			{#if restricted && !blocked}
 				<p class="text-sm text-muted">
-					Kamu membuka tautan undangan dari email. Nama workspace dan peranmu tampil setelah
-					undangan diterima.
+					Undangan sebagai pemilik hanya bisa diterima dari akun dengan email yang diundang.
 				</p>
 			{/if}
+			<p class="text-xs text-muted">
+				Berlaku sampai <time datetime={invitation.expires_at}
+					>{formatDate(invitation.expires_at)}</time
+				>.
+			</p>
 		</div>
 	</div>
 
@@ -137,15 +153,15 @@
 		<p role="status" class="text-sm text-foreground">
 			Undangan diterima. Membuka proyek workspace...
 		</p>
-	{:else if problem}
+	{:else if notice}
 		<div
 			role="alert"
 			class="flex flex-col gap-2 rounded-control border border-warning/40 bg-accent-soft p-3 text-sm text-foreground"
 			data-testid="invitation-problem"
 		>
-			<p class="font-semibold">{problem.title}</p>
-			<p>{problem.message}</p>
-			{#if problem.alreadyMember}
+			<p class="font-semibold">{notice.title}</p>
+			<p>{notice.message}</p>
+			{#if notice.alreadyMember}
 				<div>
 					<Button size="sm" variant="secondary" onclick={openWorkspace}>Buka proyek</Button>
 				</div>
