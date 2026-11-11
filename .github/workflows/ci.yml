@@ -11,11 +11,7 @@ permissions:
 jobs:
   quality:
     name: Quality and Test
-    # Pinned: on 2026-11-11 the ubuntu-latest image moved to 26.04, whose
-    # runners could not resolve the Ubuntu apt mirrors, so "Install Chromium"
-    # (playwright --with-deps) failed on every run. Move to a newer image on
-    # purpose once it installs cleanly.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -35,8 +31,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Browser only, no --with-deps: GitHub's Ubuntu images already ship the
+      # system libraries Chromium needs (they include Google Chrome), and
+      # --with-deps runs apt, which failed on every run on 2026-11-11 when the
+      # runners could not resolve the Ubuntu mirrors.
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Check formatting
         run: pnpm format:check
