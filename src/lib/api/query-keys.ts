@@ -28,6 +28,16 @@ export const queryKeys = {
 		unreadCount: ['notifications', 'unread-count'] as const,
 		preferences: ['notification-preferences'] as const
 	},
+	/** Every workspace read starts with `workspaces`, so a membership change refreshes them at once. */
+	workspaces: {
+		all: ['workspaces'] as const,
+		list: ['workspaces', 'list'] as const,
+		members: (workspaceId: string) => ['workspaces', 'members', workspaceId] as const,
+		invitations: (workspaceId: string) => ['workspaces', 'invitations', workspaceId] as const,
+		myInvitations: ['workspaces', 'my-invitations'] as const,
+		/** Under `pilot-limits`, so invalidating that prefix still refreshes every workspace's limits. */
+		limits: (workspaceId: string | null) => ['pilot-limits', workspaceId ?? 'personal'] as const
+	},
 	github: {
 		all: ['github'] as const,
 		installations: () => ['github', 'installations'] as const,

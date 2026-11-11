@@ -1,0 +1,10 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom email harus berupa alamat email, misalnya nama@contoh.com. (dan 1 kesalahan lainnya)",
+		"errors": {
+			"email": ["Kolom email harus berupa alamat email, misalnya nama@contoh.com."],
+			"role": ["Pilihan peran tidak tersedia. Pilih salah satu opsi yang ada."]
+		}
+	}
+}

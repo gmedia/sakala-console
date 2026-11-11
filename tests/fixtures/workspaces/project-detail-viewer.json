@@ -1,0 +1,47 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cb4a-dee9-72c3-9e8f-a0b2826cf9fc",
+			"name": "Facility Reporting",
+			"slug": "facility-reporting",
+			"repository_provider": "github",
+			"thumbnail_url": null,
+			"repository_url": "https://github.com/gmedia/facility-reporting",
+			"repository_full_name": "gmedia/facility-reporting",
+			"repository_source": "public_url",
+			"github_installation_id": null,
+			"github_repository_id": null,
+			"branch": "main",
+			"default_domain": "facility-reporting.run.sakala.localhost",
+			"public_url": "http://facility-reporting.run.sakala.localhost",
+			"status": "draft",
+			"runtime_status": "not_deployed",
+			"suspension": null,
+			"detected_port": null,
+			"configured_port": null,
+			"effective_port": 3000,
+			"serving_port": null,
+			"build_command": null,
+			"start_command": null,
+			"root_directory": null,
+			"auto_deploy": false,
+			"redeploy_required": false,
+			"active_deployment_id": null,
+			"latest_deployment": null,
+			"preview_status": "pending",
+			"inspection": null,
+			"stack": null,
+			"inspection_error_code": null,
+			"last_deployed_at": null,
+			"workspace": {
+				"id": "01a1cb4a-de55-72db-b810-80611beec465",
+				"name": "Tim Facility",
+				"slug": "tim-facility-reporting",
+				"type": "team"
+			},
+			"created_at": "2026-11-11T10:00:00+00:00",
+			"updated_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}

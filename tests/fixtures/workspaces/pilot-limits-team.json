@@ -1,0 +1,43 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"workspace_id": "01a1cb4a-de55-72db-b810-80611beec465",
+			"limit_profile": {
+				"id": "01a1cb4a-de3d-722c-8c31-0ec12726c91e",
+				"name": "Magang GMEDIA"
+			},
+			"quotas": {
+				"max_projects_per_user": 5,
+				"max_active_deployments_per_user": 2,
+				"max_active_deployments_per_project": 1,
+				"current_projects_count": 1,
+				"current_active_deployments_count": 0,
+				"max_active_containers": 3,
+				"current_active_containers_count": 0
+			},
+			"runtime_defaults": {
+				"memory_mb": 256,
+				"cpu_millis": 500,
+				"pids_limit": 128
+			},
+			"runtime_maximums": {
+				"memory_mb": 512,
+				"cpu_millis": 1000,
+				"pids_limit": 256
+			},
+			"timeouts": {
+				"build_timeout_seconds": 600,
+				"start_timeout_seconds": 120,
+				"command_timeout_seconds": 900
+			},
+			"log_bounds": {
+				"max_line_length": 4096,
+				"max_batch_lines": 500,
+				"max_total_bytes": 10485760,
+				"max_request_bytes": 1048576
+			},
+			"deleted_project_retention_days": 30
+		}
+	}
+}

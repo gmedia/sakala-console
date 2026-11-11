@@ -1,0 +1,14 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Workspace tim harus punya setidaknya satu pemilik. Jadikan anggota lain pemilik dulu.",
+		"code": "LAST_WORKSPACE_OWNER",
+		"workspaces": [
+			{
+				"id": "01a1cb4a-de55-72db-b810-80611beec465",
+				"name": "Tim Facility",
+				"slug": "tim-facility-reporting"
+			}
+		]
+	}
+}

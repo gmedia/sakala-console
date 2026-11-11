@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Workspace pribadi tidak bisa diganti namanya, dihapus, ditinggalkan, atau diberi anggota. Buat workspace tim untuk bekerja bersama.",
+		"code": "WORKSPACE_IS_PERSONAL"
+	}
+}

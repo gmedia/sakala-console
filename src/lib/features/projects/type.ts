@@ -1,5 +1,6 @@
 import type { components } from '$lib/api/generated/schema';
 import type { DeploymentStatus } from '$lib/features/deployments/type';
+import type { WorkspaceSummary } from '$lib/api/resources/workspaces';
 
 type ProjectContractFields = Pick<
 	components['schemas']['ProjectResource'],
@@ -65,6 +66,8 @@ export interface ProjectBase {
 	/** Only the single-project resource has it; the list does not send it. */
 	public_url?: string | null;
 	last_deployed_at: string | null;
+	/** The owning workspace; missing from an API that predates workspaces. */
+	workspace?: WorkspaceSummary | null;
 	created_at: string;
 	updated_at: string;
 }

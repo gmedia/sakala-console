@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Workspace ini masih punya proyek. Hapus proyeknya dulu, lalu hapus workspace-nya.",
+		"code": "WORKSPACE_NOT_EMPTY",
+		"projects": 1
+	}
+}

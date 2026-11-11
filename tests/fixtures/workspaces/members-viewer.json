@@ -1,0 +1,40 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1cb4a-de55-72db-b810-80611cee2597",
+				"role": "owner",
+				"joined_at": "2026-11-11T10:00:00+00:00",
+				"user": {
+					"id": 1,
+					"name": "Rani Putri",
+					"username": "rani",
+					"avatar_url": null
+				}
+			},
+			{
+				"id": "01a1cb4a-de7c-7046-b4a4-46363f536d81",
+				"role": "member",
+				"joined_at": "2026-11-11T10:00:00+00:00",
+				"user": {
+					"id": 2,
+					"name": "Bima Saputra",
+					"username": "bima",
+					"avatar_url": null
+				}
+			},
+			{
+				"id": "01a1cb4a-de7d-70c3-94f8-4319ae9c436f",
+				"role": "viewer",
+				"joined_at": "2026-11-11T10:00:00+00:00",
+				"user": {
+					"id": 3,
+					"name": "Citra Lestari",
+					"username": "citra",
+					"avatar_url": null
+				}
+			}
+		]
+	}
+}

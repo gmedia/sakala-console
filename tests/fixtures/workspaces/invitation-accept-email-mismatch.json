@@ -1,0 +1,7 @@
+{
+	"status": 403,
+	"body": {
+		"message": "Undangan sebagai pemilik hanya bisa diterima oleh akun dengan email yang diundang. Masuk dengan akun itu, atau minta undangan baru ke email akunmu.",
+		"code": "INVITATION_EMAIL_MISMATCH"
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kamu sudah memiliki 2 workspace tim, dan itu batasnya. Hapus tim yang tidak dipakai atau minta admin Sakala menaikkan batasnya.",
+		"code": "TEAM_LIMIT_EXCEEDED",
+		"limit": 2,
+		"current": 2
+	}
+}

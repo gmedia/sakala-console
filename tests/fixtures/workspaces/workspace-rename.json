@@ -1,0 +1,17 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cb4a-de55-72db-b810-80611beec465",
+			"name": "Tim Facility",
+			"slug": "tim-facility-reporting",
+			"type": "team",
+			"role": "owner",
+			"limit_profile": {
+				"id": "01a1cb4a-de3d-722c-8c31-0ec12726c91e",
+				"name": "Magang GMEDIA"
+			},
+			"created_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}
