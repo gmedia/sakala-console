@@ -6,11 +6,23 @@ import {
 	listNotifications,
 	markAllNotificationsRead
 } from '$lib/api/resources/notifications';
+import { listMyInvitations, parseInvitationList } from '$lib/api/resources/workspaces';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
+import { getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
 import NotificationsPage from './+page.svelte';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('$lib/config/public', () => ({
+	publicConfig: { apiUrl: 'http://api.test', appUrl: 'http://app.test' }
+}));
+
+vi.mock('$lib/api/resources/workspaces', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/api/resources/workspaces')>()),
+	listMyInvitations: vi.fn(),
+	listWorkspaces: vi.fn().mockResolvedValue([])
 }));
 
 vi.mock('$lib/api/resources/notifications', () => ({
@@ -40,6 +52,37 @@ beforeEach(() => {
 	vi.mocked(listNotifications).mockReset();
 	vi.mocked(getUnreadNotificationCount).mockReset().mockResolvedValue(1);
 	vi.mocked(markAllNotificationsRead).mockReset().mockResolvedValue(undefined);
+	vi.mocked(listMyInvitations).mockReset().mockResolvedValue([]);
+});
+
+describe('workspace invitations on the notifications page', () => {
+	it('puts pending invitations above the notifications, ready to answer', async () => {
+		vi.mocked(listMyInvitations).mockResolvedValue(
+			parseInvitationList(getWorkspaceFixture('invitations-mine').body)
+		);
+		vi.mocked(listNotifications).mockResolvedValue({
+			data: [item('a', { category: 'workspace', title: 'Undangan workspace tim' })],
+			meta: { current_page: 1, last_page: 1, total: 1 }
+		});
+		await renderPage();
+
+		const invitations = page.getByTestId('my-invitations');
+		await expect.element(invitations).toHaveTextContent(/Undangan ke Tim Facility/);
+		await expect
+			.element(invitations.getByRole('button', { name: 'Terima undangan' }))
+			.toBeVisible();
+	});
+
+	it('shows nothing extra when there is no invitation', async () => {
+		vi.mocked(listNotifications).mockResolvedValue({
+			data: [item('a')],
+			meta: { current_page: 1, last_page: 1, total: 1 }
+		});
+		await renderPage();
+
+		await expect.element(page.getByText('Pesan a')).toBeVisible();
+		await expect.element(page.getByTestId('my-invitations')).not.toBeInTheDocument();
+	});
 });
 
 describe('NotificationCenter', () => {
