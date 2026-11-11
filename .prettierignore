@@ -7,3 +7,7 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Generated: kept byte for byte as the tools write them, so `pnpm api:types:check` can compare
+/src/lib/api/generated/openapi.json
+/src/lib/api/generated/schema.d.ts

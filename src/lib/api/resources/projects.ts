@@ -4,8 +4,14 @@ import type { components, operations } from '../generated/schema';
 import { workspaceSummarySchema, type WorkspaceSummary } from './workspaces';
 
 export type GeneratedProject = components['schemas']['GetCollectionProjectResource'];
-export type Project = Omit<GeneratedProject, 'runtime_status'> & {
+type GeneratedLatestDeployment = components['schemas']['LatestDeploymentResource'];
+/** Statuses stay plain strings, as parsed, so a value added by a newer API still renders. */
+export type Project = Omit<
+	GeneratedProject,
+	'runtime_status' | 'latest_deployment' | 'workspace'
+> & {
 	runtime_status: string;
+	latest_deployment: (Omit<GeneratedLatestDeployment, 'status'> & { status: string }) | null;
 	/** The owning workspace. Optional because an API from before workspaces does not send it. */
 	workspace?: WorkspaceSummary | null;
 };

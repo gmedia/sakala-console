@@ -60,5 +60,6 @@ export type OnboardingSourceSelection =
 export type OnboardingProfileSelection = {
 	name?: string;
 	role?: OnboardingProfile;
-	skip?: boolean;
+	/** Only `true`: the API rejects `skip: false`. */
+	skip?: true;
 };

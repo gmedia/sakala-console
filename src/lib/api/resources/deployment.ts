@@ -1,22 +1,44 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
-import type { components, operations } from '../generated/schema';
+import type { components, operations, paths } from '../generated/schema';
 
 export type GeneratedDeployment = components['schemas']['DeploymentResource'];
-export type Deployment = GeneratedDeployment;
+/**
+ * `status` and `trigger` stay plain strings, as the schema below parses them: a value added by a
+ * newer API still renders, and `status-config.ts` falls back for a status it does not know.
+ */
+export type Deployment = Omit<GeneratedDeployment, 'status' | 'trigger'> & {
+	status: string;
+	trigger: string;
+};
 
 export type GeneratedDeploymentEvent = components['schemas']['DeploymentEventResource'];
-export type DeploymentEvent = GeneratedDeploymentEvent;
+/** What the parser returns: an event without `occurred_at` is dropped, so it is never `null` here. */
+export type DeploymentEvent = z.output<typeof deploymentEventSchema>;
 
 export type GeneratedDeploymentLog = components['schemas']['DeploymentLogResource'];
-export type DeploymentLog = GeneratedDeploymentLog;
+/** What the parser returns: a row without `recorded_at` is dropped, so it is never `null` here. */
+export type DeploymentLog = z.output<typeof deploymentLogSchema>;
 
-type DeploymentResponse =
-	operations['projects.deployments.show']['responses'][200]['content']['application/json'];
-export type DeploymentEventsResponse =
-	operations['deployment.events']['responses'][200]['content']['application/json'];
-export type DeploymentLogsResponse =
-	operations['deployment.logs']['responses'][200]['content']['application/json'];
+type DeploymentResponse = Omit<
+	operations['projects.deployments.show']['responses'][200]['content']['application/json'],
+	'data'
+> & { data: Deployment };
+
+// These routes have no name, so their generated operation id comes from the controller and changes
+// with it. The path is the stable key.
+type DeploymentEventsPath = paths['/v1/app/projects/{project}/deployments/{deployment}/events'];
+type DeploymentLogsPath = paths['/v1/app/projects/{project}/deployments/{deployment}/logs'];
+type GeneratedDeploymentEventsResponse =
+	DeploymentEventsPath['get']['responses'][200]['content']['application/json'];
+export type DeploymentEventsResponse = Omit<GeneratedDeploymentEventsResponse, 'data'> & {
+	data: DeploymentEvent[];
+};
+type GeneratedDeploymentLogsResponse =
+	DeploymentLogsPath['get']['responses'][200]['content']['application/json'];
+export type DeploymentLogsResponse = Omit<GeneratedDeploymentLogsResponse, 'data'> & {
+	data: DeploymentLog[];
+};
 
 export class DeploymentEventsTruncationError extends Error {
 	readonly name = 'DeploymentEventsTruncationError';
@@ -135,7 +157,7 @@ const deploymentEventSchema = z.object({
 	message: z.string(),
 	metadata: decorative(z.record(z.string(), z.unknown())),
 	occurred_at: z.string()
-}) satisfies z.ZodType<DeploymentEvent>;
+}) satisfies z.ZodType<GeneratedDeploymentEvent>;
 
 const deploymentResponseSchema = z.object({
 	data: deploymentSchema
@@ -146,7 +168,7 @@ const deploymentLogSchema = z.object({
 	stream: z.enum(['stdout', 'stderr', 'system']),
 	message: z.string(),
 	recorded_at: z.string()
-}) satisfies z.ZodType<DeploymentLog>;
+}) satisfies z.ZodType<GeneratedDeploymentLog>;
 
 const cursorLinksSchema = z.object({
 	first: z.string().nullable(),
@@ -178,13 +200,13 @@ const deploymentEventsResponseSchema = z.object({
 	data: tolerantList(deploymentEventSchema, 'event'),
 	links: cursorLinksSchema,
 	meta: cursorMetaSchema
-}) satisfies z.ZodType<DeploymentEventsResponse>;
+}) satisfies z.ZodType<GeneratedDeploymentEventsResponse>;
 
 const deploymentLogsResponseSchema = z.object({
 	data: tolerantList(deploymentLogSchema, 'baris log'),
 	links: cursorLinksSchema,
 	meta: cursorMetaSchema
-}) satisfies z.ZodType<DeploymentLogsResponse>;
+}) satisfies z.ZodType<GeneratedDeploymentLogsResponse>;
 
 export async function getDeployment(
 	project: string,

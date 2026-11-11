@@ -2,10 +2,21 @@ import { z } from 'zod';
 import { apiRequest } from '../client';
 import type { components, operations } from '../generated/schema';
 
-export type CurrentUser = components['schemas']['UserResource'];
+type GeneratedUser = components['schemas']['UserResource'];
+/**
+ * `role` and the onboarding answers stay plain strings, as parsed: a role or answer added by a newer
+ * API must not sign the user out, and the Console only compares them against values it knows.
+ */
+export type CurrentUser = Omit<GeneratedUser, 'role' | 'onboarding_source' | 'onboarding_role'> & {
+	role: string;
+	onboarding_source: string | null;
+	onboarding_role: string | null;
+};
 
-type CurrentUserResponse =
-	operations['v1.auth.user']['responses'][200]['content']['application/json'];
+type CurrentUserResponse = Omit<
+	operations['v1.auth.user']['responses'][200]['content']['application/json'],
+	'data'
+> & { data: CurrentUser };
 
 const currentUserSchema = z.object({
 	id: z.number(),
