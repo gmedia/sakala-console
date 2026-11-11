@@ -4,11 +4,23 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-11
+
+### Added
+
+- The project list follows deployments that are in progress over realtime, through each deployment's channel, and falls back to polling every 5 minutes, so a project's status changes without a reload.
+- Toasts confirm copying, saving an environment variable, and queueing a redeploy.
+
 ### Fixed
 
+- Skeleton loaders are visible again: 1.70:1 on white, and at least 1.42:1 through their pulse.
 - The sidebar shows the released version: `package.json` now carries `0.3.0`, and the release workflow refuses a tag that does not match it.
 - Deleting a project no longer reads the project and its deployments again after the `204`, which logged two `404` errors.
 - Onboarding fills "Nama lengkap" with the name on the account, and keeps whatever the user types instead.
+
+### Changed
+
+- Dependencies updated through Dependabot: the npm minor and patch group (21 packages, including Svelte, Vite, bits-ui, TanStack Query, and Zod), vitest-browser-svelte 3, actions/checkout v7, actions/setup-node v7, and docker/setup-buildx-action v4.
 
 ## [0.3.0] - 2026-11-11
 
@@ -57,5 +69,6 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/gmedia/sakala-console/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gmedia/sakala-console/compare/v0.2.0...v0.3.0
