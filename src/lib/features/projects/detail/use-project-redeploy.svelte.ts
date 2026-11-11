@@ -1,10 +1,11 @@
 import { goto } from '$app/navigation';
+import { toast } from 'svelte-sonner';
 import { resolveRoute } from '$app/paths';
 import { getErrorMessage } from '$lib/api/errors';
 import { createRedeployMutation, createUpdateProjectMutation } from '../mutations';
 import type { Project } from '../type';
 import { getProjectDetailContext } from './projectDetailState.svelte';
-import { executeRedeployFlow } from './redeploy';
+import { executeRedeployFlow, redeployStartedMessage } from './redeploy';
 
 /**
  * Redeploy from a project tab: saves the settings draft first, then opens the new deployment, which
@@ -36,6 +37,7 @@ export function useProjectRedeploy(project: () => Pick<Project, 'id' | 'branch'>
 				triggerRedeploy: (payload) => {
 					redeploy.mutate(payload, {
 						onSuccess: (deployment) => {
+							toast.success(redeployStartedMessage(deployment));
 							void goto(
 								resolveRoute('/(app)/projects/[id]/deployments/[deploymentId]', {
 									id: current.id,

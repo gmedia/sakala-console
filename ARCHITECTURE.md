@@ -313,7 +313,7 @@ Contoh create project:
   -> createProject(payload)
   -> POST /api/v1/app/projects
   -> invalidate projectKeys.all
-  -> simpan env, lalu tampilkan Auto Detect
+  -> simpan env, lalu tampilkan Deteksi otomatis
 ```
 
 Jangan menaruh `goto`, invalidation, dan parsing error tersebar di banyak component. Untuk flow domain, simpan di mutation feature agar behavior konsisten.

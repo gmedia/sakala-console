@@ -10,6 +10,7 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
 	import { ABUSE_EMAIL } from '$lib/config/project';
+	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { formatRelativeTime } from '$lib/utils/date';
 	import { useProjectLiveStatus } from '$lib/features/projects/detail/use-project-live-status.svelte';
 	import { useProjectRedeploy } from '$lib/features/projects/detail/use-project-redeploy.svelte';
@@ -40,9 +41,8 @@
 	let isCopied = $state(false);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
-	function handleCopyUrl() {
-		if (!publicUrl) return;
-		navigator.clipboard?.writeText(publicUrl);
+	async function handleCopyUrl() {
+		if (!publicUrl || !(await copyWithToast(publicUrl, URL_COPY_MESSAGES))) return;
 		isCopied = true;
 		clearTimeout(copyTimer);
 		copyTimer = setTimeout(() => {

@@ -18,6 +18,7 @@
 		type ServingState
 	} from '../status-config';
 	import { getPublicUrlLabel } from '$lib/features/projects/presentation';
+	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { cn } from '$lib/utils/cn';
 
 	type Props = {
@@ -103,9 +104,8 @@
 	);
 	let canRedeploy = $derived(status === 'failed' || status === 'cancelled');
 
-	function copyToClipboard() {
-		if (!publicUrl) return;
-		navigator.clipboard?.writeText(publicUrl);
+	async function copyToClipboard() {
+		if (!publicUrl || !(await copyWithToast(publicUrl, URL_COPY_MESSAGES))) return;
 		copied = true;
 		clearTimeout(copyTimer);
 		copyTimer = setTimeout(() => {

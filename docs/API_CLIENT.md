@@ -100,7 +100,7 @@ Wizard di `/projects/new` punya tiga langkah, dan project baru ada setelah langk
 
 1. Repository. `GET app/github/installations/{id}/repositories` dipanggil per halaman (5 repository) dengan `search` di server, dan jumlah "Menampilkan x dari y" memakai `meta.total`. API hanya mencari di 1.000 repository pertama. Instalasi lebih dari satu memunculkan pilihan akun. `409` berarti instalasi tidak aktif, dan tombol hubungkan ulang menuju `auth/github/installations/{id}/configure`, atau `auth/github/install` kalau statusnya `removed`.
 2. Konfigurasi. Port, build, start, dan root directory terlipat di "Pengaturan lanjutan", dan terbuka sendiri kalau ada isinya atau salah satunya error. Branch berasal dari `.../repositories/{id}/branches` atau `repositories/branches?repository_url=`. Yang pertama dipotong API di 100 branch, jadi hanya di situ nama lain boleh diketik. Domain berasal dari `GET app/projects/domain-preview`, tidak dipatok di console. Validasi field meniru `ValidatesBuildConfiguration` di API, dan `422` dipetakan ke field-nya. "Buat Proyek" menjalankan `POST app/projects`, lalu menyimpan env satu per satu. Env yang gagal dijelaskan dan dicoba ulang tanpa membuat project lagi.
-3. Auto Detect. `preview_status` dibaca ulang tiap 3 detik selama `pending`. `null` di `stack` berarti tidak diketahui dan ditampilkan begitu. "Detect ulang" memakai `POST app/projects/{id}/inspection`, dan "Deploy sekarang" membuat deployment lalu membuka halaman detail deployment, yang menjadi langkah deploy-nya.
+3. Deteksi otomatis. `preview_status` dibaca ulang tiap 3 detik selama `pending`. `null` di `stack` berarti tidak diketahui dan ditampilkan begitu. "Deteksi ulang" memakai `POST app/projects/{id}/inspection`, dan "Deploy sekarang" membuat deployment lalu membuka halaman detail deployment, yang menjadi langkah deploy-nya.
 
 Setelah project dibuat, id-nya masuk ke URL (`?project=`) dengan `replaceState`. Reload membuka langkah 3, bukan form, karena mengirim form lagi akan membuat project kedua. Keluar dari langkah 3 tidak menghapus project.
 
@@ -120,7 +120,7 @@ PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` meng
 
 `GET app/projects` mengirim `public_url` dan `latest_deployment`, yang boleh `null` untuk project tanpa deployment. Kartu hanya menautkan URL saat `runtime_status` bernilai `running`. Satu baca daftar berarti satu request untuk enam kartu.
 
-Daftar di-poll dengan `resolveProjectListPollInterval()`: 15 detik saat ada yang sedang berjalan dan 60 detik saat tidak, atau 60 detik dan 5 menit saat socket tersambung. `notification.created` di `users.{id}` juga membaca ulang daftar, karena notifikasi itulah yang mengabarkan akhir deployment. API belum punya channel per project untuk daftar ini.
+`useProjectListLive()` mengikuti `deployment.updated` di channel `deployment.{id}` untuk setiap deployment yang masih berjalan di halaman itu, jadi tiap tahap membaca ulang daftar, satu request per rentetan event. Channel-nya tetap terbuka selama deployment itu berjalan dan ditutup begitu selesai. `notification.created` di `users.{id}` juga membaca ulang daftar, karena notifikasi itulah yang mengabarkan akhir deployment. API belum punya channel per project atau per user yang mengabarkan deployment baru, jadi deployment yang dimulai dari tempat lain, misalnya webhook, hanya terlihat lewat polling `resolveProjectListPollInterval()`: tanpa realtime 15 detik saat ada yang berjalan dan 60 detik saat tidak, dengan realtime 5 menit sebagai jaring pengaman.
 
 ## Project Header
 
@@ -149,3 +149,5 @@ Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan 
 `request-budget.svelte.spec.ts` mengukur satu tab pada deployment 5 menit dengan timeline tiruan: paling sibuk 9 request per 60 detik dengan realtime, 64 dengan polling saja.
 
 Skema field yang hanya pelengkap tampilan (`metadata`, `*_resources`, `queue_state`) membaca bentuk tak dikenal sebagai `null`, karena PHP mengirim map kosong sebagai `[]`. Baris event atau log yang rusak dilewati satu per satu, bukan menjatuhkan seluruh daftar.
+
+`image_reference` dan `agent_node_id` ikut diparse tetapi sengaja tidak ditampilkan. `image_reference` adalah tag image lokal di node, misalnya `sakala/project-<id>:<sha>`, yang tidak bisa di-pull atau dipakai user. `agent_node_id` adalah ID internal node. Keduanya tidak membantu user memperbaiki apa pun. Yang menandai build sudah tampil, yaitu commit SHA dan nomor deployment, dan link "Kirim masukan" membawa ID deployment, sehingga admin bisa menemukan image dan node-nya dari situ.

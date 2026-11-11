@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { executeRedeployFlow } from './redeploy';
+import { executeRedeployFlow, redeployStartedMessage } from './redeploy';
 
 describe('executeRedeployFlow', () => {
 	beforeEach(() => {
@@ -181,5 +181,19 @@ describe('executeRedeployFlow', () => {
 
 		expect(updateProject).not.toHaveBeenCalled();
 		expect(triggerRedeploy).not.toHaveBeenCalled();
+	});
+});
+
+describe('redeployStartedMessage', () => {
+	it('says a queued redeploy is waiting, and names the new deployment', () => {
+		expect(redeployStartedMessage({ sequence: 12, status: 'queued' })).toBe(
+			'Redeploy masuk antrean sebagai deployment #12.'
+		);
+	});
+
+	it('says one that already left the queue has started', () => {
+		expect(redeployStartedMessage({ sequence: 13, status: 'cloning' })).toBe(
+			'Redeploy dimulai sebagai deployment #13.'
+		);
 	});
 });

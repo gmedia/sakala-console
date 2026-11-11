@@ -31,5 +31,7 @@
 	{@render children()}
 </QueryClientProvider>
 
-<!-- Only for an action whose result is on a page the user has already left. Forms answer inline. -->
+<!-- The one live region for toasts. A toast confirms what an action did when nothing else on the
+     screen says so: a copy, a saved variable, a redeploy that opened another page. Errors that need
+     a fix stay inline, next to the field or banner they belong to. -->
 <Toaster position="bottom-right" containerAriaLabel="Notifikasi sementara" />

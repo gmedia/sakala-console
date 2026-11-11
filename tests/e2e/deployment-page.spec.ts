@@ -181,6 +181,17 @@ test.describe('the first time a project goes live', () => {
 		await expect(page.getByRole('log')).toBeVisible();
 	});
 
+	test('copying the address says so in a toast', async ({ page, context }) => {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		await mockProjectApi(page, { deployment: () => first, deploymentList: () => [first] });
+		await page.goto(DETAIL_URL);
+
+		await page.getByRole('button', { name: 'Salin URL' }).click();
+
+		await expect(page.getByText('URL disalin.')).toBeVisible();
+		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
+	});
+
 	test('earlier failures do not take the moment away', async ({ page }) => {
 		const third = { ...succeededDeployment, sequence: 3 };
 		await mockProjectApi(page, {

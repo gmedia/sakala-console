@@ -10,6 +10,7 @@
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+	import { toast } from 'svelte-sonner';
 	import { ApiError, getErrorMessage } from '$lib/api/errors';
 	import { createEnvironmentVariablesQuery, createProjectQuery } from '../../queries';
 	import {
@@ -175,6 +176,7 @@
 			},
 			{
 				onSuccess: () => {
+					toast.success(`Variabel ${trimmedKey} disimpan.`);
 					void handleCancelAdd();
 				},
 				onError: (err) => {
@@ -252,6 +254,7 @@
 					// What was revealed before may no longer be the current value.
 					delete revealedValues[env.id];
 					visibleIds.delete(env.id);
+					toast.success(`Perubahan ${env.key} disimpan.`);
 					void handleCancelEdit();
 				},
 				onError: (err) => {
@@ -287,7 +290,7 @@
 
 	function handleConfirmDelete() {
 		if (!deletingEnv || deleting) return;
-		const envId = deletingEnv.id;
+		const { id: envId, key: envKey } = deletingEnv;
 		deleting = true;
 		deleteError = '';
 
@@ -300,6 +303,7 @@
 					revealErrors.delete(envId);
 					delete revealedValues[envId];
 					deletingEnv = null;
+					toast.success(`Variabel ${envKey} dihapus.`);
 				},
 				onError: (err) => {
 					deleteError = getErrorMessage(err, 'Variabel belum bisa dihapus. Silakan coba lagi.');

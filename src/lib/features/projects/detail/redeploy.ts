@@ -57,3 +57,13 @@ export async function executeRedeployFlow({
 				: 'redeploy-' + Date.now()
 	});
 }
+
+/**
+ * The toast after a redeploy is accepted. The page it opens shows the new deployment, but nothing
+ * there announces that it started: `DeploymentLiveAnnouncement` only speaks when one finishes.
+ */
+export function redeployStartedMessage(deployment: { sequence: number; status: string }): string {
+	return deployment.status === 'queued'
+		? `Redeploy masuk antrean sebagai deployment #${deployment.sequence}.`
+		: `Redeploy dimulai sebagai deployment #${deployment.sequence}.`;
+}

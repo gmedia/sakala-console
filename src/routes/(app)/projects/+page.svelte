@@ -10,6 +10,7 @@
 	import type { DateFilterValue } from '$lib/features/projects/filters';
 	import PilotQuotaNotice from '$lib/features/projects/components/create/PilotQuotaNotice.svelte';
 	import { createListProjectsQuery, createPilotLimitsQuery } from '$lib/features/projects/queries';
+	import { useProjectListLive } from '$lib/features/projects/use-project-list-live.svelte';
 
 	const perPage = 6;
 
@@ -32,6 +33,8 @@
 		}),
 		() => ({ poll: true })
 	);
+
+	useProjectListLive(() => projectsQuery.data?.projects ?? []);
 
 	const isCurrentResultEmpty = $derived(
 		!projectsQuery.isPending && (projectsQuery.data?.projects.length ?? 0) === 0

@@ -14,8 +14,8 @@
 	--color-border: #dde5df;
 	/* The edge of a control: inputs, selects, outlined buttons. 3:1 on every background. */
 	--color-border-strong: #7e8a82;
-	/* A shape standing in for content. Has to be seen on white, without reading as a control. */
-	--color-skeleton: #c9d4cd;
+	/* A shape standing in for content. 1.7:1 on white, so it is seen without reading as a control. */
+	--color-skeleton: #bccac2;
 	--color-primary: #0f766e;
 	--color-primary-base: #0f766e;
 	--color-primary-50: #e7f1f1;
@@ -234,10 +234,17 @@
 		background: var(--color-skeleton);
 	}
 
+	/* Tailwind's pulse fades to half, which is where the old skeleton went invisible. */
 	@media (prefers-reduced-motion: no-preference) {
 		.skeleton {
-			animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+			animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 		}
+	}
+}
+
+@keyframes skeleton-pulse {
+	50% {
+		opacity: 0.75;
 	}
 }
 

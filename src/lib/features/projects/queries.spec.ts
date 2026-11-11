@@ -11,9 +11,8 @@ import {
 	HEADER_POLL_RUNNING_REALTIME_MS,
 	hasProjectInProgress,
 	LIST_POLL_IDLE_MS,
-	LIST_POLL_IDLE_REALTIME_MS,
 	LIST_POLL_RUNNING_MS,
-	LIST_POLL_RUNNING_REALTIME_MS,
+	LIST_POLL_REALTIME_MS,
 	resolveProjectListPollInterval,
 	resolveHeaderPollInterval,
 	resolveProjectPollInterval
@@ -208,10 +207,10 @@ describe('polling the project list', () => {
 		expect(60_000 / LIST_POLL_RUNNING_MS).toBeLessThanOrEqual(4);
 	});
 
-	it('leans on the socket when it is up', () => {
+	it('only polls for what no broadcast announces while the socket is up', () => {
 		realtimeState.status = 'connected';
-		expect(resolveProjectListPollInterval(true)).toBe(LIST_POLL_RUNNING_REALTIME_MS);
-		expect(resolveProjectListPollInterval(false)).toBe(LIST_POLL_IDLE_REALTIME_MS);
+		expect(resolveProjectListPollInterval(true)).toBe(LIST_POLL_REALTIME_MS);
+		expect(resolveProjectListPollInterval(false)).toBe(LIST_POLL_REALTIME_MS);
 		realtimeState.status = 'disconnected';
 	});
 
