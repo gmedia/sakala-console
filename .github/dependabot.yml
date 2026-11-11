@@ -5,6 +5,11 @@ version: 2
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
+    ignore:
+      # @types/node follows the Node runtime major (node:22 in the Dockerfile,
+      # engines >=22.12), not the newest Node; bump it by hand with the runtime.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     schedule:
       interval: 'weekly'
       day: 'monday'
