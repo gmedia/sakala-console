@@ -4,6 +4,12 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Fixed
+
+- The sidebar shows the released version: `package.json` now carries `0.3.0`, and the release workflow refuses a tag that does not match it.
+- Deleting a project no longer reads the project and its deployments again after the `204`, which logged two `404` errors.
+- Onboarding fills "Nama lengkap" with the name on the account, and keeps whatever the user types instead.
+
 ## [0.3.0] - 2026-11-11
 
 ### Added

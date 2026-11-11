@@ -31,6 +31,10 @@ docs(console): explain static fallback
 - Gunakan Bahasa Indonesia untuk user-facing copy.
 - Perbarui docs ketika route, env, auth, atau API boundary berubah.
 
+## Release
+
+Rilis dimulai dari commit persiapan lewat pull request ke `main`, misalnya `chore(release): prepare v0.4.0`. Commit itu memindahkan isi `[Unreleased]` di `CHANGELOG.md` ke bagian versi baru dan menaikkan `version` di `package.json` ke versi yang sama, karena sidebar menampilkan versi dari situ. Setelah commit itu masuk `main`, beri tag `v<versi>` pada commit tersebut. Workflow `release` menolak tag yang tidak bisa dicapai dari `main` atau yang tidak sama dengan `version` di `package.json`.
+
 ## Pull Request Checklist
 
 - [ ] Scope PR fokus dan tidak membawa refactor tak terkait.

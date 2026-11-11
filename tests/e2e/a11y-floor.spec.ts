@@ -190,6 +190,23 @@ test('onboarding fits 320 px and has a page heading', async ({ page }) => {
 	expect(next!.x + next!.width).toBeLessThanOrEqual(320);
 });
 
+test('onboarding starts from the name on the account, and keeps an edit', async ({ page }) => {
+	await mockEveryRoute(page);
+	await page.route('**/api/v1/auth/user', (route) =>
+		route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify({ data: { ...signedInUser, onboarding_completed_at: null } })
+		})
+	);
+
+	await page.goto('/onboarding');
+	const name = page.getByLabel('Nama lengkap');
+	await expect(name).toHaveValue(signedInUser.name);
+
+	await name.fill('Rani W.');
+	await expect(name).toHaveValue('Rani W.');
+});
+
 test.describe('keyboard', () => {
 	test('the skip link is the first stop and lands past the navigation', async ({ page }) => {
 		await mockEveryRoute(page);

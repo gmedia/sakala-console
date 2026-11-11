@@ -7,6 +7,7 @@ import {
 	useSubmitOnboardingSource
 } from './mutations';
 import { ApiError, NetworkError } from '$lib/api/errors';
+import { useCurrentUser } from '$lib/features/auth/queries';
 
 function toErrorMessage(error: unknown): string | null {
 	if (!error) return null;
@@ -21,8 +22,13 @@ function toErrorMessage(error: unknown): string | null {
 export function useOnboardingFlow() {
 	let step = $state<1 | 2 | 3>(1);
 	let selectedSource = $state<OnboardingSource | undefined>();
-	let profileName = $state<string | undefined>();
+	// Only what the user typed. Until they type, the name on the account fills the field, so a late
+	// answer from the API never overwrites an edit.
+	let editedName = $state<string | undefined>();
 	let profileRole = $state<OnboardingProfile | undefined>();
+
+	const currentUser = useCurrentUser();
+	const profileName = $derived(editedName ?? (currentUser.data?.name || undefined));
 
 	const sourceMutation = useSubmitOnboardingSource();
 	const profileMutation = useSubmitOnboardingProfile();
@@ -53,7 +59,7 @@ export function useOnboardingFlow() {
 	}
 
 	function updateProfile(update: { name?: string; role?: OnboardingProfile }) {
-		if (update.name !== undefined) profileName = update.name;
+		if (update.name !== undefined) editedName = update.name;
 		if (update.role !== undefined) profileRole = update.role;
 	}
 
