@@ -21,8 +21,9 @@
 		"test:component": "vitest run --project client",
 		"test:e2e": "playwright test",
 		"test": "pnpm test:unit && pnpm test:component",
-		"api:types": "openapi-typescript http://127.0.0.1:8000/docs/api.json -o src/lib/api/generated/schema.d.ts",
-		"quality": "pnpm format:check && pnpm lint && pnpm check && pnpm test && pnpm build"
+		"api:types": "openapi-typescript src/lib/api/generated/openapi.json -o src/lib/api/generated/schema.d.ts",
+		"api:types:check": "openapi-typescript src/lib/api/generated/openapi.json -o src/lib/api/generated/schema.d.ts --check",
+		"quality": "pnpm format:check && pnpm lint && pnpm api:types:check && pnpm check && pnpm test && pnpm build"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

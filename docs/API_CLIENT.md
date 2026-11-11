@@ -23,32 +23,49 @@ Jangan memanggil raw `fetch` dari route atau component. Tambahkan wrapper domain
 
 ## Generated Types
 
-Nyalakan `sakala-api`, lalu jalankan:
+`src/lib/api/generated/openapi.json` adalah export Scramble OpenAPI dari `sakala-api` yang di-commit,
+dan `schema.d.ts` di-generate dari file itu. Keduanya tidak diedit manual dan tidak diformat
+Prettier, supaya `pnpm api:types:check` bisa membandingkannya byte per byte. Check itu berjalan di
+`pnpm quality` dan CI tanpa API yang menyala; ia membuktikan `schema.d.ts` cocok dengan
+`openapi.json`, bukan bahwa `openapi.json` sama dengan API terbaru.
 
-```bash
-pnpm api:types
-```
-
-Command membaca Scramble OpenAPI dari `http://127.0.0.1:8000/docs/api.json` agar local proxy dan
-konfigurasi hostname tidak memengaruhi generation. File hasil generation boleh diregenerasi dan
-di-commit, tetapi tidak diedit manual.
-
-Tanpa server yang menyala, export dari `sakala-api` ke file di luar repository lalu arahkan
-`openapi-typescript` ke file itu. Pakai SQLite yang sudah dimigrasi, bukan `:memory:` kosong: tanpa
-tabel, Scramble tidak bisa membaca tipe kolom, sehingga `sequence` dan field nullable keluar sebagai
-`string`.
+Untuk mengikuti API, export ulang `openapi.json` dari tag atau commit `sakala-api` yang dituju, lalu
+generate:
 
 ```bash
 # di sakala-api
 touch /tmp/sakala-openapi.sqlite
 export DB_CONNECTION=sqlite DB_DATABASE=/tmp/sakala-openapi.sqlite
 php artisan migrate --force
-php artisan scramble:export --path=/tmp/sakala-openapi.json
+php artisan scramble:export --path=<sakala-console>/src/lib/api/generated/openapi.json
 
 # di sakala-console
-pnpm exec openapi-typescript /tmp/sakala-openapi.json -o src/lib/api/generated/schema.d.ts
-pnpm exec prettier --write src/lib/api/generated/schema.d.ts
+pnpm api:types
+pnpm check
 ```
+
+Pakai SQLite yang sudah dimigrasi, bukan `:memory:` kosong: tanpa tabel, Scramble tidak bisa membaca
+tipe kolom, sehingga `sequence` dan field nullable keluar sebagai `string`. Hasilnya sama dengan
+PostgreSQL. Kalau API sedang menyala, `curl -fsS http://127.0.0.1:8000/docs/api.json -o
+src/lib/api/generated/openapi.json` juga bisa.
+
+Aturan saat tipe hasil generation tidak cocok dengan kode:
+
+- Status dan enum lain yang ditampilkan (`status`, `trigger`, `runtime_status`, `role`, jawaban
+  onboarding) tetap dibaca Zod sebagai `string`, dan tipe Console melebarkannya dengan `Omit<...> &
+{ status: string }`. Nilai baru dari API yang lebih baru tetap tampil, dan label punya fallback.
+- Field yang wajib di API tetapi belum dikirim API lama (`workspace`, `workspace_id`,
+  `limit_profile`, kuota container) tetap opsional di Zod dan di tipe Console.
+- Kalau Zod lebih ketat dari dokumen OpenAPI (misalnya `occurred_at` dan `recorded_at` yang
+  didokumentasikan nullable padahal kolomnya `NOT NULL`), tipe yang dipakai aplikasi adalah
+  `z.output` schema, dan schema tetap `satisfies` tipe hasil generation.
+- Kalau dokumen OpenAPI salah dibanding response nyata, jangan edit file generated. Override field
+  itu di tipe Console dengan komentar yang menyebut kesalahannya, dan laporkan ke `sakala-api`.
+  Saat ini: `EnvironmentVariableResource.id` didokumentasikan `string` padahal integer, dan
+  `PilotLimitsResource.runtime_defaults.memory_mb`/`cpu_millis` serta beberapa field
+  `NotificationResource` tidak punya tipe.
+- Route tanpa nama mendapat operation id dari nama controller, yang berubah kalau controller
+  berubah. Untuk route itu, ambil tipe lewat `paths['/v1/...']`, seperti events dan log deployment.
 
 ## Reference Implementation
 
@@ -112,7 +129,7 @@ Batas itu milik satu workspace. Tanpa `workspace_id` API menjawab untuk workspac
 
 ## Workspace
 
-Setiap project dimiliki workspace (ADR-018 di sakala-landing). Setiap user punya workspace pribadi, dan workspace tim punya peran `owner`, `member`, dan `viewer`. Kontraknya ada di `src/lib/api/resources/workspaces.ts`: schema OpenAPI yang di-generate belum memuat workspace, jadi schema Zod di sana menjadi kontraknya. Schema itu diuji terhadap respons yang benar-benar dikirim API di `tests/fixtures/workspaces/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan yang tidak di-commit ke API. Field debug Laravel (`exception`, `file`, `line`, `trace`) dibuang dari fixture, karena production tidak mengirimnya.
+Setiap project dimiliki workspace (ADR-018 di sakala-landing). Setiap user punya workspace pribadi, dan workspace tim punya peran `owner`, `member`, dan `viewer`. Kontraknya ada di `src/lib/api/resources/workspaces.ts`. Schema Zod di sana ditulis sebelum workspace masuk ke OpenAPI yang di-generate, dan tetap menjadi kontrak runtime-nya. Schema itu diuji terhadap respons yang benar-benar dikirim API di `tests/fixtures/workspaces/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan yang tidak di-commit ke API. Field debug Laravel (`exception`, `file`, `line`, `trace`) dibuang dari fixture, karena production tidak mengirimnya.
 
 - Workspace aktif dipilih di sidebar dan disimpan di `localStorage` per user (`sakala.active-workspace.{userId}`), lewat `features/workspaces/selection.svelte.ts`. Tanpa pilihan, atau kalau user sudah keluar dari tim yang tersimpan, yang aktif adalah workspace pribadi. Orang yang tidak punya tim tidak melihat perubahan apa pun selain switcher-nya.
 - Daftar project mengirim `workspace_id` workspace aktif. Kalau `GET app/workspaces` gagal, misalnya API lama tanpa workspace, daftar dibaca tanpa parameter dan API mengembalikan project dari semua workspace user. Kartu project menyebut workspace-nya begitu user punya tim.
@@ -123,7 +140,7 @@ Setiap project dimiliki workspace (ADR-018 di sakala-landing). Setiap user punya
 - Pembacaan itu, menerima, dan menolak berbagi rate limit 5 per menit di API. Karena itu query-nya tidak di-retry dan tidak dimuat ulang saat jendela kembali fokus, memakai `separateRateLimit`, dan key-nya `['workspace-invitation', id, token]` di luar prefix `workspaces`, supaya invalidasi setelah menerima tidak membacanya lagi.
 - Notifikasi kategori `workspace` membuka undangannya lewat `invitation_id`, atau timnya lewat `workspace_id` untuk perubahan peran. Notifikasi lama tanpa keduanya membuka `/workspace-invitations`. Halaman notifikasi menampilkan undangan yang tertunda di atas daftar notifikasi.
 - `projects_count` dan `active_deployments_count` di resource workspace tampil di switcher dan di halaman tim. Tombol hapus tim tetap membaca `quotas.current_projects_count` dari `pilot-limits`, yang dimuat segar di halaman itu.
-- Pengaturan notifikasi punya kategori `workspace` (undangan dan keanggotaan tim). Email undangan tetap dikirim walaupun kategori itu dimatikan. Schema preferensi ditulis dari resource API, karena schema OpenAPI yang di-generate belum memuat kategori itu, dan `workspace` dibaca `true` kalau API belum mengirimnya, sesuai default-nya.
+- Pengaturan notifikasi punya kategori `workspace` (undangan dan keanggotaan tim). Email undangan tetap dikirim walaupun kategori itu dimatikan. Schema preferensi ditulis dari resource API, dan `workspace` dibaca `true` kalau API belum mengirimnya, sesuai default-nya.
 
 ## Masukan
 
@@ -171,7 +188,7 @@ Skema field yang hanya pelengkap tampilan (`metadata`, `*_resources`, `queue_sta
 
 ## Area Admin
 
-Halaman `/admin/*` memakai endpoint `api/v1/admin` dari `sakala-api`. Kontraknya ada di `src/lib/api/resources/admin/`: file OpenAPI yang di-generate belum memuat endpoint admin, jadi schema Zod di sana menjadi kontraknya dan tipe diturunkan dengan `z.infer`. Schema itu diuji terhadap respons yang benar-benar dikirim API (`tests/fixtures/admin/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan), dan mock e2e (`tests/e2e/fixtures/admin.ts`) menyajikan respons yang sama. Kalau resource admin di API berubah, ambil ulang fixture-nya; `admin.spec.ts` gagal kalau ada fixture sukses yang tidak diuji.
+Halaman `/admin/*` memakai endpoint `api/v1/admin` dari `sakala-api`. Kontraknya ada di `src/lib/api/resources/admin/`. Schema Zod di sana ditulis sebelum endpoint admin masuk ke OpenAPI yang di-generate, jadi tetap menjadi kontraknya dan tipe diturunkan dengan `z.infer`. Schema itu diuji terhadap respons yang benar-benar dikirim API (`tests/fixtures/admin/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan), dan mock e2e (`tests/e2e/fixtures/admin.ts`) menyajikan respons yang sama. Kalau resource admin di API berubah, ambil ulang fixture-nya; `admin.spec.ts` gagal kalau ada fixture sukses yang tidak diuji.
 
 Akses ditentukan API. Console menampilkan menu "Area admin" dan membuka `/admin/*` hanya untuk `role: 'admin'` dari `GET auth/user`; selain itu `AdminGuard` menampilkan halaman 403. Kalau API menjawab 403 di tengah sesi, misalnya peran admin baru dicabut, halaman menampilkan penolakan itu, bukan data kosong.
 

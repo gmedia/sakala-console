@@ -8,6 +8,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 - Admin runtime node pages no longer fail to load when a node has no name, which nodes registered before names were required can have; such a node goes by its agent ID.
 
+### Changed
+
+- Generated API types follow sakala-api v0.4.1. Its OpenAPI export is committed as `src/lib/api/generated/openapi.json`, `pnpm api:types` generates from that file instead of a running API, and `pnpm api:types:check` (part of `pnpm quality` and CI) fails when `schema.d.ts` is out of date.
+
 ## [0.5.0] - 2026-11-12
 
 ### Added

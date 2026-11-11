@@ -44,6 +44,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check generated API types
+        run: pnpm api:types:check
+
       - name: Check Svelte and TypeScript
         run: pnpm check
 
