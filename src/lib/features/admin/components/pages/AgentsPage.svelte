@@ -23,6 +23,7 @@
 	import {
 		AGENT_STATUS_OPTIONS,
 		AUTH_STATUS_OPTIONS,
+		agentName,
 		agentStatus,
 		authStatus,
 		formatNumber,
@@ -190,7 +191,7 @@
 						<a
 							href={resolve(`/admin/agents/${agent.id}`)}
 							class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
-							>{agent.name}</a
+							>{agentName(agent)}</a
 						>
 						<p class="max-w-48 truncate font-mono text-xs text-muted" title={agent.agent_id}>
 							{agent.agent_id}
@@ -283,7 +284,7 @@
 		open={true}
 		token={provisioned.token}
 		agentId={provisioned.agent.agent_id}
-		agentName={provisioned.agent.name}
+		agentName={agentName(provisioned.agent)}
 		apiUrl={publicConfig.apiUrl}
 		onDone={() => (provisioned = null)}
 	/>

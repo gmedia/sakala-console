@@ -12,7 +12,8 @@ import {
 export const adminAgentSchema = z.object({
 	id: z.string(),
 	agent_id: z.string(),
-	name: z.string(),
+	/** The column is nullable: a node registered before names were required has none. */
+	name: z.string().nullable(),
 	description: z.string().nullable(),
 	token_prefix: z.string().nullable(),
 	auth_status: z.string(),

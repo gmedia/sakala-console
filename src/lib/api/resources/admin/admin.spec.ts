@@ -140,6 +140,12 @@ describe('admin schemas against real API responses', () => {
 		expect(events.data[0].metadata).toEqual({});
 	});
 
+	it('reads a node registered before names were required, whose name is null', () => {
+		const body = fixture('agents').body as { data: object[]; meta: object };
+		const agents = parseAdminAgents({ ...body, data: [{ ...body.data[0], name: null }] });
+		expect(agents.data[0].name).toBeNull();
+	});
+
 	it('refuses a list without pagination, instead of inventing a page count', () => {
 		expect(() => parseAdminUsers({ data: [] })).toThrow();
 	});

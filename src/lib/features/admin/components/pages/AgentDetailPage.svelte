@@ -25,6 +25,7 @@
 	import { readListState, toApiParams } from '../../url-state';
 	import {
 		COMMAND_STATUS_OPTIONS,
+		agentName,
 		agentStatus,
 		authStatus,
 		commandStatus,
@@ -96,7 +97,7 @@
 				rotate.reset();
 			} else {
 				await revoke.mutateAsync({ id: agent.id, reason });
-				toast.success(`Token ${agent.name} dicabut.`);
+				toast.success(`Token ${agentName(agent)} dicabut.`);
 			}
 			dialog = null;
 		} catch (error) {
@@ -108,11 +109,11 @@
 </script>
 
 <AdminPageHeader
-	title={agent?.name ?? 'Runtime node'}
-	documentTitle={agent ? `${agent.name} · Runtime node` : 'Runtime node'}
+	title={agent ? agentName(agent) : 'Runtime node'}
+	documentTitle={agent ? `${agentName(agent)} · Runtime node` : 'Runtime node'}
 	crumbs={[
 		{ label: 'Runtime node', href: resolve('/admin/agents') },
-		{ label: agent?.name ?? '...' }
+		{ label: agent ? agentName(agent) : '...' }
 	]}
 >
 	{#if agent}
@@ -323,7 +324,7 @@
 		open={dialog !== null}
 		id={`agent-${dialog ?? 'action'}`}
 		title={dialog === 'rotate' ? 'Buat token baru?' : 'Cabut token node?'}
-		subject={`${agent.name} (${agent.agent_id})`}
+		subject={`${agentName(agent)} (${agent.agent_id})`}
 		consequence={dialog === 'rotate'
 			? 'Token lama langsung tidak berlaku. Agent berhenti terhubung sampai token baru dipasang di konfigurasinya.'
 			: 'Node tidak bisa autentikasi atau menerima command lagi. Workload yang sedang berjalan di sana tidak dipindahkan otomatis. Token baru bisa dibuat nanti.'}
@@ -340,7 +341,7 @@
 			rotated
 			token={rotated.token}
 			agentId={rotated.agent.agent_id}
-			agentName={rotated.agent.name}
+			agentName={agentName(rotated.agent)}
 			apiUrl={publicConfig.apiUrl}
 			onDone={() => {
 				rotated = null;

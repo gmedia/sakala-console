@@ -272,6 +272,11 @@ export function bucketGrowth(points: { date: string; count: number }[]): {
 	return { unit: 'minggu', buckets };
 }
 
+/** A node without a name, registered before names were required, goes by its agent ID. */
+export function agentName(agent: { name: string | null; agent_id: string }): string {
+	return agent.name ?? shortId(agent.agent_id);
+}
+
 /** `agent-01a1…e5582025` stays recognisable without taking a whole column. */
 export function shortId(value: string, keep = 8): string {
 	return value.length <= keep * 2 + 1 ? value : `${value.slice(0, keep)}…${value.slice(-keep)}`;
