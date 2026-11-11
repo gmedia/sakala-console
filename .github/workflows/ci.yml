@@ -31,8 +31,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Browser only, no --with-deps: GitHub's Ubuntu images already ship the
+      # system libraries Chromium needs (they include Google Chrome), and
+      # --with-deps runs apt, which failed on every run on 2026-11-11 when the
+      # runners could not resolve the Ubuntu mirrors.
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Check formatting
         run: pnpm format:check
