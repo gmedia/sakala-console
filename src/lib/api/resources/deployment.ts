@@ -107,6 +107,7 @@ const deploymentSchema = z.object({
 	trigger: z.string(),
 	commit_sha: z.string().nullable(),
 	commit_message: z.string().nullable(),
+	// Parsed for the contract, never shown: a node-local tag and a node ID. See docs/API_CLIENT.md.
 	image_reference: z.string().nullable(),
 	requested_resources: decorative(requestedResourcesSchema),
 	effective_resources: decorative(effectiveResourcesSchema),
