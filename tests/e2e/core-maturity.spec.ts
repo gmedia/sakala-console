@@ -1461,6 +1461,42 @@ test.describe('delete modals', () => {
 		await expect(page.getByText('Proyek toko-kopi-web dihapus.')).toBeVisible();
 	});
 
+	test('a deleted project is not read again after the 204', async ({ page }) => {
+		await mockProjectApi(page);
+		await page.goto(SETTINGS_URL);
+		await expect(page.getByRole('button', { name: 'Hapus proyek' })).toBeVisible();
+
+		// The real API answers 404 for a project once it is gone.
+		let deleted = false;
+		const readsAfterDelete: string[] = [];
+		const projectPath = new RegExp(`/api/v1/app/projects/${PROJECT_ID}(/deployments)?/?(\\?.*)?$`);
+		await page.route(projectPath, (route) => {
+			const request = route.request();
+			if (request.method() === 'DELETE') {
+				deleted = true;
+				return route.fulfill({ status: 204 });
+			}
+			if (!deleted) return route.fallback();
+			readsAfterDelete.push(new URL(request.url()).pathname);
+			return route.fulfill({
+				status: 404,
+				contentType: 'application/json',
+				body: JSON.stringify({ message: 'Not found.' })
+			});
+		});
+
+		await page.getByRole('button', { name: 'Hapus proyek' }).click();
+		const dialog = page.getByRole('dialog', { name: /Hapus proyek toko-kopi-web/ });
+		await dialog.getByLabel(/untuk konfirmasi/).fill('toko-kopi-web');
+		await dialog.getByRole('button', { name: 'Hapus proyek ini' }).click();
+
+		await expect(page).toHaveURL('/projects');
+		await expect(page.getByText('Proyek toko-kopi-web dihapus.')).toBeVisible();
+		await page.waitForLoadState('networkidle');
+		expect(deleted).toBe(true);
+		expect(readsAfterDelete).toEqual([]);
+	});
+
 	for (const width of [320, 1280]) {
 		test(`project modal fits and scrolls inside itself at ${width} px`, async ({ page }) => {
 			await mockProjectApi(page, {

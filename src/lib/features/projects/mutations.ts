@@ -1,4 +1,9 @@
-import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+import {
+	createMutation,
+	useQueryClient,
+	type QueryClient,
+	type QueryFilters
+} from '@tanstack/svelte-query';
 import {
 	updateProject,
 	deleteProject,
@@ -65,15 +70,32 @@ export function createRequestInspectionMutation() {
 	}));
 }
 
+/**
+ * A deleted project answers 404, so nothing under it may be read again. Reads in flight are
+ * cancelled and its entries dropped before the lists are refreshed; otherwise the refresh would
+ * refetch the project and its deployments while the page is still mounted.
+ */
+export async function forgetDeletedProject(queryClient: QueryClient, id: string): Promise<void> {
+	const filters: QueryFilters[] = [
+		{ queryKey: projectKeys.detail(id) },
+		{ queryKey: [...queryKeys.deployments.all, 'detail', id] },
+		{ queryKey: [...queryKeys.deployments.all, 'events', id] }
+	];
+
+	await Promise.all(filters.map((filter) => queryClient.cancelQueries(filter)));
+	for (const filter of filters) queryClient.removeQueries(filter);
+
+	void queryClient.invalidateQueries({ queryKey: projectKeys.all });
+	void queryClient.invalidateQueries({ queryKey: queryKeys.pilotLimits });
+}
+
 export function createDeleteProjectMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
 		mutationFn: (id: string) => deleteProject(id),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: projectKeys.all });
-			queryClient.invalidateQueries({ queryKey: queryKeys.pilotLimits });
-		}
+		// Awaited before the caller's onSuccess, so the cache is clean before it navigates away.
+		onSuccess: (_: void, id: string) => forgetDeletedProject(queryClient, id)
 	}));
 }
 
