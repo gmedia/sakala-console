@@ -1,0 +1,6 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Command stop proyek ini masih berjalan. Tunggu sampai selesai."
+	}
+}

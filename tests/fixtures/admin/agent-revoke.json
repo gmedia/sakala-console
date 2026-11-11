@@ -1,0 +1,24 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cae3-b6ea-73d6-ab18-b47862fe027c",
+			"agent_id": "agent-01a1cae3-b6e8-701a-9eb2-70683acae471",
+			"name": "agent-jkt-01",
+			"description": "Assumenda sit iure ducimus aut cum architecto.",
+			"token_prefix": "gmf4Zk8H3g",
+			"auth_status": "revoked",
+			"status": "ready",
+			"desired_state": "active",
+			"protocol_version": 4,
+			"agent_version": "0.5.0",
+			"hostname": "runtime-1",
+			"runtime_network": "sakala-runtime",
+			"capabilities": ["docker", "caddy", "railpack"],
+			"registered_at": "2026-11-11T10:00:00+00:00",
+			"last_seen_at": "2026-11-11T10:00:00+00:00",
+			"created_at": "2026-11-11T10:00:00+00:00",
+			"updated_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}

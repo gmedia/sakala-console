@@ -1,0 +1,27 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"sequence": 190979,
+				"level": "info",
+				"type": "deployment.progress",
+				"message": "Omnis iure dolorem fugit provident et sequi sunt cumque.",
+				"metadata": [],
+				"occurred_at": "2026-11-11T10:00:00.000000Z"
+			}
+		],
+		"links": {
+			"first": null,
+			"last": null,
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"path": "http://api.sakala.localhost:8000/api/v1/admin/deployments/01a1cae3-b6f0-73e7-aecf-e4b588dd34cf/events",
+			"per_page": 10,
+			"next_cursor": null,
+			"prev_cursor": null
+		}
+	}
+}

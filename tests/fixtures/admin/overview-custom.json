@@ -1,0 +1,187 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"range": {
+				"key": "custom",
+				"from": "2026-10-31T17:00:00+00:00",
+				"to": "2026-11-11T17:00:00+00:00",
+				"timezone": "Asia/Jakarta"
+			},
+			"generated_at": "2026-11-11T10:00:00+00:00",
+			"totals": {
+				"users": 3,
+				"projects": 2,
+				"active_projects": 1
+			},
+			"period": {
+				"new_users": 2,
+				"new_projects": 2,
+				"deployments": {
+					"succeeded": 1,
+					"failed": 2,
+					"cancelled": 0,
+					"in_progress": 0,
+					"total": 3
+				}
+			},
+			"previous_period": {
+				"from": "2026-10-20T17:00:00+00:00",
+				"to": "2026-10-31T17:00:00+00:00",
+				"new_users": 0,
+				"new_projects": 0,
+				"deployments": {
+					"succeeded": 0,
+					"failed": 0,
+					"cancelled": 0,
+					"in_progress": 0,
+					"total": 0
+				}
+			},
+			"user_growth": [
+				{
+					"date": "2026-11-01",
+					"count": 0
+				},
+				{
+					"date": "2026-11-02",
+					"count": 0
+				},
+				{
+					"date": "2026-11-03",
+					"count": 0
+				},
+				{
+					"date": "2026-11-04",
+					"count": 0
+				},
+				{
+					"date": "2026-11-05",
+					"count": 0
+				},
+				{
+					"date": "2026-11-06",
+					"count": 0
+				},
+				{
+					"date": "2026-11-07",
+					"count": 0
+				},
+				{
+					"date": "2026-11-08",
+					"count": 0
+				},
+				{
+					"date": "2026-11-09",
+					"count": 1
+				},
+				{
+					"date": "2026-11-10",
+					"count": 1
+				},
+				{
+					"date": "2026-11-11",
+					"count": 0
+				}
+			],
+			"failure_categories": [
+				{
+					"category": "build",
+					"count": 1
+				},
+				{
+					"category": "unknown",
+					"count": 1
+				},
+				{
+					"category": "checkout",
+					"count": 0
+				},
+				{
+					"category": "start",
+					"count": 0
+				},
+				{
+					"category": "health",
+					"count": 0
+				},
+				{
+					"category": "route",
+					"count": 0
+				},
+				{
+					"category": "timeout",
+					"count": 0
+				},
+				{
+					"category": "resource",
+					"count": 0
+				},
+				{
+					"category": "node",
+					"count": 0
+				},
+				{
+					"category": "scheduling",
+					"count": 0
+				}
+			],
+			"top_failure_codes": [
+				{
+					"code": null,
+					"category": "unknown",
+					"count": 1
+				},
+				{
+					"code": "runtime_build_failed",
+					"category": "build",
+					"count": 1
+				}
+			],
+			"new_user_sources": [
+				{
+					"source": "campus",
+					"count": 1
+				},
+				{
+					"source": "friend",
+					"count": 0
+				},
+				{
+					"source": "community",
+					"count": 0
+				},
+				{
+					"source": "workshop",
+					"count": 0
+				},
+				{
+					"source": "social_media",
+					"count": 0
+				},
+				{
+					"source": "gmedia",
+					"count": 0
+				},
+				{
+					"source": "github",
+					"count": 0
+				},
+				{
+					"source": "other",
+					"count": 0
+				},
+				{
+					"source": null,
+					"count": 1
+				}
+			],
+			"pilot": {
+				"activated_users": 0,
+				"unique_deployers": 1,
+				"repeat_deployers": 1,
+				"feedback_count": 1
+			}
+		}
+	}
+}

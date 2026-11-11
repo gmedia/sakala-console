@@ -1,0 +1,84 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1cae3-b6ea-73d6-ab18-b47863af4ba4",
+				"agent_id": "agent-01a1cae3-b6ea-73d6-ab18-b47863112951",
+				"name": "agent-baru",
+				"description": null,
+				"token_prefix": "hFAO8MLK3r",
+				"auth_status": "active",
+				"status": "ready",
+				"desired_state": "active",
+				"protocol_version": 4,
+				"agent_version": null,
+				"hostname": null,
+				"runtime_network": "sakala-runtime",
+				"capabilities": [],
+				"active_workload_count": 0,
+				"open_commands_count": 0,
+				"registered_at": "2026-11-11T10:00:00+00:00",
+				"last_seen_at": null,
+				"created_at": "2026-11-11T10:00:00+00:00",
+				"updated_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cae3-b6ea-73d6-ab18-b47862fe027c",
+				"agent_id": "agent-01a1cae3-b6e8-701a-9eb2-70683acae471",
+				"name": "agent-jkt-01",
+				"description": "Assumenda sit iure ducimus aut cum architecto.",
+				"token_prefix": "IedodPH28R",
+				"auth_status": "active",
+				"status": "ready",
+				"desired_state": "active",
+				"protocol_version": 4,
+				"agent_version": "0.5.0",
+				"hostname": "runtime-1",
+				"runtime_network": "sakala-runtime",
+				"capabilities": ["docker", "caddy", "railpack"],
+				"active_workload_count": 1,
+				"open_commands_count": 2,
+				"registered_at": "2026-11-11T10:00:00+00:00",
+				"last_seen_at": "2026-11-11T10:00:00+00:00",
+				"created_at": "2026-11-11T10:00:00+00:00",
+				"updated_at": "2026-11-11T10:00:00+00:00"
+			}
+		],
+		"links": {
+			"first": "http://api.sakala.localhost:8000/api/v1/admin/agents?page=1",
+			"last": "http://api.sakala.localhost:8000/api/v1/admin/agents?page=1",
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"current_page": 1,
+			"from": 1,
+			"last_page": 1,
+			"links": [
+				{
+					"url": null,
+					"label": "&laquo; Previous",
+					"page": null,
+					"active": false
+				},
+				{
+					"url": "http://api.sakala.localhost:8000/api/v1/admin/agents?page=1",
+					"label": "1",
+					"page": 1,
+					"active": true
+				},
+				{
+					"url": null,
+					"label": "Next &raquo;",
+					"page": null,
+					"active": false
+				}
+			],
+			"path": "http://api.sakala.localhost:8000/api/v1/admin/agents",
+			"per_page": 25,
+			"to": 2,
+			"total": 2
+		}
+	}
+}

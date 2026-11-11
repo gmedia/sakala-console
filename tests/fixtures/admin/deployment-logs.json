@@ -1,0 +1,25 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"sequence": 882419,
+				"stream": "system",
+				"message": "Maiores quis repellat id ab deserunt.",
+				"recorded_at": "2026-11-11T10:00:00.000000Z"
+			}
+		],
+		"links": {
+			"first": null,
+			"last": null,
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"path": "http://api.sakala.localhost:8000/api/v1/admin/deployments/01a1cae3-b6f0-73e7-aecf-e4b588dd34cf/logs",
+			"per_page": 200,
+			"next_cursor": null,
+			"prev_cursor": null
+		}
+	}
+}

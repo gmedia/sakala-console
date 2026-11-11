@@ -1,0 +1,106 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1cae3-b6f0-73e7-aecf-e4b589dc4928",
+				"project": {
+					"id": "01a1cae3-b6ed-71d9-baef-ed82768facd8",
+					"name": "Toko Kue",
+					"slug": "sed-non-eveniet-ipsa",
+					"workspace_id": "01a1cae3-b6e2-708d-8adc-b259dd7e6877",
+					"deleted": false
+				},
+				"sequence": 3,
+				"branch": "main",
+				"commit_sha": null,
+				"trigger": "manual",
+				"agent_node_id": null,
+				"requested_by": {
+					"id": 2,
+					"name": "Rani Putri",
+					"username": "rani"
+				},
+				"failure": {
+					"code": null,
+					"category": "unknown",
+					"summary": null,
+					"user_fixable": null,
+					"detail": null,
+					"stage": null
+				},
+				"created_at": "2026-11-10T06:00:00+00:00",
+				"started_at": null,
+				"finished_at": null,
+				"duration_seconds": null
+			},
+			{
+				"id": "01a1cae3-b6f0-73e7-aecf-e4b588dd34cf",
+				"project": {
+					"id": "01a1cae3-b6ed-71d9-baef-ed82768facd8",
+					"name": "Toko Kue",
+					"slug": "sed-non-eveniet-ipsa",
+					"workspace_id": "01a1cae3-b6e2-708d-8adc-b259dd7e6877",
+					"deleted": false
+				},
+				"sequence": 2,
+				"branch": "main",
+				"commit_sha": null,
+				"trigger": "manual",
+				"agent_node_id": "01a1cae3-b6ea-73d6-ab18-b47862fe027c",
+				"requested_by": {
+					"id": 2,
+					"name": "Rani Putri",
+					"username": "rani"
+				},
+				"failure": {
+					"code": "runtime_build_failed",
+					"category": "build",
+					"summary": "Deployment gagal saat proses build aplikasi.",
+					"user_fixable": true,
+					"detail": "npm run build exited with 1",
+					"stage": "building"
+				},
+				"created_at": "2026-11-10T03:00:00+00:00",
+				"started_at": "2026-11-10T03:00:10+00:00",
+				"finished_at": "2026-11-10T03:04:22+00:00",
+				"duration_seconds": 252
+			}
+		],
+		"links": {
+			"first": "http://api.sakala.localhost:8000/api/v1/admin/deployments/failures?page=1",
+			"last": "http://api.sakala.localhost:8000/api/v1/admin/deployments/failures?page=1",
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"current_page": 1,
+			"from": 1,
+			"last_page": 1,
+			"links": [
+				{
+					"url": null,
+					"label": "&laquo; Previous",
+					"page": null,
+					"active": false
+				},
+				{
+					"url": "http://api.sakala.localhost:8000/api/v1/admin/deployments/failures?page=1",
+					"label": "1",
+					"page": 1,
+					"active": true
+				},
+				{
+					"url": null,
+					"label": "Next &raquo;",
+					"page": null,
+					"active": false
+				}
+			],
+			"path": "http://api.sakala.localhost:8000/api/v1/admin/deployments/failures",
+			"per_page": 25,
+			"to": 2,
+			"total": 2
+		}
+	}
+}

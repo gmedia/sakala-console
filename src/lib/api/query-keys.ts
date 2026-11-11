@@ -1,6 +1,7 @@
 import type { GetInstallationRepositoriesParams } from './resources/github';
 import type { NotificationListParams } from './resources/notifications';
 import type { ProjectsQueryParams } from './resources/projects';
+import type { QueryParams } from './resources/admin/common';
 
 export const queryKeys = {
 	auth: {
@@ -36,6 +37,31 @@ export const queryKeys = {
 				? (['github', 'repositories', installationId, params] as const)
 				: (['github', 'repositories', installationId] as const),
 		branches: (source: string) => ['github', 'branches', source] as const
+	},
+	/** Every admin read starts with `admin`, so an admin change refreshes them all at once. */
+	admin: {
+		all: ['admin'] as const,
+		overview: (params: QueryParams) => ['admin', 'overview', params] as const,
+		users: (params: QueryParams) => ['admin', 'users', params] as const,
+		user: (id: string) => ['admin', 'user', id] as const,
+		workspaces: (params: QueryParams) => ['admin', 'workspaces', params] as const,
+		workspace: (id: string) => ['admin', 'workspace', id] as const,
+		limitProfiles: (params: QueryParams) => ['admin', 'limit-profiles', params] as const,
+		projects: (params: QueryParams) => ['admin', 'projects', params] as const,
+		project: (id: string) => ['admin', 'project', id] as const,
+		failures: (params: QueryParams) => ['admin', 'failures', params] as const,
+		failureSummary: (params: QueryParams) => ['admin', 'failure-summary', params] as const,
+		deployment: (id: string) => ['admin', 'deployment', id] as const,
+		deploymentEvents: (id: string) => ['admin', 'deployment-events', id] as const,
+		deploymentLogs: (id: string) => ['admin', 'deployment-logs', id] as const,
+		agents: (params: QueryParams) => ['admin', 'agents', params] as const,
+		agent: (id: string) => ['admin', 'agent', id] as const,
+		agentCommands: (id: string, params: QueryParams) =>
+			['admin', 'agent-commands', id, params] as const,
+		agentCommand: (agentId: string, commandId: string) =>
+			['admin', 'agent-command', agentId, commandId] as const,
+		feedback: (params: QueryParams) => ['admin', 'feedback', params] as const,
+		audit: (params: QueryParams) => ['admin', 'audit', params] as const
 	},
 	domainPreview: (name: string) => ['domain-preview', name] as const,
 	pilotLimits: ['pilot-limits'] as const

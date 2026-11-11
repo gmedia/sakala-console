@@ -1,0 +1,14 @@
+{
+	"status": 422,
+	"body": {
+		"message": "nama ini sudah dipakai. Pakai nama lain. (dan 5 kesalahan lainnya)",
+		"errors": {
+			"name": ["nama ini sudah dipakai. Pakai nama lain."],
+			"max_projects": ["Kolom max projects wajib diisi."],
+			"max_active_containers": ["Kolom max active containers wajib diisi."],
+			"max_active_deployments": ["Kolom max active deployments wajib diisi."],
+			"max_memory_mb": ["Kolom max memory mb wajib diisi."],
+			"max_cpu_millis": ["Kolom max cpu millis wajib diisi."]
+		}
+	}
+}

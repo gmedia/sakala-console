@@ -1,0 +1,15 @@
+{
+	"status": 202,
+	"body": {
+		"data": {
+			"project_id": "01a1cae3-b6ed-71d9-baef-ed82768facd8",
+			"status": "active",
+			"runtime_status": "running",
+			"command": {
+				"id": "01a1cae3-b775-704b-983b-a8165833d08d",
+				"type": "StopProject",
+				"status": "Pending"
+			}
+		}
+	}
+}

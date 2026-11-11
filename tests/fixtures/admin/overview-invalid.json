@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Pilihan range tidak tersedia. Pilih salah satu opsi yang ada.",
+		"errors": {
+			"range": ["Pilihan range tidak tersedia. Pilih salah satu opsi yang ada."]
+		}
+	}
+}

@@ -1,0 +1,50 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"project": {
+				"id": "01a1cae3-b6f3-7196-99e7-9006c81bd16f",
+				"name": "Blog Lama",
+				"slug": "id-fuga-velit-minus",
+				"status": "suspended",
+				"runtime_status": "not_deployed",
+				"repository_url": "https://github.com/sakala-demo/id-fuga-velit-minus",
+				"repository_full_name": "sakala-demo/id-fuga-velit-minus",
+				"branch": "main",
+				"public_url": "http://id-fuga-velit-minus.run.sakala.localhost",
+				"active_deployment_id": null,
+				"workspace": {
+					"id": "01a1cae3-b6e4-73d5-9274-dcd5dfd710d3",
+					"name": "Bima",
+					"slug": "bima",
+					"type": "personal"
+				},
+				"creator": {
+					"id": 3,
+					"name": "Bima",
+					"username": "bima"
+				},
+				"latest_deployment": null,
+				"suspension": {
+					"reason": "Konten phishing",
+					"suspended_at": "2026-11-11T10:00:00+00:00"
+				},
+				"last_deployed_at": null,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			"deployments_count": 0,
+			"effective_port": 3000,
+			"inspection_status": null,
+			"control_requests": [
+				{
+					"id": 2,
+					"action": "suspend",
+					"reason": "Konten phishing",
+					"actor_id": "1",
+					"agent_command_id": null,
+					"created_at": "2026-11-11T10:00:00+00:00"
+				}
+			]
+		}
+	}
+}

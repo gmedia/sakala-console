@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom reason wajib diisi.",
+		"errors": {
+			"reason": ["Kolom reason wajib diisi."]
+		}
+	}
+}

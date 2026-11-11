@@ -1,0 +1,27 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cae3-b6f6-73db-99cf-f082104a32ed",
+			"category": "feature_request",
+			"status": "resolved",
+			"message": "Build lama sekali",
+			"consent": false,
+			"user": {
+				"id": 2,
+				"name": "Rani Putri",
+				"username": "rani",
+				"email": "rani@kampus.test"
+			},
+			"project": {
+				"id": "01a1cae3-b6ed-71d9-baef-ed82768facd8",
+				"name": "Toko Kue",
+				"slug": "sed-non-eveniet-ipsa",
+				"deleted": false
+			},
+			"deployment_id": null,
+			"created_at": "2026-11-10T08:00:00+00:00",
+			"updated_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}

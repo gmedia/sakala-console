@@ -1,0 +1,79 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"range": {
+				"key": "all",
+				"from": null,
+				"to": "2026-11-11T17:00:00+00:00",
+				"timezone": "Asia/Jakarta"
+			},
+			"total": 2,
+			"previous_total": null,
+			"categories": [
+				{
+					"category": "build",
+					"count": 1,
+					"previous_count": null
+				},
+				{
+					"category": "unknown",
+					"count": 1,
+					"previous_count": null
+				},
+				{
+					"category": "checkout",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "start",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "health",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "route",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "timeout",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "resource",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "node",
+					"count": 0,
+					"previous_count": null
+				},
+				{
+					"category": "scheduling",
+					"count": 0,
+					"previous_count": null
+				}
+			],
+			"codes": [
+				{
+					"code": null,
+					"category": "unknown",
+					"count": 1
+				},
+				{
+					"code": "runtime_build_failed",
+					"category": "build",
+					"count": 1
+				}
+			]
+		}
+	}
+}

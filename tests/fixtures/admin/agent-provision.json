@@ -1,0 +1,27 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"agent": {
+				"id": "01a1cae3-b7ef-71aa-b509-e6f9e59e68e1",
+				"agent_id": "agent-01a1cae3-b7ef-71aa-b509-e6f9e5582025",
+				"name": "agent-sby-01",
+				"description": "Surabaya",
+				"token_prefix": "YcLgStKhID",
+				"auth_status": "active",
+				"status": "offline",
+				"desired_state": "active",
+				"protocol_version": null,
+				"agent_version": null,
+				"hostname": null,
+				"runtime_network": "sakala-runtime",
+				"capabilities": [],
+				"registered_at": "2026-11-11T10:00:00+00:00",
+				"last_seen_at": null,
+				"created_at": "2026-11-11T10:00:00+00:00",
+				"updated_at": "2026-11-11T10:00:00+00:00"
+			},
+			"token": "sk_agt_contoh_bukan_token_asli_1"
+		}
+	}
+}

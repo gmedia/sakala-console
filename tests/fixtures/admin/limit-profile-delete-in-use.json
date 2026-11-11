@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Profil batas ini masih dipakai workspace. Lepas atau ganti profilnya di workspace tersebut dulu, lalu hapus.",
+		"code": "LIMIT_PROFILE_IN_USE",
+		"workspaces": 1
+	}
+}

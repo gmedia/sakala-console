@@ -1,0 +1,18 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a1cae3-b758-7353-92f7-68405a6c5c5f",
+			"name": "Magang",
+			"max_projects": 3,
+			"max_active_containers": 2,
+			"max_active_deployments": 1,
+			"max_memory_mb": 512,
+			"max_cpu_millis": 500,
+			"max_builds_per_hour": null,
+			"workspaces_count": 0,
+			"created_at": "2026-11-11T10:00:00+00:00",
+			"updated_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}

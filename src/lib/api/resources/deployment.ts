@@ -98,7 +98,7 @@ const effectiveResourcesSchema = z.object({
 	})
 });
 
-const deploymentSchema = z.object({
+export const deploymentSchema = z.object({
 	id: z.string(),
 	project_id: z.string(),
 	sequence: z.number(),
