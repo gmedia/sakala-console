@@ -391,6 +391,25 @@ describe('pilot limits', () => {
 		expect(notice.message).toContain('Hapus proyek');
 	});
 
+	it('names a team workspace, whose quota its members share', () => {
+		const used = getProjectQuotaNotice({ quotas }, 'Tim Facility');
+		expect(used).toEqual({
+			reached: false,
+			message: 'Workspace Tim Facility memakai 1 dari 3 proyek, dibagi untuk semua anggotanya.'
+		});
+
+		const full = getProjectQuotaNotice(
+			{ quotas: { ...quotas, current_projects_count: 3 } },
+			'Tim Facility'
+		);
+		expect(full.reached).toBe(true);
+		expect(full.message).toContain('workspace Tim Facility');
+		expect(full.message).toContain('profil batas');
+		expect(
+			getActiveDeploymentLimitNotice({ ...quotas, current_active_deployments_count: 2 }, 'Tim')
+		).toContain('Workspace Tim sudah punya 2 deployment');
+	});
+
 	it('blocks only at the limit, and never without data', () => {
 		expect(isProjectQuotaReached(undefined)).toBe(false);
 		expect(isProjectQuotaReached(quotas)).toBe(false);

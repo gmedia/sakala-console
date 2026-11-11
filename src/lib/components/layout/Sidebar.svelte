@@ -19,6 +19,7 @@
 	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import { MediaQuery } from 'svelte/reactivity';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import WorkspaceSwitcher from '$lib/features/workspaces/components/WorkspaceSwitcher.svelte';
 	import type { User } from '$lib/features/auth/types';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { useLogout } from '$lib/features/auth/mutations';
@@ -269,6 +270,10 @@
 		<SakalaLogo class="h-10" />
 	</div>
 
+	<div class="mb-4 px-3">
+		<WorkspaceSwitcher />
+	</div>
+
 	<nav class="flex-1 space-y-1 px-3" aria-label="Navigasi utama">
 		{#each navigation as item (item.href)}
 			{@const Icon = item.icon}
@@ -322,6 +327,9 @@
 			<nav class="flex min-h-0 flex-1 flex-col" aria-label="Navigasi mobile">
 				<div class="mt-1 mb-8">
 					<SakalaLogo class="h-10" onclick={onCloseMobile} />
+				</div>
+				<div class="mb-4">
+					<WorkspaceSwitcher onNavigate={onCloseMobile} />
 				</div>
 				<div class="flex flex-col gap-1 pb-8">
 					{#each navigation as item (item.href)}

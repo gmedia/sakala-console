@@ -3,6 +3,9 @@
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
 
+	/** Set for a team workspace, so the heading says where the project will go. */
+	let { workspaceName }: { workspaceName?: string } = $props();
+
 	const steps = [
 		'Pilih repository dari GitHub',
 		'Atur branch dan environment variable',
@@ -11,7 +14,9 @@
 </script>
 
 <section class="surface-card p-6" aria-labelledby="first-project-title">
-	<h2 id="first-project-title" class="text-xl">Buat proyek pertamamu</h2>
+	<h2 id="first-project-title" class="text-xl wrap-anywhere">
+		{workspaceName ? `Buat proyek pertama di ${workspaceName}` : 'Buat proyek pertamamu'}
+	</h2>
 	<p class="mt-1 text-sm text-muted">
 		Proyek menyimpan deployment, alamat publik, dan pengaturan aplikasimu di satu tempat.
 	</p>

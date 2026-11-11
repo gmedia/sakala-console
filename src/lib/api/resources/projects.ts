@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
 import type { components, operations } from '../generated/schema';
+import { workspaceSummarySchema, type WorkspaceSummary } from './workspaces';
 
 export type GeneratedProject = components['schemas']['GetCollectionProjectResource'];
 export type Project = Omit<GeneratedProject, 'runtime_status'> & {
 	runtime_status: string;
+	/** The owning workspace. Optional because an API from before workspaces does not send it. */
+	workspace?: WorkspaceSummary | null;
 };
 export type RuntimeStatus = components['schemas']['RuntimeStatus'];
 
@@ -13,7 +16,12 @@ type GeneratedProjectResponse =
 export type ProjectResponse = Omit<GeneratedProjectResponse, 'data'> & {
 	data: Project[];
 };
-export type ProjectsQueryParams = NonNullable<operations['projects.index']['parameters']['query']>;
+/** Without `workspace_id` the API lists the projects of every workspace the user belongs to. */
+export type ProjectsQueryParams = NonNullable<
+	operations['projects.index']['parameters']['query']
+> & {
+	workspace_id?: string;
+};
 
 const projectSchema: z.ZodType<Project> = z.object({
 	id: z.string(),
@@ -53,7 +61,8 @@ const projectSchema: z.ZodType<Project> = z.object({
 		})
 		.nullable(),
 	last_deployed_at: z.string().nullable(),
-	created_at: z.string()
+	created_at: z.string(),
+	workspace: workspaceSummarySchema.nullable().optional()
 });
 
 const paginationLinkSchema = z.object({
@@ -95,7 +104,10 @@ export function parseListProjectsResponse(response: unknown): ProjectResponse {
 	return listProjectsResponseSchema.parse(response);
 }
 
-export type StoreProjectRequest = components['schemas']['StoreProjectRequest'];
+/** Without `workspace_id` the project goes to the caller's personal workspace. */
+export type StoreProjectRequest = components['schemas']['StoreProjectRequest'] & {
+	workspace_id?: string | null;
+};
 
 export type CreateProjectResource = {
 	id: string;
@@ -107,6 +119,7 @@ export type CreateProjectResource = {
 	branch: string;
 	runtime_status: string;
 	preview_status?: string;
+	workspace?: WorkspaceSummary | null;
 	created_at: string;
 };
 
@@ -124,6 +137,7 @@ export const createProjectResourceSchema: z.ZodType<CreateProjectResource> = z.o
 	branch: z.string(),
 	runtime_status: z.string(),
 	preview_status: z.string().optional(),
+	workspace: workspaceSummarySchema.nullable().optional(),
 	created_at: z.string()
 });
 

@@ -2,9 +2,15 @@
 	import type { PilotLimits } from '$lib/api/resources/pilot-limits';
 	import { getProjectQuotaNotice } from '../../presentation';
 
-	let { limits }: { limits: PilotLimits | undefined } = $props();
+	type Props = {
+		limits: PilotLimits | undefined;
+		/** Set for a team workspace. */
+		workspaceName?: string;
+	};
 
-	const notice = $derived(limits ? getProjectQuotaNotice(limits) : null);
+	let { limits, workspaceName }: Props = $props();
+
+	const notice = $derived(limits ? getProjectQuotaNotice(limits, workspaceName) : null);
 </script>
 
 {#if notice?.reached}

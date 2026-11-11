@@ -2,6 +2,7 @@
 	import Bell from 'phosphor-svelte/lib/Bell';
 	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
 	import ShieldCheck from 'phosphor-svelte/lib/ShieldCheck';
+	import UsersThree from 'phosphor-svelte/lib/UsersThree';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import type { Notification } from '$lib/api/resources/notifications';
 	import { cn } from '$lib/utils/cn';
@@ -25,6 +26,8 @@
 				return { icon: WarningCircle, tone: 'bg-error/10 text-error' };
 			case 'account_security':
 				return { icon: ShieldCheck, tone: 'bg-primary-50 text-primary-dark' };
+			case 'workspace':
+				return { icon: UsersThree, tone: 'bg-primary-50 text-primary-dark' };
 			default:
 				return { icon: Bell, tone: 'bg-background-soft text-foreground/70' };
 		}

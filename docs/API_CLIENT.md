@@ -108,6 +108,21 @@ Setelah project dibuat, id-nya masuk ke URL (`?project=`) dengan `replaceState`.
 
 `GET app/pilot-limits` ditampilkan di dashboard dan wizard sebelum batasnya kena. Saat kuota project habis, wizard tidak bisa dilanjutkan. API tetap penentu akhirnya: penolakannya tampil lewat `getErrorMessage()`.
 
+Batas itu milik satu workspace. Tanpa `workspace_id` API menjawab untuk workspace pribadi, jadi Console hanya mengirim parameter itu untuk workspace tim (`limitsWorkspaceId()`), dan key cache-nya `['pilot-limits', id ?? 'personal']`, sehingga invalidasi `queryKeys.pilotLimits` tetap menyegarkan semua workspace.
+
+## Workspace
+
+Setiap project dimiliki workspace (ADR-018 di sakala-landing). Setiap user punya workspace pribadi, dan workspace tim punya peran `owner`, `member`, dan `viewer`. Kontraknya ada di `src/lib/api/resources/workspaces.ts`: schema OpenAPI yang di-generate belum memuat workspace, jadi schema Zod di sana menjadi kontraknya. Schema itu diuji terhadap respons yang benar-benar dikirim API di `tests/fixtures/workspaces/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan (`DumpWorkspaceFixturesTest`, tidak di-commit ke API). Field debug Laravel (`exception`, `file`, `line`, `trace`) dibuang dari fixture, karena production tidak mengirimnya.
+
+- Workspace aktif dipilih di sidebar dan disimpan di `localStorage` per user (`sakala.active-workspace.{userId}`), lewat `features/workspaces/selection.svelte.ts`. Tanpa pilihan, atau kalau user sudah keluar dari tim yang tersimpan, yang aktif adalah workspace pribadi. Orang yang tidak punya tim tidak melihat perubahan apa pun selain switcher-nya.
+- Daftar project mengirim `workspace_id` workspace aktif. Kalau `GET app/workspaces` gagal, misalnya API lama tanpa workspace, daftar dibaca tanpa parameter dan API mengembalikan project dari semua workspace user. Kartu project menyebut workspace-nya begitu user punya tim.
+- Wizard membuat project di workspace aktif kalau user boleh membuat project di sana, selain itu di workspace pribadi, dan pilihan bisa diganti di wizard. `workspace_id` hanya dikirim untuk workspace tim, karena tanpa parameter API memakai workspace pribadi.
+- Resource project membawa `workspace` tanpa peran user. Peran diambil dari `GET app/workspaces` lewat `useProjectAccess()`. Untuk `viewer` halaman project hanya bisa dibaca: tanpa Redeploy, batalkan deployment, tombol tampilkan nilai secret, ubah atau hapus variabel, form pengaturan, dan hapus project. Selama peran di workspace tim belum diketahui, kontrol itu juga disembunyikan supaya tidak sempat muncul. API tetap penentunya dan menolak semua itu dengan `403`.
+- Penolakan dibaca dari `code`: `TEAM_LIMIT_EXCEEDED` (batas tim yang dimiliki), `LAST_WORKSPACE_OWNER`, `WORKSPACE_NOT_EMPTY`, `WORKSPACE_IS_PERSONAL`, `ALREADY_WORKSPACE_MEMBER`, `EMAIL_VERIFICATION_REQUIRED`, `INVITATION_EXPIRED`, dan `INVITATION_EMAIL_MISMATCH`. Teksnya ada di `features/workspaces/presentation.ts`. Aturan pemilik terakhir juga ditegakkan di UI dari daftar anggota, sebelum ada yang mencoba.
+- Email undangan menautkan ke `/workspace-invitations/{id}?token=...` (`WorkspaceInvitationNotification` di API). API tidak punya endpoint untuk membaca satu undangan lewat token, jadi detailnya diambil dari `GET app/workspace-invitations`, yang hanya berisi undangan untuk email terverifikasi user. Tautan untuk email lain tetap bisa diterima dengan token, tetapi tanpa detail sampai diterima. Undangan yang dibatalkan, sudah dipakai, atau tautannya salah sama-sama dijawab `404` tanpa `code`, jadi pesannya menyebut ketiganya.
+- Notifikasi kategori `workspace` tidak membawa ID undangan, jadi membuka `/workspace-invitations`. Halaman notifikasi menampilkan undangan yang tertunda di atas daftar notifikasi.
+- Jumlah project workspace untuk tombol hapus diambil dari `quotas.current_projects_count` di `pilot-limits`, karena resource workspace tidak membawanya.
+
 ## Masukan
 
 `POST app/feedback` dipanggil dari `/feedback`, yang bisa membawa `?project=` dan `?deployment=` sebagai konteks yang bisa dilepas user. API menolak masukan yang sama dalam 5 menit dengan `409`, dan teksnya tetap ada di form saat gagal.

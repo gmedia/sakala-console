@@ -1,6 +1,7 @@
 <script lang="ts">
 	import GitBranch from 'phosphor-svelte/lib/GitBranch';
 	import GitCommit from 'phosphor-svelte/lib/GitCommit';
+	import UsersThree from 'phosphor-svelte/lib/UsersThree';
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/api/resources/projects';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
@@ -11,11 +12,13 @@
 		getPublicUrlLabel,
 		toRuntimeStatus
 	} from '../../presentation';
+	import { workspaceLabel } from '$lib/features/workspaces/presentation';
 	import RuntimeStatusBadge from './RuntimeStatusBadge.svelte';
 
-	type Props = Project;
+	/** `showWorkspace` is on once the user belongs to a team; someone working alone sees no change. */
+	type Props = Project & { showWorkspace?: boolean };
 
-	let { ...project }: Props = $props();
+	let { showWorkspace = false, ...project }: Props = $props();
 
 	const framework = $derived(project.stack?.framework);
 	const latest = $derived(project.latest_deployment);
@@ -82,6 +85,17 @@
 		{#if framework}
 			<span data-testid="framework-chip" class="truncate font-medium text-foreground">
 				{getFrameworkLabel(framework)}
+			</span>
+		{/if}
+		{#if showWorkspace && project.workspace}
+			<span
+				data-testid="project-card-workspace"
+				class="inline-flex max-w-full min-w-0 items-center gap-1 truncate"
+				title={`Workspace: ${project.workspace.name}`}
+			>
+				<UsersThree size={14} class="shrink-0" aria-hidden="true" />
+				<span class="sr-only">Workspace:</span>
+				<span class="truncate">{workspaceLabel(project.workspace)}</span>
 			</span>
 		{/if}
 	</div>

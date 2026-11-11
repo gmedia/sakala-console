@@ -33,6 +33,8 @@
 		if (path.startsWith('/settings')) return 'Pengaturan';
 		if (path.startsWith('/feedback')) return 'Kirim masukan';
 		if (path.startsWith('/projects/new')) return 'Proyek baru';
+		if (path.startsWith('/workspace-invitations')) return 'Undangan workspace';
+		if (path.startsWith('/workspaces')) return 'Workspace';
 		return 'Proyek';
 	});
 </script>

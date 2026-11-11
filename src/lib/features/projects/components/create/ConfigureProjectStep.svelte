@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { tick } from 'svelte';
 	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
@@ -37,6 +38,8 @@
 		apiErrors?: CreateProjectFieldErrors;
 		pilotLimits?: PilotLimits;
 		reconnectUrl?: string | null;
+		/** Where the project goes, with that workspace's quota. Without it, the quota line alone. */
+		workspacePicker?: Snippet;
 	};
 
 	let {
@@ -45,7 +48,8 @@
 		isSubmitting = false,
 		apiErrors = {},
 		pilotLimits,
-		reconnectUrl = null
+		reconnectUrl = null,
+		workspacePicker
 	}: Props = $props();
 
 	const wizard = getCreateProjectContext();
@@ -221,7 +225,11 @@
 		<p>Atur konfigurasi proyek sebelum dibuat.</p>
 	</div>
 
-	<PilotQuotaNotice limits={pilotLimits} />
+	{#if workspacePicker}
+		{@render workspacePicker()}
+	{:else}
+		<PilotQuotaNotice limits={pilotLimits} />
+	{/if}
 
 	{#if apiErrors.general}
 		<div

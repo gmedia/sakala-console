@@ -1,0 +1,32 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a1cb4a-dee9-72c3-9e8f-a0b2826cf9fc",
+			"name": "Facility Reporting",
+			"repository_full_name": "gmedia/facility-reporting",
+			"repository_source": "public_url",
+			"github_installation_id": null,
+			"github_repository_id": null,
+			"branch": "main",
+			"runtime_status": "not_deployed",
+			"preview_status": "pending",
+			"inspection": null,
+			"stack": null,
+			"configured_port": null,
+			"effective_port": 3000,
+			"build_command": null,
+			"start_command": null,
+			"root_directory": null,
+			"auto_deploy": false,
+			"inspection_error_code": null,
+			"workspace": {
+				"id": "01a1cb4a-de55-72db-b810-80611beec465",
+				"name": "Tim Facility",
+				"slug": "tim-facility-reporting",
+				"type": "team"
+			},
+			"created_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}

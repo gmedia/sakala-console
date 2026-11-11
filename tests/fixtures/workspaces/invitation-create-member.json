@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Orang ini sudah menjadi anggota workspace.",
+		"code": "ALREADY_WORKSPACE_MEMBER"
+	}
+}

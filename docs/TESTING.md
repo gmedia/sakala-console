@@ -14,6 +14,8 @@ pnpm test:e2e         # Playwright, build dan preview otomatis
 
 Gunakan Vitest node untuk utility, parsing, API error mapping, query key, dan logic tanpa browser.
 
+Schema workspace diuji terhadap respons asli sakala-api di `tests/fixtures/workspaces`, yang dibaca lewat `src/lib/testing/workspace-fixtures.ts`. Component test dan mock e2e (`tests/e2e/fixtures/workspaces.ts`) memakai fixture yang sama, jadi bentuk respons dan pesan error-nya tidak dikarang ulang.
+
 ## Component
 
 Gunakan Vitest Browser + Playwright untuk behavior component yang membutuhkan DOM. Jangan menguji detail class visual yang mudah berubah; uji role, label, state, dan interaction.

@@ -29,7 +29,10 @@
 		createValidateGithubRepositoryMutation
 	} from '../../mutations';
 	import { isProjectQuotaReached } from '../../presentation';
-	import { createPilotLimitsQuery } from '../../queries';
+	import { useActiveWorkspace } from '$lib/features/workspaces/access.svelte';
+	import WorkspacePicker from '$lib/features/workspaces/components/WorkspacePicker.svelte';
+	import { canManageProjects, limitsWorkspaceId } from '$lib/features/workspaces/presentation';
+	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
 	import type { Repository } from '../../type';
 	import {
 		mapCreateProjectErrors,
@@ -40,7 +43,6 @@
 	import ConfigureProjectStep from './ConfigureProjectStep.svelte';
 	import CreateProjectStepper from './CreateProjectStepper.svelte';
 	import EnvRetryStep from './EnvRetryStep.svelte';
-	import PilotQuotaNotice from './PilotQuotaNotice.svelte';
 	import RepositoryStep from './RepositoryStep.svelte';
 
 	const REPOSITORIES_PER_PAGE = 5;
@@ -61,7 +63,20 @@
 		}
 	});
 
-	const pilotLimitsQuery = createPilotLimitsQuery();
+	// The project goes to the active workspace when the user may create there, otherwise to the
+	// personal one. A choice made here is kept for this wizard only.
+	const workspaces = useActiveWorkspace();
+	const manageable = $derived(workspaces.workspaces.filter((item) => canManageProjects(item.role)));
+	let chosenWorkspaceId = $state<string | null>(null);
+	const targetWorkspace = $derived(
+		manageable.find((item) => item.id === chosenWorkspaceId) ??
+			(workspaces.active && canManageProjects(workspaces.active.role)
+				? workspaces.active
+				: manageable.find((item) => item.type === 'personal')) ??
+			null
+	);
+
+	const pilotLimitsQuery = createWorkspaceLimitsQuery(() => limitsWorkspaceId(targetWorkspace));
 	const pilotLimits = $derived(pilotLimitsQuery.data);
 	const atQuota = $derived(isProjectQuotaReached(pilotLimits?.quotas));
 
@@ -168,7 +183,11 @@
 		apiErrors = {};
 
 		try {
-			const project = await createMutation.mutateAsync(payload);
+			// The personal workspace is the API's default, so only a team is named.
+			const workspaceId = limitsWorkspaceId(targetWorkspace);
+			const project = await createMutation.mutateAsync(
+				workspaceId ? { ...payload, workspace_id: workspaceId } : payload
+			);
 			wizard.startEnvSave();
 			wizard.markProjectCreated(project);
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved, plus a query
@@ -244,6 +263,15 @@
 	];
 </script>
 
+{#snippet picker()}
+	<WorkspacePicker
+		workspaces={manageable}
+		value={targetWorkspace?.id ?? null}
+		limits={pilotLimits}
+		onChange={(id) => (chosenWorkspaceId = id)}
+	/>
+{/snippet}
+
 <div class="flex flex-col items-center justify-center">
 	<div class="flex w-full items-center justify-between">
 		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-semibold" />
@@ -286,9 +314,13 @@
 					{apiErrors}
 					{pilotLimits}
 					reconnectUrl={githubReconnectUrl(installation)}
-				/>
+				>
+					{#snippet workspacePicker()}
+						{@render picker()}
+					{/snippet}
+				</ConfigureProjectStep>
 			{:else}
-				<PilotQuotaNotice limits={pilotLimits} />
+				{@render picker()}
 				<RepositoryStep
 					{repositories}
 					{githubConnected}

@@ -1,0 +1,17 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cb4a-de7d-70c3-94f8-4319ae9c436f",
+			"role": "member",
+			"joined_at": "2026-11-11T10:00:00+00:00",
+			"user": {
+				"id": 3,
+				"name": "Citra Lestari",
+				"username": "citra",
+				"avatar_url": null,
+				"email": "citra@kampus.test"
+			}
+		}
+	}
+}

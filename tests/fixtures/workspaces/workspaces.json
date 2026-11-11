@@ -1,0 +1,37 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1cb4a-de2f-734f-a44f-293d01579dec",
+				"name": "Rani Putri",
+				"slug": "rani",
+				"type": "personal",
+				"role": "owner",
+				"limit_profile": null,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cb4a-de55-72db-b810-80611beec465",
+				"name": "Tim Facility",
+				"slug": "tim-facility-reporting",
+				"type": "team",
+				"role": "owner",
+				"limit_profile": {
+					"id": "01a1cb4a-de3d-722c-8c31-0ec12726c91e",
+					"name": "Magang GMEDIA"
+				},
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cb4a-de65-710a-976a-83622a01a117",
+				"name": "Tim Kedua",
+				"slug": "tim-kedua",
+				"type": "team",
+				"role": "owner",
+				"limit_profile": null,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			}
+		]
+	}
+}

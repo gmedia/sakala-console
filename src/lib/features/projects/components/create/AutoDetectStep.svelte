@@ -27,6 +27,7 @@
 	import { createRedeployMutation, createRequestInspectionMutation } from '../../mutations';
 	import { getActiveDeploymentLimitNotice } from '../../presentation';
 	import { createProjectInspectionQuery } from '../../queries';
+	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
 
 	type Props = {
 		projectId: string;
@@ -80,8 +81,15 @@
 		return `Sakala sedang memeriksa ${repositoryName}. Analisis pertama bisa makan waktu satu menit atau lebih. Pemeriksaan berjalan di server, jadi halaman ini boleh ditinggal.`;
 	});
 
+	// After a reload the wizard no longer knows which workspace was picked, but the project does.
+	const team = $derived(project?.workspace?.type === 'team' ? project.workspace : null);
+	const teamLimitsQuery = createWorkspaceLimitsQuery(
+		() => team?.id ?? null,
+		() => ({ enabled: team !== null })
+	);
+	const limits = $derived(team ? teamLimitsQuery.data : pilotLimits);
 	const deployLimitNotice = $derived(
-		pilotLimits ? getActiveDeploymentLimitNotice(pilotLimits.quotas) : null
+		limits ? getActiveDeploymentLimitNotice(limits.quotas, team?.name) : null
 	);
 
 	let inspectError = $state('');
