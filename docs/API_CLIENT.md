@@ -120,7 +120,7 @@ PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` meng
 
 `GET app/projects` mengirim `public_url` dan `latest_deployment`, yang boleh `null` untuk project tanpa deployment. Kartu hanya menautkan URL saat `runtime_status` bernilai `running`. Satu baca daftar berarti satu request untuk enam kartu.
 
-Daftar di-poll dengan `resolveProjectListPollInterval()`: 15 detik saat ada yang sedang berjalan dan 60 detik saat tidak, atau 60 detik dan 5 menit saat socket tersambung. `notification.created` di `users.{id}` juga membaca ulang daftar, karena notifikasi itulah yang mengabarkan akhir deployment. API belum punya channel per project untuk daftar ini.
+`useProjectListLive()` mengikuti `deployment.updated` di channel `deployment.{id}` untuk setiap deployment yang masih berjalan di halaman itu, jadi tiap tahap membaca ulang daftar, satu request per rentetan event. Channel-nya tetap terbuka selama deployment itu berjalan dan ditutup begitu selesai. `notification.created` di `users.{id}` juga membaca ulang daftar, karena notifikasi itulah yang mengabarkan akhir deployment. API belum punya channel per project atau per user yang mengabarkan deployment baru, jadi deployment yang dimulai dari tempat lain, misalnya webhook, hanya terlihat lewat polling `resolveProjectListPollInterval()`: tanpa realtime 15 detik saat ada yang berjalan dan 60 detik saat tidak, dengan realtime 5 menit sebagai jaring pengaman.
 
 ## Project Header
 

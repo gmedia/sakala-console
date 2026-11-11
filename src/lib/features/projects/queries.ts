@@ -70,20 +70,20 @@ export function resolveProjectPollInterval(error?: unknown): number | false {
 }
 
 /*
- * A list read is one request for six cards. While something deploys it polls gently, and with the
- * socket up the notifications channel announces how a deployment ended, so this only catches a start.
+ * A list read is one request for six cards. Without the socket it polls, gently while something
+ * deploys. With the socket up, `useProjectListLive` hears every step of a deployment on the page and
+ * `users.{id}` announces how one ended, so polling only catches a start nobody announces, such as a
+ * webhook, and a broadcast that was lost.
  */
 export const LIST_POLL_RUNNING_MS = 15_000;
-export const LIST_POLL_RUNNING_REALTIME_MS = 60_000;
 export const LIST_POLL_IDLE_MS = 60_000;
-export const LIST_POLL_IDLE_REALTIME_MS = 5 * 60_000;
+export const LIST_POLL_REALTIME_MS = 5 * 60_000;
 
 export function resolveProjectListPollInterval(hasActivity: boolean, error?: unknown): number {
 	const wait = rateLimitWait(error);
 	if (wait !== undefined) return wait;
-	const connected = realtimeState.status === 'connected';
-	if (hasActivity) return connected ? LIST_POLL_RUNNING_REALTIME_MS : LIST_POLL_RUNNING_MS;
-	return connected ? LIST_POLL_IDLE_REALTIME_MS : LIST_POLL_IDLE_MS;
+	if (realtimeState.status === 'connected') return LIST_POLL_REALTIME_MS;
+	return hasActivity ? LIST_POLL_RUNNING_MS : LIST_POLL_IDLE_MS;
 }
 
 /** The list reads its state from `runtime_status`, and from the newest attempt before that moves. */
