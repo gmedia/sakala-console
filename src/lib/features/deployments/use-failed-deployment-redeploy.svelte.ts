@@ -1,7 +1,11 @@
 import { goto } from '$app/navigation';
+import { toast } from 'svelte-sonner';
 import { resolveRoute } from '$app/paths';
 import { getErrorMessage } from '$lib/api/errors';
-import { executeRedeployFlow } from '$lib/features/projects/detail/redeploy';
+import {
+	executeRedeployFlow,
+	redeployStartedMessage
+} from '$lib/features/projects/detail/redeploy';
 import { createRedeployMutation } from '$lib/features/projects/mutations';
 
 const REDEPLOY_FALLBACK_ERROR = 'Redeploy belum berhasil dijalankan. Silakan coba lagi.';
@@ -29,6 +33,7 @@ export function useFailedDeploymentRedeploy(project: () => { id: string; branch?
 			triggerRedeploy: (payload) => {
 				redeploy.mutate(payload, {
 					onSuccess: (deployment) => {
+						toast.success(redeployStartedMessage(deployment));
 						void goto(
 							resolveRoute('/(app)/projects/[id]/deployments/[deploymentId]', {
 								id: current.id,

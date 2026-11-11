@@ -445,6 +445,9 @@ test.describe('failure banner (#13)', () => {
 		await redeploy.dblclick();
 
 		await expect(page).toHaveURL(new RegExp(`/deployments/${NEW_DEPLOYMENT_ID}$`));
+		await expect(
+			page.getByText(`Redeploy dimulai sebagai deployment #${runningDeployment.sequence}.`)
+		).toBeVisible();
 		expect(posts).toBe(1);
 		expect(postedBranch).toBe('develop');
 	});
@@ -1120,6 +1123,7 @@ test.describe('env editing', () => {
 		await page.getByRole('button', { name: 'Simpan', exact: true }).click();
 
 		await expect.poll(() => body).toEqual({ key: 'LOG_LEVEL', value: 'debug', is_secret: false });
+		await expect(page.getByText('Variabel LOG_LEVEL disimpan.')).toBeVisible();
 	});
 
 	test('Redeploy from the notice opens the new deployment', async ({ page }) => {
@@ -1250,7 +1254,9 @@ test.describe('env form', () => {
 
 			await page.getByRole('button', { name: 'Simpan' }).click();
 
-			await expect(page.getByText('NEW_KEY')).toBeVisible();
+			// The toast names the variable too, so the list is looked for in the page itself.
+			await expect(page.getByText('Variabel NEW_KEY disimpan.')).toBeVisible();
+			await expect(page.locator('main').getByText('NEW_KEY')).toBeVisible();
 			expect(posted).toEqual([{ key: 'NEW_KEY', value: 'nilai-contoh', is_secret: true }]);
 
 			await page.getByRole('button', { name: 'Tampilkan nilai DATABASE_URL' }).click();
@@ -1262,7 +1268,8 @@ test.describe('env form', () => {
 			await dialog.getByRole('button', { name: 'Hapus variabel' }).click();
 
 			await expect(dialog).toHaveCount(0);
-			await expect(page.getByText('DATABASE_URL')).toHaveCount(0);
+			await expect(page.getByText('Variabel DATABASE_URL dihapus.')).toBeVisible();
+			await expect(page.locator('main').getByText('DATABASE_URL')).toHaveCount(0);
 		});
 	}
 
