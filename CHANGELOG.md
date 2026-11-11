@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-12
+
 ### Added
 
 - Team workspaces (ADR-018). A switcher in the sidebar picks the personal workspace or a team, is remembered per user in the browser, filters the project list, and is the default for new projects; the personal workspace stays the default, so someone without a team sees no change beyond the switcher. Teams are created from the switcher, with the owned-team cap explained in the dialog, and managed at `/workspaces/{id}`: members with roles, invitations by email with a role, pending invitations with revoke, role changes, removal, leaving, rename, and delete once the team has no projects. The last owner cannot be demoted, removed, or leave, and the page says so before anyone tries; destructive actions confirm in a dialog that does not focus them first and sends once.
@@ -88,6 +90,7 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/gmedia/sakala-console/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/gmedia/sakala-console/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gmedia/sakala-console/compare/v0.2.0...v0.3.0
