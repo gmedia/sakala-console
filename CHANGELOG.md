@@ -6,6 +6,11 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ### Added
 
+- Team workspaces (ADR-018). A switcher in the sidebar picks the personal workspace or a team, is remembered per user in the browser, filters the project list, and is the default for new projects; the personal workspace stays the default, so someone without a team sees no change beyond the switcher. Teams are created from the switcher, with the owned-team cap explained in the dialog, and managed at `/workspaces/{id}`: members with roles, invitations by email with a role, pending invitations with revoke, role changes, removal, leaving, rename, and delete once the team has no projects. The last owner cannot be demoted, removed, or leave, and the page says so before anyone tries; destructive actions confirm in a dialog that does not focus them first and sends once.
+- Invitations are answered from the email link (`/workspace-invitations/{id}?token=`), from `/workspace-invitations`, and from the notifications page, with copy for expired, revoked or used, other-address, already-member, and unverified-email cases.
+- The project wizard asks which workspace the project belongs to when there is a choice and shows that workspace's remaining quota. Project cards and the project header name the owning workspace once the user is in a team, and the workspace page shows its limits and limit profile.
+- Viewers see team projects read-only: no redeploy, cancel, secret values, variable changes, settings form, or delete.
+- Zod schemas for the workspace resources, checked against responses captured from sakala-api, and a stateful mocked workspace API for e2e tests built from the same captures.
 - The image can be pointed at any installation when the container starts: `PUBLIC_API_URL`, `PUBLIC_APP_URL`, and `PUBLIC_REVERB_*` set on the container replace the values baked in at build. `docker/entrypoint.sh` validates them, renders a same-origin `/runtime-config.js` that the app reads before it starts, and rewrites the Content-Security-Policy to name the configured API and Reverb. A container that sets none of them serves exactly what was built, so existing deployments do not change.
 
 ## [0.4.0] - 2026-11-11
