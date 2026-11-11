@@ -1,27 +1,15 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/cn';
-	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
+	import CaretRight from 'phosphor-svelte/lib/CaretRight';
+	import Button from './Button.svelte';
+
 	type Props = {
 		currentPage: number;
 		totalPages: number;
 		onPageChange: (page: number) => void;
 		disabled?: boolean;
-		class?: string;
 	};
-	let {
-		currentPage,
-		totalPages,
-		onPageChange,
-		disabled = false,
-		class: buttonClass
-	}: Props = $props();
-	const baseButton = $derived(
-		cn(
-			buttonClass,
-			'flex items-center justify-center text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-			'cursor-pointer font-montserrat-semibold rounded-lg w-10 h-8 border'
-		)
-	);
+	let { currentPage, totalPages, onPageChange, disabled = false }: Props = $props();
 
 	const DOTS = 'dots' as const;
 
@@ -43,44 +31,50 @@
 
 {#if totalPages > 1}
 	<nav
-		class="flex items-center justify-center gap-2 mt-3"
-		aria-label="Pagination"
+		class="mt-3 flex flex-wrap items-center justify-center gap-2"
+		aria-label="Navigasi halaman"
 		aria-busy={disabled}
 	>
-		<button
-			aria-label="Previous Page"
+		<Button
+			variant="secondary"
+			size="icon"
+			aria-label="Halaman sebelumnya"
 			disabled={disabled || currentPage === 1}
 			onclick={() => onPageChange(currentPage - 1)}
-			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
 		>
-			<ChevronLeft class="w-6 h-6" />
-		</button>
+			<CaretLeft size={16} weight="bold" aria-hidden="true" />
+		</Button>
 		{#each pages as page, i (page === DOTS ? `dots-${i}` : page)}
 			{#if page === DOTS}
-				<span class="flex items-center justify-center w-10 h-8 text-sm text-muted select-none">
+				<span
+					class="flex size-control-md items-center justify-center text-sm text-muted select-none"
+				>
 					...
 				</span>
 			{:else}
-				<button
-					aria-label={`Page ${page}`}
+				<Button
+					variant={page === currentPage ? 'primary' : 'secondary'}
+					size="icon"
+					aria-label={`Halaman ${page}`}
 					aria-current={page === currentPage ? 'page' : undefined}
 					disabled={disabled || page === currentPage}
+					class={page === currentPage
+						? 'disabled:border-primary disabled:bg-primary disabled:text-white'
+						: undefined}
 					onclick={() => onPageChange(page)}
-					class="{baseButton} {page === currentPage
-						? 'bg-primary text-white border-primary'
-						: 'bg-surface-elevated text-muted border-muted/30'}"
 				>
 					{page}
-				</button>
+				</Button>
 			{/if}
 		{/each}
-		<button
-			aria-label="Next Page"
+		<Button
+			variant="secondary"
+			size="icon"
+			aria-label="Halaman berikutnya"
 			disabled={disabled || currentPage === totalPages}
 			onclick={() => onPageChange(currentPage + 1)}
-			class="{baseButton} flex items-center justify-center bg-white text-muted border-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
 		>
-			<ChevronRight class="w-6 h-6" />
-		</button>
+			<CaretRight size={16} weight="bold" aria-hidden="true" />
+		</Button>
 	</nav>
 {/if}

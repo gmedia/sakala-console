@@ -11,7 +11,7 @@ import { ApiError, NetworkError } from '$lib/api/errors';
 function toErrorMessage(error: unknown): string | null {
 	if (!error) return null;
 	if (error instanceof NetworkError)
-		return 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.';
+		return 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu dan coba lagi.';
 	if (error instanceof ApiError && error.isValidationError) {
 		return 'Data yang dikirim tidak valid. Silakan periksa kembali.';
 	}
@@ -57,16 +57,17 @@ export function useOnboardingFlow() {
 		if (update.role !== undefined) profileRole = update.role;
 	}
 
+	// Profile first, then the optional source question. The API takes them in any order.
 	function submitSource() {
 		if (!selectedSource) return;
 		sourceMutation.mutate(
 			{ type: 'source', source: selectedSource },
-			{ onSuccess: () => (step = 2) }
+			{ onSuccess: () => (step = 3) }
 		);
 	}
 
 	function skipSource() {
-		sourceMutation.mutate({ type: 'skip' }, { onSuccess: () => (step = 2) });
+		sourceMutation.mutate({ type: 'skip' }, { onSuccess: () => (step = 3) });
 	}
 
 	function submitProfile() {
@@ -75,16 +76,16 @@ export function useOnboardingFlow() {
 		if (!name || !profileRole) return;
 		profileMutation.mutate(
 			{ name: profileName, role: profileRole },
-			{ onSuccess: () => (step = 3) }
+			{ onSuccess: () => (step = 2) }
 		);
 	}
 
 	function skipProfile() {
-		profileMutation.mutate({ skip: true }, { onSuccess: () => (step = 3) });
+		profileMutation.mutate({ skip: true }, { onSuccess: () => (step = 2) });
 	}
 
 	function finish() {
-		completeMutation.mutate(undefined, { onSuccess: () => goto(resolve('/projects')) });
+		completeMutation.mutate(undefined, { onSuccess: () => goto(resolve('/projects/new')) });
 	}
 
 	function back() {

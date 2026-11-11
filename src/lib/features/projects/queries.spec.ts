@@ -2,11 +2,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-keys';
 import { getListProjects } from '$lib/api/resources/projects';
-import { createListProjectsQuery } from './queries';
+import { apiErrorFromResponse } from '$lib/api/errors';
+import { realtimeState } from '$lib/realtime/connection-state.svelte';
+import {
+	createListProjectsQuery,
+	HEADER_POLL_IDLE_MS,
+	HEADER_POLL_RUNNING_MS,
+	HEADER_POLL_RUNNING_REALTIME_MS,
+	hasProjectInProgress,
+	LIST_POLL_IDLE_MS,
+	LIST_POLL_IDLE_REALTIME_MS,
+	LIST_POLL_RUNNING_MS,
+	LIST_POLL_RUNNING_REALTIME_MS,
+	resolveProjectListPollInterval,
+	resolveHeaderPollInterval,
+	resolveProjectPollInterval
+} from './queries';
 import type { ProjectsQueryParams } from '$lib/api/resources/projects';
 
 vi.mock('@tanstack/svelte-query', () => ({
 	createQuery: vi.fn()
+}));
+
+vi.mock('$lib/realtime/connection-state.svelte', () => ({
+	realtimeState: { status: 'disconnected' }
 }));
 
 vi.mock('$lib/api/resources/projects', () => ({
@@ -133,5 +152,71 @@ describe('createListProjectsQuery', () => {
 		};
 
 		expect(config.placeholderData(previousData)).toBe(previousData);
+	});
+});
+
+describe('project header polling', () => {
+	beforeEach(() => {
+		realtimeState.status = 'disconnected';
+	});
+
+	it('follows a running deployment without realtime', () => {
+		expect(resolveHeaderPollInterval(true)).toBe(HEADER_POLL_RUNNING_MS);
+	});
+
+	it('slows down while realtime carries the updates', () => {
+		realtimeState.status = 'connected';
+
+		expect(resolveHeaderPollInterval(true)).toBe(HEADER_POLL_RUNNING_REALTIME_MS);
+		expect(resolveProjectPollInterval()).toBe(false);
+	});
+
+	it('stays slow when idle, and still catches a deployment started elsewhere', () => {
+		expect(resolveHeaderPollInterval(false)).toBe(HEADER_POLL_IDLE_MS);
+	});
+
+	it('leaves room in the 60 a minute limit for the rest of the page', () => {
+		expect((60_000 / HEADER_POLL_RUNNING_MS) * 2).toBeLessThanOrEqual(12);
+	});
+
+	it('waits out a 429', () => {
+		const limited = apiErrorFromResponse(429, { retryAfterSeconds: 30 });
+
+		expect(resolveHeaderPollInterval(true, limited)).toBe(30_000);
+		expect(resolveProjectPollInterval(limited)).toBe(30_000);
+	});
+});
+
+describe('polling the project list', () => {
+	const listed = (runtime_status: string, status?: string) => ({
+		runtime_status,
+		latest_deployment: status ? ({ status } as never) : null
+	});
+
+	it('notices a deployment that the runtime status has not caught up with', () => {
+		expect(hasProjectInProgress([listed('running', 'queued')])).toBe(true);
+		expect(hasProjectInProgress([listed('deploying')])).toBe(true);
+		expect(hasProjectInProgress([listed('running', 'succeeded'), listed('not_deployed')])).toBe(
+			false
+		);
+	});
+
+	it('stays well inside 60 requests a minute shared with the rest of the page', () => {
+		realtimeState.status = 'disconnected';
+		expect(resolveProjectListPollInterval(true)).toBe(LIST_POLL_RUNNING_MS);
+		expect(resolveProjectListPollInterval(false)).toBe(LIST_POLL_IDLE_MS);
+		expect(60_000 / LIST_POLL_RUNNING_MS).toBeLessThanOrEqual(4);
+	});
+
+	it('leans on the socket when it is up', () => {
+		realtimeState.status = 'connected';
+		expect(resolveProjectListPollInterval(true)).toBe(LIST_POLL_RUNNING_REALTIME_MS);
+		expect(resolveProjectListPollInterval(false)).toBe(LIST_POLL_IDLE_REALTIME_MS);
+		realtimeState.status = 'disconnected';
+	});
+
+	it('waits out a 429 instead of polling into it', () => {
+		const error = apiErrorFromResponse(429, { retryAfterSeconds: 90 });
+		expect(resolveProjectListPollInterval(true, error)).toBe(90_000);
 	});
 });

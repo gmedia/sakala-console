@@ -132,4 +132,54 @@ describe('executeRedeployFlow', () => {
 		expect(resetDraft).not.toHaveBeenCalled();
 		expect(triggerRedeploy).not.toHaveBeenCalled();
 	});
+
+	it('saves a build setting that was edited alone, without resending name and branch', async () => {
+		const updateProject = vi.fn().mockResolvedValue({});
+		const triggerRedeploy = vi.fn();
+		const resetDraft = vi.fn();
+
+		await executeRedeployFlow({
+			project: { id: 'proj-123', branch: 'main' },
+			detailState: {
+				draftName: null,
+				draftBranch: null,
+				isDirty: true,
+				basicsDirty: false,
+				configPayload: () => ({ configured_port: 8080 }),
+				resetDraft
+			},
+			updateProject,
+			triggerRedeploy
+		});
+
+		expect(updateProject).toHaveBeenCalledWith({
+			id: 'proj-123',
+			data: { configured_port: 8080 }
+		});
+		expect(resetDraft).toHaveBeenCalledOnce();
+		expect(triggerRedeploy).toHaveBeenCalledOnce();
+	});
+
+	it('does not deploy when a build setting in the draft is invalid', async () => {
+		const updateProject = vi.fn();
+		const triggerRedeploy = vi.fn();
+
+		await expect(
+			executeRedeployFlow({
+				project: { id: 'proj-123', branch: 'main' },
+				detailState: {
+					isDirty: true,
+					configPayload: () => {
+						throw new Error('invalid');
+					},
+					resetDraft: vi.fn()
+				},
+				updateProject,
+				triggerRedeploy
+			})
+		).rejects.toThrow('invalid');
+
+		expect(updateProject).not.toHaveBeenCalled();
+		expect(triggerRedeploy).not.toHaveBeenCalled();
+	});
 });

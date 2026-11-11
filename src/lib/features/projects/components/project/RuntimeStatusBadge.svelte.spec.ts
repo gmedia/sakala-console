@@ -9,13 +9,22 @@ describe('RuntimeStatusBadge', () => {
 		['running', 'Live'],
 		['failed', 'Gagal'],
 		['stopped', 'Berhenti'],
-		['crashed', 'Gagal'],
-		['deploying', 'Mendeploy'],
-		['not_deployed', 'Belum Deploy']
+		['crashed', 'Crash'],
+		['deploying', 'Men-deploy'],
+		['not_deployed', 'Belum deploy']
 	])('menampilkan label "%s" -> "%s"', async (runtimeStatus, expectedLabel) => {
 		await render(RuntimeStatusBadge, { runtimeStatus });
 
 		await expect.element(page.getByText(expectedLabel, { exact: true })).toBeVisible();
+	});
+
+	test('menampilkan "Ditangguhkan" untuk proyek yang ditangguhkan, apa pun runtime-nya', async () => {
+		await render(RuntimeStatusBadge, {
+			runtimeStatus: 'running',
+			suspension: { reason: null, suspended_at: null }
+		});
+
+		await expect.element(page.getByText('Ditangguhkan', { exact: true })).toBeVisible();
 	});
 
 	test('fallback ke "Lainnya" untuk runtime status yang tidak dikenal', async () => {

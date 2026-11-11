@@ -10,7 +10,11 @@ const validUser = {
 	onboarding_source: 'github',
 	onboarding_role: 'developer',
 	onboarding_completed_at: new Date().toISOString(),
-	last_login_at: new Date().toISOString()
+	last_login_at: new Date().toISOString(),
+	has_password: true,
+	legal_acceptance_required: false,
+	pending_email: null,
+	created_at: '2026-01-01T00:00:00Z'
 };
 
 const validProject = {
@@ -22,7 +26,11 @@ const validProject = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: 'https://example.com/thumb.png',
+	public_url: 'https://sakala-console.run.sakala.dev',
+	latest_deployment: null,
 	runtime_status: 'running',
+	suspension: null,
+	stack: null,
 	last_deployed_at: '2026-09-10T10:00:00Z',
 	created_at: '2026-01-01T00:00:00Z'
 };
@@ -48,6 +56,9 @@ function makeDeployment(status: DeploymentStatus) {
 		finalization_deferred: false,
 		finalization_deferred_reason: null,
 		agent_node_id: null,
+		is_active: true,
+		cancel_requested_at: null,
+		queue_state: null,
 		failure_code: null,
 		failure_summary: null,
 		failure: null,
@@ -89,7 +100,10 @@ function makeDeployment(status: DeploymentStatus) {
 			code: 'runtime_build_failed',
 			category: 'build',
 			summary: 'Build failed: see step 5 output above',
-			recovery_hint: 'Periksa konfigurasi build'
+			recovery_hint: 'Periksa konfigurasi build',
+			user_fixable: true,
+			detail: null,
+			stage: 'building'
 		}
 	};
 }
@@ -98,6 +112,19 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 	await page.route('**/api/v1/app/projects/**', async (route) => {
 		const url = new URL(route.request().url());
 		const path = url.pathname;
+
+		if (/\/deployments\/[^/]+\/logs\/?$/.test(path)) {
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					data: [],
+					links: { first: null, last: null, prev: null, next: null },
+					meta: { path: null, per_page: 10, next_cursor: null, prev_cursor: null }
+				})
+			});
+			return;
+		}
 
 		if (/\/deployments\/[^/]+\/events\/?$/.test(path)) {
 			const events =
@@ -149,7 +176,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 								{
 									sequence: 4,
 									level: 'info',
-									type: 'deployment.runtime.ready',
+									type: 'deployment.route.started',
 									message: 'Runtime ready',
 									metadata: null,
 									occurred_at: '2026-09-20T08:41:45Z'
@@ -294,7 +321,7 @@ async function mockProjects(
 test('shows the honest foundation state', async ({ page }) => {
 	await page.goto('/');
 
-	await expect(page.getByRole('heading', { level: 1 })).toContainText('Build');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Selamat datang');
 });
 
 test('keeps deep links available through the static SPA fallback', async ({ page }) => {
@@ -302,7 +329,7 @@ test('keeps deep links available through the static SPA fallback', async ({ page
 
 	await page.goto('/projects');
 
-	await expect(page.getByRole('heading', { name: 'Projects' }).first()).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Proyek', exact: true }).first()).toBeVisible();
 	await expect(page.getByRole('navigation', { name: 'Navigasi utama' })).toBeVisible();
 });
 
@@ -327,7 +354,7 @@ test('does NOT redirect to login on 403 user stay and sees a error state', async
 	await page.goto('/projects');
 
 	await expect(page).toHaveURL('/projects');
-	await expect(page.getByText('Anda tidak memiliki akses')).toBeVisible({ timeout: 15000 });
+	await expect(page.getByText('Kamu tidak memiliki akses')).toBeVisible({ timeout: 15000 });
 });
 
 test('does NOT redirect to login on network failure, user stay and sees a error state', async ({
@@ -345,10 +372,10 @@ test('does NOT render protected content while current user is still pending', as
 
 	await page.goto('/projects');
 
-	await expect(page.getByRole('heading', { name: 'Projects' })).not.toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Proyek', exact: true })).not.toBeVisible();
 	await expect(page.getByRole('status', { name: /memuat/i })).toBeVisible();
 
-	await expect(page.getByRole('heading', { name: 'Projects' }).first()).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Proyek', exact: true }).first()).toBeVisible();
 });
 
 test.describe('Deployment detail page', () => {
@@ -358,27 +385,25 @@ test.describe('Deployment detail page', () => {
 		await page.goto(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`);
 
 		await expect(page.getByText('Deployment sedang berjalan')).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Logs' })).toBeVisible();
-		await expect(
-			page.getByText('Log deployment akan tersedia pada iterasi berikutnya.')
-		).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Log', exact: true })).toBeVisible();
+		await expect(page.getByText('Menunggu log...')).toBeVisible();
 		await page.waitForTimeout(2000);
-		await expect(page.getByText(/Tahap: Build project/)).toBeVisible();
+		await expect(page.getByText(/Tahap: Build proyek/)).toBeVisible();
 
 		const deploymentInfo = page.getByTestId('deployment-info');
 		await expect(deploymentInfo.getByText('Dimulai pada')).toBeVisible();
 		await expect(page.getByTestId('deployment-primary-time')).toHaveText(
-			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+			/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/
 		);
 		await expect(page.getByTestId('deployment-updated-time')).toHaveText(
-			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+			/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/
 		);
 
 		await expect(page.getByTestId('deployment-commit')).toHaveText('a3f2c9d');
 		await expect(page.getByTestId('deployment-branch')).toHaveText('main');
-		await expect(page.getByTestId('deployment-trigger')).toHaveText('Push');
+		await expect(page.getByTestId('deployment-trigger')).toHaveText('Auto-deploy dari push');
 
-		await expect(page.getByText('Build project', { exact: true })).toBeVisible();
+		await expect(page.getByText('Build proyek', { exact: true })).toBeVisible();
 		await expect(page.getByText('Menyalin repository')).toBeVisible();
 		await expect(page.getByText('Menyiapkan routing')).toBeVisible();
 	});
@@ -394,7 +419,7 @@ test.describe('Deployment detail page', () => {
 
 		await expect(deploymentInfo.getByText('Selesai pada')).toBeVisible();
 		await expect(page.getByTestId('deployment-primary-time')).toHaveText(
-			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+			/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/
 		);
 		await expect(page.getByTestId('deployment-trigger')).toHaveText('Manual redeploy');
 
@@ -412,27 +437,25 @@ test.describe('Deployment detail page', () => {
 
 		await expect(deploymentInfo.getByText('Gagal pada')).toBeVisible();
 		await expect(page.getByTestId('deployment-primary-time')).toHaveText(
-			/^\d{2}[:.]\d{2}[:.]\d{2}$/
+			/^(\d{1,2} \w{3} \d{4} )?\d{2}:\d{2}:\d{2}$/
 		);
 
-		await expect(page.getByText('Build project - gagal')).toBeVisible();
+		await expect(page.getByText('Build proyek - gagal')).toBeVisible();
 		await expect(page.getByText(/Build failed: see step 5 output above/)).toBeVisible();
 	});
 
-	test('shows failed state and "Lihat detail error" CTA scrolls to failure summary', async ({
-		page
-	}) => {
+	test('shows failed state and "Lihat error di log" CTA reaches the log', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
 		await mockDeploymentDetail(page, 'failed');
 		await page.goto('/projects/sakala-console/deployments/12');
 
 		await expect(page.getByText('Deployment gagal')).toBeVisible();
 
-		const cta = page.getByRole('button', { name: /lihat detail error/i });
+		const cta = page.getByRole('button', { name: /lihat error di log/i });
 		await expect(cta).toBeVisible();
 
 		await cta.click();
-		await expect(page.locator('#failure-summary')).toBeInViewport();
+		await expect(page.locator('#deployment-logs')).toBeInViewport();
 	});
 });
 
@@ -443,8 +466,8 @@ test.describe('Projects list page', () => {
 
 		await page.goto('/projects');
 
-		await expect(page.getByText('Belum ada proyek')).toBeVisible();
-		await expect(page.getByRole('link', { name: /baca panduan deploy pertamamu/i })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Buat proyek' })).toHaveCount(1);
 	});
 
 	test('shows "tidak menemukan" when active date filter excludes existing projects', async ({
@@ -460,8 +483,8 @@ test.describe('Projects list page', () => {
 
 		await page.goto('/projects');
 
-		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
-		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+		await expect(page.getByText('Tidak menemukan proyek')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toHaveCount(0);
 	});
 
 	test('shows "tidak menemukan" when a search term matches nothing', async ({ page }) => {
@@ -483,10 +506,11 @@ test.describe('Projects list page', () => {
 				});
 			}
 
+			// More than one page of projects, or the search box is not offered.
 			return buildProjectsResponse({
 				data: [validProject],
 				meta: {
-					total: 1
+					total: 7
 				}
 			});
 		});
@@ -495,10 +519,10 @@ test.describe('Projects list page', () => {
 
 		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
 
-		await page.getByPlaceholder('Cari..').fill('project-yang-tidak-ada');
+		await page.getByPlaceholder('Cari proyek').fill('project-yang-tidak-ada');
 
-		await expect(page.getByText('Tidak menemukan project')).toBeVisible();
-		await expect(page.getByText('Belum ada proyek')).not.toBeVisible();
+		await expect(page.getByText('Tidak menemukan proyek')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toHaveCount(0);
 	});
 
 	test('shows project list', async ({ page }) => {
@@ -574,7 +598,7 @@ test.describe('Projects list page', () => {
 		await expect(page.getByText('Server sedang bermasalah')).toBeVisible();
 
 		await expect(
-			page.getByText('Terjadi masalah pada server saat mengambil data project. Silakan coba lagi.')
+			page.getByText('Terjadi masalah pada server saat mengambil data proyek. Silakan coba lagi.')
 		).toBeVisible();
 
 		await page.getByRole('button', { name: /coba lagi/i }).click();
@@ -615,7 +639,7 @@ test.describe('Projects list page', () => {
 
 		await expect(page.getByText('Project Satu')).toBeVisible();
 
-		await page.getByRole('button', { name: /next page|next/i }).click();
+		await page.getByRole('button', { name: 'Halaman berikutnya' }).click();
 
 		await expect(page.getByText('Project Dua')).toBeVisible();
 		await expect(page.getByText('Project Satu')).not.toBeVisible();
@@ -656,13 +680,13 @@ test.describe('Projects list page', () => {
 		await page.goto('/projects');
 		await expect(page.getByText('Project Satu')).toBeVisible();
 
-		const list = page.getByRole('region', { name: 'List Projects' });
+		const list = page.getByRole('region', { name: 'Daftar proyek' });
 		await expect(list).toHaveAttribute('aria-busy', 'false');
 
-		await page.getByRole('button', { name: /next page|next/i }).click();
+		await page.getByRole('button', { name: 'Halaman berikutnya' }).click();
 
 		await expect(list).toHaveAttribute('aria-busy', 'true');
-		await expect(page.getByRole('button', { name: /next page|next/i })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Halaman berikutnya' })).toBeDisabled();
 		await expect(page.getByText('Project Satu')).toBeVisible();
 		await expect(page.getByText('Project Dua')).not.toBeVisible();
 
@@ -672,7 +696,7 @@ test.describe('Projects list page', () => {
 		await expect(list).toHaveAttribute('aria-busy', 'false');
 	});
 
-	test('navigates to project detail when clicking lihat detail', async ({ page }) => {
+	test('navigates to project detail when clicking the card', async ({ page }) => {
 		await mockCurrentUserSuccess(page);
 
 		await mockProjects(page, () =>
@@ -688,7 +712,7 @@ test.describe('Projects list page', () => {
 
 		await expect(page.getByText(validProject.name, { exact: true })).toBeVisible();
 
-		await page.getByRole('link', { name: /lihat detail/i }).click();
+		await page.getByRole('link', { name: validProject.name }).click();
 
 		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
 	});
@@ -717,8 +741,8 @@ test.describe('Projects list page', () => {
 		const logoutDialog = page.getByRole('dialog');
 		await expect(logoutDialog).toBeVisible();
 
-		const cancelButton = page.getByRole('button', { name: 'Tidak' });
-		const confirmButton = page.getByRole('button', { name: 'Iya' });
+		const cancelButton = page.getByRole('button', { name: 'Tetap di sini' });
+		const confirmButton = page.getByRole('button', { name: 'Keluar' });
 
 		await expect(cancelButton).toBeFocused();
 
@@ -761,7 +785,7 @@ test.describe('Projects list page', () => {
 		await expect(profileTrigger).toBeVisible();
 		await profileTrigger.click();
 
-		await expect(mobileNav.getByRole('link', { name: 'Lihat Profil' })).toBeVisible();
+		await expect(mobileNav.getByRole('link', { name: 'Lihat profil' })).toBeVisible();
 		await expect(mobileNav.getByRole('link', { name: 'Pengaturan' })).toBeVisible();
 		await expect(mobileNav.getByRole('button', { name: 'Keluar' })).toBeVisible();
 	});
@@ -798,11 +822,11 @@ test.describe('Projects list page', () => {
 		const logoutDialog = page.getByRole('dialog');
 		await expect(logoutDialog).toBeVisible();
 
-		await logoutDialog.getByRole('button', { name: 'Iya' }).click();
+		await logoutDialog.getByRole('button', { name: 'Keluar' }).click();
 
 		await expect.poll(() => logoutIntercepted, { timeout: 5_000 }).toBe(true);
 
-		await expect(logoutDialog.getByRole('button', { name: 'Coba Lagi' })).toBeVisible({
+		await expect(logoutDialog.getByRole('button', { name: 'Coba lagi' })).toBeVisible({
 			timeout: 5_000
 		});
 		await expect(logoutDialog.getByText('Gagal keluar akun. Silakan coba lagi.')).toBeVisible();

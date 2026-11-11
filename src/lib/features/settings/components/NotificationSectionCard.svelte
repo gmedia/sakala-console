@@ -11,9 +11,9 @@
 	let { title, icon: Icon, iconText, children }: Props = $props();
 </script>
 
-<div class="overflow-hidden rounded-2xl border border-border/70 bg-white shadow-xs">
+<div class="surface-card overflow-hidden">
 	<div
-		class="flex items-center gap-2 border-b border-border/60 bg-[#F1F7F4] px-6 py-3 font-sans text-sm font-semibold text-primary-dark"
+		class="flex items-center gap-2 border-b border-border bg-surface-tint px-6 py-3 text-sm font-semibold text-primary-dark"
 	>
 		{#if Icon}
 			<Icon size={18} />
@@ -23,7 +23,7 @@
 		<span>{title}</span>
 	</div>
 
-	<div class="divide-y divide-border/60 p-6 space-y-2">
+	<div class="divide-y divide-border p-6 space-y-2">
 		{@render children()}
 	</div>
 </div>

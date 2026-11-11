@@ -1,180 +1,110 @@
-import { mockRepositories } from '$lib/features/projects/mock/mock';
-import type { Repository, CreateProjectPayload, CreateProjectResult } from '../type';
+import type { CreateProjectResource } from '$lib/api/resources/projects';
+import type { Repository } from '../type';
 import { parseGitUrl } from './parseGitUrl';
 
-type WizardStep = 1 | 2 | 3;
-type RepositorySubstep = 'select-repository' | 'prepare-deployment';
-type EnvVar = { id: number; key: string; value: string; visible?: boolean };
-type ScanStatus = 'idle' | 'scanning' | 'completed' | 'failed';
-type DeployStatus = 'idle' | 'deploying' | 'cancelling' | 'cancelled' | 'success' | 'failed';
+export type WizardStep = 1 | 2 | 3;
+export type RepositorySource = 'github' | 'git-url';
+export type WizardEnvVar = { id: number; key: string; value: string; isSecret: boolean };
+export type EnvSaveFailure = {
+	env: WizardEnvVar;
+	message: string;
+	keyError?: string;
+	valueError?: string;
+};
+/** `saving` and `partial` happen after the project exists, while its variables are being stored. */
+export type EnvSaveStatus = 'idle' | 'saving' | 'partial' | 'done';
 
 export function createProjectWizardState() {
-	let currentPage = $state(1);
-	let perPage = $state(5);
 	let currentStep = $state<WizardStep>(1);
-	let repositorySource = $state<'github' | 'git-url'>('github');
-	let repositorySubstep = $state<RepositorySubstep>('select-repository');
+	let repositorySource = $state<RepositorySource>('github');
 	let hasEnteredConfig = $state(false);
-	let selectedRepositoryId = $state<string | null>(null);
+
 	let selectedInstallationId = $state<string | null>(null);
-	let customGithubRepository = $state<Repository | null>(null);
+	let selectedRepositoryId = $state<string | null>(null);
+	let githubRepository = $state<Repository | null>(null);
+	let gitUrl = $state('');
 	let validatedGitRepository = $state<Repository | null>(null);
 	let lastAppliedRepoKey: string | null = null;
-	let githubConnected = $state(true);
-	let checkingGithubConnection = $state(true);
-	let gitUrl = $state('');
+
 	let projectName = $state('');
-	let projectDomain = $state('');
 	let projectNameTouched = false;
 	let selectedBranch = $state('');
-	let selectedPort = $state('3000');
-	let buildCommand = $state('npm run build');
-	let envVars = $state<EnvVar[]>([]);
-	const envVisible = $state(false);
+	let configuredPort = $state('');
+	let buildCommand = $state('');
+	let startCommand = $state('');
+	let rootDirectory = $state('');
+	let autoDeploy = $state(false);
+
+	let envVars = $state<WizardEnvVar[]>([]);
 	let nextEnvId = 1;
+	let envSaveStatus = $state<EnvSaveStatus>('idle');
+	let envSavedCount = $state(0);
+	let envFailures = $state<EnvSaveFailure[]>([]);
 
-	let createdProject = $state<CreateProjectResult | null>(null);
-
-	let scanStatus = $state<ScanStatus>('idle');
-	let builderDetected = $state<boolean | null>(null);
-	let scanAttempt = $state(0);
-
-	let deployStatus = $state<DeployStatus>('idle');
-
-	const githubRepository = $derived(
-		(customGithubRepository && String(customGithubRepository.id) === selectedRepositoryId
-			? customGithubRepository
-			: null) ??
-			mockRepositories.find((repo) => repo.id === selectedRepositoryId) ??
-			null
-	);
-
-	const gitUrlRepository = $derived.by<Repository | null>(() => {
-		if (repositorySource !== 'git-url' || !gitUrl) return null;
-
-		const parsed = parseGitUrl(gitUrl);
-		if (!parsed) return null;
-
-		if (
-			validatedGitRepository &&
-			validatedGitRepository.full_name.toLowerCase() === parsed.fullName.toLowerCase()
-		) {
-			return validatedGitRepository;
-		}
-
-		return {
-			id: gitUrl,
-			name: parsed.name,
-			full_name: parsed.fullName,
-			clone_url: gitUrl,
-			default_branch: 'main',
-			pushed_at: '2024-01-01T00:00:00Z',
-			private: false
-		};
-	});
+	let createdProjectId = $state<string | null>(null);
+	let createdProjectName = $state<string | null>(null);
 
 	const selectedRepository = $derived(
-		repositorySource === 'github' ? githubRepository : gitUrlRepository
+		repositorySource === 'github' ? githubRepository : validatedGitRepository
 	);
 
-	function repoKey(repo: Repository | null): string | null {
-		return repo ? `${repo.full_name}#${repo.default_branch}` : null;
-	}
-
-	function resolveRepository(id: string | null): Repository | null {
-		if (repositorySource === 'github') {
-			return mockRepositories.find((repo) => repo.id === id) ?? null;
-		}
-		return null;
-	}
-
-	function applyRepositoryDefaults(repo: Repository | null) {
-		const key = repoKey(repo);
-		if (key === null) return;
-
+	function applyRepositoryDefaults(repo: Repository) {
+		const key = `${repo.full_name}#${repo.default_branch}`;
 		if (key === lastAppliedRepoKey) return;
 		lastAppliedRepoKey = key;
 
-		selectedBranch = repo?.default_branch ?? '';
+		selectedBranch = repo.default_branch;
 		if (!projectNameTouched) {
-			projectName = repo?.full_name.split('/')[1] ?? '';
-		}
-
-		scanStatus = 'idle';
-		builderDetected = null;
-		scanAttempt = 0;
-	}
-
-	async function checkGithubConnection() {
-		checkingGithubConnection = true;
-		try {
-			githubConnected = true;
-		} catch {
-			githubConnected = false;
-		} finally {
-			checkingGithubConnection = false;
+			projectName = repo.full_name.split('/')[1] ?? '';
 		}
 	}
 
-	function addEnvVar(key: string, value: string) {
-		const trimmedKey = key.trim();
-		const trimmedValue = value.trim();
-		if (!trimmedKey || !trimmedValue) return;
-
-		envVars.push({
-			id: nextEnvId++,
-			key: trimmedKey,
-			value: trimmedValue,
-			visible: envVisible
-		});
-	}
-
-	function removeEnvVar(id: number) {
-		envVars = envVars.filter((env) => env.id !== id);
-	}
-
-	function toggleEnvVisible(id: number) {
-		const target = envVars.find((env) => env.id === id);
-		if (target) target.visible = !target.visible;
-	}
-
-	async function cancelDeployment() {
-		if (deployStatus !== 'deploying') return;
-
-		deployStatus = 'cancelling';
-		try {
-			await new Promise((resolve) => setTimeout(resolve, 800));
-			deployStatus = 'cancelled';
-		} catch {
-			deployStatus = 'deploying';
-			throw new Error('Gagal membatalkan deployment');
-		}
+	function clearGithubSelection() {
+		selectedRepositoryId = null;
+		githubRepository = null;
 	}
 
 	return {
+		get currentStep() {
+			return currentStep;
+		},
 		get repositorySource() {
 			return repositorySource;
 		},
-		set repositorySource(v) {
-			repositorySource = v;
-			if (v === 'github') {
+		set repositorySource(source: RepositorySource) {
+			repositorySource = source;
+			if (source === 'github') {
 				validatedGitRepository = null;
+				gitUrl = '';
+			} else {
+				clearGithubSelection();
 			}
+		},
+
+		get selectedInstallationId() {
+			return selectedInstallationId;
+		},
+		set selectedInstallationId(id: string | null) {
+			if (id === selectedInstallationId) return;
+			selectedInstallationId = id;
+			clearGithubSelection();
 		},
 		get selectedRepositoryId() {
 			return selectedRepositoryId;
 		},
-		set selectedRepositoryId(v: string | null) {
-			selectedRepositoryId = v;
-			applyRepositoryDefaults(resolveRepository(v));
+		selectGithubRepository(installationId: string, repo: Repository) {
+			selectedInstallationId = installationId;
+			selectedRepositoryId = String(repo.id);
+			githubRepository = repo;
+			applyRepositoryDefaults(repo);
 		},
 		get gitUrl() {
 			return gitUrl;
 		},
-		set gitUrl(v: string) {
-			gitUrl = v;
+		set gitUrl(url: string) {
+			gitUrl = url;
 			if (validatedGitRepository) {
-				const parsed = parseGitUrl(v);
+				const parsed = parseGitUrl(url);
 				if (
 					!parsed ||
 					parsed.fullName.toLowerCase() !== validatedGitRepository.full_name.toLowerCase()
@@ -183,198 +113,123 @@ export function createProjectWizardState() {
 				}
 			}
 		},
-
-		get selectedBranch() {
-			return selectedBranch;
+		confirmGitUrl(repo: Repository) {
+			validatedGitRepository = repo;
+			applyRepositoryDefaults(repo);
 		},
-		set selectedBranch(v) {
-			selectedBranch = v;
-			scanStatus = 'idle';
-			builderDetected = null;
-			scanAttempt = 0;
-		},
-
-		get selectedPort() {
-			return selectedPort;
-		},
-		set selectedPort(v) {
-			selectedPort = v;
+		get selectedRepository() {
+			return selectedRepository;
 		},
 
 		get projectName() {
 			return projectName;
 		},
-		set projectName(v) {
-			projectName = v;
+		set projectName(name: string) {
+			projectName = name;
 			projectNameTouched = true;
 		},
-		get projectDomain() {
-			return projectDomain;
+		get selectedBranch() {
+			return selectedBranch;
 		},
-
+		set selectedBranch(branch: string) {
+			selectedBranch = branch;
+		},
+		get configuredPort() {
+			return configuredPort;
+		},
+		set configuredPort(port: string) {
+			configuredPort = port;
+		},
 		get buildCommand() {
 			return buildCommand;
 		},
-
-		set buildCommand(v) {
-			buildCommand = v;
+		set buildCommand(command: string) {
+			buildCommand = command;
+		},
+		get startCommand() {
+			return startCommand;
+		},
+		set startCommand(command: string) {
+			startCommand = command;
+		},
+		get rootDirectory() {
+			return rootDirectory;
+		},
+		set rootDirectory(directory: string) {
+			rootDirectory = directory;
+		},
+		get autoDeploy() {
+			return autoDeploy;
+		},
+		set autoDeploy(enabled: boolean) {
+			autoDeploy = enabled;
 		},
 
-		get perPage() {
-			return perPage;
-		},
-
-		set perPage(v) {
-			perPage = v;
-		},
-
-		get currentPage() {
-			return currentPage;
-		},
-		set currentPage(v) {
-			currentPage = v;
-		},
-
-		get currentStep() {
-			return currentStep;
-		},
-		get repositorySubstep() {
-			return repositorySubstep;
-		},
-		get selectedRepository() {
-			return selectedRepository;
-		},
-		get githubConnected() {
-			return githubConnected;
-		},
-		get checkingGithubConnection() {
-			return checkingGithubConnection;
-		},
 		get envVars() {
 			return envVars;
 		},
-		get createProjectPayload(): CreateProjectPayload {
-			return {
-				project_name: projectName,
-				repository_url: selectedRepository?.clone_url ?? '',
-				branch: selectedBranch
-			};
+		addEnvVar(key: string, value: string, isSecret: boolean) {
+			envVars.push({ id: nextEnvId++, key, value, isSecret });
 		},
-		get createdProject() {
-			return createdProject;
+		removeEnvVar(id: number) {
+			envVars = envVars.filter((env) => env.id !== id);
 		},
-		get scanning() {
-			return scanStatus === 'scanning';
+
+		get envSaveStatus() {
+			return envSaveStatus;
 		},
-		get scanFailed() {
-			return scanStatus === 'failed';
+		get envSavedCount() {
+			return envSavedCount;
 		},
-		get builderDetected() {
-			return builderDetected;
+		get envFailures() {
+			return envFailures;
 		},
-		get scanAttempt() {
-			return scanAttempt;
+		startEnvSave() {
+			envSaveStatus = 'saving';
+			envSavedCount = 0;
 		},
-		get deployStatus() {
-			return deployStatus;
+		markEnvSaved() {
+			envSavedCount += 1;
 		},
+		finishEnvSave(failures: EnvSaveFailure[]) {
+			envFailures = failures;
+			envSaveStatus = failures.length > 0 ? 'partial' : 'done';
+			// Secrets have no business staying in memory once the API holds them.
+			if (failures.length === 0) envVars = [];
+		},
+		/** The user gave up on the variables that failed, so their values are dropped as well. */
+		dismissEnvFailures() {
+			envFailures = [];
+			envVars = [];
+			envSaveStatus = 'done';
+		},
+
+		get createdProjectId() {
+			return createdProjectId;
+		},
+		get createdProjectName() {
+			return createdProjectName;
+		},
+		markProjectCreated(project: Pick<CreateProjectResource, 'id' | 'name'>) {
+			createdProjectId = project.id;
+			createdProjectName = project.name;
+			currentStep = 3;
+		},
+		/** A reload lost the form, but the URL still says which project this wizard created. */
+		resumeCreatedProject(projectId: string) {
+			createdProjectId = projectId;
+			currentStep = 3;
+		},
+
 		get hasUnsavedProgress() {
-			if (currentStep === 1) {
-				return hasEnteredConfig;
-			}
-			return true;
-		},
-		get exitDialogContent() {
-			if (currentStep === 1 && hasEnteredConfig) {
-				return {
-					title: 'Batalkan Pembuatan Proyek?',
-					description:
-						'Konfigurasi yang sudah kamu isi belum disimpan. Kalau dibatalkan sekarang, semua isian ini akan hilang.'
-				};
-			}
-			if (currentStep === 2) {
-				return {
-					title: 'Batalkan Proses ini?',
-					description:
-						'Sakala sedang menganalisis konfigurasi repositorymu. Kalau dibatalkan sekarang, proses deteksi akan dihentikan dan project ini belum akan dibuat.'
-				};
-			}
-			return {
-				title: 'Batalkan Pembuatan Proyek?',
-				description: 'Semua isian akan hilang.'
-			};
-		},
-		startScan() {
-			scanStatus = 'scanning';
-			builderDetected = null;
-			scanAttempt++;
-		},
-		completeScan(detected: boolean) {
-			scanStatus = 'completed';
-			builderDetected = detected;
-		},
-		failScan() {
-			scanStatus = 'failed';
-			builderDetected = null;
-		},
-		startDeploy() {
-			deployStatus = 'deploying';
-		},
-		confirmCancelled() {
-			deployStatus = 'cancelled';
-		},
-		completeDeploy(success: boolean) {
-			deployStatus = success ? 'success' : 'failed';
-		},
-		cancelDeployment,
-		isDeploymentInProgress() {
-			return deployStatus === 'deploying';
-		},
-
-		checkGithubConnection,
-		addEnvVar,
-		removeEnvVar,
-		toggleEnvVisible,
-
-		confirmGitUrl(repo?: Repository) {
-			if (repo) {
-				validatedGitRepository = repo;
-				applyRepositoryDefaults(repo);
-			} else {
-				applyRepositoryDefaults(gitUrlRepository);
-			}
-		},
-
-		connectGithub() {
-			githubConnected = true;
+			return hasEnteredConfig;
 		},
 		goToPrepareDeployment() {
-			repositorySubstep = 'prepare-deployment';
+			currentStep = 2;
 			hasEnteredConfig = true;
 		},
 		backToSelectRepository() {
-			repositorySubstep = 'select-repository';
-		},
-		get selectedInstallationId() {
-			return selectedInstallationId;
-		},
-		set selectedInstallationId(v: string | null) {
-			selectedInstallationId = v;
-		},
-		selectGithubRepository(installationId: string, repo: Repository) {
-			selectedInstallationId = installationId;
-			selectedRepositoryId = String(repo.id);
-			customGithubRepository = repo;
-			applyRepositoryDefaults(repo);
-		},
-		goToAutoDetect(result: CreateProjectResult) {
-			createdProject = result;
-			projectDomain = result.domain;
-			currentStep = 2;
-		},
-		goToDeploy() {
-			currentStep = 3;
-			deployStatus = 'deploying';
+			currentStep = 1;
 		}
 	};
 }

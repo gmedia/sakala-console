@@ -24,7 +24,34 @@ const projectSchema: z.ZodType<Project> = z.object({
 	github_repository_id: z.number().nullable(),
 	branch: z.string(),
 	thumbnail_url: z.string().nullable(),
+	public_url: z.string(),
 	runtime_status: z.string(),
+	suspension: z
+		.object({
+			reason: z.string().nullable(),
+			suspended_at: z.string().nullable()
+		})
+		.nullable(),
+	latest_deployment: z
+		.object({
+			id: z.string(),
+			sequence: z.number(),
+			status: z.string(),
+			branch: z.string(),
+			commit_sha: z.string().nullable(),
+			commit_message: z.string().nullable(),
+			created_at: z.string(),
+			finished_at: z.string().nullable()
+		})
+		.nullable(),
+	stack: z
+		.object({
+			builder: z.enum(['dockerfile', 'railpack']),
+			provider: z.string().nullable(),
+			framework: z.string().nullable(),
+			package_manager: z.string().nullable()
+		})
+		.nullable(),
 	last_deployed_at: z.string().nullable(),
 	created_at: z.string()
 });
@@ -114,4 +141,22 @@ export async function createProject(payload: StoreProjectRequest): Promise<Creat
 		json: payload
 	});
 	return parseCreateProjectResponse(response);
+}
+
+export type DomainPreview = components['schemas']['DomainPreviewResource'];
+
+const domainPreviewResponseSchema = z.object({
+	data: z.object({ slug: z.string(), domain: z.string() })
+});
+
+export function parseDomainPreviewResponse(response: unknown): DomainPreview {
+	return domainPreviewResponseSchema.parse(response).data;
+}
+
+/** The API's own generator, with collision suffixes. It reserves nothing. */
+export async function getDomainPreview(name: string): Promise<DomainPreview> {
+	const response = await apiRequest<unknown>('/api/v1/app/projects/domain-preview', {
+		params: { name }
+	});
+	return parseDomainPreviewResponse(response);
 }

@@ -1,5 +1,12 @@
 import { ensureCsrfCookie, readXsrfToken } from './csrf';
-import { ApiError, apiErrorFromResponse, NetworkError, type ValidationErrors } from './errors';
+import {
+	ApiError,
+	apiErrorFromResponse,
+	NetworkError,
+	parseRetryAfter,
+	type ValidationErrors
+} from './errors';
+import { noteRateLimited, rateLimitRemainingSeconds } from './rate-limit';
 import { publicConfig } from '$lib/config/public';
 
 const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -9,15 +16,19 @@ export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
 	body?: BodyInit | null;
 	skipCsrf?: boolean;
 	params?: Record<string, string | number | boolean | undefined>;
+	/** A read behind its own narrow limit: its 429 says nothing about the shared one, and vice versa. */
+	separateRateLimit?: boolean;
 };
 
 type ErrorPayload = {
 	message?: unknown;
+	code?: unknown;
 	errors?: unknown;
+	retry_after?: unknown;
 };
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-	const { json, skipCsrf = false, params, ...requestOptions } = options;
+	const { json, skipCsrf = false, params, separateRateLimit = false, ...requestOptions } = options;
 	const method = (requestOptions.method ?? 'GET').toUpperCase();
 
 	if (!safeMethods.has(method) && !skipCsrf) {
@@ -46,6 +57,14 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 		}
 	}
 
+	// A read now would only extend the limit. A user's own write still goes through.
+	if (safeMethods.has(method) && !separateRateLimit) {
+		const remaining = rateLimitRemainingSeconds();
+		if (remaining > 0) {
+			throw apiErrorFromResponse(429, { retryAfterSeconds: remaining });
+		}
+	}
+
 	let response: Response;
 
 	try {
@@ -61,7 +80,11 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 	}
 
 	if (!response.ok) {
-		throw await createApiError(response);
+		const error = await createApiError(response);
+		// Writes have their own, narrower limits (login, feedback), which say nothing about reads.
+		if (error.isRateLimited && safeMethods.has(method) && !separateRateLimit)
+			noteRateLimited(error.retryAfterSeconds);
+		throw error;
 	}
 
 	if (response.status === 204) {
@@ -80,11 +103,15 @@ async function createApiError(response: Response): Promise<ApiError> {
 		// A non-JSON upstream response still becomes a predictable API error.
 	}
 
-	return apiErrorFromResponse(
-		response.status,
-		normalizeValidationErrors(payload.errors),
-		payload.message
-	);
+	return apiErrorFromResponse(response.status, {
+		errors: normalizeValidationErrors(payload.errors),
+		apiMessage: payload.message,
+		code: payload.code,
+		// Cross-origin, this header is only readable when the API lists it in exposed_headers.
+		retryAfterSeconds:
+			parseRetryAfter(response.headers.get('Retry-After')) ??
+			(typeof payload.retry_after === 'number' ? payload.retry_after : undefined)
+	});
 }
 
 function normalizeValidationErrors(value: unknown): ValidationErrors {

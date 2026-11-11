@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ApiError } from '$lib/api/errors';
+import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
 
 export const createProjectFormSchema = z.object({
 	name: z
@@ -7,7 +7,11 @@ export const createProjectFormSchema = z.object({
 		.trim()
 		.min(1, 'Nama proyek wajib diisi')
 		.max(120, 'Nama proyek maksimal 120 karakter'),
-	branch: z.string().trim().min(1, 'Branch wajib dipilih'),
+	branch: z
+		.string()
+		.trim()
+		.min(1, 'Branch wajib dipilih')
+		.max(255, 'Nama branch maksimal 255 karakter'),
 	repository: z.discriminatedUnion('type', [
 		z.object({
 			type: z.literal('github_installation'),
@@ -31,76 +35,123 @@ export const createProjectFormSchema = z.object({
 
 export type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
-export function generateSlug(name: string): string {
-	const normalized = name
-		.toLowerCase()
+// Mirrors ValidatesBuildConfiguration in sakala-api, which stays the final check.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTER = /[\x00-\x1F\x7F]/;
+const ROOT_DIRECTORY = /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
+const DOT_SEGMENT = /(?:^|\/)\.{1,2}(?:\/|$)/;
+const COMMAND_MAX_LENGTH = 1000;
+const ROOT_DIRECTORY_MAX_LENGTH = 255;
+export const PORT_MIN = 1;
+export const PORT_MAX = 65535;
+
+function commandSchema(label: string) {
+	return z
+		.string()
 		.trim()
-		.replace(/[^\w\s-]/g, '')
-		.replace(/[\s_-]+/g, '-')
-		.replace(/^-+|-+$/g, '');
-	return normalized.slice(0, 63);
+		.max(COMMAND_MAX_LENGTH, `${label} paling panjang ${COMMAND_MAX_LENGTH} karakter.`)
+		.refine((value) => !CONTROL_CHARACTER.test(value), {
+			message: `${label} harus satu baris. Gabungkan beberapa langkah dengan &&, atau pindahkan ke script di repository.`
+		})
+		.transform((value) => value || null);
 }
 
-export function generateDomainPreview(name: string, baseDomain = 'run.sakala.dev'): string {
-	const slug = generateSlug(name);
-	if (!slug) return `preview.${baseDomain}`;
-	return `${slug}.${baseDomain}`;
-}
+/** Empty means "not set", which the API stores as null. */
+export const buildConfigurationSchema = z.object({
+	configured_port: z
+		.string()
+		.trim()
+		.refine(
+			(value) =>
+				value === '' ||
+				(/^\d+$/.test(value) && Number(value) >= PORT_MIN && Number(value) <= PORT_MAX),
+			{
+				message: `Isi port dengan angka ${PORT_MIN} sampai ${PORT_MAX}, misalnya 8080. Kosongkan untuk memakai port bawaan.`
+			}
+		)
+		.transform((value) => (value === '' ? null : Number(value))),
+	build_command: commandSchema('Build command'),
+	start_command: commandSchema('Start command'),
+	root_directory: z
+		.string()
+		.trim()
+		.max(
+			ROOT_DIRECTORY_MAX_LENGTH,
+			`Root directory paling panjang ${ROOT_DIRECTORY_MAX_LENGTH} karakter.`
+		)
+		.refine((value) => value === '' || !DOT_SEGMENT.test(value), {
+			message:
+				'Root directory tidak boleh memakai . atau .. karena harus tetap di dalam repository. Tulis path-nya langsung, misalnya apps/web.'
+		})
+		.refine((value) => value === '' || ROOT_DIRECTORY.test(value), {
+			message:
+				'Root directory harus berupa path relatif di dalam repository, misalnya apps/web, tanpa / di awal atau di akhir.'
+		})
+		.transform((value) => value || null)
+});
+
+export type BuildConfigurationInput = z.input<typeof buildConfigurationSchema>;
+export type BuildConfiguration = z.output<typeof buildConfigurationSchema>;
 
 export type CreateProjectFieldErrors = {
 	name?: string;
 	branch?: string;
 	repository?: string;
+	configured_port?: string;
+	build_command?: string;
+	start_command?: string;
+	root_directory?: string;
 	general?: string;
 };
+
+const CONFIGURATION_FIELDS = [
+	'name',
+	'branch',
+	'configured_port',
+	'build_command',
+	'start_command',
+	'root_directory'
+] as const;
+
+const REPOSITORY_FIELDS = [
+	'repository.url',
+	'repository.installation_id',
+	'repository.repository_id',
+	'repository',
+	'repository.type'
+];
+
+const INACTIVE_INSTALLATION_MESSAGE =
+	'Instalasi GitHub untuk repository ini sudah tidak aktif. Kembali ke langkah Repository untuk menghubungkannya ulang.';
 
 export function mapCreateProjectErrors(error: unknown): CreateProjectFieldErrors {
 	if (error instanceof ApiError && error.isValidationError) {
 		const fieldErrors: CreateProjectFieldErrors = {};
-		const errors = error.errors;
 
-		if (errors.name && errors.name.length > 0) {
-			fieldErrors.name = errors.name[0];
-		}
-		if (errors.branch && errors.branch.length > 0) {
-			fieldErrors.branch = errors.branch[0];
-		}
-		if (errors['repository.url'] && errors['repository.url'].length > 0) {
-			fieldErrors.repository = errors['repository.url'][0];
-		} else if (
-			errors['repository.installation_id'] &&
-			errors['repository.installation_id'].length > 0
-		) {
-			fieldErrors.repository = errors['repository.installation_id'][0];
-		} else if (
-			errors['repository.repository_id'] &&
-			errors['repository.repository_id'].length > 0
-		) {
-			fieldErrors.repository = errors['repository.repository_id'][0];
-		} else if (errors.repository && errors.repository.length > 0) {
-			fieldErrors.repository = errors.repository[0];
+		for (const field of CONFIGURATION_FIELDS) {
+			const message = getFieldError(error, field);
+			if (message) fieldErrors[field] = message;
 		}
 
-		const hasFieldErrors = fieldErrors.name || fieldErrors.branch || fieldErrors.repository;
-		if (!hasFieldErrors && error.message) {
+		for (const field of REPOSITORY_FIELDS) {
+			const message = getFieldError(error, field);
+			if (message) {
+				fieldErrors.repository = message;
+				break;
+			}
+		}
+
+		if (Object.keys(fieldErrors).length === 0 && error.message) {
 			fieldErrors.general = error.message;
 		}
 
 		return fieldErrors;
 	}
 
-	if (error instanceof ApiError) {
-		if (error.status === 403) {
-			return {
-				general: error.message || 'Anda tidak memiliki izin atau telah mencapai batas kuota proyek.'
-			};
-		}
-		return { general: error.message || 'Terjadi kesalahan pada server. Silakan coba lagi.' };
+	// The API words this 409 in English, and it has a next step the message should name.
+	if (error instanceof ApiError && error.status === 409 && !error.code) {
+		return { general: INACTIVE_INSTALLATION_MESSAGE };
 	}
 
-	if (error instanceof Error) {
-		return { general: error.message };
-	}
-
-	return { general: 'Gagal membuat proyek. Silakan coba lagi nanti.' };
+	return { general: getErrorMessage(error, 'Proyek belum berhasil dibuat. Silakan coba lagi.') };
 }

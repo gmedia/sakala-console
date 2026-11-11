@@ -30,17 +30,24 @@ Panduan ini berlaku untuk AI agent dan Codex yang bekerja di `sakala-console`.
 
 ## UI and Copy
 
-- Ikuti `../SAKALA_DESIGN_SYSTEM.md`.
-- Console memakai topbar, bukan sidebar admin template generik.
+- Token warna, font, ukuran teks, radius, shadow, tinggi kontrol, dan focus ring ada di `src/app.css`, dan `src/lib/design-tokens.spec.ts` menguji kontras serta menolak nilai di luar skala. Desain layar ada di Figma, tetapi Figma hanya panduan.
+- Inter untuk teks baca, Montserrat untuk `h1`, `h2`, dan display, JetBrains Mono untuk kode dan log. Ukuran teks hanya 12, 14, 16, 20, 24, 32, dan 48 px. Weight hanya 400, 500, dan 600.
+- Pakai `Button`, `Badge`, `FormField`, `EmptyState`, dan `.control-input`. Radius kontrol `rounded-control`, kartu `rounded-card`, overlay `rounded-overlay`. Hanya overlay yang punya shadow.
+- Console memakai sidebar di `AppShell`, yang menjadi drawer sampai lebar 1024 px.
 - UI light-first, tenang, jelas, accessible, dan tidak memakai dark cyberpunk atau AI glow.
 - User-facing copy memakai Bahasa Indonesia.
 - Setiap screen memiliki satu primary action dan status tidak boleh bergantung pada warna saja.
+- Glosarium copy, satu nama untuk satu hal:
+  - `kata sandi`, bukan password; `nilai`, bukan value; `secret`, bukan rahasia; `log`, bukan logs; `deteksi`, bukan detect.
+  - `men-deploy` dan `di-deploy`, sesuai EYD V. `deploy`, `build`, `branch`, `repository`, dan `environment variable` tetap bahasa Inggris.
+  - Status proyek: `Live`, `Men-deploy`, `Gagal`, `Crash`, `Berhenti`, `Belum deploy`. Status deployment: `Berhasil`, `Men-deploy`, `Mengantre`, `Gagal`, `Dibatalkan`.
+  - Label memakai sentence case: `Simpan perubahan`, bukan `Simpan Perubahan`.
 - Primitive kompleks seperti dialog, combobox, dan menu harus memakai foundation aksesibilitas matang; jangan hand-roll tanpa alasan.
 
 ## Dependencies and Quality
 
 - Gunakan `pnpm add` atau `pnpm add -D`; jangan edit dependency version manual.
-- Jangan memasang Reverb/Echo, chart, atau component library sebelum use case dan kontraknya tersedia.
+- Laravel Echo untuk Reverb sudah terpasang, boundary-nya di `src/lib/realtime`. Jangan memasang chart atau component library sebelum use case dan kontraknya tersedia.
 - Jalankan `pnpm quality` sebelum menyelesaikan perubahan.
 - Component Svelte baru atau yang diubah harus diperiksa dengan Svelte autofixer.
 - Perubahan behavior memerlukan test yang sebanding dengan risikonya.

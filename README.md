@@ -27,10 +27,15 @@ Console berjalan di `app.sakala.dev` dan berkomunikasi dengan Laravel control pl
 ```bash
 pnpm install
 cp .env.example .env
+pnpm exec playwright install chromium   # sekali per mesin, untuk component dan E2E test
 pnpm dev
 ```
 
 Console tersedia di `http://app.sakala.localhost:5173` jika host lokal tersebut diarahkan ke loopback. API default berada di `http://api.sakala.localhost:8000`.
+
+`.env` hanya berisi konfigurasi publik yang ikut masuk ke browser, jadi jangan menaruh secret di sana. Nilai dari `.env.example` langsung jalan untuk pengembangan lokal. Biarkan `PUBLIC_REVERB_KEY` kosong kalau belum menjalankan Reverb: console tetap jalan dengan polling. Build dan test membaca file ini juga, tetapi tidak butuh `sakala-api`, karena API-nya di-mock.
+
+Rincian alur kerja ada di [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), dan cara menjalankan test ada di [docs/TESTING.md](docs/TESTING.md).
 
 ## Container Image
 
@@ -47,6 +52,8 @@ docker build \
 docker run --rm -p 8080:8080 sakala-console:local
 ```
 
+Image menyajikan `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, dan `Referrer-Policy`, dan menolak dibingkai situs lain lewat `frame-ancestors 'none'`. Policy-nya ditulis `docker/security-headers.mjs` saat build dari file env yang sama, jadi origin API dan Reverb milik instalasi self-hosted atau staging ikut tanpa konfigurasi kedua. Build gagal kalau `PUBLIC_API_URL` tidak ada.
+
 Domain, TLS, reverse proxy host, dan environment deployment dikelola oleh repository deployment terpisah. Image ini tidak menyimpan credential atau origin production.
 
 ## Commands
@@ -61,12 +68,6 @@ pnpm test            # unit dan component test
 pnpm test:e2e        # browser flow test
 pnpm api:types       # generate types dari Scramble OpenAPI
 pnpm quality         # local quality gate
-```
-
-Pasang browser test sekali pada mesin baru:
-
-```bash
-pnpm exec playwright install chromium
 ```
 
 ## Architecture

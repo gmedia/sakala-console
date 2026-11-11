@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+	buildConfigurationSchema,
 	createProjectFormSchema,
-	generateSlug,
-	generateDomainPreview,
 	mapCreateProjectErrors
 } from './createProjectSchema';
-import { ApiError } from '$lib/api/errors';
+import { ApiError, NetworkError } from '$lib/api/errors';
 
 describe('createProjectFormSchema', () => {
 	it('memvalidasi form dengan input github_installation yang valid', () => {
@@ -105,26 +104,62 @@ describe('createProjectFormSchema', () => {
 	});
 });
 
-describe('generateSlug & generateDomainPreview', () => {
-	it('menghasilkan slug yang bersih dan lowercase', () => {
-		expect(generateSlug('My Awesome App!')).toBe('my-awesome-app');
-		expect(generateSlug('Project_Name_2026')).toBe('project-name-2026');
-		expect(generateSlug('   leading-trailing-spaces   ')).toBe('leading-trailing-spaces');
+describe('buildConfigurationSchema mirrors the API rules', () => {
+	const empty = { configured_port: '', build_command: '', start_command: '', root_directory: '' };
+	const firstError = (input: Partial<typeof empty>, field: keyof typeof empty) => {
+		const result = buildConfigurationSchema.safeParse({ ...empty, ...input });
+		return result.success ? undefined : result.error.flatten().fieldErrors[field]?.[0];
+	};
+
+	it('reads empty fields as not set', () => {
+		expect(buildConfigurationSchema.parse(empty)).toEqual({
+			configured_port: null,
+			build_command: null,
+			start_command: null,
+			root_directory: null
+		});
 	});
 
-	it('memotong slug maksimal 63 karakter', () => {
-		const longName = 'a'.repeat(100);
-		const slug = generateSlug(longName);
-		expect(slug.length).toBe(63);
+	it('reads a port as a number', () => {
+		expect(buildConfigurationSchema.parse({ ...empty, configured_port: ' 8080 ' })).toMatchObject({
+			configured_port: 8080
+		});
 	});
 
-	it('menghasilkan domain preview dengan baseDomain default', () => {
-		expect(generateDomainPreview('My App')).toBe('my-app.run.sakala.dev');
+	it.each(['0', '65536', 'abc', '80.5', '-1'])('refuses port %s', (port) => {
+		expect(firstError({ configured_port: port }, 'configured_port')).toContain('1 sampai 65535');
 	});
 
-	it('menangani string kosong pada generateDomainPreview', () => {
-		expect(generateDomainPreview('')).toBe('preview.run.sakala.dev');
+	it.each(['1', '65535'])('accepts port %s', (port) => {
+		expect(firstError({ configured_port: port }, 'configured_port')).toBeUndefined();
 	});
+
+	it('refuses a command over 1000 characters', () => {
+		expect(firstError({ build_command: 'a'.repeat(1001) }, 'build_command')).toContain('1000');
+		expect(firstError({ build_command: 'a'.repeat(1000) }, 'build_command')).toBeUndefined();
+	});
+
+	it('refuses a command with more than one line, and says how to fix it', () => {
+		expect(firstError({ start_command: 'npm ci\nnpm start' }, 'start_command')).toContain('&&');
+	});
+
+	it.each(['apps/web', 'apps/web-2', 'a.b/c_d'])('accepts root directory %s', (directory) => {
+		expect(firstError({ root_directory: directory }, 'root_directory')).toBeUndefined();
+	});
+
+	it.each(['/apps', 'apps/', 'apps//web', 'apps web'])(
+		'refuses root directory %s as not relative',
+		(directory) => {
+			expect(firstError({ root_directory: directory }, 'root_directory')).toContain('path relatif');
+		}
+	);
+
+	it.each(['..', '../etc', 'apps/..', './apps', 'apps/./web'])(
+		'refuses root directory %s as leaving the repository',
+		(directory) => {
+			expect(firstError({ root_directory: directory }, 'root_directory')).toContain('. atau ..');
+		}
+	);
 });
 
 describe('mapCreateProjectErrors', () => {
@@ -161,9 +196,45 @@ describe('mapCreateProjectErrors', () => {
 		expect(mapped.general).toBe('Batas proyek tercapai');
 	});
 
-	it('menangani generic Error standar', () => {
-		const error = new Error('Network timeout');
-		const mapped = mapCreateProjectErrors(error);
-		expect(mapped.general).toBe('Network timeout');
+	it('tidak menampilkan pesan Error mentah ke user', () => {
+		const mapped = mapCreateProjectErrors(new Error('Network timeout'));
+		expect(mapped.general).toBe('Proyek belum berhasil dibuat. Silakan coba lagi.');
+	});
+
+	it('menampilkan pesan koneksi berbahasa Indonesia', () => {
+		const mapped = mapCreateProjectErrors(new NetworkError());
+		expect(mapped.general).toBe('Sakala API tidak dapat dijangkau.');
+	});
+
+	it('memetakan error 422 konfigurasi build ke field masing-masing', () => {
+		const mapped = mapCreateProjectErrors(
+			new ApiError('Data tidak valid', 422, {
+				configured_port: ['Port di luar rentang.'],
+				build_command: ['Build command ditolak.'],
+				start_command: ['Start command ditolak.'],
+				root_directory: ['Root directory ditolak.']
+			})
+		);
+
+		expect(mapped).toEqual({
+			configured_port: 'Port di luar rentang.',
+			build_command: 'Build command ditolak.',
+			start_command: 'Start command ditolak.',
+			root_directory: 'Root directory ditolak.'
+		});
+	});
+
+	it('menampilkan kuota dari API sebagai pesan general', () => {
+		const mapped = mapCreateProjectErrors(
+			new ApiError('Kuota proyek habis.', 422, {}, undefined, { code: 'PROJECT_LIMIT_EXCEEDED' })
+		);
+		expect(mapped.general).toBe('Kuota proyek habis.');
+	});
+
+	it('mengganti 409 instalasi yang berbahasa Inggris dengan langkah yang jelas', () => {
+		const mapped = mapCreateProjectErrors(
+			new ApiError('GitHub installation is no longer active.', 409)
+		);
+		expect(mapped.general).toContain('menghubungkannya ulang');
 	});
 });

@@ -16,16 +16,18 @@ export const ONBOARDING_SOURCE_OPTIONS_MAP: Record<OnboardingSource, string> = {
 	friend: 'Teman',
 	community: 'Komunitas',
 	workshop: 'Workshop',
-	social_media: 'Media Sosial',
-	gmedia: 'GMedia',
+	social_media: 'Media sosial',
+	gmedia: 'GMEDIA',
 	github: 'GitHub',
 	other: 'Lainnya'
 };
 
 export const ONBOARDING_PROFILE_VALUES = [
+	'student',
 	'developer',
 	'devops',
 	'architect',
+	'mentor',
 	'other'
 ] as const satisfies readonly OnboardingProfile[];
 
@@ -33,6 +35,8 @@ export const ONBOARDING_PROFILE_OPTIONS_MAP: Record<OnboardingProfile, string> =
 	developer: 'Developer',
 	devops: 'DevOps',
 	architect: 'Architect',
+	student: 'Mahasiswa',
+	mentor: 'Mentor',
 	other: 'Lainnya'
 };
 

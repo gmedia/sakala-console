@@ -1,6 +1,6 @@
-import { env } from '$env/dynamic/public';
+import { publicConfig } from '$lib/config/public';
 
-const apiUrl = env.PUBLIC_API_URL;
+const apiUrl = publicConfig.apiUrl;
 
 export function isValidInternalPath(path: string | null | undefined): boolean {
 	if (!path || typeof path !== 'string') return false;
@@ -93,4 +93,33 @@ export function redirectToGoogleAuth(returnUrl?: string | null) {
 
 	setPendingOAuthProvider('google');
 	window.location.href = url.toString();
+}
+
+/** The install route lives on the API: Caddy serves the console's own `/auth` from the SPA fallback. */
+export function githubInstallUrl(): string {
+	return new URL('/auth/github/install', apiUrl).toString();
+}
+
+export function githubConfigureUrl(installationId: string): string {
+	return new URL(`/auth/github/installations/${installationId}/configure`, apiUrl).toString();
+}
+
+/**
+ * A suspended installation can be resumed from its settings page on GitHub. A removed one has no
+ * such page anymore, so it needs a new install.
+ */
+export function githubReconnectUrl(
+	installation: { id: string; status: string } | null | undefined
+): string {
+	if (!installation || installation.status === 'removed') return githubInstallUrl();
+	return githubConfigureUrl(installation.id);
+}
+
+export function redirectToGithubInstall() {
+	window.location.href = githubInstallUrl();
+}
+
+/** Login path that brings the user back to where the session ended. */
+export function loginPathWithReturnTo(url: Pick<URL, 'pathname' | 'search'>): string {
+	return `/login?returnTo=${encodeURIComponent(url.pathname + url.search)}`;
 }

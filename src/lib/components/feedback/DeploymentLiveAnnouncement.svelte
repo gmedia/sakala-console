@@ -33,6 +33,9 @@
 			case 'failed':
 				return 'Deployment gagal. Periksa ringkasan error untuk informasi lebih lanjut.';
 
+			case 'cancelled':
+				return 'Deployment dibatalkan.';
+
 			default:
 				return '';
 		}

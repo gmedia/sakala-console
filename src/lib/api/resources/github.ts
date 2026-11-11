@@ -29,9 +29,20 @@ export const githubRepositorySchema: z.ZodType<GithubRepository> = z.object({
 	private: z.boolean()
 });
 
-export const githubRepositoriesResponseSchema = z.object({
-	data: z.array(githubRepositorySchema)
+/** Only what the wizard reads from Laravel's pagination `meta`. */
+const repositoryPageMetaSchema = z.object({
+	current_page: z.number(),
+	last_page: z.number(),
+	per_page: z.number(),
+	total: z.number()
 });
+
+export const githubRepositoriesResponseSchema = z.object({
+	data: z.array(githubRepositorySchema),
+	meta: repositoryPageMetaSchema
+});
+
+export type GithubRepositoryPage = z.infer<typeof githubRepositoriesResponseSchema>;
 
 export async function getGithubInstallations(): Promise<GithubInstallation[]> {
 	const response = await apiRequest<unknown>('/api/v1/app/github/installations');
@@ -49,7 +60,7 @@ export type GetInstallationRepositoriesParams = NonNullable<
 export async function getInstallationRepositories(
 	installationId: string,
 	params?: GetInstallationRepositoriesParams
-): Promise<GithubRepository[]> {
+): Promise<GithubRepositoryPage> {
 	const response = await apiRequest<unknown>(
 		`/api/v1/app/github/installations/${installationId}/repositories`,
 		{ params }
@@ -57,8 +68,33 @@ export async function getInstallationRepositories(
 	return parseGithubRepositoriesResponse(response);
 }
 
-export function parseGithubRepositoriesResponse(response: unknown): GithubRepository[] {
-	return githubRepositoriesResponseSchema.parse(response).data;
+export function parseGithubRepositoriesResponse(response: unknown): GithubRepositoryPage {
+	return githubRepositoriesResponseSchema.parse(response);
+}
+
+const githubBranchesResponseSchema = z.object({
+	data: z.array(z.object({ name: z.string() }))
+});
+
+export function parseGithubBranchesResponse(response: unknown): string[] {
+	return githubBranchesResponseSchema.parse(response).data.map((branch) => branch.name);
+}
+
+export async function getInstallationRepositoryBranches(
+	installationId: string,
+	repositoryId: string
+): Promise<string[]> {
+	const response = await apiRequest<unknown>(
+		`/api/v1/app/github/installations/${installationId}/repositories/${repositoryId}/branches`
+	);
+	return parseGithubBranchesResponse(response);
+}
+
+export async function getPublicRepositoryBranches(repositoryUrl: string): Promise<string[]> {
+	const response = await apiRequest<unknown>('/api/v1/app/github/repositories/branches', {
+		params: { repository_url: repositoryUrl }
+	});
+	return parseGithubBranchesResponse(response);
 }
 
 export type ValidateRepositoryUrlRequest = components['schemas']['ValidateUrlRequest'];

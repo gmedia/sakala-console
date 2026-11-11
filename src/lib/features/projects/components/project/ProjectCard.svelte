@@ -1,98 +1,103 @@
 <script lang="ts">
-	import Card from '$lib/components/ui/Card.svelte';
-	import { formatDate } from '$lib/utils/date';
-	import type { Project } from '$lib/api/resources/projects';
+	import GitBranch from 'phosphor-svelte/lib/GitBranch';
+	import GitCommit from 'phosphor-svelte/lib/GitCommit';
 	import { resolve } from '$app/paths';
+	import type { Project } from '$lib/api/resources/projects';
+	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
+	import { formatDate, formatRelativeTime } from '$lib/utils/date';
+	import {
+		getFrameworkLabel,
+		getProjectPublicUrl,
+		getPublicUrlLabel,
+		toRuntimeStatus
+	} from '../../presentation';
 	import RuntimeStatusBadge from './RuntimeStatusBadge.svelte';
-
-	const thumbnailState = $derived.by(() => {
-		if (projects.thumbnail_url) {
-			return {
-				type: 'image',
-				src: projects.thumbnail_url
-			} as const;
-		}
-
-		switch (projects.runtime_status) {
-			case 'deploying':
-				return {
-					type: 'placeholder',
-					text: 'Menunggu build selesai...'
-				} as const;
-
-			case 'failed':
-				return {
-					type: 'placeholder',
-					text: 'Deployment gagal'
-				} as const;
-
-			case 'crashed':
-				return {
-					type: 'placeholder',
-					text: 'Project mengalami crash'
-				} as const;
-
-			case 'stopped':
-				return {
-					type: 'placeholder',
-					text: 'Project sedang berhenti'
-				} as const;
-
-			case 'not_deployed':
-				return {
-					type: 'placeholder',
-					text: 'Belum Deploy'
-				} as const;
-
-			default:
-				return {
-					type: 'placeholder',
-					text: 'Belum memiliki thumbnail'
-				} as const;
-		}
-	});
 
 	type Props = Project;
 
-	let { ...projects }: Props = $props();
+	let { ...project }: Props = $props();
+
+	const framework = $derived(project.stack?.framework);
+	const latest = $derived(project.latest_deployment);
+	const publicUrl = $derived(getProjectPublicUrl(project));
+	// A project that serves nothing has an address, and showing it as a link would promise a site.
+	// A suspended one has its traffic cut even while the agent has not stopped it yet.
+	const isLive = $derived(
+		project.suspension == null && toRuntimeStatus(project.runtime_status) === 'running'
+	);
+	const lastActivityAt = $derived(latest?.created_at ?? project.last_deployed_at);
 </script>
 
-<Card
-	class="relative rounded-xl border border-muted/30 hover:text-primary hover:shadow-lg transition-all duration-300"
+<!-- The whole card opens the project, through a link stretched over it. The URL sits above that. -->
+<article
+	class="surface-card relative flex min-w-0 flex-col gap-3 p-5 transition-colors hover:border-primary"
 >
-	<div class="flex items-center justify-between gap-2">
-		<p class="flex-1 min-w-0 truncate text-lg font-montserrat-semibold" title={projects.name}>
-			{projects.name}
-		</p>
-		<RuntimeStatusBadge runtimeStatus={projects.runtime_status} />
-	</div>
-	<p
-		class="mb-5 text-sm truncate font-jetbrains-mono-regular text-muted"
-		title={projects.repository_full_name}
-	>
-		<span>{projects.repository_full_name}</span>
-	</p>
-	<div class="h-40 w-full overflow-hidden rounded-xl bg-background-soft">
-		{#if thumbnailState.type === 'image'}
-			<img class="h-full w-full object-cover" src={thumbnailState.src} alt={projects.name} />
-		{:else}
-			<div class="flex flex-col items-center justify-center gap-2 rounded-xl h-full p-4">
-				<p data-testid="thumbnail-placeholder" class="text-md font-montserrat-semibold text-muted">
-					{thumbnailState.text}
-				</p>
-			</div>
+	<div class="min-w-0">
+		<h2 class="min-w-0 font-sans text-base font-semibold text-foreground">
+			<a
+				href={resolve(`/projects/${project.id}`)}
+				title={project.name}
+				class="line-clamp-2 wrap-anywhere after:absolute after:inset-0 after:content-['']"
+			>
+				{project.name}
+			</a>
+		</h2>
+		{#if isLive && publicUrl}
+			<a
+				href={publicUrl}
+				target="_blank"
+				rel="external noopener noreferrer"
+				data-testid="project-card-url"
+				class="relative z-10 mt-1 inline-block min-h-6 max-w-full font-mono text-sm leading-6 wrap-anywhere text-primary-dark underline underline-offset-2"
+			>
+				<BreakableUrl text={getPublicUrlLabel(publicUrl)} />
+			</a>
+		{:else if project.repository_full_name}
+			<p class="mt-1 truncate font-mono text-sm text-muted" title={project.repository_full_name}>
+				{project.repository_full_name}
+			</p>
 		{/if}
 	</div>
-	<div class="mt-4 flex w-full items-center justify-between gap-3">
-		<p class="mt-4 mb-2 min-w-0 truncate text-sm text-muted/80 font-jetbrains-mono-medium">
-			{projects.last_deployed_at ? formatDate(projects.last_deployed_at) : 'Belum pernah deploy'}
-		</p>
 
-		<a
-			href={resolve(`/projects/${projects.id}`)}
-			class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-muted/30 px-4 py-2 font-montserrat-semibold text-sm transition-colors hover:cursor-pointer hover:bg-muted/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+	{#if latest?.commit_message}
+		<p
+			data-testid="project-card-commit"
+			class="flex min-w-0 items-start gap-1.5 text-sm text-foreground"
+			title={latest.commit_message}
 		>
-			Lihat detail
-		</a>
+			<GitCommit size={16} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
+			<span class="line-clamp-2 min-w-0 wrap-anywhere">{latest.commit_message}</span>
+		</p>
+	{/if}
+
+	<!-- Always there, so cards with and without a framework line up. -->
+	<div class="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+		<span class="inline-flex min-w-0 items-center gap-1">
+			<GitBranch size={14} class="shrink-0" aria-hidden="true" />
+			<span class="truncate">{latest?.branch ?? project.branch}</span>
+		</span>
+		{#if latest?.commit_sha}
+			<span class="font-mono tabular-nums">{latest.commit_sha.substring(0, 7)}</span>
+		{/if}
+		{#if framework}
+			<span data-testid="framework-chip" class="truncate font-medium text-foreground">
+				{getFrameworkLabel(framework)}
+			</span>
+		{/if}
 	</div>
-</Card>
+
+	<div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+		<RuntimeStatusBadge runtimeStatus={project.runtime_status} suspension={project.suspension} />
+		{#if lastActivityAt}
+			<time
+				datetime={lastActivityAt}
+				title={formatDate(lastActivityAt)}
+				class="whitespace-nowrap text-xs text-muted"
+			>
+				Deploy {formatRelativeTime(lastActivityAt).toLowerCase()}
+			</time>
+		{:else}
+			<span class="whitespace-nowrap text-xs text-muted">Belum pernah deploy</span>
+		{/if}
+	</div>
+</article>
