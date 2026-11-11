@@ -14,6 +14,7 @@
 	import CaretUp from 'phosphor-svelte/lib/CaretUp';
 	import GearSix from 'phosphor-svelte/lib/GearSix';
 	import SignOut from 'phosphor-svelte/lib/SignOut';
+	import ShieldCheck from 'phosphor-svelte/lib/ShieldCheck';
 	import X from 'phosphor-svelte/lib/X';
 	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import { MediaQuery } from 'svelte/reactivity';
@@ -22,6 +23,7 @@
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { useLogout } from '$lib/features/auth/mutations';
 	import { feedbackPath } from '$lib/features/feedback/context';
+	import { isAdmin } from '$lib/features/admin/access';
 
 	type Props = {
 		isMobileOpen?: boolean;
@@ -175,6 +177,18 @@
 					<GearSix size={18} class="size-4.5 shrink-0" />
 					<span>Pengaturan</span>
 				</a>
+
+				<!-- Shown to admins only. The API refuses everyone else on every admin route. -->
+				{#if isAdmin(user)}
+					<a
+						href={`${base}/admin`}
+						onclick={handleNavigationClick}
+						class="flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background-soft"
+					>
+						<ShieldCheck size={18} class="size-4.5 shrink-0" />
+						<span>Area admin</span>
+					</a>
+				{/if}
 			</div>
 
 			<div class="my-1.5 border-b border-border"></div>

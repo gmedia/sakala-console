@@ -7,6 +7,12 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 ### Added
 
 - The image can be pointed at any installation when the container starts: `PUBLIC_API_URL`, `PUBLIC_APP_URL`, and `PUBLIC_REVERB_*` set on the container replace the values baked in at build. `docker/entrypoint.sh` validates them, renders a same-origin `/runtime-config.js` that the app reads before it starts, and rewrites the Content-Security-Policy to name the configured API and Reverb. A container that sets none of them serves exactly what was built, so existing deployments do not change.
+- Admin area under `/admin` with its own navigation, reachable from the user menu by admins (#97, covering #12 and #15): Overview (pilot validation numbers, what needs attention, user growth, deployment outcomes, failure categories, and new-user sources for one WIB time range, refreshed every 5 minutes), Pengguna, Workspace, Profil batas, Proyek with stop, suspend, unsuspend, and reconcile, Analisis kegagalan with a deployment detail page, Runtime node with provisioning, token rotation, revocation, and command history, Masukan, and Audit. Lists are paged, searched, and filtered on the server, with every filter in the URL so a view can be shared. Every change asks for a reason in a dialog that names what it acts on and what happens; destructive actions are never focused first and send once, and project controls carry an `Idempotency-Key`. A node token is shown once and the dialog only closes after "Saya sudah menyimpan token ini". Anyone but an admin gets a 403 page at `/admin/*`; the API stays the authority.
+- Zod schemas for every admin response, checked against responses captured from sakala-api, and a mocked admin API for e2e tests built from the same captures.
+
+### Fixed
+
+- `Breadcrumb` type-checks again past 25 routes, where TypeScript stopped relating a union of paths to `resolve()`.
 
 ## [0.4.0] - 2026-11-11
 

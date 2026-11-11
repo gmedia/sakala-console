@@ -1,0 +1,104 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1cae3-b6e6-71a1-8a4d-4b075ba386bc",
+				"name": "Tim Kampus",
+				"slug": "team-08069",
+				"type": "team",
+				"limit_profile": {
+					"id": "01a1cae3-b6e6-71a1-8a4d-4b075aa5ad17",
+					"name": "Kelas"
+				},
+				"personal_user": null,
+				"members_count": 1,
+				"projects_count": 0,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cae3-b6e4-73d5-9274-dcd5dfd710d3",
+				"name": "Bima",
+				"slug": "bima",
+				"type": "personal",
+				"limit_profile": null,
+				"personal_user": {
+					"id": 3,
+					"name": "Bima",
+					"username": "bima"
+				},
+				"members_count": 1,
+				"projects_count": 1,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cae3-b6e2-708d-8adc-b259dd7e6877",
+				"name": "Rani Putri",
+				"slug": "rani",
+				"type": "personal",
+				"limit_profile": {
+					"id": "01a1cae3-b6e6-71a1-8a4d-4b075aa5ad17",
+					"name": "Kelas"
+				},
+				"personal_user": {
+					"id": 2,
+					"name": "Rani Putri",
+					"username": "rani"
+				},
+				"members_count": 1,
+				"projects_count": 1,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			},
+			{
+				"id": "01a1cae3-b6de-730f-8cd2-0b820ffb9a85",
+				"name": "Admin Sakala",
+				"slug": "admin",
+				"type": "personal",
+				"limit_profile": null,
+				"personal_user": {
+					"id": 1,
+					"name": "Admin Sakala",
+					"username": "admin"
+				},
+				"members_count": 1,
+				"projects_count": 0,
+				"created_at": "2026-11-11T10:00:00+00:00"
+			}
+		],
+		"links": {
+			"first": "http://api.sakala.localhost:8000/api/v1/admin/workspaces?page=1",
+			"last": "http://api.sakala.localhost:8000/api/v1/admin/workspaces?page=1",
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"current_page": 1,
+			"from": 1,
+			"last_page": 1,
+			"links": [
+				{
+					"url": null,
+					"label": "&laquo; Previous",
+					"page": null,
+					"active": false
+				},
+				{
+					"url": "http://api.sakala.localhost:8000/api/v1/admin/workspaces?page=1",
+					"label": "1",
+					"page": 1,
+					"active": true
+				},
+				{
+					"url": null,
+					"label": "Next &raquo;",
+					"page": null,
+					"active": false
+				}
+			],
+			"path": "http://api.sakala.localhost:8000/api/v1/admin/workspaces",
+			"per_page": 25,
+			"to": 4,
+			"total": 4
+		}
+	}
+}

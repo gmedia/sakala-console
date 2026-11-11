@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Kamu tidak bisa mencabut peran admin dari akunmu sendiri. Minta admin lain melakukannya.",
+		"code": "ADMIN_SELF_DEMOTION"
+	}
+}

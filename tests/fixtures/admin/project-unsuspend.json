@@ -1,0 +1,11 @@
+{
+	"status": 202,
+	"body": {
+		"data": {
+			"project_id": "01a1cae3-b6f3-7196-99e7-9006c81bd16f",
+			"status": "draft",
+			"runtime_status": "not_deployed",
+			"command": null
+		}
+	}
+}

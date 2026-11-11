@@ -1,0 +1,62 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"deployment": {
+				"id": "01a1cae3-b6f0-73e7-aecf-e4b588dd34cf",
+				"project_id": "01a1cae3-b6ed-71d9-baef-ed82768facd8",
+				"sequence": 2,
+				"branch": "main",
+				"status": "failed",
+				"trigger": "manual",
+				"commit_sha": null,
+				"commit_message": null,
+				"image_reference": null,
+				"requested_resources": null,
+				"effective_resources": null,
+				"applied_resources": null,
+				"finalization_deferred": false,
+				"finalization_deferred_reason": null,
+				"agent_node_id": "01a1cae3-b6ea-73d6-ab18-b47862fe027c",
+				"is_active": false,
+				"cancel_requested_at": null,
+				"queue_state": null,
+				"started_at": "2026-11-10T03:00:10+00:00",
+				"finished_at": "2026-11-10T03:04:22+00:00",
+				"cancelled_at": null,
+				"failure_code": "runtime_build_failed",
+				"failure_summary": null,
+				"failure": {
+					"code": "runtime_build_failed",
+					"category": "build",
+					"summary": "Deployment gagal saat proses build aplikasi.",
+					"recovery_hint": "Buka log deployment untuk melihat error-nya, perbaiki di repository (dependency, script build, atau Dockerfile), lalu commit dan deploy ulang.",
+					"user_fixable": true,
+					"detail": "npm run build exited with 1",
+					"stage": "building"
+				},
+				"created_at": "2026-11-10T03:00:00+00:00",
+				"updated_at": "2026-11-11T10:00:00+00:00"
+			},
+			"project": {
+				"id": "01a1cae3-b6ed-71d9-baef-ed82768facd8",
+				"name": "Toko Kue",
+				"slug": "sed-non-eveniet-ipsa",
+				"repository_url": "https://github.com/sakala-demo/sed-non-eveniet-ipsa",
+				"workspace_id": "01a1cae3-b6e2-708d-8adc-b259dd7e6877",
+				"deleted": false
+			},
+			"requested_by": {
+				"id": 2,
+				"name": "Rani Putri",
+				"username": "rani"
+			},
+			"agent_node": {
+				"id": "01a1cae3-b6ea-73d6-ab18-b47862fe027c",
+				"agent_id": "agent-01a1cae3-b6e8-701a-9eb2-70683acae471",
+				"name": "agent-jkt-01"
+			},
+			"duration_seconds": 252
+		}
+	}
+}

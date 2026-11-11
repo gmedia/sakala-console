@@ -1,0 +1,16 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1cae3-b6e6-71a1-8a4d-4b075ba386bc",
+			"name": "Tim Kampus",
+			"slug": "team-08069",
+			"type": "team",
+			"limit_profile": null,
+			"personal_user": null,
+			"members_count": 1,
+			"projects_count": 0,
+			"created_at": "2026-11-11T10:00:00+00:00"
+		}
+	}
+}
