@@ -45,7 +45,7 @@ beforeEach(() => {
 describe('ForgotPasswordForm and email delivery', () => {
 	it('explains instead of asking for an email when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderForm();
+		await renderForm();
 
 		await expect
 			.element(page.getByText('tautan reset kata sandi belum tersedia. Masuk lewat GitHub dulu.'))
@@ -55,14 +55,14 @@ describe('ForgotPasswordForm and email delivery', () => {
 
 	it('shows the form when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderForm();
+		await renderForm();
 
 		await expect.element(submit()).toBeVisible();
 	});
 
 	it('shows no form until the flag is known', async () => {
 		vi.mocked(getAuthOptions).mockReturnValue(new Promise(() => {}));
-		renderForm();
+		await renderForm();
 
 		await expect
 			.element(page.getByRole('progressbar', { name: 'Memuat pilihan yang tersedia' }))
@@ -78,7 +78,7 @@ describe('ForgotPasswordForm and email delivery', () => {
 				apiMessage: 'Sakala belum bisa mengirim email untuk saat ini.'
 			})
 		);
-		renderForm();
+		await renderForm();
 
 		await page.getByLabelText('Email').fill('rani@sakala.local');
 		await submit().click();

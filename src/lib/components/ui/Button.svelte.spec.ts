@@ -5,7 +5,7 @@ import ButtonTestHost from './ButtonTestHost.svelte';
 
 describe('Button', () => {
 	it('renders an accessible link variant', async () => {
-		render(ButtonTestHost);
+		await render(ButtonTestHost);
 
 		await expect
 			.element(page.getByRole('link', { name: 'Buka projects' }))

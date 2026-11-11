@@ -48,7 +48,7 @@ describe('NotificationCenter', () => {
 			data: [item(`halaman-${current}`)],
 			meta: { current_page: current, last_page: 2, total: 9 }
 		}));
-		renderPage();
+		await renderPage();
 
 		await expect.element(page.getByText('Pesan halaman-1')).toBeVisible();
 		await page.getByRole('button', { name: 'Halaman 2' }).click();
@@ -66,7 +66,7 @@ describe('NotificationCenter', () => {
 			data: [item('a')],
 			meta: { current_page: 1, last_page: 1, total: 1 }
 		});
-		renderPage();
+		await renderPage();
 
 		await page.getByRole('button', { name: 'Belum dibaca', exact: true }).click();
 
@@ -84,7 +84,7 @@ describe('NotificationCenter', () => {
 			data: [item('a')],
 			meta: { current_page: 1, last_page: 1, total: 1 }
 		});
-		renderPage();
+		await renderPage();
 
 		await page.getByRole('button', { name: 'Tandai semua telah dibaca' }).click();
 
@@ -100,7 +100,7 @@ describe('NotificationCenter', () => {
 			data: [],
 			meta: { current_page: 1, last_page: 1, total: 0 }
 		});
-		renderPage();
+		await renderPage();
 
 		await expect
 			.element(page.getByRole('button', { name: 'Tandai semua telah dibaca' }))

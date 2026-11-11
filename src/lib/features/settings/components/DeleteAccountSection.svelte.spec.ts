@@ -47,7 +47,7 @@ const user = {
 };
 
 const open = async () => {
-	render(QueryTestHost, { props: { component: DeleteAccountSection } });
+	await render(QueryTestHost, { props: { component: DeleteAccountSection } });
 	await page.getByRole('button', { name: 'Hapus akun saya' }).click();
 };
 const confirm = () => page.getByRole('dialog').getByRole('button', { name: 'Hapus akun saya' });
@@ -147,7 +147,7 @@ describe('DeleteAccountSection', () => {
 
 	it('explains the admin case and offers no button that would only be refused', async () => {
 		vi.mocked(getCurrentUser).mockResolvedValue({ ...user, role: 'admin' });
-		render(QueryTestHost, { props: { component: DeleteAccountSection } });
+		await render(QueryTestHost, { props: { component: DeleteAccountSection } });
 
 		await expect.element(page.getByTestId('delete-account-admin')).toBeVisible();
 		await expect

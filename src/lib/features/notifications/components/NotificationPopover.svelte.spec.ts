@@ -66,7 +66,7 @@ beforeEach(() => {
 describe('NotificationPopover', () => {
 	it('shows the unread dot only when the API count says so', async () => {
 		respondWith([]);
-		renderPopover({ unreadCount: 3 });
+		await renderPopover({ unreadCount: 3 });
 
 		await expect
 			.element(page.getByRole('button', { name: 'Buka notifikasi, 3 belum dibaca' }))
@@ -76,7 +76,7 @@ describe('NotificationPopover', () => {
 
 	it('shows no dot when the count is zero', async () => {
 		respondWith([]);
-		renderPopover({ unreadCount: 0 });
+		await renderPopover({ unreadCount: 0 });
 
 		await expect.element(page.getByRole('button', { name: 'Buka notifikasi' })).toBeVisible();
 		await expect.element(page.getByTestId('bell-unread-dot')).not.toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('NotificationPopover', () => {
 
 	it('does not fetch the list until it is opened', async () => {
 		respondWith([unread]);
-		renderPopover();
+		await renderPopover();
 
 		await page.getByRole('button', { name: 'Buka notifikasi' }).click();
 
@@ -94,7 +94,7 @@ describe('NotificationPopover', () => {
 
 	it('lists what the API returned, with the unread state', async () => {
 		respondWith([unread, read]);
-		renderPopover({ open: true });
+		await renderPopover({ open: true });
 
 		await expect.element(page.getByText('Deployment gagal')).toBeVisible();
 		await expect.element(page.getByText('Kata sandi diganti')).toBeVisible();
@@ -106,14 +106,14 @@ describe('NotificationPopover', () => {
 
 	it('shows the empty state from Figma when there is nothing', async () => {
 		respondWith([]);
-		renderPopover({ open: true });
+		await renderPopover({ open: true });
 
 		await expect.element(page.getByText('Tidak ada notifikasi')).toBeVisible();
 	});
 
 	it('explains a failed load and can retry, rather than reading as empty', async () => {
 		vi.mocked(listNotifications).mockRejectedValueOnce(new NetworkError());
-		renderPopover({ open: true });
+		await renderPopover({ open: true });
 
 		await expect.element(page.getByText('Sakala API tidak dapat dijangkau.')).toBeVisible();
 		await expect.element(page.getByText('Tidak ada notifikasi')).not.toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('NotificationPopover', () => {
 
 	it('marks an unread item as read and opens what it is about', async () => {
 		respondWith([unread]);
-		renderPopover({ open: true });
+		await renderPopover({ open: true });
 
 		await page.getByText('Build sakala-console gagal.').click();
 
@@ -137,7 +137,7 @@ describe('NotificationPopover', () => {
 
 	it('does not send a read request for an item already read', async () => {
 		respondWith([read]);
-		renderPopover({ open: true });
+		await renderPopover({ open: true });
 
 		await page.getByText('Kata sandi akun kamu diperbarui.').click();
 

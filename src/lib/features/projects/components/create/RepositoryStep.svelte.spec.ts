@@ -375,7 +375,7 @@ describe('RepositoryStep: repository list from the API', () => {
 		await page.getByRole('button', { name: 'Hapus pencarian' }).click();
 
 		await expect.element(page.getByText('Belum ada repository yang bisa dipilih')).toBeVisible();
-		screen.unmount();
+		await screen.unmount();
 	});
 
 	it('offers a switcher only when there is more than one installation', async () => {
@@ -387,7 +387,7 @@ describe('RepositoryStep: repository list from the API', () => {
 			onInstallationChange
 		});
 		await expect.element(page.getByLabelText('Akun GitHub')).not.toBeInTheDocument();
-		screen.unmount();
+		await screen.unmount();
 
 		await render(RepositoryStepTestHost, {
 			repositories: [mockRepo1],

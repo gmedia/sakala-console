@@ -61,7 +61,7 @@ beforeEach(() => {
 describe('login page and email delivery', () => {
 	it('explains itself and keeps password login when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderPage();
+		await renderPage();
 
 		await expect
 			.element(page.getByText('Pendaftaran lewat email belum tersedia. Masuk lewat GitHub dulu.'))
@@ -73,7 +73,7 @@ describe('login page and email delivery', () => {
 
 	it('hides "Lupa kata sandi" on the password form when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect.element(page.getByText('Pendaftaran lewat email belum tersedia')).toBeVisible();
 		await expect.element(page.getByLabelText('Kata sandi', { exact: true })).toBeVisible();
@@ -82,7 +82,7 @@ describe('login page and email delivery', () => {
 
 	it('offers everything configured when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true, true, true));
-		renderPage();
+		await renderPage();
 
 		await expect.element(provider('Google')).toBeVisible();
 		await expect.element(provider('email')).toBeVisible();
@@ -91,7 +91,7 @@ describe('login page and email delivery', () => {
 
 	it('shows "Lupa kata sandi" when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect.element(forgotLink()).toBeVisible();
 	});
@@ -99,7 +99,7 @@ describe('login page and email delivery', () => {
 	it('shows no option at all until the flag is known', async () => {
 		let answer: (value: ReturnType<typeof options>) => void = () => {};
 		vi.mocked(getAuthOptions).mockReturnValue(new Promise((resolve) => (answer = resolve)));
-		renderPage();
+		await renderPage();
 
 		await expect
 			.element(page.getByRole('progressbar', { name: 'Memuat pilihan yang tersedia' }))
@@ -116,7 +116,7 @@ describe('login page and email delivery', () => {
 
 	it('does not flash the forgot link on the password form while loading', async () => {
 		vi.mocked(getAuthOptions).mockReturnValue(new Promise(() => {}));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect.element(page.getByLabelText('Kata sandi', { exact: true })).toBeVisible();
 		await expect.element(forgotLink()).not.toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('login page and email delivery', () => {
 
 	it('keeps the existing options when the flag cannot be fetched', async () => {
 		vi.mocked(getAuthOptions).mockRejectedValue(new Error('offline'));
-		renderPage();
+		await renderPage();
 
 		await expect.element(provider('GitHub')).toBeVisible();
 		await expect.element(provider('Google')).toBeVisible();
@@ -134,7 +134,7 @@ describe('login page and email delivery', () => {
 	it('does not offer a remembered provider that is no longer configured', async () => {
 		localStorage.setItem('last_login_provider', 'google');
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderPage();
+		await renderPage();
 
 		await expect.element(provider('GitHub')).toBeVisible();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
@@ -149,7 +149,7 @@ describe('login page and email delivery', () => {
 				apiMessage: 'Email kamu belum diverifikasi, dan Sakala belum bisa mengirim email.'
 			})
 		);
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await page.getByLabelText('Email', { exact: true }).fill('rani@sakala.local');
 		await page.getByLabelText('Kata sandi', { exact: true }).fill('kata-sandi');

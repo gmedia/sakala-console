@@ -13,7 +13,7 @@ const live = {
 
 describe('the moment a project first goes live', () => {
 	it('names the project, gives the address, and keeps open and copy together', async () => {
-		render(DeploymentStatusBanner, { ...live, firstLiveProjectName: 'toko-kopi-web' });
+		await render(DeploymentStatusBanner, { ...live, firstLiveProjectName: 'toko-kopi-web' });
 
 		await expect
 			.element(page.getByRole('heading', { name: 'toko-kopi-web sudah live' }))
@@ -28,7 +28,7 @@ describe('the moment a project first goes live', () => {
 	it('copies the whole address', async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-		render(DeploymentStatusBanner, { ...live, firstLiveProjectName: 'toko-kopi-web' });
+		await render(DeploymentStatusBanner, { ...live, firstLiveProjectName: 'toko-kopi-web' });
 
 		await page.getByRole('button', { name: 'Salin URL' }).click();
 
@@ -36,7 +36,7 @@ describe('the moment a project first goes live', () => {
 	});
 
 	it('stays calm for a later deployment', async () => {
-		render(DeploymentStatusBanner, { ...live, firstLiveProjectName: null });
+		await render(DeploymentStatusBanner, { ...live, firstLiveProjectName: null });
 
 		await expect.element(page.getByRole('heading', { name: 'Deployment berhasil' })).toBeVisible();
 		await expect.element(page.getByTestId('first-live')).not.toBeInTheDocument();
@@ -45,7 +45,7 @@ describe('the moment a project first goes live', () => {
 	it.each(['crash_looping', 'not_serving', 'superseded', 'unconfirmed'] as const)(
 		'claims nothing when the app is %s',
 		async (servingState) => {
-			render(DeploymentStatusBanner, {
+			await render(DeploymentStatusBanner, {
 				...live,
 				servingState,
 				firstLiveProjectName: 'toko-kopi-web'
@@ -59,7 +59,7 @@ describe('the moment a project first goes live', () => {
 	);
 
 	it('falls back when there is no address to show', async () => {
-		render(DeploymentStatusBanner, {
+		await render(DeploymentStatusBanner, {
 			...live,
 			publicUrl: null,
 			firstLiveProjectName: 'toko-kopi-web'
@@ -82,7 +82,7 @@ describe('a failed deployment', () => {
 	};
 
 	it('keeps category, summary, fix, detail, and code on screen', async () => {
-		render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn(), onViewError: vi.fn() });
+		await render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn(), onViewError: vi.fn() });
 
 		await expect
 			.element(page.getByRole('heading', { name: 'Deployment gagal saat build' }))
@@ -94,7 +94,7 @@ describe('a failed deployment', () => {
 	});
 
 	it('offers Redeploy as a way out, not as something dangerous', async () => {
-		render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn() });
+		await render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn() });
 
 		const redeploy = page.getByRole('button', { name: 'Redeploy' });
 		await expect.element(redeploy).toBeVisible();
@@ -104,7 +104,7 @@ describe('a failed deployment', () => {
 
 	it('takes the error button to the log', async () => {
 		const onViewError = vi.fn();
-		render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn(), onViewError });
+		await render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn(), onViewError });
 
 		await page.getByRole('button', { name: 'Lihat error di log' }).click();
 

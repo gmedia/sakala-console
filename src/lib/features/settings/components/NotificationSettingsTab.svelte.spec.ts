@@ -35,7 +35,7 @@ const saveButton = () => page.getByRole('button', { name: 'Simpan perubahan' });
 
 describe('NotificationSettingsTab', () => {
 	it('shows what the API has saved, not a local default', async () => {
-		renderTab();
+		await renderTab();
 
 		await expect
 			.element(page.getByRole('switch', { name: 'Masalah proyek' }))
@@ -47,7 +47,7 @@ describe('NotificationSettingsTab', () => {
 	});
 
 	it('offers only the categories the API knows', async () => {
-		renderTab();
+		await renderTab();
 
 		await expect.element(page.getByRole('switch', { name: 'Masalah proyek' })).toBeVisible();
 		await expect.element(page.getByRole('switch')).toHaveLength(5);
@@ -60,7 +60,7 @@ describe('NotificationSettingsTab', () => {
 			...saved,
 			account_security: false
 		});
-		renderTab();
+		await renderTab();
 
 		await page.getByRole('switch', { name: 'Perubahan kata sandi dan email' }).click();
 		await saveButton().click();
@@ -75,7 +75,7 @@ describe('NotificationSettingsTab', () => {
 
 	it('keeps the edit and says so when saving fails', async () => {
 		vi.mocked(updateNotificationPreferences).mockRejectedValue(apiErrorFromResponse(500));
-		renderTab();
+		await renderTab();
 
 		await page.getByRole('switch', { name: 'Masalah proyek' }).click();
 		await saveButton().click();
@@ -91,7 +91,7 @@ describe('NotificationSettingsTab', () => {
 
 	it('the master switch turns everything on or off', async () => {
 		vi.mocked(updateNotificationPreferences).mockResolvedValue(saved);
-		renderTab();
+		await renderTab();
 
 		await page.getByRole('switch', { name: 'Aktifkan semua notifikasi' }).click();
 		await saveButton().click();
@@ -104,7 +104,7 @@ describe('NotificationSettingsTab', () => {
 
 	it('explains a failed load instead of showing defaults', async () => {
 		vi.mocked(getNotificationPreferences).mockRejectedValue(apiErrorFromResponse(500));
-		renderTab();
+		await renderTab();
 
 		await expect.element(page.getByRole('alert')).toBeVisible();
 		await expect.element(page.getByRole('switch')).toHaveLength(0);

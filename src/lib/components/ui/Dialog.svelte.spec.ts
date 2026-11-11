@@ -5,7 +5,7 @@ import DialogTestHost from './DialogTestHost.svelte';
 
 describe('Dialog', () => {
 	it('closes on Escape when idle', async () => {
-		render(DialogTestHost);
+		await render(DialogTestHost);
 		await expect.element(page.getByRole('dialog', { name: 'Hapus?' })).toBeVisible();
 
 		await userEvent.keyboard('{Escape}');
@@ -15,7 +15,7 @@ describe('Dialog', () => {
 	});
 
 	it('refuses to close while the request is running', async () => {
-		render(DialogTestHost, { loading: true });
+		await render(DialogTestHost, { loading: true });
 		await expect.element(page.getByRole('dialog')).toBeVisible();
 
 		await userEvent.keyboard('{Escape}');
@@ -26,7 +26,7 @@ describe('Dialog', () => {
 
 	it('honours initialFocus and traps Tab inside', async () => {
 		const onConfirm = vi.fn();
-		render(DialogTestHost, { onConfirm });
+		await render(DialogTestHost, { onConfirm });
 
 		const cancel = page.getByRole('button', { name: 'Batal' });
 		const confirm = page.getByRole('button', { name: 'Konfirmasi' });

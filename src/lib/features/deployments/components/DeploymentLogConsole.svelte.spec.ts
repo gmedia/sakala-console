@@ -30,7 +30,7 @@ function isAtBottom(element: HTMLElement) {
 
 describe('DeploymentLogConsole', () => {
 	it('exposes a named, keyboard-reachable log region', async () => {
-		render(DeploymentLogConsoleTestHost, { initialLines: makeLines(1) });
+		await render(DeploymentLogConsoleTestHost, { initialLines: makeLines(1) });
 
 		const log = page.getByRole('log', { name: 'Log deployment' });
 		await expect.element(log).toBeVisible();
@@ -40,7 +40,7 @@ describe('DeploymentLogConsole', () => {
 
 	it('renders a message as text, never as HTML', async () => {
 		const payload = '<img src=x onerror="window.__xss=1"><b>tebal</b>';
-		render(DeploymentLogConsoleTestHost, {
+		await render(DeploymentLogConsoleTestHost, {
 			initialLines: [{ ...makeLines(1)[0], message: payload }]
 		});
 
@@ -50,7 +50,7 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('labels stderr and system with text, and tints stderr apart from stdout', async () => {
-		render(DeploymentLogConsoleTestHost, {
+		await render(DeploymentLogConsoleTestHost, {
 			initialLines: [
 				{ ...makeLines(1)[0], stream: 'stderr', message: 'npm warn' },
 				{ ...makeLines(1, 2)[0], stream: 'system', message: 'container mulai' },
@@ -68,7 +68,7 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('wraps a long unbroken line instead of scrolling sideways', async () => {
-		render(DeploymentLogConsoleTestHost, {
+		await render(DeploymentLogConsoleTestHost, {
 			initialLines: [{ ...makeLines(1)[0], message: 'x'.repeat(4096) }]
 		});
 
@@ -78,7 +78,9 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('follows new lines while the reader is at the bottom', async () => {
-		const { component } = render(DeploymentLogConsoleTestHost, { initialLines: makeLines(50) });
+		const { component } = await render(DeploymentLogConsoleTestHost, {
+			initialLines: makeLines(50)
+		});
 		await tick();
 		const log = logElement();
 		expect(isAtBottom(log)).toBe(true);
@@ -93,7 +95,7 @@ describe('DeploymentLogConsole', () => {
 
 	it('stops following after scrolling up, counts new lines, and jumps back', async () => {
 		const onJumpToLatest = vi.fn();
-		const { component } = render(DeploymentLogConsoleTestHost, {
+		const { component } = await render(DeploymentLogConsoleTestHost, {
 			initialLines: makeLines(50),
 			onJumpToLatest
 		});
@@ -116,7 +118,7 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('resumes following when the reader scrolls back to the bottom', async () => {
-		render(DeploymentLogConsoleTestHost, { initialLines: makeLines(50) });
+		await render(DeploymentLogConsoleTestHost, { initialLines: makeLines(50) });
 		await tick();
 		const log = logElement();
 
@@ -128,7 +130,7 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('stays paused at the bottom until the reader asks to follow', async () => {
-		const { component } = render(DeploymentLogConsoleTestHost, {
+		const { component } = await render(DeploymentLogConsoleTestHost, {
 			initialLines: makeLines(50),
 			paused: true
 		});
@@ -145,7 +147,7 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('keeps the reader in place when older lines are prepended', async () => {
-		const { component } = render(DeploymentLogConsoleTestHost, {
+		const { component } = await render(DeploymentLogConsoleTestHost, {
 			initialLines: makeLines(50, 51)
 		});
 		await tick();
@@ -165,7 +167,9 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('renders 2.000 lines without losing the bottom', async () => {
-		const { component } = render(DeploymentLogConsoleTestHost, { initialLines: makeLines(1) });
+		const { component } = await render(DeploymentLogConsoleTestHost, {
+			initialLines: makeLines(1)
+		});
 
 		component.setLines(makeLines(2000));
 
@@ -175,7 +179,7 @@ describe('DeploymentLogConsole', () => {
 	});
 
 	it('shows no cursor on a log that has ended', async () => {
-		render(DeploymentLogConsoleTestHost, { initialLines: makeLines(2) });
+		await render(DeploymentLogConsoleTestHost, { initialLines: makeLines(2) });
 
 		await expect.element(page.getByTestId('log-cursor')).not.toBeInTheDocument();
 	});
