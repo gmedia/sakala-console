@@ -23,6 +23,18 @@ function ratio(a: string, b: string): number {
 	return (high + 0.05) / (low + 0.05);
 }
 
+/** The colour a shape of `hex` at `alpha` shows over `background`. */
+function blend(hex: string, background: string, alpha: number): string {
+	const channel = (value: string, i: number) => parseInt(value.slice(i, i + 2), 16);
+	return (
+		'#' +
+		[1, 3, 5]
+			.map((i) => Math.round(alpha * channel(hex, i) + (1 - alpha) * channel(background, i)))
+			.map((value) => value.toString(16).padStart(2, '0'))
+			.join('')
+	);
+}
+
 const BACKGROUNDS = ['surface', 'background', 'background-soft', 'primary-50', 'surface-elevated'];
 const TEXT = [
 	'foreground',
@@ -83,8 +95,24 @@ describe('colour tokens', () => {
 		expect(ratio(token('queued-ink'), token('surface'))).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('a skeleton can be seen on white, which the old grey at 1.17:1 could not', () => {
-		expect(ratio(token('skeleton'), token('surface'))).toBeGreaterThanOrEqual(1.5);
+	it('a skeleton can be seen on white and on the page, which the old grey at 1.17:1 could not', () => {
+		expect(ratio(token('skeleton'), token('surface'))).toBeGreaterThanOrEqual(1.6);
+		expect(ratio(token('skeleton'), token('background'))).toBeGreaterThanOrEqual(1.6);
+	});
+
+	it('a skeleton stays visible at the faintest point of its pulse, and only pulses when motion is welcome', () => {
+		const trough = Number(css.match(/@keyframes skeleton-pulse\s*{[^}]*opacity:\s*([\d.]+)/)?.[1]);
+		expect(trough).toBeGreaterThan(0);
+		for (const background of ['surface', 'background']) {
+			const faded = blend(token('skeleton'), token(background), trough);
+			expect(ratio(faded, token(background))).toBeGreaterThanOrEqual(1.4);
+		}
+
+		const animated = css.match(
+			/@media \(prefers-reduced-motion: no-preference\)\s*{\s*\.skeleton\s*{[^}]*}/
+		);
+		expect(animated?.[0]).toContain('skeleton-pulse');
+		expect(css.replace(animated?.[0] ?? '', '')).not.toMatch(/\.skeleton\s*{[^}]*animation/);
 	});
 
 	it('keeps the brand anchor', () => {
