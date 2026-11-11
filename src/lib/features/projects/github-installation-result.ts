@@ -1,6 +1,5 @@
 export type GithubInstallationResult =
-	| { kind: 'connected'; message: string }
-	| { kind: 'error'; message: string };
+	{ kind: 'connected'; message: string } | { kind: 'error'; message: string };
 
 const FAILURE_MESSAGES: Record<string, string> = {
 	github_app_not_configured:

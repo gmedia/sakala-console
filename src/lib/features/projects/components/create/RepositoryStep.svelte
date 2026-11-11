@@ -178,7 +178,7 @@
 					tone="failed"
 					title="Gagal memuat repository"
 					description={errorMessage}
-					class="bg-background border-none sm:py-4"
+					class="border-none bg-background sm:py-4"
 				>
 					{#snippet action()}
 						{#if onRetry}
@@ -191,7 +191,7 @@
 			<div class="flex flex-col items-center justify-center border-b border-muted pb-6">
 				<EmptyState
 					icon={GitBranch}
-					class="bg-background border-none sm:py-4"
+					class="border-none bg-background sm:py-4"
 					title="Belum ada akun GitHub yang terhubung"
 					description="Hubungkan akun GitHub kamu supaya Sakala bisa menampilkan repository yang bisa kamu deploy."
 				/>
@@ -234,7 +234,7 @@
 						tone="failed"
 						title="Instalasi GitHub tidak aktif"
 						description={errorMessage}
-						class="bg-background border-none sm:py-4"
+						class="border-none bg-background sm:py-4"
 					>
 						{#snippet action()}
 							<div class="flex flex-wrap justify-center gap-2">

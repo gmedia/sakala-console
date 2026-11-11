@@ -47,7 +47,7 @@
 </script>
 
 <div>
-	<div class="flex justify-center mb-6">
+	<div class="mb-6 flex justify-center">
 		<SakalaLogo class="h-10" />
 	</div>
 	<Card class="sm:py-1">
@@ -82,7 +82,7 @@
 
 			{#if onRetry && buttonText && ButtonIcon}
 				<Button size="lg" class="mt-4 w-full" onclick={onRetry}>
-					<ButtonIcon class="w-5 h-5" />
+					<ButtonIcon class="h-5 w-5" />
 					{buttonText}
 				</Button>
 			{/if}

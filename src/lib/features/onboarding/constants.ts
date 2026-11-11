@@ -55,8 +55,7 @@ const _onboardingProfileExhaustive: AssertExhaustive<
 void _onboardingProfileExhaustive;
 
 export type OnboardingSourceSelection =
-	| { type: 'source'; source: OnboardingSource }
-	| { type: 'skip' };
+	{ type: 'source'; source: OnboardingSource } | { type: 'skip' };
 
 export type OnboardingProfileSelection = {
 	name?: string;

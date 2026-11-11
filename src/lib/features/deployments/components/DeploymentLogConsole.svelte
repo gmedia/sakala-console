@@ -128,7 +128,7 @@
 		aria-label={labelledBy ? undefined : 'Log deployment'}
 		aria-live={following && !busy ? 'polite' : 'off'}
 		aria-busy={busy}
-		class="min-h-40 flex-1 overflow-y-auto py-3 [overflow-anchor:none] focus-visible:outline-white focus-visible:[outline-offset:-3px]"
+		class="min-h-40 flex-1 overflow-y-auto py-3 [overflow-anchor:none] focus-visible:[outline-offset:-3px] focus-visible:outline-white"
 	>
 		{#if hasOlder}
 			<div class="mb-2 border-b border-white/10 px-3 pb-2 text-center sm:px-4">
@@ -199,7 +199,7 @@
 		<button
 			type="button"
 			onclick={handleJumpToLatest}
-			class="absolute right-3 bottom-3 inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-control border border-white/20 bg-terminal px-3 font-sans font-semibold text-xs text-terminal-text shadow-overlay hover:bg-white/10 focus-visible:outline-white max-lg:min-h-control-lg"
+			class="absolute right-3 bottom-3 inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-control border border-white/20 bg-terminal px-3 font-sans text-xs font-semibold text-terminal-text shadow-overlay hover:bg-white/10 focus-visible:outline-white max-lg:min-h-control-lg"
 		>
 			<ArrowDown size={14} weight="bold" />
 			{newLineCount > 0 ? `${newLineCount} baris baru, ke log terbaru` : 'Ke log terbaru'}

@@ -355,7 +355,7 @@
 							class="grid min-h-18 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 p-4 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto_auto] @2xl:gap-x-4 @2xl:px-6 @2xl:py-2"
 						>
 							<span class="flex min-w-0 flex-col">
-								<span class="min-w-0 font-mono font-semibold text-sm text-foreground">
+								<span class="min-w-0 font-mono text-sm font-semibold text-foreground">
 									<EnvKey name={env.key} />
 								</span>
 								{#if env.is_secret}
@@ -444,7 +444,7 @@
 									aria-label={`Ubah ${env.key}`}
 									class="col-span-full mt-2 rounded-control bg-primary-50/50 p-3"
 								>
-									<label for="env-edit-value" class="font-medium text-xs text-foreground">
+									<label for="env-edit-value" class="text-xs font-medium text-foreground">
 										Nilai baru
 									</label>
 									<input
@@ -507,7 +507,7 @@
 			>
 				<div class="flex flex-col gap-3 @2xl:flex-row @2xl:items-start">
 					<div class="flex min-w-0 flex-col gap-1 @2xl:w-58 @2xl:shrink-0">
-						<label for="env-new-key" class="font-medium text-xs text-foreground">
+						<label for="env-new-key" class="text-xs font-medium text-foreground">
 							Nama variabel
 						</label>
 						<input
@@ -533,7 +533,7 @@
 					</div>
 
 					<div class="flex min-w-0 flex-1 flex-col gap-1">
-						<label for="env-new-value" class="font-medium text-xs text-foreground"> Nilai </label>
+						<label for="env-new-value" class="text-xs font-medium text-foreground"> Nilai </label>
 						<input
 							bind:this={valueInput}
 							id="env-new-value"

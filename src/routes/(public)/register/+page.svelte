@@ -255,7 +255,7 @@
 				<div class="text-base font-semibold text-primary-dark">Cek email kamu</div>
 				<p class="text-sm text-foreground" role="status">
 					Langkah berikutnya kami kirim ke
-					<strong class="wrap-anywhere font-semibold">{email}</strong>. Cek juga folder spam kalau
+					<strong class="font-semibold wrap-anywhere">{email}</strong>. Cek juga folder spam kalau
 					belum terlihat.
 				</p>
 				<ResendVerification email={email.trim()} />

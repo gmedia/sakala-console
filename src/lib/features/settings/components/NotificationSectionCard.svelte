@@ -23,7 +23,7 @@
 		<span>{title}</span>
 	</div>
 
-	<div class="divide-y divide-border p-6 space-y-2">
+	<div class="space-y-2 divide-y divide-border p-6">
 		{@render children()}
 	</div>
 </div>

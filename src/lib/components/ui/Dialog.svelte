@@ -100,7 +100,7 @@
 			onOpenAutoFocus={handleAutoFocus}
 			onCloseAutoFocus={handleCloseAutoFocus}
 			class={cn(
-				'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
+				'fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
 				'max-h-[calc(100dvh-2rem)] overflow-y-auto',
 				'rounded-overlay border border-border bg-surface p-6 shadow-overlay',
 				className
@@ -136,7 +136,7 @@
 				</div>
 			{/if}
 
-			<div class={cn('mt-6 flex justify-center w-full gap-2', footerClass)}>
+			<div class={cn('mt-6 flex w-full justify-center gap-2', footerClass)}>
 				<DialogPrimitive.Close
 					bind:ref={cancelButtonEl}
 					disabled={loading}

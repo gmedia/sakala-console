@@ -287,7 +287,7 @@
 					<div class="min-w-0">
 						<p class="sr-only">Detail error</p>
 						<pre
-							class="max-h-24 overflow-auto rounded-control bg-terminal p-2 font-mono text-xs whitespace-pre-wrap wrap-anywhere text-terminal-text">{failureDetail}</pre>
+							class="max-h-24 overflow-auto rounded-control bg-terminal p-2 font-mono text-xs wrap-anywhere whitespace-pre-wrap text-terminal-text">{failureDetail}</pre>
 					</div>
 				{/if}
 			</div>

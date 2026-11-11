@@ -30,14 +30,14 @@
 	<p class="text-sm text-muted">Kelola email, kata sandi, dan notifikasi akunmu.</p>
 
 	<div class="grid grid-cols-1 gap-8 md:grid-cols-12">
-		<div class="md:col-span-3 space-y-1">
+		<div class="space-y-1 md:col-span-3">
 			<button
 				type="button"
 				onclick={() => setTab('account')}
 				class={cn(
-					'flex w-full items-center gap-2.5 rounded-control px-4 py-3 text-sm font-semibold transition-colors cursor-pointer text-left',
+					'flex w-full cursor-pointer items-center gap-2.5 rounded-control px-4 py-3 text-left text-sm font-semibold transition-colors',
 					activeTab === 'account'
-						? 'bg-primary-50 text-primary-dark font-semibold'
+						? 'bg-primary-50 font-semibold text-primary-dark'
 						: 'text-muted hover:bg-background-soft hover:text-foreground'
 				)}
 			>
@@ -48,9 +48,9 @@
 				type="button"
 				onclick={() => setTab('notifications')}
 				class={cn(
-					'flex w-full items-center gap-2.5 rounded-control px-4 py-3 text-sm font-semibold transition-colors cursor-pointer text-left',
+					'flex w-full cursor-pointer items-center gap-2.5 rounded-control px-4 py-3 text-left text-sm font-semibold transition-colors',
 					activeTab === 'notifications'
-						? 'bg-primary-50 text-primary-dark font-semibold'
+						? 'bg-primary-50 font-semibold text-primary-dark'
 						: 'text-muted hover:bg-background-soft hover:text-foreground'
 				)}
 			>

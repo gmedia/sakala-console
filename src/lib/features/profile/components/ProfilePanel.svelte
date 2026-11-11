@@ -136,7 +136,7 @@
 			<button
 				type="button"
 				onclick={openPhotoModal}
-				class="group relative flex size-20 items-center justify-center rounded-full bg-background-soft ring-1 ring-border/80 transition-all hover:opacity-90 cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark"
+				class="group relative flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-background-soft ring-1 ring-border/80 transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:outline-none"
 				aria-label="Ubah foto profil"
 			>
 				{#if user?.avatar_url}

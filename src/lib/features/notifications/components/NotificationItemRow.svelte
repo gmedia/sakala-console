@@ -72,7 +72,7 @@
 
 	<span
 		class={cn(
-			'col-start-2 row-start-2 whitespace-nowrap text-xs text-muted',
+			'col-start-2 row-start-2 text-xs whitespace-nowrap text-muted',
 			isFull && 'md:col-start-3 md:row-start-1'
 		)}
 	>

@@ -53,7 +53,7 @@
 		{#if unreadCount > 0}
 			<span
 				data-testid="bell-unread-dot"
-				class="inline-block absolute top-2 right-2 size-2 rounded-full bg-error ring-2 ring-white"
+				class="absolute top-2 right-2 inline-block size-2 rounded-full bg-error ring-2 ring-white"
 				aria-hidden="true"
 			></span>
 		{/if}

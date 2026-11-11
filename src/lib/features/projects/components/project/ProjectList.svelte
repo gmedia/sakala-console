@@ -41,7 +41,7 @@
 </script>
 
 <section
-	class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 transition-opacity duration-150 {isFetching
+	class="grid grid-cols-1 gap-4 transition-opacity duration-150 sm:grid-cols-2 xl:grid-cols-3 {isFetching
 		? 'opacity-60'
 		: ''}"
 	aria-label="Daftar proyek"

@@ -134,14 +134,14 @@
 {#snippet profileMenu()}
 	{#if isProfileMenuOpen}
 		<div
-			class="absolute bottom-full left-0 right-0 mb-3 z-50 rounded-overlay border border-border bg-surface p-2.5 shadow-overlay transition-all"
+			class="absolute right-0 bottom-full left-0 z-50 mb-3 rounded-overlay border border-border bg-surface p-2.5 shadow-overlay transition-all"
 		>
 			<div class="px-3 py-2">
-				<p class="text-sm font-semibold text-foreground truncate">
+				<p class="truncate text-sm font-semibold text-foreground">
 					{user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')}
 				</p>
 				{#if user.email}
-					<p class="text-xs text-muted truncate">{user.email}</p>
+					<p class="truncate text-xs text-muted">{user.email}</p>
 				{/if}
 			</div>
 
@@ -154,7 +154,7 @@
 					class={cn(
 						'flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors',
 						isActive('/profile')
-							? 'bg-primary-50 text-primary-dark font-semibold'
+							? 'bg-primary-50 font-semibold text-primary-dark'
 							: 'text-foreground hover:bg-background-soft'
 					)}
 				>
@@ -168,7 +168,7 @@
 					class={cn(
 						'flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors',
 						isActive('/settings')
-							? 'bg-primary-50 text-primary-dark font-semibold'
+							? 'bg-primary-50 font-semibold text-primary-dark'
 							: 'text-foreground hover:bg-background-soft'
 					)}
 				>
@@ -197,13 +197,13 @@
 		type="button"
 		onclick={() => (isProfileMenuOpen = !isProfileMenuOpen)}
 		class={cn(
-			'flex w-full items-center justify-between gap-3 rounded-control px-3 py-2.5 text-left transition-all cursor-pointer',
+			'flex w-full cursor-pointer items-center justify-between gap-3 rounded-control px-3 py-2.5 text-left transition-all',
 			isProfileMenuOpen ? 'bg-primary-50' : 'bg-surface hover:bg-primary-50'
 		)}
 		aria-expanded={isProfileMenuOpen}
 		aria-label="Menu akun pengguna"
 	>
-		<div class="flex items-center gap-3 min-w-0">
+		<div class="flex min-w-0 items-center gap-3">
 			{#if user.avatar_url}
 				<img
 					src={user.avatar_url}
@@ -217,7 +217,7 @@
 					<UserIcon size={18} class="size-4.5 text-foreground/70" />
 				</div>
 			{/if}
-			<div class="flex flex-col min-w-0">
+			<div class="flex min-w-0 flex-col">
 				<span class="truncate text-sm font-semibold text-foreground">
 					{user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')}
 				</span>
@@ -363,7 +363,7 @@
 >
 	{#if logoutErrorMessage}
 		<p
-			class="text-xs text-error font-medium bg-error/10 py-1.5 px-3 rounded-control border border-error/20"
+			class="rounded-control border border-error/20 bg-error/10 px-3 py-1.5 text-xs font-medium text-error"
 			role="alert"
 		>
 			{logoutErrorMessage}

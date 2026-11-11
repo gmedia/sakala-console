@@ -3,14 +3,7 @@
 	import { cn } from '$lib/utils/cn';
 
 	export type BadgeTone =
-		| 'neutral'
-		| 'success'
-		| 'warning'
-		| 'error'
-		| 'info'
-		| 'muted'
-		| 'running'
-		| 'queued';
+		'neutral' | 'success' | 'warning' | 'error' | 'info' | 'muted' | 'running' | 'queued';
 
 	type Props = {
 		children: Snippet;

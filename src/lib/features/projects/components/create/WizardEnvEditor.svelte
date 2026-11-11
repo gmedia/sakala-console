@@ -75,7 +75,7 @@
 				<li
 					class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-control border border-border bg-surface px-3 py-2"
 				>
-					<p class="min-w-0 font-mono font-semibold text-sm wrap-anywhere sm:w-1/3">
+					<p class="min-w-0 font-mono text-sm font-semibold wrap-anywhere sm:w-1/3">
 						{env.key}
 					</p>
 					<p class="min-w-0 flex-1 basis-32 font-mono text-sm wrap-anywhere">
