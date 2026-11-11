@@ -937,6 +937,12 @@ test.describe('a session that ends mid-way', () => {
 		expired = true;
 		await page.clock.fastForward(61_000);
 
+		// Wait for the redirect before reading the message. The fast-forward also fires
+		// other pending timers, such as a query retry that puts a loading skeleton
+		// (role="status") on the settings page. A page-wide status locator read before
+		// the redirect can match two elements, and a strict-mode violation fails at
+		// once instead of retrying.
+		await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings%3Ftab%3Daccount$/);
 		await expect(page.getByRole('status')).toHaveText('Sesi kamu berakhir, silakan masuk lagi.');
 
 		await page.getByRole('button', { name: /dengan email/ }).click();
