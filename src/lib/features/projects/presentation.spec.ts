@@ -6,6 +6,7 @@ import {
 	getDeploymentBadge,
 	getFrameworkLabel,
 	getProjectListErrorPresentation,
+	getProjectListStatusPresentation,
 	getProjectPublicUrl,
 	getPublicUrlLabel,
 	runtimeStatusPresentation,
@@ -31,6 +32,50 @@ describe('runtimeStatusPresentation', () => {
 			label,
 			variant
 		});
+	});
+});
+
+describe('getProjectListStatusPresentation', () => {
+	const suspension = { reason: 'Penambangan kripto', suspended_at: '2026-11-10T00:00:00Z' };
+
+	it.each(['running', 'stopped', 'deploying', 'maintenance'])(
+		'a suspended project reads Ditangguhkan whatever its runtime is (%s)',
+		(runtime_status) => {
+			expect(getProjectListStatusPresentation({ runtime_status, suspension })).toEqual({
+				label: 'Ditangguhkan',
+				variant: 'warning'
+			});
+		}
+	);
+
+	it('a suspension without a record still counts as suspended', () => {
+		expect(
+			getProjectListStatusPresentation({
+				runtime_status: 'running',
+				suspension: { reason: null, suspended_at: null }
+			}).label
+		).toBe('Ditangguhkan');
+	});
+
+	it('matches the label the project header shows', () => {
+		const header = deriveProjectHeaderState({
+			status: 'suspended',
+			runtime_status: 'running',
+			active_deployment_id: 'dep_1'
+		});
+
+		expect(getProjectListStatusPresentation({ runtime_status: 'running', suspension }).label).toBe(
+			header.badge.label
+		);
+	});
+
+	it('falls back to the runtime status when the project is not suspended', () => {
+		expect(
+			getProjectListStatusPresentation({ runtime_status: 'running', suspension: null }).label
+		).toBe('Live');
+		expect(
+			getProjectListStatusPresentation({ runtime_status: 'maintenance', suspension: null }).label
+		).toBe('Lainnya');
 	});
 });
 

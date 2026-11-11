@@ -49,6 +49,29 @@ describe('ProjectCard — status badge', () => {
 	});
 });
 
+describe('ProjectCard — suspended', () => {
+	const suspension = { reason: 'Penambangan kripto', suspended_at: '2026-11-10T00:00:00Z' };
+
+	test.each<RuntimeStatus>(['running', 'stopped'])(
+		'shows Ditangguhkan while the runtime is %s, not Live or Berhenti',
+		async (runtime_status) => {
+			await render(ProjectCard, { ...baseProject, runtime_status, suspension });
+
+			const badge = page.getByTestId('runtime-status-badge');
+			await expect.element(badge).toHaveTextContent('Ditangguhkan');
+			await expect.element(badge).not.toHaveTextContent('Live');
+			await expect.element(badge).not.toHaveTextContent('Berhenti');
+		}
+	);
+
+	test('does not link the public URL while traffic is cut', async () => {
+		await render(ProjectCard, { ...baseProject, runtime_status: 'running', suspension });
+
+		await expect.element(page.getByTestId('project-card-url')).not.toBeInTheDocument();
+		await expect.element(page.getByText(baseProject.repository_full_name as string)).toBeVisible();
+	});
+});
+
 describe('ProjectCard — link', () => {
 	test('nama proyek adalah tautan ke halaman proyek, dan membentang menutupi kartu', async () => {
 		await render(ProjectCard, baseProject);

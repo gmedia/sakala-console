@@ -21,7 +21,10 @@
 	const latest = $derived(project.latest_deployment);
 	const publicUrl = $derived(getProjectPublicUrl(project));
 	// A project that serves nothing has an address, and showing it as a link would promise a site.
-	const isLive = $derived(toRuntimeStatus(project.runtime_status) === 'running');
+	// A suspended one has its traffic cut even while the agent has not stopped it yet.
+	const isLive = $derived(
+		project.suspension == null && toRuntimeStatus(project.runtime_status) === 'running'
+	);
 	const lastActivityAt = $derived(latest?.created_at ?? project.last_deployed_at);
 </script>
 
@@ -84,7 +87,7 @@
 	</div>
 
 	<div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-		<RuntimeStatusBadge runtimeStatus={project.runtime_status} />
+		<RuntimeStatusBadge runtimeStatus={project.runtime_status} suspension={project.suspension} />
 		{#if lastActivityAt}
 			<time
 				datetime={lastActivityAt}

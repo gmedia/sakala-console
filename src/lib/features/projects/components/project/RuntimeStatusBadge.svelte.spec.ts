@@ -18,6 +18,15 @@ describe('RuntimeStatusBadge', () => {
 		await expect.element(page.getByText(expectedLabel, { exact: true })).toBeVisible();
 	});
 
+	test('menampilkan "Ditangguhkan" untuk proyek yang ditangguhkan, apa pun runtime-nya', async () => {
+		await render(RuntimeStatusBadge, {
+			runtimeStatus: 'running',
+			suspension: { reason: null, suspended_at: null }
+		});
+
+		await expect.element(page.getByText('Ditangguhkan', { exact: true })).toBeVisible();
+	});
+
 	test('fallback ke "Lainnya" untuk runtime status yang tidak dikenal', async () => {
 		await render(RuntimeStatusBadge, {
 			runtimeStatus: 'maintenance'

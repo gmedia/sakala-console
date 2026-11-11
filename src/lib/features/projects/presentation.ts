@@ -36,6 +36,27 @@ export const runtimeStatusPresentation: Record<RuntimeStatus, RuntimeStatusPrese
 	}
 };
 
+/** A suspended project reads the same everywhere, whatever its runtime is still doing. */
+export const suspendedStatusPresentation: RuntimeStatusPresentation = {
+	label: 'Ditangguhkan',
+	variant: 'warning'
+};
+
+/**
+ * The badge for a project in the list. The list carries `suspension`, which the API sends exactly
+ * when the project is suspended, instead of `status`. Without this a suspended project shows Live
+ * until the agent stops it and Berhenti after, while its header says Ditangguhkan.
+ */
+export function getProjectListStatusPresentation(project: {
+	runtime_status: string;
+	suspension: unknown;
+}): RuntimeStatusPresentation {
+	if (project.suspension != null) return suspendedStatusPresentation;
+
+	const status = toRuntimeStatus(project.runtime_status);
+	return status ? runtimeStatusPresentation[status] : { label: 'Lainnya', variant: 'neutral' };
+}
+
 const knownRuntimeStatuses = [
 	'not_deployed',
 	'deploying',
@@ -204,7 +225,7 @@ export function deriveProjectHeaderState(
 		return {
 			...base,
 			kind: 'suspended',
-			badge: { label: 'Ditangguhkan', variant: 'warning' },
+			badge: suspendedStatusPresentation,
 			showRedeploy: false,
 			notice: {
 				tone: 'warning',
