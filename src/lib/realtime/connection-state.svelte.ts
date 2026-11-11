@@ -1,11 +1,6 @@
 import type EchoType from 'laravel-echo';
 export type ConnectionStatus =
-	| 'idle'
-	| 'connecting'
-	| 'connected'
-	| 'disconnected'
-	| 'unavailable'
-	| 'failed';
+	'idle' | 'connecting' | 'connected' | 'disconnected' | 'unavailable' | 'failed';
 
 export const realtimeState = $state<{ status: ConnectionStatus }>({ status: 'idle' });
 

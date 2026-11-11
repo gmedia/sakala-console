@@ -25,12 +25,12 @@
 
 <div class="flex w-full min-w-0 flex-col gap-4">
 	{#if projectQuery.isLoading}
-		<div class="flex flex-col gap-4 mb-4">
+		<div class="mb-4 flex flex-col gap-4">
 			<div class="skeleton h-10 w-1/3"></div>
 			<div class="skeleton h-12 w-full"></div>
 		</div>
 	{:else if projectQuery.isError}
-		<div class="p-4 rounded-control border border-error/50 bg-error-50 text-error text-sm mb-4">
+		<div class="mb-4 rounded-control border border-error/50 bg-error-50 p-4 text-sm text-error">
 			Gagal memuat detail proyek. Proyek mungkin tidak ditemukan atau terjadi kesalahan server.
 		</div>
 	{:else if projectQuery.data}
@@ -42,7 +42,7 @@
 			<a
 				href={resolveRoute('/(app)/projects/[id]/deployments', { id: projectId || '' })}
 				aria-current={currentPath.includes('/deployments') ? 'page' : undefined}
-				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
+				class="border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap transition-colors
 				{currentPath.includes('/deployments')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
@@ -52,7 +52,7 @@
 			<a
 				href={resolveRoute('/(app)/projects/[id]/environments', { id: projectId || '' })}
 				aria-current={currentPath.includes('/environments') ? 'page' : undefined}
-				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
+				class="border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap transition-colors
 				{currentPath.includes('/environments')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
@@ -62,7 +62,7 @@
 			<a
 				href={resolveRoute('/(app)/projects/[id]/settings', { id: projectId || '' })}
 				aria-current={currentPath.includes('/settings') ? 'page' : undefined}
-				class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
+				class="border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap transition-colors
 				{currentPath.includes('/settings')
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"

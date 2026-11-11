@@ -116,7 +116,7 @@
 			description="Proyek ini belum pernah di-deploy. Jalankan deploy pertamanya lewat tombol di atas, dan hasilnya muncul di sini."
 		/>
 	{:else}
-		<div class="@container surface-card overflow-hidden">
+		<div class="surface-card @container overflow-hidden">
 			<div
 				aria-hidden="true"
 				class="hidden gap-x-3 border-b border-border px-4 py-2 text-xs text-muted @3xl:grid @3xl:grid-cols-[6.5rem_2.5rem_minmax(0,1fr)_4.5rem_5rem_6.5rem_6.5rem]"

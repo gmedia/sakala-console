@@ -36,7 +36,7 @@
 	onclick={handleClick}
 	onkeydown={handleKeydown}
 	class={cn(
-		'flex cursor-pointer items-center gap-3 border border-border bg-surface p-3 transition-colors sm:gap-4 sm:p-4 focus-visible:outline-2 focus-visible:outline-primary',
+		'flex cursor-pointer items-center gap-3 border border-border bg-surface p-3 transition-colors focus-visible:outline-2 focus-visible:outline-primary sm:gap-4 sm:p-4',
 		disabled && 'cursor-not-allowed opacity-50'
 	)}
 >

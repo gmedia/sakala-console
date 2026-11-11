@@ -92,7 +92,7 @@
 			<div
 				class="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent"
 			></div>
-			<h1 class="text-sm font-medium font-sans">Memverifikasi sesimu...</h1>
+			<h1 class="font-sans text-sm font-medium">Memverifikasi sesimu...</h1>
 		</div>
 	</main>
 {:else if userQuery.isError}

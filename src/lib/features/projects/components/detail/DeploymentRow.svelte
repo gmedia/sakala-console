@@ -52,7 +52,7 @@
 		<a
 			{href}
 			aria-label={`Deployment #${deployment.sequence}, ${badge.label}: ${message}`}
-			class="block min-h-6 truncate text-sm leading-6 font-medium text-foreground after:absolute after:inset-0 after:rounded-control after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-primary focus-visible:after:-outline-offset-3"
+			class="block min-h-6 truncate text-sm leading-6 font-medium text-foreground after:absolute after:inset-0 after:rounded-control after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:-outline-offset-3 focus-visible:after:outline-primary"
 			title={message}
 		>
 			{message}

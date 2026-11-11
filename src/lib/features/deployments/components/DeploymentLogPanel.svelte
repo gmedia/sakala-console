@@ -152,7 +152,7 @@
 							type="button"
 							onclick={logs.retry}
 							disabled={logs.isRetrying}
-							class="mt-3 inline-flex min-h-8 cursor-pointer items-center rounded-control border border-white/20 px-3 font-semibold text-xs hover:bg-white/10 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60 max-lg:min-h-control-lg"
+							class="mt-3 inline-flex min-h-8 cursor-pointer items-center rounded-control border border-white/20 px-3 text-xs font-semibold hover:bg-white/10 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60 max-lg:min-h-control-lg"
 						>
 							{logs.isRetrying ? 'Memuat...' : 'Coba lagi'}
 						</button>

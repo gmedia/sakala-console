@@ -232,7 +232,7 @@ test.describe('dashboard', () => {
 			/\/projects\/new$/
 		);
 		await expect(page.getByRole('list').getByRole('listitem')).toHaveCount(3);
-		await expect(page.getByRole('button', { name: /Filter waktu/ })).toHaveCount(0);
+		await expect(page.getByRole('combobox', { name: /Filter waktu/ })).toHaveCount(0);
 		await expect(page.getByText('Belum ada proyek')).toHaveCount(0);
 		await expect(page.locator('main')).not.toContainText('timmu');
 	});
@@ -246,7 +246,7 @@ test.describe('dashboard', () => {
 
 		await expect(page.getByRole('link', { name: 'Toko Kopi' })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Buat proyek pertamamu' })).toHaveCount(0);
-		await expect(page.getByRole('button', { name: /Filter waktu/ })).toHaveCount(0);
+		await expect(page.getByRole('combobox', { name: /Filter waktu/ })).toHaveCount(0);
 		await expect(page.getByRole('textbox', { name: 'Cari proyek' })).toHaveCount(0);
 		expect(filters).toEqual(['all']);
 	});
@@ -258,11 +258,13 @@ test.describe('dashboard', () => {
 		await mockDashboard(page, [listProject], filters, 7);
 		await page.goto('/projects');
 
-		await page.getByRole('button', { name: /Filter waktu/ }).click();
+		await page.getByRole('combobox', { name: /Filter waktu/ }).click();
 		await page.getByRole('option', { name: 'Dibuat 90 hari terakhir' }).click();
 
 		await expect.poll(() => filters).toContain('90_days');
-		await expect(page.getByRole('button', { name: /Dibuat 90 hari terakhir/ })).toBeVisible();
+		await expect(
+			page.getByRole('combobox', { name: 'Filter waktu: Dibuat 90 hari terakhir' })
+		).toBeVisible();
 	});
 
 	test('the header and the open filter stay inside the page at 320 px', async ({ page }) => {
@@ -270,7 +272,7 @@ test.describe('dashboard', () => {
 		await mockDashboard(page, [listProject], [], 7);
 		await page.goto('/projects');
 
-		await page.getByRole('button', { name: /Filter waktu/ }).click();
+		await page.getByRole('combobox', { name: /Filter waktu/ }).click();
 		await expect(page.getByRole('option', { name: 'Dibuat 90 hari terakhir' })).toBeVisible();
 
 		const overflow = await page

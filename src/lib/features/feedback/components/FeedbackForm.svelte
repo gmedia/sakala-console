@@ -139,10 +139,10 @@
 			<Card class="flex flex-col gap-4 rounded-control p-4">
 				{#if projectId}
 					<div class="flex flex-col gap-2">
-						<p class="font-medium text-sm">Terkait dengan</p>
+						<p class="text-sm font-medium">Terkait dengan</p>
 						<ul class="flex flex-wrap gap-2">
 							<li
-								class="flex min-w-0 items-center gap-1 rounded-full border border-border-strong py-1 pl-3 pr-1 text-sm"
+								class="flex min-w-0 items-center gap-1 rounded-full border border-border-strong py-1 pr-1 pl-3 text-sm"
 							>
 								<span class="min-w-0 wrap-anywhere">
 									Proyek {projectQuery.data?.name ??
@@ -162,7 +162,7 @@
 							</li>
 							{#if deploymentId}
 								<li
-									class="flex min-w-0 items-center gap-1 rounded-full border border-border-strong py-1 pl-3 pr-1 text-sm"
+									class="flex min-w-0 items-center gap-1 rounded-full border border-border-strong py-1 pr-1 pl-3 text-sm"
 								>
 									<span class="min-w-0 wrap-anywhere">
 										Deployment {deploymentQuery.data
@@ -186,7 +186,7 @@
 				{/if}
 
 				<div class="flex flex-col gap-1">
-					<label for="feedback-category" class="font-medium text-sm">Jenis masukan</label>
+					<label for="feedback-category" class="text-sm font-medium">Jenis masukan</label>
 					<select
 						id="feedback-category"
 						bind:value={category}
@@ -206,7 +206,7 @@
 				</div>
 
 				<div class="flex flex-col gap-1">
-					<label for="feedback-message" class="font-medium text-sm">Masukanmu</label>
+					<label for="feedback-message" class="text-sm font-medium">Masukanmu</label>
 					<textarea
 						id="feedback-message"
 						bind:this={messageEl}

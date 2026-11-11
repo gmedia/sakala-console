@@ -21,7 +21,7 @@
 			variant="ghost"
 			aria-pressed={value === tab.value}
 			class={cn(
-				'w-full rounded-control border-none py-3 cursor-pointer',
+				'w-full cursor-pointer rounded-control border-none py-3',
 				value === tab.value
 					? 'bg-surface text-foreground'
 					: 'bg-transparent text-foreground/70 hover:bg-muted/10'

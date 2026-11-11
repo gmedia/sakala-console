@@ -24,12 +24,7 @@ type DeploymentContractFields = Pick<
 >;
 
 export type RuntimeStatus =
-	| 'not_deployed'
-	| 'deploying'
-	| 'running'
-	| 'stopped'
-	| 'failed'
-	| 'crashed';
+	'not_deployed' | 'deploying' | 'running' | 'stopped' | 'failed' | 'crashed';
 
 export type ProjectStatus = 'draft' | 'active' | 'failed' | 'suspended';
 

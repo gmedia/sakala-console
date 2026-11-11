@@ -92,12 +92,12 @@
 			<time
 				datetime={lastActivityAt}
 				title={formatDate(lastActivityAt)}
-				class="whitespace-nowrap text-xs text-muted"
+				class="text-xs whitespace-nowrap text-muted"
 			>
 				Deploy {formatRelativeTime(lastActivityAt).toLowerCase()}
 			</time>
 		{:else}
-			<span class="whitespace-nowrap text-xs text-muted">Belum pernah deploy</span>
+			<span class="text-xs whitespace-nowrap text-muted">Belum pernah deploy</span>
 		{/if}
 	</div>
 </article>

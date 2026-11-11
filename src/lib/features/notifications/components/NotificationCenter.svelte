@@ -102,7 +102,7 @@
 			</div>
 
 			{#if lastPage > 1}
-				<div class="pt-2 flex justify-end">
+				<div class="flex justify-end pt-2">
 					<Pagination
 						{currentPage}
 						totalPages={lastPage}
@@ -111,7 +111,7 @@
 				</div>
 			{/if}
 		{:else}
-			<div class="py-12 border-t border-border">
+			<div class="border-t border-border py-12">
 				{#if activeFilter === 'unread'}
 					<NotificationEmptyState
 						title="Tidak ada notifikasi yang belum dibaca"
