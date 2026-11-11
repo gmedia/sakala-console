@@ -5,23 +5,21 @@ import BranchCombobox from './BranchCombobox.svelte';
 
 const branches = ['main', 'develop', 'feat/checkout', 'release/2026'];
 
-function setup(overrides: Record<string, unknown> = {}) {
+async function setup(overrides: Record<string, unknown> = {}) {
 	const onValueChange = vi.fn();
-	return {
+	const screen = await render(BranchCombobox, {
+		id: 'branch',
+		value: 'main',
+		branches,
 		onValueChange,
-		screen: render(BranchCombobox, {
-			id: 'branch',
-			value: 'main',
-			branches,
-			onValueChange,
-			...overrides
-		})
-	};
+		...overrides
+	});
+	return { onValueChange, screen };
 }
 
 describe('BranchCombobox', () => {
 	it('shows the selected branch, and offers only what the API returned', async () => {
-		setup();
+		await setup();
 		const input = page.getByRole('combobox');
 
 		await expect.element(input).toHaveValue('main');
@@ -33,7 +31,7 @@ describe('BranchCombobox', () => {
 	});
 
 	it('narrows the list as the user types, and picks with the keyboard', async () => {
-		const { onValueChange } = setup();
+		const { onValueChange } = await setup();
 		const input = page.getByRole('combobox');
 
 		await input.click();
@@ -48,7 +46,7 @@ describe('BranchCombobox', () => {
 	});
 
 	it('says so when nothing matches, and does not accept the typed name', async () => {
-		const { onValueChange } = setup();
+		const { onValueChange } = await setup();
 		const input = page.getByRole('combobox');
 
 		await input.click();
@@ -61,7 +59,7 @@ describe('BranchCombobox', () => {
 	});
 
 	it('restores the selection when a search is abandoned', async () => {
-		setup();
+		await setup();
 		const input = page.getByRole('combobox');
 
 		await input.click();
@@ -72,7 +70,7 @@ describe('BranchCombobox', () => {
 	});
 
 	it('accepts another name only when the list is known to be cut off', async () => {
-		const { onValueChange } = setup({ allowOther: true });
+		const { onValueChange } = await setup({ allowOther: true });
 		const input = page.getByRole('combobox');
 
 		await input.click();

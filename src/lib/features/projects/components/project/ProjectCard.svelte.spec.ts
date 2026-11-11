@@ -118,7 +118,7 @@ describe('ProjectCard — isi', () => {
 			stack: { ...stack, framework: 'next' }
 		});
 		await expect.element(page.getByTestId('framework-chip')).toHaveTextContent('Next.js');
-		screen.unmount();
+		await screen.unmount();
 
 		await render(ProjectCard, { ...baseProject, stack: { ...stack, framework: null } });
 		await expect.element(page.getByTestId('framework-chip')).not.toBeInTheDocument();
@@ -226,7 +226,7 @@ describe('ProjectCard, what the list now knows', () => {
 		});
 		await expect.element(page.getByText('Belum pernah deploy')).toBeVisible();
 		await expect.element(page.getByTestId('project-card-commit')).not.toBeInTheDocument();
-		unmount();
+		await unmount();
 
 		await render(ProjectCard, {
 			...baseProject,

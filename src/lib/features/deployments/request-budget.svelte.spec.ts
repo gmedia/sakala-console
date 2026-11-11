@@ -122,7 +122,7 @@ function emit(name: string, payload: unknown) {
 
 async function runDeployment({ realtime }: { realtime: boolean }) {
 	realtimeState.status = realtime ? 'connected' : 'unavailable';
-	render(QueryTestHost, {
+	await render(QueryTestHost, {
 		props: {
 			client: new QueryClient({
 				defaultOptions: {

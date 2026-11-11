@@ -64,7 +64,7 @@ beforeEach(() => {
 describe('register page and email delivery', () => {
 	it('offers only GitHub and says why when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderPage();
+		await renderPage();
 
 		await expect
 			.element(page.getByText('Pendaftaran lewat email belum tersedia. Masuk lewat GitHub dulu.'))
@@ -76,7 +76,7 @@ describe('register page and email delivery', () => {
 
 	it('does not show the form for a kept ?method=email link when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect.element(provider('GitHub')).toBeVisible();
 		await expect
@@ -87,7 +87,7 @@ describe('register page and email delivery', () => {
 
 	it('offers email when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage();
+		await renderPage();
 
 		await expect.element(provider('email')).toBeVisible();
 		await expect.element(page.getByText('belum tersedia')).not.toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('register page and email delivery', () => {
 
 	it('shows the form for ?method=email when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect
 			.element(page.getByRole('button', { name: 'Buat akun', exact: true }))
@@ -104,7 +104,7 @@ describe('register page and email delivery', () => {
 
 	it('shows no option and no form until the flag is known', async () => {
 		vi.mocked(getAuthOptions).mockReturnValue(new Promise(() => {}));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect
 			.element(page.getByRole('progressbar', { name: 'Memuat pilihan yang tersedia' }))
@@ -117,7 +117,7 @@ describe('register page and email delivery', () => {
 	it('does not reload the options when the resend mounts after a registration', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
 		vi.mocked(register).mockResolvedValue(undefined);
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await fillForm();
 		await page.getByRole('checkbox').click();
@@ -138,7 +138,7 @@ describe('register page and email delivery', () => {
 				apiMessage: 'Sakala belum bisa mengirim email untuk saat ini.'
 			})
 		);
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await fillForm();
 		await page.getByRole('checkbox').click();
@@ -156,7 +156,7 @@ describe('consent on the register form', () => {
 
 	it('asks in exactly the agreed words, with links to both documents', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		const box = page.getByRole('checkbox', { name: CONSENT });
 		await expect.element(box).toBeVisible();
@@ -171,7 +171,7 @@ describe('consent on the register form', () => {
 
 	it('gives the privacy notice a link and no box of its own', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect
 			.element(page.getByRole('link', { name: 'Pemberitahuan Privasi' }))
@@ -181,7 +181,7 @@ describe('consent on the register form', () => {
 
 	it('no longer says Sakala has no written terms', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage();
+		await renderPage();
 
 		await expect.element(provider('GitHub')).toBeVisible();
 		await expect
@@ -192,7 +192,7 @@ describe('consent on the register form', () => {
 
 	it('sends nothing until the box is ticked', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await fillForm();
 		await page.getByRole('button', { name: 'Buat akun', exact: true }).click();
@@ -204,7 +204,7 @@ describe('consent on the register form', () => {
 	it('sends the versions the form showed', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
 		vi.mocked(register).mockResolvedValue(undefined);
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await fillForm();
 		await page.getByRole('checkbox').click();
@@ -222,7 +222,7 @@ describe('consent on the register form', () => {
 
 	it('cannot be submitted when the versions could not be read, and says why', async () => {
 		vi.mocked(getAuthOptions).mockRejectedValue(new Error('offline'));
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await expect.element(page.getByText(/belum bisa dimuat/)).toBeVisible();
 		await expect
@@ -236,7 +236,7 @@ describe('consent on the register form', () => {
 		vi.mocked(register).mockRejectedValue(
 			apiErrorFromResponse(422, { errors: { terms_version: ['Versi lama.'] } })
 		);
-		renderPage('?method=email');
+		await renderPage('?method=email');
 
 		await fillForm();
 		await page.getByRole('checkbox').click();

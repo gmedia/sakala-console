@@ -65,7 +65,7 @@ beforeEach(() => {
 describe('AccountSettingsTab and email delivery', () => {
 	it('replaces the email change form with the honest reason when delivery is off', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderTab();
+		await renderTab();
 
 		await expect.element(page.getByText('Ganti email belum tersedia')).toBeVisible();
 		await expect.element(emailField()).not.toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('AccountSettingsTab and email delivery', () => {
 	it('does not ask to open a link that never arrived when delivery is off', async () => {
 		vi.mocked(getCurrentUser).mockResolvedValue({ ...user, pending_email: 'baru@sakala.local' });
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
-		renderTab();
+		await renderTab();
 
 		await expect.element(page.getByText('Ganti email belum tersedia')).toBeVisible();
 		await expect.element(page.getByText('Cek email baru')).not.toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('AccountSettingsTab and email delivery', () => {
 
 	it('keeps the form when delivery is on', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
-		renderTab();
+		await renderTab();
 
 		await expect.element(emailField()).toBeVisible();
 		await expect.element(page.getByText('Ganti email belum tersedia')).not.toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('AccountSettingsTab and email delivery', () => {
 
 	it('shows neither the form nor the reason while the flag is loading', async () => {
 		vi.mocked(getAuthOptions).mockReturnValue(new Promise(() => {}));
-		renderTab();
+		await renderTab();
 
 		await expect
 			.element(page.getByRole('progressbar', { name: 'Memuat pilihan ganti email' }))
@@ -108,7 +108,7 @@ describe('AccountSettingsTab and email delivery', () => {
 				apiMessage: 'Sakala belum bisa mengirim email untuk saat ini.'
 			})
 		);
-		renderTab();
+		await renderTab();
 
 		await emailField().fill('baru@sakala.local');
 		await page.getByLabelText('Kata sandi saat ini', { exact: true }).fill('kata-sandi');

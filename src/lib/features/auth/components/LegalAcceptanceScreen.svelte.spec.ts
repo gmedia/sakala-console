@@ -47,7 +47,7 @@ beforeEach(() => {
 
 describe('LegalAcceptanceScreen', () => {
 	it('records nothing until the box is ticked', async () => {
-		render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
+		await render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
 		await submit().click();
 
 		await expect.element(page.getByText(/Centang pernyataan ini dulu/)).toBeVisible();
@@ -56,7 +56,7 @@ describe('LegalAcceptanceScreen', () => {
 
 	it('accepts the versions on screen, whichever those are', async () => {
 		vi.mocked(acceptLegalDocuments).mockResolvedValue({} as never);
-		render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
+		await render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
 		await page.getByRole('checkbox').click();
 		await submit().click();
 
@@ -71,7 +71,7 @@ describe('LegalAcceptanceScreen', () => {
 		vi.mocked(acceptLegalDocuments).mockRejectedValue(
 			apiErrorFromResponse(422, { errors: { terms_version: ['Versi lama.'] } })
 		);
-		render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
+		await render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
 		await page.getByRole('checkbox').click();
 		await submit().click();
 
@@ -80,7 +80,7 @@ describe('LegalAcceptanceScreen', () => {
 	});
 
 	it('leaves a way out for someone who does not agree', async () => {
-		render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
+		await render(QueryTestHost, { props: { component: LegalAcceptanceScreen } });
 
 		await expect
 			.element(page.getByRole('link', { name: 'Unduh data atau hapus akun' }))
