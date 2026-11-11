@@ -1061,6 +1061,30 @@ test.describe('onboarding', () => {
 		await expect(page).toHaveURL('/projects');
 	});
 
+	test('holds the app shell back on the way to onboarding after login', async ({ page }) => {
+		await mockSession(page, { onboarding_completed_at: null });
+		await page.route('**/api/v1/app/projects?*', (route) =>
+			reply(route, 200, { data: [], links: {}, meta: { total: 0 } })
+		);
+		// Records whether the sidebar ever reached the DOM, however briefly.
+		await page.addInitScript(() => {
+			const w = window as unknown as { __shellSeen: boolean };
+			w.__shellSeen = false;
+			new MutationObserver(() => {
+				if (document.querySelector('nav[aria-label="Navigasi utama"]')) w.__shellSeen = true;
+			}).observe(document, { childList: true, subtree: true });
+		});
+
+		// Where login sends people by default.
+		await page.goto('/projects');
+
+		await expect(page).toHaveURL('/onboarding');
+		await expect(page.getByText('Langkah 1 dari 3')).toBeVisible();
+		expect(
+			await page.evaluate(() => (window as unknown as { __shellSeen: boolean }).__shellSeen)
+		).toBe(false);
+	});
+
 	test('shows the steps to someone who has not', async ({ page }) => {
 		await mockSession(page, { onboarding_completed_at: null });
 

@@ -12,6 +12,7 @@
 		loginPathWithReturnTo
 	} from '$lib/features/auth/utils/oauth';
 	import { noteSessionEnded, rememberSession } from '$lib/features/auth/session-notice';
+	import { getOnboardingRedirect } from '$lib/features/auth/onboarding-redirect';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import LoadingSkeleton from '$lib/components/feedback/LoadingSkeleton.svelte';
 	import LegalAcceptanceScreen from './LegalAcceptanceScreen.svelte';
@@ -24,6 +25,17 @@
 	let { children }: { children: Snippet } = $props();
 
 	const currentUser = useCurrentUser();
+
+	// Accepting comes first. Onboarding follows once the user is refetched after accepting.
+	const onboardingRedirect = $derived(
+		currentUser.data && !currentUser.data.legal_acceptance_required
+			? getOnboardingRedirect(currentUser.data, page.url.pathname)
+			: null
+	);
+	// On the way to onboarding the app shell does not render, so it never flashes after login. The
+	// other way stays mounted: finishing onboarding navigates on from the page's own onSuccess, which
+	// TanStack Query skips once the component is gone.
+	const holdForOnboarding = $derived(onboardingRedirect === '/onboarding');
 
 	$effect(() => {
 		if (currentUser.isError) {
@@ -41,16 +53,8 @@
 				setLastLoginProvider(pendingProvider);
 				clearPendingOAuthProvider();
 			}
-			const user = currentUser.data;
-			const currentPath = page.url.pathname;
-			// Accepting comes first. Onboarding follows once this re-runs with the updated user.
-			if (user.legal_acceptance_required) return;
-			if (!user.onboarding_completed_at) {
-				if (currentPath !== '/onboarding') {
-					goto(resolve('/onboarding'), { replaceState: true });
-				}
-			} else if (currentPath === '/onboarding') {
-				goto(resolve('/projects'), { replaceState: true });
+			if (onboardingRedirect) {
+				goto(resolve(onboardingRedirect), { replaceState: true });
 			}
 		}
 	});
@@ -185,6 +189,14 @@
 	{/if}
 {:else if needsLegalAcceptance}
 	<LegalAcceptanceScreen />
+{:else if holdForOnboarding}
+	<main
+		id="main-content"
+		tabindex="-1"
+		class="flex min-h-screen items-center justify-center outline-none"
+	>
+		<LoadingSkeleton />
+	</main>
 {:else if currentUser.data}
 	{@render children()}
 {/if}
