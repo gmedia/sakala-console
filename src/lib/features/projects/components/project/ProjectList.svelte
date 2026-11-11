@@ -21,6 +21,7 @@
 		isFetching?: boolean;
 		onPageChange?: (page: number) => void;
 		onRetry?: () => void;
+		showWorkspace?: boolean;
 	};
 
 	let {
@@ -32,7 +33,8 @@
 		isLoading = false,
 		isFetching = false,
 		onPageChange = () => {},
-		onRetry
+		onRetry,
+		showWorkspace = false
 	}: Props = $props();
 
 	const skeletonCount = 6;
@@ -83,7 +85,7 @@
 		/>
 	{:else}
 		{#each projects as project (project.id)}
-			<ProjectCard {...project} />
+			<ProjectCard {...project} {showWorkspace} />
 		{/each}
 	{/if}
 </section>

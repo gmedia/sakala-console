@@ -406,11 +406,26 @@ export function getFrameworkLabel(framework: string): string {
 type PilotQuotas = PilotLimits['quotas'];
 
 /** What the pilot allows, shown before a create or a deploy runs into it. */
-export function getProjectQuotaNotice(limits: Pick<PilotLimits, 'quotas'>): {
+/** `workspaceName` is set for a team workspace, whose quota all its members share. */
+export function getProjectQuotaNotice(
+	limits: Pick<PilotLimits, 'quotas'>,
+	workspaceName?: string
+): {
 	reached: boolean;
 	message: string;
 } {
 	const { current_projects_count: current, max_projects_per_user: max } = limits.quotas;
+	if (workspaceName) {
+		return current >= max
+			? {
+					reached: true,
+					message: `Kuota proyek workspace ${workspaceName} sudah terpakai semua, ${current} dari ${max}. Hapus proyek yang tidak dipakai di workspace ini, atau minta admin Sakala memasang profil batas yang lebih besar.`
+				}
+			: {
+					reached: false,
+					message: `Workspace ${workspaceName} memakai ${current} dari ${max} proyek, dibagi untuk semua anggotanya.`
+				};
+	}
 	if (current >= max) {
 		return {
 			reached: true,
@@ -427,10 +442,16 @@ export function isProjectQuotaReached(quotas: PilotQuotas | undefined): boolean 
 	return quotas ? quotas.current_projects_count >= quotas.max_projects_per_user : false;
 }
 
-export function getActiveDeploymentLimitNotice(quotas: PilotQuotas): string | null {
+export function getActiveDeploymentLimitNotice(
+	quotas: PilotQuotas,
+	workspaceName?: string
+): string | null {
 	const { current_active_deployments_count: current, max_active_deployments_per_user: max } =
 		quotas;
 	if (current < max) return null;
+	if (workspaceName) {
+		return `Workspace ${workspaceName} sudah punya ${current} deployment yang berjalan, dan batasnya ${max}. Tunggu salah satunya selesai sebelum deploy lagi.`;
+	}
 	return `Kamu sudah punya ${current} deployment yang berjalan, dan batasnya ${max} selama pilot. Tunggu salah satunya selesai sebelum deploy lagi.`;
 }
 
