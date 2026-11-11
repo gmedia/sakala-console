@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import { resolve } from '$app/paths';
-	import type { Pathname } from '$app/types';
+	import type { Pathname, ResolvedPathname } from '$app/types';
 
 	export type BreadCrumbItem = {
 		label: string;
@@ -16,6 +16,10 @@
 	};
 
 	let { items, separator: Separator, class: className = '' }: Props = $props();
+
+	// `resolve` takes one tuple type per route. Past about 25 routes TypeScript stops relating a
+	// union of paths to that union of tuples, though every member is accepted on its own.
+	const resolvePath = resolve as (path: Pathname) => ResolvedPathname;
 </script>
 
 <nav aria-label="Breadcrumb" class={className}>
@@ -27,7 +31,7 @@
 						{item.label}
 					</span>
 				{:else if item.href}
-					<a href={resolve(item.href)} class="inline-flex min-h-6 items-center text-muted">
+					<a href={resolvePath(item.href)} class="inline-flex min-h-6 items-center text-muted">
 						{item.label}
 					</a>
 				{:else}
