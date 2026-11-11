@@ -31,10 +31,12 @@
 	import { buildConfigurationSchema } from '../../validation/createProjectSchema';
 	import BranchCombobox from '../create/BranchCombobox.svelte';
 	import DeleteProjectConfirmModal from './DeleteProjectConfirmModal.svelte';
+	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
 	const projectQuery = createProjectQuery(() => projectId);
+	const access = useProjectAccess(() => projectQuery.data);
 	const pilotLimits = createPilotLimitsQuery();
 	const deleteMutation = createDeleteProjectMutation();
 	const updateMutation = createUpdateProjectMutation();
@@ -262,6 +264,20 @@
 		<div class="p-6 text-center text-sm text-muted">Memuat pengaturan...</div>
 	{:else if projectQuery.isError}
 		<div class="p-6 text-center text-sm text-error">Gagal memuat data pengaturan proyek.</div>
+	{:else if projectQuery.data && access.readOnly}
+		{@const data = projectQuery.data}
+		<!-- A viewer gets the settings as facts, without a form that the API would refuse. -->
+		<section class="surface-card flex flex-col gap-4 p-4 sm:p-6" data-testid="settings-read-only">
+			<p class="text-sm text-muted">
+				Pengaturan proyek hanya bisa diubah pemilik dan anggota workspace.
+			</p>
+			<dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
+				{#each [['Nama proyek', data.name ?? data.project_name], ['Branch', data.branch], ['Subdomain', data.slug], ['Root directory', data.root_directory || 'Root repository'], ['Port', String(data.configured_port ?? data.effective_port)], ['Build command', data.build_command || 'Dideteksi otomatis'], ['Start command', data.start_command || 'Dideteksi otomatis'], ['Auto-deploy', data.auto_deploy ? 'Aktif' : 'Tidak aktif']] as [label, value] (label)}
+					<dt class="text-muted">{label}</dt>
+					<dd class="min-w-0 font-mono wrap-anywhere text-foreground">{value}</dd>
+				{/each}
+			</dl>
+		</section>
 	{:else if projectQuery.data}
 		<form onsubmit={handleSave} novalidate class="surface-card flex flex-col gap-5 p-4 sm:p-6">
 			<FormField

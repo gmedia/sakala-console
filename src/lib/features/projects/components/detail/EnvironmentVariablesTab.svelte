@@ -24,6 +24,7 @@
 	import { ENV_KEY_REGEX, normalizeEnvKey } from '../../validation/environmentVariable';
 	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
 	import EnvKey from './EnvKey.svelte';
+	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -37,6 +38,8 @@
 		id: projectId,
 		branch: projectQuery.data?.branch ?? ''
 	}));
+	// A viewer reads keys and plain values; the API refuses secret values and every change.
+	const access = useProjectAccess(() => projectQuery.data);
 
 	// Local State
 	let revealedValues = $state<Record<number, string>>({});
@@ -319,7 +322,14 @@
 </script>
 
 <div class="flex w-full max-w-280 flex-col">
-	{#if projectQuery.data?.redeploy_required}
+	{#if access.readOnly}
+		<p class="mb-4 text-sm text-muted" data-testid="env-read-only">
+			Kamu hanya bisa melihat nama variabel dan nilai yang bukan secret. Nilai secret dan perubahan
+			variabel hanya untuk pemilik dan anggota workspace.
+		</p>
+	{/if}
+
+	{#if projectQuery.data?.redeploy_required && !access.readOnly}
 		<div
 			role="status"
 			class="mb-4 flex flex-col justify-between gap-3 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 md:flex-row md:items-center"
@@ -390,7 +400,7 @@
 							</span>
 
 							<span class="flex shrink-0 items-center gap-1 @2xl:col-start-3">
-								{#if env.is_secret}
+								{#if env.is_secret && !access.readOnly}
 									<Button
 										variant="ghost"
 										size="icon"
@@ -410,27 +420,31 @@
 									</Button>
 								{/if}
 
+								{#if !access.readOnly}
+									<Button
+										variant="ghost"
+										size="sm"
+										id={`env-edit-button-${env.id}`}
+										onclick={() => handleOpenEdit(env)}
+										aria-label={`Ubah ${env.key}`}
+									>
+										Ubah
+									</Button>
+								{/if}
+							</span>
+
+							{#if !access.readOnly}
 								<Button
 									variant="ghost"
 									size="sm"
-									id={`env-edit-button-${env.id}`}
-									onclick={() => handleOpenEdit(env)}
-									aria-label={`Ubah ${env.key}`}
+									class="text-error-dark hover:text-error-dark"
+									onclick={() => handlePromptDelete(env)}
+									disabled={deleteMutation.isPending}
+									aria-label={`Hapus ${env.key}`}
 								>
-									Ubah
+									Hapus
 								</Button>
-							</span>
-
-							<Button
-								variant="ghost"
-								size="sm"
-								class="text-error-dark hover:text-error-dark"
-								onclick={() => handlePromptDelete(env)}
-								disabled={deleteMutation.isPending}
-								aria-label={`Hapus ${env.key}`}
-							>
-								Hapus
-							</Button>
+							{/if}
 
 							{#if revealErrors.has(env.id)}
 								<p role="alert" class="col-span-full text-xs text-error-dark">
@@ -606,7 +620,7 @@
 		</p>
 	{/if}
 
-	{#if !isAdding}
+	{#if !isAdding && !access.readOnly}
 		<Button
 			variant="secondary"
 			size="lg"

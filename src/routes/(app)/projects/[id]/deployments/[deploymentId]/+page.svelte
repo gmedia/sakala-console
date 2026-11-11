@@ -29,6 +29,7 @@
 	import { useFailedDeploymentRedeploy } from '$lib/features/deployments/use-failed-deployment-redeploy.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import DeploymentLiveAnnouncement from '$lib/components/feedback/DeploymentLiveAnnouncement.svelte';
+	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 
 	const detail = useDeploymentDetail(
 		() => page.params.id ?? '',
@@ -40,6 +41,8 @@
 	);
 
 	const recentDeployments = createRecentDeploymentsQuery(() => page.params.id ?? '');
+	// A viewer follows the deployment and its log; redeploy and cancel are for owners and members.
+	const access = useProjectAccess(() => detail.project);
 	const projectState = $derived(
 		detail.project
 			? deriveProjectHeaderState(detail.project, recentDeployments.data?.data ?? [])
@@ -180,8 +183,10 @@
 			{firstLiveProjectName}
 			{projectHref}
 			onViewError={() => logPanel?.revealError()}
-			onRedeploy={projectState?.showRedeploy === false ? undefined : redeploy.trigger}
-			onCancel={() => (cancelOpen = true)}
+			onRedeploy={projectState?.showRedeploy === false || access.readOnly
+				? undefined
+				: redeploy.trigger}
+			onCancel={access.readOnly ? undefined : () => (cancelOpen = true)}
 			redeployPending={redeploy.isPending}
 			redeployDisabled={!redeploy.isReady || Boolean(projectState?.redeployBusy)}
 			redeployError={redeploy.errorMessage}

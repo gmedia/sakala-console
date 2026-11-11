@@ -19,6 +19,8 @@
 		getProjectPublicUrl,
 		getPublicUrlLabel
 	} from '$lib/features/projects/presentation';
+	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
+	import { ROLE_LABELS, workspaceLabel } from '$lib/features/workspaces/presentation';
 
 	type Props = {
 		project: Project;
@@ -28,6 +30,7 @@
 
 	const live = useProjectLiveStatus(() => project);
 	const redeploy = useProjectRedeploy(() => project);
+	const access = useProjectAccess(() => project);
 
 	const header = $derived(live.header);
 	const publicUrl = $derived(getProjectPublicUrl(project));
@@ -112,6 +115,14 @@
 						{project.branch || 'main'}
 					</dd>
 				</div>
+				{#if project.workspace && (access.hasTeams || project.workspace.type === 'team')}
+					<div class="flex min-w-0 items-baseline gap-1.5" data-testid="project-workspace">
+						<dt>Workspace</dt>
+						<dd class="min-w-0 wrap-anywhere text-foreground">
+							{workspaceLabel(project.workspace)}
+						</dd>
+					</div>
+				{/if}
 				{#if hasFacts}
 					<div class="flex items-baseline gap-1.5">
 						<dt>Port</dt>
@@ -134,7 +145,7 @@
 			</dl>
 		</div>
 
-		{#if header.showRedeploy}
+		{#if header.showRedeploy && !access.readOnly}
 			<Button class="max-sm:w-full" onclick={redeploy.trigger} disabled={isBusy}>
 				{#if isBusy}
 					<CircleNotch
@@ -156,6 +167,17 @@
 			</Button>
 		{/if}
 	</div>
+
+	{#if access.readOnly && access.role}
+		<p
+			class="rounded-control border border-info/20 bg-info/10 px-4 py-2.5 text-sm text-foreground"
+			data-testid="read-only-notice"
+		>
+			Kamu {ROLE_LABELS[access.role].toLowerCase()} di workspace {access.workspace?.name}, jadi
+			halaman proyek ini hanya bisa dilihat. Nilai secret disembunyikan, dan deploy serta perubahan
+			pengaturan dilakukan pemilik atau anggota workspace.
+		</p>
+	{/if}
 
 	{#if redeploy.errorMessage}
 		<p
