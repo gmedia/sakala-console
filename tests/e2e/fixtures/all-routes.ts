@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { Page, Route } from '@playwright/test';
 import { DEPLOYMENT_ID, PROJECT_ID, mockWizardApi } from './create-project';
 import { baseProject, failedDeployment, succeededDeployment } from './project-detail';
@@ -23,6 +24,18 @@ export const signedInUser = {
 	pending_email: null as string | null,
 	created_at: '2026-01-01T00:00:00Z'
 };
+
+/** Bodies captured from sakala-api (tests/fixtures/workspaces). */
+function capturedData<T>(name: string): T {
+	const file = new URL(`../../fixtures/workspaces/${name}.json`, import.meta.url);
+	return (JSON.parse(readFileSync(file, 'utf8')) as { body: { data: T } }).body.data;
+}
+
+type Named = { id: string; name: string; [key: string]: unknown };
+const capturedWorkspaces = capturedData<Named[]>('workspaces');
+export const TEAM_ID = capturedWorkspaces[1].id;
+const INVITATION = capturedData<(Named & { workspace: Named })[]>('invitations-mine')[0];
+export const INVITATION_ID = INVITATION.id;
 
 function json(route: Route, body: unknown, status = 200) {
 	return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -172,6 +185,39 @@ export async function mockEveryRoute(page: Page, { long = false }: { long?: bool
 			}
 		})
 	);
+	// A user in one team, so the switcher, the workspace page, and the cards' workspace all render.
+	const teamName = long ? `Tim ${LONG}` : 'Tim Facility';
+	const workspaces = [
+		{ ...capturedWorkspaces[0], name: long ? `Rani ${LONG}` : 'Rani Wulandari' },
+		{ ...capturedWorkspaces[1], name: teamName }
+	];
+	const members = capturedData<{ user: Named & { email?: string } }[]>('members').map((member) => ({
+		...member,
+		user: long
+			? { ...member.user, name: `${member.user.name} ${LONG}`, email: `${LONG}@kampus.test` }
+			: member.user
+	}));
+	const invitations = capturedData<Named[]>('invitations').map((invitation) => ({
+		...invitation,
+		email: long ? `${LONG}@kampus.test` : invitation.email
+	}));
+	await page.route(/\/api\/v1\/app\/workspaces(\?.*)?$/, (route) =>
+		json(route, { data: workspaces })
+	);
+	await page.route(/\/api\/v1\/app\/workspaces\/[^/]+\/members$/, (route) =>
+		json(route, { data: members })
+	);
+	await page.route(/\/api\/v1\/app\/workspaces\/[^/]+\/invitations$/, (route) =>
+		json(route, { data: invitations })
+	);
+	await page.route(/\/api\/v1\/app\/workspace-invitations(\?.*)?$/, (route) =>
+		json(route, {
+			data: [{ ...INVITATION, workspace: { ...INVITATION.workspace, name: teamName } }]
+		})
+	);
+	await page.route(/\/api\/v1\/app\/pilot-limits\?workspace_id=/, (route) =>
+		json(route, { data: capturedData('pilot-limits-team') })
+	);
 	await page.route('**/api/v1/app/profile', (route) =>
 		json(route, {
 			data: {
@@ -206,6 +252,9 @@ export const SIGNED_IN_ROUTES = [
 	['settings', '/settings'],
 	['settings-notifications', '/settings?tab=notifications'],
 	['feedback', '/feedback'],
+	['workspace', `/workspaces/${TEAM_ID}`],
+	['workspace-invitations', '/workspace-invitations'],
+	['workspace-invitation-link', `/workspace-invitations/${INVITATION_ID}?token=t`],
 	['not-found', '/halaman-yang-tidak-ada']
 ] as const;
 

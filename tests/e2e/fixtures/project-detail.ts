@@ -5,6 +5,17 @@ export const DEPLOYMENT_ID = '01a0cd92-b2e0-7327-97a1-d688062f30fa';
 export const NEW_DEPLOYMENT_ID = '01a0cd92-b2e0-7327-97a1-d688062f3999';
 export const DETAIL_URL = `/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`;
 
+/** The signed-in user's personal workspace, the only one someone without a team has. */
+export const personalWorkspace = {
+	id: '01a1cb4a-de2f-734f-a44f-293d01579dec',
+	name: 'Rani Wulandari',
+	slug: 'rani',
+	type: 'personal',
+	role: 'owner',
+	limit_profile: null,
+	created_at: '2026-01-01T00:00:00+00:00'
+};
+
 export type LogLine = {
 	sequence: number;
 	stream: 'stdout' | 'stderr' | 'system';
@@ -188,6 +199,7 @@ export const baseProject = {
 	inspection: null,
 	stack: null,
 	last_deployed_at: '2026-09-20T08:41:49Z',
+	workspace: { id: personalWorkspace.id, name: 'Rani Wulandari', slug: 'rani', type: 'personal' },
 	created_at: '2026-01-01T00:00:00Z',
 	updated_at: '2026-09-20T08:41:49Z'
 };
@@ -243,6 +255,14 @@ function fulfill(route: Route, { status = 200, body, headers }: JsonReply) {
 
 export async function mockProjectApi(page: Page, handlers: ApiHandlers = {}) {
 	await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204 }));
+
+	// Someone without a team. Workspace tests register their own answers after this.
+	await page.route(/\/api\/v1\/app\/workspaces(\?.*)?$/, (route) =>
+		fulfill(route, { body: { data: [personalWorkspace] } })
+	);
+	await page.route(/\/api\/v1\/app\/workspace-invitations(\?.*)?$/, (route) =>
+		fulfill(route, { body: { data: [] } })
+	);
 
 	await page.route('**/api/v1/auth/user', (route) =>
 		fulfill(route, {
