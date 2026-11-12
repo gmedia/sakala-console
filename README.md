@@ -54,6 +54,8 @@ docker run --rm -p 8080:8080 sakala-console:local
 
 Image menyajikan `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, dan `Referrer-Policy`, dan menolak dibingkai situs lain lewat `frame-ancestors 'none'`. Policy-nya ditulis `docker/security-headers.mjs` saat build dari file env yang sama, jadi origin API dan Reverb milik instalasi self-hosted atau staging ikut tanpa konfigurasi kedua. Build gagal kalau `PUBLIC_API_URL` tidak ada.
 
+Setiap respons HTML adalah shell SPA (`/`, `/index.html`, dan fallback untuk route client seperti `/admin`), dan dikirim dengan `Cache-Control: no-cache, no-transform`. `no-cache` membuat browser memvalidasi ulang shell setiap kali dimuat, supaya tab yang di-reload tidak menunjuk ke chunk build lama. `no-transform` mencegah Cloudflare mengubah isi halaman: Web Analytics (RUM) aktif di zona `sakala.dev` dan tidak bisa dimatikan dari sisi kami, sehingga Cloudflare menyisipkan script `static.cloudflareinsights.com/beacon.min.js` ke HTML. Script itu diblokir CSP (setiap halaman mencatat pelanggaran CSP) dan bertentangan dengan pemberitahuan privasi Sakala yang menyatakan tidak ada analytics. Menurut [FAQ Web Analytics Cloudflare](https://developers.cloudflare.com/web-analytics/faq/), beacon tidak disisipkan ke respons yang membawa `no-transform`. Header ini dipasang di level teratas `docker/Caddyfile` dan dicocokkan dengan `Content-Type` respons, supaya Caddy tetap mengompresi shell dengan gzip atau zstd.
+
 ### Konfigurasi saat container start
 
 Image yang sudah jadi, termasuk yang terbit di `ghcr.io`, bisa diarahkan ke instalasi lain tanpa build ulang. Isi variabel yang sama sebagai environment container:
@@ -83,7 +85,7 @@ Saat container start, `docker/entrypoint.sh` memeriksa setiap nilai, lalu menuli
 - `/runtime-config.js` berasal dari origin yang sama dan dikirim dengan `Cache-Control: no-cache`, jadi CSP tetap `script-src 'self'` plus hash script inline SvelteKit, tanpa `unsafe-inline`. Nilai baru berlaku setelah container dibuat ulang.
 - Dengan root filesystem read-only, pasang tmpfs di `/run/sakala-console`; entrypoint mengisinya setiap start.
 
-`tests/container/runtime-config.sh` membuktikan perilaku ini terhadap image sungguhan: build, jalankan dengan beberapa set env, lalu periksa file config, CSP, dan penolakan nilai yang salah. Tambahkan `BROWSER=1` untuk membuka console di Chromium dan memastikan ia memanggil API yang dikonfigurasi. Skrip ini butuh Docker dan tidak dijalankan CI.
+`tests/container/runtime-config.sh` membuktikan perilaku ini terhadap image sungguhan: build, jalankan dengan beberapa set env, lalu periksa file config, CSP, header `Cache-Control` shell dan `/runtime-config.js`, dan penolakan nilai yang salah. Tambahkan `BROWSER=1` untuk membuka console di Chromium dan memastikan ia memanggil API yang dikonfigurasi. Skrip ini butuh Docker dan tidak dijalankan CI.
 
 Domain, TLS, reverse proxy host, dan environment deployment dikelola oleh repository deployment terpisah. Image ini tidak menyimpan credential atau origin production.
 
