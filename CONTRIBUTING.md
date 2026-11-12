@@ -2,7 +2,7 @@
 
 ## Setup
 
-Gunakan Node.js 22.12+, pnpm 10.31, dan API lokal sesuai README.
+Gunakan Node.js 22.12+, pnpm 10.31 (jalankan `corepack enable` untuk mengaktifkan pnpm 10.31 seperti di CI), dan API backend lokal dengan mengikuti panduan [Full Stack Lokal di sakala-infra](https://github.com/gmedia/sakala-infra/blob/main/docs/FULL_STACK_LOCAL.md).
 
 ```bash
 pnpm install

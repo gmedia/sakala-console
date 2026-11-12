@@ -96,8 +96,11 @@ pnpm check           # Svelte dan TypeScript diagnostics
 pnpm lint            # ESLint
 pnpm format:check    # Prettier check
 pnpm test            # unit dan component test
+pnpm test:unit       # server/unit tests (Vitest)
+pnpm test:component  # browser/component tests (Vitest)
 pnpm test:e2e        # browser flow test
 pnpm api:types       # generate types dari Scramble OpenAPI
+pnpm api:types:check # verifikasi generated types sesuai OpenAPI
 pnpm quality         # local quality gate
 ```
 
@@ -105,10 +108,10 @@ pnpm quality         # local quality gate
 
 - `src/routes`: komposisi halaman dan route groups.
 - `src/lib/api`: HTTP, CSRF, error, query, dan generated API contract.
-- `src/lib/features`: UI dan query/mutation per domain ketika fitur mulai dibuat.
+- `src/lib/features`: UI, query/mutation, dan state `.svelte.ts` per domain fitur.
 - `src/lib/components/ui`: primitive reusable.
 - `src/lib/components/layout`: shell dan navigation.
-- `src/lib/stores`: UI state lokal, bukan cache response API.
+- `src/lib/realtime`: WebSocket client dan channel subscriptions realtime.
 
 Laravel API Resource dan Scramble OpenAPI adalah source of truth kontrak HTTP. Jalankan `pnpm api:types` ketika endpoint berubah; jangan menulis ulang seluruh kontrak sebagai interface manual.
 
@@ -116,6 +119,6 @@ Lihat [ARCHITECTURE.md](ARCHITECTURE.md), [docs/AUTHENTICATION.md](docs/AUTHENTI
 
 ## Project Status
 
-Foundation console sudah tersedia. GitHub auth, onboarding, project CRUD, deployment, dan realtime akan ditambahkan bertahap setelah kontrak API masing-masing tersedia.
+Fitur inti console seperti GitHub authentication, onboarding tim/organisasi, CRUD project, log streaming, dan realtime status deployment sudah aktif dan didukung test suite. Untuk daftar perubahan detail dan rilis versi, lihat [CHANGELOG.md](CHANGELOG.md).
 
 Sakala diinisiasi oleh maintainer Sakala dan didukung GMEDIA sebagai founding sponsor dan infrastructure supporter. Sakala dilisensikan dengan Apache License 2.0.
