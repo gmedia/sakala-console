@@ -20,6 +20,23 @@
 	# rewrites it when the container sets other public values.
 	import /run/sakala-console/security-headers.caddy
 
+	# Every HTML response is the SPA shell: /, /index.html, and the try_files fallback below for
+	# client routes such as /admin. The shell names the current build's chunks, so it is revalidated
+	# on every load; a cached copy would point a reloaded tab back at chunks that are gone.
+	#
+	# no-transform keeps Cloudflare from rewriting the shell. Its Web Analytics (RUM) is switched on
+	# for the zone and injects a static.cloudflareinsights.com/beacon.min.js script into proxied
+	# HTML, which the policy above blocks and which goes against the privacy notice. Cloudflare
+	# leaves a response marked no-transform alone: https://developers.cloudflare.com/web-analytics/faq/
+	#
+	# Matched on the response type, because try_files rewrites client routes after request matchers
+	# here have run. It stays at the top level, which Caddy orders before `encode`: inside `route`,
+	# `encode` would see no-transform first and send the shell uncompressed.
+	header {
+		match header Content-Type text/html*
+		Cache-Control "no-cache, no-transform"
+	}
+
 	# `route` preserves handler order. Without it, Caddy runs `try_files`
 	# before `respond`, causing the SPA fallback to mask this health endpoint.
 	route {
@@ -49,11 +66,6 @@
 		}
 
 		try_files {path} /index.html
-
-		# The shell names the current build's chunks, so it is revalidated on every load; a cached
-		# copy would point a reloaded tab back at chunks that are gone.
-		@shell path / /index.html
-		header @shell Cache-Control "no-cache"
 
 		file_server
 	}

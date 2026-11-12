@@ -37,6 +37,9 @@ expect_contains() {
 expect_absent() {
     if grep -qF -- "$2" <<< "$3"; then fail "$1: did not expect '$2' in: $3"; else pass "$1"; fi
 }
+expect_equal() {
+    if [ "$2" = "$3" ]; then pass "$1"; else fail "$1: expected '$2', got '$3'"; fi
+}
 
 if [ -z "$image" ]; then
     image=sakala-console:runtime-config-test
@@ -81,11 +84,12 @@ port=$(start built)
 expect_contains "no env: runtime config is the empty default" 'window.__SAKALA_RUNTIME_CONFIG__ = {};' "$(config "$port")"
 expect_contains "no env: CSP names the built API" "connect-src 'self' https://api.hosted.example wss://api.hosted.example:443" "$(csp "$port")"
 expect_contains "no env: index.html loads the runtime config first" '<script src="/runtime-config.js"></script>' "$(curl -fsS "http://127.0.0.1:$port/projects")"
-expect_contains "no env: runtime config is revalidated on each load" 'Cache-Control: no-cache' "$(curl -fsS -D - -o /dev/null "http://127.0.0.1:$port/runtime-config.js")"
 
 # 1b. Build files never fall back to the SPA shell: a tab left open across a deploy asks for old
 # chunks, and index.html served as JavaScript is what made it reload unpredictably.
 headers() { curl -sS -D - -o /dev/null "http://127.0.0.1:$port$1" | tr -d '\r'; }
+# Prints the value of one header, matched case-insensitively, from the output of `headers`.
+header_value() { sed -n "s/^$1: //Ip" <<< "$2" | head -n 1; }
 missing=$(headers /_app/immutable/missing.js)
 expect_contains "build files: a missing chunk is a 404" 'HTTP/1.1 404' "$missing"
 expect_absent "build files: a missing chunk is not served as HTML" 'Content-Type: text/html' "$missing"
@@ -98,7 +102,30 @@ expect_contains "build files: an existing chunk is JavaScript" 'Content-Type: te
 expect_contains "build files: the version file is served" 'HTTP/1.1 200' "$(headers /_app/version.json)"
 shell=$(headers /projects)
 expect_contains "build files: a deep link still gets the SPA shell" 'Content-Type: text/html' "$shell"
-expect_contains "build files: the SPA shell is revalidated on each load" 'Cache-Control: no-cache' "$shell"
+
+# 1c. Cache-Control. Every HTML response is the SPA shell and says no-transform, so Cloudflare does
+# not inject its Web Analytics beacon, which the CSP would block. The shell is still revalidated on
+# each load, still compressed, and still carries every security header.
+for path in / /index.html /admin /projects; do
+    response=$(headers "$path")
+    expect_contains "shell $path: served as HTML" 'Content-Type: text/html' "$response"
+    expect_equal "shell $path: Cache-Control" 'no-cache, no-transform' "$(header_value Cache-Control "$response")"
+    expect_contains "shell $path: keeps the CSP" "Content-Security-Policy: default-src 'self'" "$response"
+    expect_contains "shell $path: keeps frame-ancestors" "frame-ancestors 'none'" "$response"
+    expect_equal "shell $path: X-Content-Type-Options" 'nosniff' "$(header_value X-Content-Type-Options "$response")"
+    expect_equal "shell $path: X-Frame-Options" 'DENY' "$(header_value X-Frame-Options "$response")"
+    expect_equal "shell $path: Referrer-Policy" 'strict-origin-when-cross-origin' "$(header_value Referrer-Policy "$response")"
+done
+compressed=$(curl -sS -D - -o /dev/null -H 'Accept-Encoding: gzip' "http://127.0.0.1:$port/admin" | tr -d '\r')
+expect_equal "shell: still gzip-compressed by Caddy" 'gzip' "$(header_value Content-Encoding "$compressed")"
+expect_equal "shell: compressed response keeps no-transform" 'no-cache, no-transform' "$(header_value Cache-Control "$compressed")"
+runtime=$(headers /runtime-config.js)
+expect_contains "runtime config: still served" 'HTTP/1.1 200' "$runtime"
+expect_contains "runtime config: is JavaScript" 'Content-Type: text/javascript' "$runtime"
+expect_equal "runtime config: revalidated on each load" 'no-cache' "$(header_value Cache-Control "$runtime")"
+expect_contains "runtime config: keeps the CSP" "Content-Security-Policy: default-src 'self'" "$runtime"
+expect_equal "build files: a missing chunk is never stored" 'no-store' "$(header_value Cache-Control "$missing")"
+expect_equal "build files: an existing chunk gets no shell Cache-Control" '' "$(header_value Cache-Control "$existing")"
 
 # 2. Another installation.
 selfhost=(

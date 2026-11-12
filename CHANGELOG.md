@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Fixed
+
+- Cloudflare no longer injects its Web Analytics beacon (`static.cloudflareinsights.com/beacon.min.js`) into the Console. The zone has Web Analytics (RUM) switched on and it cannot be turned off from the Sakala side, so every page loaded a script the Content-Security-Policy blocked, logging a CSP violation, although the privacy notice says Sakala uses no analytics. Every HTML response (`/`, `/index.html`, and the SPA fallback for client routes such as `/admin`) is now sent with `Cache-Control: no-cache, no-transform`; Cloudflare does not modify a response marked `no-transform`. The header is set at the top level of `docker/Caddyfile` and matched on `Content-Type: text/html`, so Caddy still compresses the shell. `/runtime-config.js` keeps `Cache-Control: no-cache`, and the security headers and the CSP are unchanged. `tests/container/runtime-config.sh` checks these headers.
+
 ## [0.5.1] - 2026-11-12
 
 ### Fixed
