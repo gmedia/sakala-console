@@ -267,7 +267,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Poll eligible pending commands for the authenticated agent node */
+        /**
+         * Poll eligible pending commands for the authenticated agent node
+         * @description `cancel_requested` is absent while no command of this node has to stop
+         *     (docs/AGENT_API.md), so an agent that predates cancellation sees no change.
+         */
         get: operations["agent.pollCommands"];
         put?: never;
         post?: never;
@@ -1961,11 +1965,11 @@ export interface components {
             }[];
             notifications: {
                 id: string;
-                category: unknown;
-                title: unknown;
-                message: unknown;
-                project_id: unknown;
-                deployment_id: unknown;
+                category: string | null;
+                title: string | null;
+                message: string | null;
+                project_id: string | null;
+                deployment_id: string | null;
                 read_at: string | null;
                 created_at: string | null;
             }[];
@@ -2027,7 +2031,7 @@ export interface components {
                 metadata: {
                     [key: string]: unknown;
                 } | null;
-                occurred_at: string | null;
+                occurred_at: string;
             }[];
         };
         /** AdminAgentResource */
@@ -2302,7 +2306,7 @@ export interface components {
             name: string;
             username: string;
             email: string;
-            avatar_url: string;
+            avatar_url: string | null;
             /**
              * @description `user` or `admin`.
              * @enum {string}
@@ -2334,7 +2338,7 @@ export interface components {
                     name: string;
                     username: string;
                     email: string;
-                    avatar_url: string;
+                    avatar_url: string | null;
                 };
             }[];
             /** @description Projects owned by the workspace, newest first. Deleted projects are not listed. */
@@ -2522,7 +2526,9 @@ export interface components {
             hostname: string | null;
             runtime_network: string;
             capabilities: string[] | null;
-            metadata: unknown[] | null;
+            metadata: {
+                [key: string]: unknown;
+            } | null;
             /** Format: date-time */
             registered_at: string | null;
             /** Format: date-time */
@@ -2606,7 +2612,10 @@ export interface components {
                 type: string | null;
                 id: string | null;
             };
-            /** @description IDs, changed values, and the admin's `reason`. Never secret values or tokens. */
+            /**
+             * @description IDs, changed values, and the admin's `reason`. Never secret values or tokens.
+             *     An object, `{}` when empty, or null.
+             */
             metadata: {
                 [key: string]: unknown;
             } | null;
@@ -2707,7 +2716,7 @@ export interface components {
             metadata: {
                 [key: string]: unknown;
             } | null;
-            occurred_at: string | null;
+            occurred_at: string;
         };
         /**
          * DeploymentFailureCategory
@@ -2719,7 +2728,7 @@ export interface components {
             sequence: number;
             stream: components["schemas"]["LogStream"];
             message: string;
-            recorded_at: string | null;
+            recorded_at: string;
         };
         /** DeploymentResource */
         DeploymentResource: {
@@ -2814,7 +2823,7 @@ export interface components {
         };
         /** EnvironmentVariableResource */
         EnvironmentVariableResource: {
-            id: string;
+            id: number;
             key: string;
             is_secret: boolean;
             value?: string;
@@ -2895,6 +2904,18 @@ export interface components {
          * @enum {string}
          */
         FeedbackCategory: "general" | "bug" | "feature_request" | "experience" | "performance";
+        /** FeedbackResource */
+        FeedbackResource: {
+            id: string;
+            /** @enum {string} */
+            category: "general" | "bug" | "feature_request" | "experience" | "performance";
+            message: string;
+            project_id: string | null;
+            deployment_id: string | null;
+            consent: boolean;
+            created_at: string | null;
+            updated_at: string | null;
+        };
         /**
          * FeedbackStatus
          * @description Where an admin is with a piece of feedback. New feedback is open.
@@ -3034,15 +3055,15 @@ export interface components {
         /** NotificationResource */
         NotificationResource: {
             id: string;
-            category: unknown;
-            title: unknown;
-            message: unknown;
-            project_id: unknown;
-            deployment_id: unknown;
+            category: string | null;
+            title: string | null;
+            message: string | null;
+            project_id: string | null;
+            deployment_id: string | null;
             /** @description The invitation a `workspace` notification is about; open it with GET workspace-invitations/{id}. */
-            invitation_id: unknown;
+            invitation_id: string | null;
             /** @description The team a `workspace` notification is about, while the recipient still belongs to it. */
-            workspace_id: unknown;
+            workspace_id: string | null;
             read_at: string | null;
             created_at: string | null;
         };
@@ -3075,8 +3096,8 @@ export interface components {
                 current_active_containers_count: number;
             };
             runtime_defaults: {
-                memory_mb: unknown;
-                cpu_millis: unknown;
+                memory_mb: number;
+                cpu_millis: number;
                 pids_limit: number;
             };
             runtime_maximums: {
@@ -3109,6 +3130,19 @@ export interface components {
                 [key: string]: number;
             };
             pilot_feedback_count: number;
+        };
+        /** ProjectControlResource */
+        ProjectControlResource: {
+            project_id: string;
+            status: components["schemas"]["ProjectStatus"];
+            runtime_status: components["schemas"]["RuntimeStatus"];
+            command: {
+                id: string;
+                /** @enum {string} */
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode";
+                /** @enum {string} */
+                status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
+            } | null;
         };
         /** ProjectResource */
         ProjectResource: {
@@ -3218,6 +3252,12 @@ export interface components {
             terms_version: "syarat-v1";
             /** @enum {string} */
             acceptable_use_version: "penggunaan-wajar-v1";
+        };
+        /** RegistrationResource */
+        RegistrationResource: {
+            name: string;
+            email: string;
+            verification_required: boolean;
         };
         /** ReportDeploymentEventRequest */
         ReportDeploymentEventRequest: {
@@ -3421,7 +3461,7 @@ export interface components {
         };
         /** UnreadNotificationCountResource */
         UnreadNotificationCountResource: {
-            count: string;
+            count: number;
         };
         /** UnsuspendProjectRequest */
         UnsuspendProjectRequest: {
@@ -3524,6 +3564,10 @@ export interface components {
         ValidateUrlRequest: {
             /** Format: uri */
             repository_url: string;
+        };
+        /** VerificationNotificationResource */
+        VerificationNotificationResource: {
+            request_accepted: boolean;
         };
         /** WorkspaceInvitationDetailsResource */
         WorkspaceInvitationDetailsResource: {
@@ -3716,6 +3760,25 @@ export interface components {
                 "application/json": {
                     /** @description Error overview. */
                     message: string;
+                };
+            };
+        };
+        /** @description GitHub is unavailable or limits Sakala; safe to retry later */
+        GithubUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description `GITHUB_UNAVAILABLE`: GitHub answered with an error, an unreadable body, or not at all. `GITHUB_RATE_LIMITED`: GitHub limits Sakala and there is no stored answer.
+                     * @enum {string}
+                     */
+                    code: "GITHUB_UNAVAILABLE" | "GITHUB_RATE_LIMITED";
+                    /** @description Seconds to wait, also in the `Retry-After` header. Only with `GITHUB_RATE_LIMITED`. */
+                    retry_after?: number;
                 };
             };
         };
@@ -4242,12 +4305,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Pending commands, and the claimed or running ones asked to cancel. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentCommandResource"][];
+                    "application/json": {
+                        data: components["schemas"]["AgentCommandResource"][];
+                        cancel_requested?: string[];
+                    };
                 };
             };
         };
@@ -4455,7 +4522,7 @@ export interface operations {
         };
         responses: {
             /** @description `AgentNodeControlResource` */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4494,7 +4561,7 @@ export interface operations {
         };
         responses: {
             /** @description `AgentNodeControlResource` */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4533,7 +4600,7 @@ export interface operations {
         };
         responses: {
             /** @description `AgentNodeControlResource` */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4559,7 +4626,7 @@ export interface operations {
                 to?: string;
                 /** @description `user`, `agent_node`, `system`, or `github_app`. */
                 actor_type?: "user" | "project" | "deployment" | "workspace" | "limit_profile" | "agent_node" | "agent_command" | "feedback" | "usage_signal" | "system" | "github_app" | "github_installation";
-                /** @description With `actor_type`, for example a user ID. */
+                /** @description With `actor_type`, for example a user ID, or `cli` for `system` changes made with `artisan user:admin`. */
                 actor_id?: string;
                 /** @description An exact action, for example `project.suspend_requested`. */
                 action?: string;
@@ -4755,6 +4822,7 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "projects.deployments.show": {
@@ -4902,12 +4970,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description The deployment is `cancelled`. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string;
+                    "application/json": {
+                        data: components["schemas"]["DeploymentResource"];
+                    };
+                };
+            };
+            /** @description A node still has to stop the deployment. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DeploymentResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -5171,12 +5253,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `UserResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": 202;
+                    "application/json": {
+                        data: components["schemas"]["UserResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -5349,12 +5434,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `FeedbackResource` */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": 201;
+                    "application/json": {
+                        data: components["schemas"]["FeedbackResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -5617,6 +5705,7 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "v1.app.github.repositories.branches": {
@@ -5643,6 +5732,7 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "v1.webhooks.github": {
@@ -6228,12 +6318,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `VerificationNotificationResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": 202;
+                    "application/json": {
+                        data: components["schemas"]["VerificationNotificationResource"];
+                    };
                 };
             };
             422: components["responses"]["ValidationException"];
@@ -6583,12 +6676,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            /** @description `ProjectResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": 202;
+                    "application/json": {
+                        data: components["schemas"]["ProjectResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -6706,12 +6802,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `ProjectControlResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": {
+                        data: components["schemas"]["ProjectControlResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -6742,12 +6841,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `ProjectControlResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": {
+                        data: components["schemas"]["ProjectControlResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -6778,12 +6880,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `ProjectControlResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": {
+                        data: components["schemas"]["ProjectControlResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -6814,12 +6919,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `ProjectControlResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": {
+                        data: components["schemas"]["ProjectControlResource"];
+                    };
                 };
             };
             401: components["responses"]["AuthenticationException"];
@@ -6841,12 +6949,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `RegistrationResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": 202;
+                    "application/json": {
+                        data: components["schemas"]["RegistrationResource"];
+                    };
                 };
             };
             422: components["responses"]["ValidationException"];
@@ -6865,12 +6976,15 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description `VerificationNotificationResource` */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": 202;
+                    "application/json": {
+                        data: components["schemas"]["VerificationNotificationResource"];
+                    };
                 };
             };
             422: components["responses"]["ValidationException"];
