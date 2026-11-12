@@ -112,7 +112,9 @@ pnpm quality         # local quality gate
 - `src/lib/components/ui`: primitive reusable.
 - `src/lib/components/layout`: shell dan navigation.
 - `src/lib/features`: UI dan query/mutation per domain ketika fitur mulai dibuat. State lokal (sidebar/modal) menggunakan file `.svelte.ts` di dalam fiturnya.
-  Laravel API Resource dan Scramble OpenAPI adalah source of truth kontrak HTTP. Jalankan `pnpm api:types` ketika endpoint berubah; jangan menulis ulang seluruh kontrak sebagai interface manual.
+
+
+Laravel API Resource dan Scramble OpenAPI adalah source of truth kontrak HTTP. Jalankan `pnpm api:types` ketika endpoint berubah; jangan menulis ulang seluruh kontrak sebagai interface manual.
 
 Lihat [ARCHITECTURE.md](ARCHITECTURE.md), [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), dan [docs/API_CLIENT.md](docs/API_CLIENT.md).
 
