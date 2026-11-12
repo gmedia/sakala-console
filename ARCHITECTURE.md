@@ -31,7 +31,7 @@ routes       -> page composition dan route layouts
 features     -> UI/query/mutation per product domain
 components   -> reusable UI/layout/feedback primitives
 api          -> HTTP, CSRF, errors, resources, OpenAPI types
-
+realtime     -> Laravel Echo connection and channel subscriptions
 ```
 
 Component tidak boleh memanggil raw `fetch`. Resource wrapper mengelola path dan representation, sementara feature query/mutation mengelola caching dan invalidation.
