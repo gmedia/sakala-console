@@ -48,8 +48,8 @@ const pilotLimitsResponseSchema = z.object({
 }) satisfies z.ZodType<{ data: PilotLimitsContract }>;
 
 /**
- * The limits of one workspace, as parsed. Typed from the schema because the API documents
- * `runtime_defaults.memory_mb` and `cpu_millis` without a type.
+ * The limits of one workspace, as parsed. Typed from the schema, so the workspace and container
+ * fields stay optional like in the contract above.
  */
 export type PilotLimits = z.output<typeof pilotLimitsResponseSchema>['data'];
 

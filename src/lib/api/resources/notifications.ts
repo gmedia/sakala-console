@@ -1,10 +1,7 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
+import type { components } from '../generated/schema';
 
-/**
- * Written from NotificationResource in sakala-api rather than `satisfies` the generated type:
- * Scramble loses the nullable fields and types `count` as a string.
- */
 const notificationSchema = z.object({
 	id: z.string(),
 	category: z.string().nullable(),
@@ -18,7 +15,7 @@ const notificationSchema = z.object({
 	workspace_id: z.string().nullable().default(null),
 	read_at: z.string().nullable(),
 	created_at: z.string().nullable()
-});
+}) satisfies z.ZodType<components['schemas']['NotificationResource']>;
 
 export type Notification = z.infer<typeof notificationSchema>;
 
@@ -55,7 +52,7 @@ export async function listNotifications(
 
 const unreadCountResponseSchema = z.object({
 	data: z.object({ count: z.number() })
-});
+}) satisfies z.ZodType<{ data: components['schemas']['UnreadNotificationCountResource'] }>;
 
 export async function getUnreadNotificationCount(): Promise<number> {
 	const response = await apiRequest<unknown>('api/v1/app/notifications/unread-count');

@@ -1110,20 +1110,35 @@
         "/agent/v1/commands": {
             "get": {
                 "operationId": "agent.pollCommands",
+                "description": "`cancel_requested` is absent while no command of this node has to stop\n(docs/AGENT_API.md), so an agent that predates cancellation sees no change.",
                 "summary": "Poll eligible pending commands for the authenticated agent node",
                 "tags": [
                     "Agent"
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Pending commands, and the claimed or running ones asked to cancel.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/AgentCommandResource"
-                                    }
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgentCommandResource"
+                                            }
+                                        },
+                                        "cancel_requested": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -1498,7 +1513,7 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "202": {
                         "description": "`AgentNodeControlResource`",
                         "content": {
                             "application/json": {
@@ -1570,7 +1585,7 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "202": {
                         "description": "`AgentNodeControlResource`",
                         "content": {
                             "application/json": {
@@ -1642,7 +1657,7 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "202": {
                         "description": "`AgentNodeControlResource`",
                         "content": {
                             "application/json": {
@@ -1755,7 +1770,7 @@
                     {
                         "name": "actor_id",
                         "in": "query",
-                        "description": "With `actor_type`, for example a user ID.",
+                        "description": "With `actor_type`, for example a user ID, or `cli` for `system` changes made with `artisan user:admin`.",
                         "schema": {
                             "type": "string",
                             "maxLength": 64
@@ -2280,6 +2295,9 @@
                             }
                         }
                     },
+                    "503": {
+                        "$ref": "#/components/responses/GithubUnavailable"
+                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
@@ -2710,11 +2728,19 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "The deployment is `cancelled`.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "string"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DeploymentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -2727,6 +2753,24 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "202": {
+                        "description": "A node still has to stop the deployment.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DeploymentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -3456,13 +3500,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`UserResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "integer",
-                                    "const": 202
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -3782,13 +3833,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "201": {
+                        "description": "`FeedbackResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "integer",
-                                    "const": 201
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FeedbackResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -4437,6 +4495,9 @@
                             }
                         }
                     },
+                    "503": {
+                        "$ref": "#/components/responses/GithubUnavailable"
+                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     },
@@ -4485,6 +4546,9 @@
                                 }
                             }
                         }
+                    },
+                    "503": {
+                        "$ref": "#/components/responses/GithubUnavailable"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -5608,13 +5672,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`VerificationNotificationResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "integer",
-                                    "const": 202
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/VerificationNotificationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6310,13 +6381,20 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`ProjectResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "integer",
-                                    "const": 202
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6639,12 +6717,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`ProjectControlResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectControlResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6703,12 +6789,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`ProjectControlResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectControlResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6767,12 +6861,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`ProjectControlResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectControlResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6831,12 +6933,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`ProjectControlResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectControlResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6874,13 +6984,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`RegistrationResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "integer",
-                                    "const": 202
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/RegistrationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -6908,13 +7025,20 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "202": {
+                        "description": "`VerificationNotificationResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "integer",
-                                    "const": 202
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/VerificationNotificationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
                                 }
                             }
                         }
@@ -9171,11 +9295,36 @@
                                 "id": {
                                     "type": "string"
                                 },
-                                "category": {},
-                                "title": {},
-                                "message": {},
-                                "project_id": {},
-                                "deployment_id": {},
+                                "category": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "title": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "message": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "project_id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "deployment_id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
                                 "read_at": {
                                     "type": [
                                         "string",
@@ -9447,10 +9596,7 @@
                                     "additionalProperties": {}
                                 },
                                 "occurred_at": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ]
+                                    "type": "string"
                                 }
                             },
                             "required": [
@@ -10498,7 +10644,10 @@
                         "type": "string"
                     },
                     "avatar_url": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "role": {
                         "type": "string",
@@ -10619,7 +10768,10 @@
                                             "type": "string"
                                         },
                                         "avatar_url": {
-                                            "type": "string"
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -11415,10 +11567,10 @@
                     },
                     "metadata": {
                         "type": [
-                            "array",
+                            "object",
                             "null"
                         ],
-                        "items": {}
+                        "additionalProperties": {}
                     },
                     "registered_at": {
                         "type": [
@@ -11770,7 +11922,7 @@
                             "object",
                             "null"
                         ],
-                        "description": "IDs, changed values, and the admin's `reason`. Never secret values or tokens.",
+                        "description": "IDs, changed values, and the admin's `reason`. Never secret values or tokens.\nAn object, `{}` when empty, or null.",
                         "additionalProperties": {}
                     },
                     "ip_address": {
@@ -12189,10 +12341,7 @@
                         "additionalProperties": {}
                     },
                     "occurred_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -12234,10 +12383,7 @@
                         "type": "string"
                     },
                     "recorded_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -12669,7 +12815,7 @@
                 "type": "object",
                 "properties": {
                     "id": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "key": {
                         "type": "string"
@@ -12994,6 +13140,65 @@
                     "performance"
                 ],
                 "title": "FeedbackCategory"
+            },
+            "FeedbackResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "general",
+                            "bug",
+                            "feature_request",
+                            "experience",
+                            "performance"
+                        ]
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "project_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "deployment_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "consent": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "category",
+                    "message",
+                    "project_id",
+                    "deployment_id",
+                    "consent",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "FeedbackResource"
             },
             "FeedbackStatus": {
                 "type": "string",
@@ -13492,15 +13697,48 @@
                     "id": {
                         "type": "string"
                     },
-                    "category": {},
-                    "title": {},
-                    "message": {},
-                    "project_id": {},
-                    "deployment_id": {},
+                    "category": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "project_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "deployment_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "invitation_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "description": "The invitation a `workspace` notification is about; open it with GET workspace-invitations/{id}."
                     },
                     "workspace_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "description": "The team a `workspace` notification is about, while the recipient still belongs to it."
                     },
                     "read_at": {
@@ -13620,8 +13858,12 @@
                     "runtime_defaults": {
                         "type": "object",
                         "properties": {
-                            "memory_mb": {},
-                            "cpu_millis": {},
+                            "memory_mb": {
+                                "type": "integer"
+                            },
+                            "cpu_millis": {
+                                "type": "integer"
+                            },
                             "pids_limit": {
                                 "type": "integer"
                             }
@@ -13751,6 +13993,72 @@
                     "pilot_feedback_count"
                 ],
                 "title": "PilotValidationMetricsResource"
+            },
+            "ProjectControlResource": {
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/ProjectStatus"
+                    },
+                    "runtime_status": {
+                        "$ref": "#/components/schemas/RuntimeStatus"
+                    },
+                    "command": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "InspectProject",
+                                    "DeployProject",
+                                    "RestartProject",
+                                    "StopProject",
+                                    "SleepProject",
+                                    "WakeProject",
+                                    "HealthCheck",
+                                    "RefreshRoute",
+                                    "ReconcileWorkload",
+                                    "CleanupRuntime",
+                                    "DrainNode",
+                                    "ResumeNode"
+                                ]
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "Pending",
+                                    "Claimed",
+                                    "Running",
+                                    "Succeeded",
+                                    "Failed",
+                                    "Cancelled",
+                                    "Expired"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "type",
+                            "status"
+                        ]
+                    }
+                },
+                "required": [
+                    "project_id",
+                    "status",
+                    "runtime_status",
+                    "command"
+                ],
+                "title": "ProjectControlResource"
             },
             "ProjectResource": {
                 "type": "object",
@@ -14210,6 +14518,26 @@
                     "acceptable_use_version"
                 ],
                 "title": "RegisterRequest"
+            },
+            "RegistrationResource": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "verification_required": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name",
+                    "email",
+                    "verification_required"
+                ],
+                "title": "RegistrationResource"
             },
             "ReportDeploymentEventRequest": {
                 "type": "object",
@@ -14866,7 +15194,7 @@
                 "type": "object",
                 "properties": {
                     "count": {
-                        "type": "string"
+                        "type": "integer"
                     }
                 },
                 "required": [
@@ -15232,6 +15560,18 @@
                     "repository_url"
                 ],
                 "title": "ValidateUrlRequest"
+            },
+            "VerificationNotificationResource": {
+                "type": "object",
+                "properties": {
+                    "request_accepted": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "request_accepted"
+                ],
+                "title": "VerificationNotificationResource"
             },
             "WorkspaceInvitationDetailsResource": {
                 "type": "object",
@@ -15747,6 +16087,38 @@
                             },
                             "required": [
                                 "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "GithubUnavailable": {
+                "description": "GitHub is unavailable or limits Sakala; safe to retry later",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "`GITHUB_UNAVAILABLE`: GitHub answered with an error, an unreadable body, or not at all. `GITHUB_RATE_LIMITED`: GitHub limits Sakala and there is no stored answer.",
+                                    "enum": [
+                                        "GITHUB_UNAVAILABLE",
+                                        "GITHUB_RATE_LIMITED"
+                                    ]
+                                },
+                                "retry_after": {
+                                    "type": "integer",
+                                    "description": "Seconds to wait, also in the `Retry-After` header. Only with `GITHUB_RATE_LIMITED`."
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code"
                             ]
                         }
                     }
