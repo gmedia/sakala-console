@@ -433,7 +433,7 @@ Gunakan aturan ini saat bingung harus menaruh kode di mana:
 | Query key                            | `src/lib/api/query-keys.ts`                                |
 | Generated OpenAPI type               | `src/lib/api/generated/schema.d.ts`                        |
 | State sidebar/modal/tab              | File `.svelte.ts` di dalam `src/lib/features/`             |
-| Realtime (WebSocket/Reverb)          | `src/lib/realtime` (boundary untuk Laravel Echo)           |     |
+| Realtime (WebSocket/Reverb)          | `src/lib/realtime` (boundary untuk Laravel Echo)           |
 
 ## Anti-Patterns
 
