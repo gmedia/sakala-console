@@ -240,11 +240,14 @@
 	consequence="Sakala membuat catatan node dan token untuknya. Token hanya tampil sekali setelah ini; simpan langsung di konfigurasi sakala-agent."
 	confirmLabel="Buat dan tampilkan token"
 	error={formError}
-	fieldsInvalid={nameInvalid}
+	fieldsProblem={nameInvalid ? 'Isi nama node dulu.' : null}
 	onCancel={() => (formOpen = false)}
 	onConfirm={submit}
 >
-	{#snippet fields()}
+	{#snippet fields({ showErrors })}
+		{@const nameError =
+			getFieldError(formError, 'name') ??
+			(showErrors && nameInvalid ? 'Nama node belum diisi. Contoh: agent-jkt-02.' : null)}
 		<div class="space-y-1.5">
 			<label for="agent-name" class="block text-sm font-medium">Nama node</label>
 			<input
@@ -254,16 +257,13 @@
 				maxlength="120"
 				placeholder="agent-jkt-02"
 				aria-describedby="agent-name-hint"
-				aria-invalid={getFieldError(formError, 'name') ? 'true' : undefined}
+				aria-invalid={nameError ? 'true' : undefined}
 			/>
 			<p
 				id="agent-name-hint"
-				class="text-xs {getFieldError(formError, 'name')
-					? 'text-error-base'
-					: 'text-foreground/70'}"
+				class="text-xs {nameError ? 'text-error-base' : 'text-foreground/70'}"
 			>
-				{getFieldError(formError, 'name') ??
-					'Nama untuk mengenali node ini, biasanya lokasi atau region server.'}
+				{nameError ?? 'Nama untuk mengenali node ini, biasanya lokasi atau region server.'}
 			</p>
 		</div>
 		<div class="space-y-1.5">

@@ -29,10 +29,15 @@
 	}: Props = $props();
 
 	let saved = $state(false);
+	let triedClosing = $state(false);
 	let copyButton = $state<HTMLElement | null>(null);
+	let savedCheckbox = $state<HTMLInputElement | null>(null);
 
 	$effect.pre(() => {
-		if (open) saved = false;
+		if (open) {
+			saved = false;
+			triedClosing = false;
+		}
 	});
 
 	const envBlock = $derived(
@@ -43,8 +48,13 @@
 
 	// Closing is only possible once the admin said the token is saved: the API keeps a hash, so
 	// a token closed away unsaved can only be replaced by rotating again.
+	// The button stays enabled so it can say why it refuses, instead of sitting there greyed out.
 	function close() {
-		if (!saved) return;
+		if (!saved) {
+			triedClosing = true;
+			savedCheckbox?.focus();
+			return;
+		}
 		open = false;
 		onDone();
 	}
@@ -128,11 +138,35 @@
 			</div>
 
 			<label class="mt-5 flex cursor-pointer items-start gap-3 text-sm font-medium text-foreground">
-				<input type="checkbox" class="mt-0.5 size-5" bind:checked={saved} />
+				<input
+					type="checkbox"
+					class="mt-0.5 size-5"
+					bind:this={savedCheckbox}
+					bind:checked={saved}
+					aria-invalid={triedClosing && !saved ? 'true' : undefined}
+					aria-describedby="agent-token-close-hint"
+				/>
 				Saya sudah menyimpan token ini
 			</label>
+			<p
+				id="agent-token-close-hint"
+				class="mt-2 text-xs {triedClosing && !saved ? 'text-error-base' : 'text-foreground/70'}"
+				role={triedClosing && !saved ? 'alert' : undefined}
+			>
+				{#if saved}
+					Token tidak bisa ditampilkan lagi setelah dialog ini ditutup.
+				{:else}
+					Centang dulu kotak di atas. Setelah dialog ditutup, token ini tidak bisa ditampilkan lagi;
+					kalau hilang, kamu harus membuat token baru.
+				{/if}
+			</p>
 
-			<Button class="mt-4 w-full" size="lg" disabled={!saved} onclick={close}>Tutup</Button>
+			<Button
+				class="mt-4 w-full"
+				size="lg"
+				aria-describedby="agent-token-close-hint"
+				onclick={close}>Tutup</Button
+			>
 		</DialogPrimitive.Content>
 	</DialogPrimitive.Portal>
 </DialogPrimitive.Root>

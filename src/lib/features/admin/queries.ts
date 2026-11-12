@@ -93,10 +93,11 @@ export function createAdminWorkspacesQuery(params: () => QueryParams) {
 	);
 }
 
-export function createAdminWorkspaceQuery(id: () => string) {
+export function createAdminWorkspaceQuery(id: () => string, enabled: () => boolean = () => true) {
 	return createQuery(() => ({
 		queryKey: queryKeys.admin.workspace(id()),
 		queryFn: () => getAdminWorkspace(id()),
+		enabled: enabled(),
 		retry: retryAdmin
 	}));
 }

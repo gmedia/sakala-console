@@ -35,13 +35,17 @@ describe('TokenOnceDialog', () => {
 		await render(TokenOnceDialog, props({ onDone }));
 		const close = page.getByRole('button', { name: 'Tutup' });
 
-		await expect.element(close).toBeDisabled();
+		await expect.element(close).toHaveAccessibleDescription(/Centang dulu kotak di atas/);
+		await close.click();
 		await userEvent.keyboard('{Escape}');
 		await expect.element(page.getByRole('dialog')).toBeVisible();
 		expect(onDone).not.toHaveBeenCalled();
+		const checkbox = page.getByLabelText('Saya sudah menyimpan token ini');
+		await expect.element(checkbox).toHaveFocus();
+		await expect.element(checkbox).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(page.getByRole('alert')).toHaveTextContent('Centang dulu kotak di atas.');
 
-		await page.getByLabelText('Saya sudah menyimpan token ini').click();
-		await expect.element(close).toBeEnabled();
+		await checkbox.click();
 		await close.click();
 
 		await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();

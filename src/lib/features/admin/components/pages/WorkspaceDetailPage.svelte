@@ -6,10 +6,12 @@
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
-	import ReasonDialog from '../ReasonDialog.svelte';
+	import LimitProfileDialog from '../LimitProfileDialog.svelte';
 	import QuotaCard from '../QuotaCard.svelte';
 	import { createAdminWorkspaceQuery, createLimitProfileOptionsQuery } from '../../queries';
 	import { createAssignLimitProfileMutation } from '../../mutations';
+	import { useListUrl } from '../../list-url.svelte';
+	import { ASSIGN_PROFILE_PARAM } from '../../return-to';
 	import {
 		MEMBER_ROLE_LABELS,
 		WORKSPACE_TYPE_LABELS,
@@ -27,22 +29,31 @@
 	const mutation = createAssignLimitProfileMutation();
 	let dialogOpen = $state(false);
 	let dialogError = $state<unknown>(null);
-	let profileId = $state('');
+	let initialProfileId = $state<string | null>(null);
 	const profilesQuery = createLimitProfileOptionsQuery(() => dialogOpen);
 
-	function openDialog() {
+	function openDialog(preselect: string | null = null) {
 		dialogError = null;
-		profileId = workspace?.limit_profile?.id ?? '';
+		initialProfileId = preselect;
 		dialogOpen = true;
 	}
 
-	async function save(reason: string) {
+	// Coming back from "Profil batas" with a new profile: open the dialog with it chosen.
+	const url = useListUrl();
+	$effect(() => {
+		const created = url.search.get(ASSIGN_PROFILE_PARAM);
+		if (!created || !workspace) return;
+		openDialog(created);
+		url.update({ [ASSIGN_PROFILE_PARAM]: null }, { replace: true });
+	});
+
+	async function save(profileId: string | null, reason: string) {
 		if (!workspace) return;
 		dialogError = null;
 		try {
 			await mutation.mutateAsync({
 				target: { kind: 'workspace', id: workspace.id },
-				limit_profile_id: profileId || null,
+				limit_profile_id: profileId,
 				reason
 			});
 			dialogOpen = false;
@@ -79,7 +90,7 @@
 		</div>
 	{/if}
 	{#snippet actions()}
-		{#if workspace}<Button onclick={openDialog}>Ubah profil batas</Button>{/if}
+		{#if workspace}<Button onclick={() => openDialog()}>Ubah profil batas</Button>{/if}
 	{/snippet}
 </AdminPageHeader>
 
@@ -162,33 +173,24 @@
 		</AdminTable>
 	</section>
 
-	<ReasonDialog
+	<LimitProfileDialog
 		open={dialogOpen}
 		id="workspace-profile"
-		title="Ubah profil batas"
 		subject={`Workspace ${workspace.name}`}
 		consequence="Batas baru langsung berlaku untuk semua anggota. Yang sudah terlewati tidak dibatalkan; batas yang lebih rendah hanya menahan proyek dan deployment baru."
-		confirmLabel="Simpan profil"
+		{defaultLabel}
+		defaultLimits={workspace.limit_profile ? null : detail.quota.limits}
+		currentProfileId={workspace.limit_profile?.id ?? null}
+		{initialProfileId}
+		profiles={profilesQuery.data?.data}
+		profilesLoading={!profilesQuery.isError &&
+			(profilesQuery.isPending ||
+				(profilesQuery.isFetching && profilesQuery.data?.data.length === 0))}
+		profilesError={profilesQuery.isError}
+		onRetryProfiles={() => profilesQuery.refetch()}
+		returnTo={{ kind: 'workspaces', id: workspace.id }}
 		error={dialogError}
-		fieldsInvalid={profilesQuery.isPending}
 		onCancel={() => (dialogOpen = false)}
 		onConfirm={save}
-	>
-		{#snippet fields()}
-			<div class="space-y-1.5">
-				<label for="workspace-profile-select" class="block text-sm font-medium">Profil batas</label>
-				<select
-					id="workspace-profile-select"
-					class="control-input cursor-pointer"
-					bind:value={profileId}
-					disabled={profilesQuery.isPending}
-				>
-					<option value="">{defaultLabel}</option>
-					{#each profilesQuery.data?.data ?? [] as profile (profile.id)}
-						<option value={profile.id}>{profile.name}</option>
-					{/each}
-				</select>
-			</div>
-		{/snippet}
-	</ReasonDialog>
+	/>
 {/if}

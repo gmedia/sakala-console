@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { ADMIN_ROUTES, ids, mockAdminApi } from './fixtures/admin';
+import { ADMIN_ROUTES, adminFixture, ids, mockAdminApi } from './fixtures/admin';
 import { mockEveryRoute, signedInUser } from './fixtures/all-routes';
 import { auditDom } from './fixtures/dom-audit';
 
@@ -143,6 +143,24 @@ test.describe('admin journeys', () => {
 		expect(patch?.body).toEqual({ role: 'admin', reason: 'Asisten pilot' });
 	});
 
+	test('a team limit typed on the keyboard is sent as an integer', async ({ page }) => {
+		const calls = await mockAdminApi(page);
+		await page.goto(`/admin/users/${ids.user}`);
+
+		await page.getByRole('button', { name: 'Ubah batas tim' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Ubah batas tim' });
+		await dialog.getByLabel('Pakai batas default dari konfigurasi').uncheck();
+		await dialog.getByLabel('Jumlah tim maksimal').pressSequentially('3');
+		await dialog.getByLabel('Alasan').pressSequentially('Koordinator tiga kelas');
+		await dialog.getByRole('button', { name: 'Simpan batas' }).click();
+
+		await expect(dialog).toBeHidden();
+		await expect(page.getByText('Batas tim disimpan.')).toBeVisible();
+		const patch = calls.find((call) => call.method === 'PATCH');
+		expect(patch?.path).toBe(`users/${ids.user}/team-limit`);
+		expect(patch?.body).toEqual({ max_owned_teams: 3, reason: 'Koordinator tiga kelas' });
+	});
+
 	test('suspending a project names it, explains the consequence, and sends one request', async ({
 		page
 	}) => {
@@ -156,7 +174,10 @@ test.describe('admin journeys', () => {
 		await expect(dialog.getByLabel('Alasan')).toBeFocused();
 
 		const confirm = dialog.getByRole('button', { name: 'Tangguhkan' });
-		await expect(confirm).toBeDisabled();
+		await confirm.click();
+		await expect(dialog.getByRole('alert')).toHaveText('Belum bisa dilanjutkan. Isi alasan dulu.');
+		await expect(dialog.getByLabel('Alasan')).toBeFocused();
+		expect(calls.filter((call) => call.method === 'POST')).toHaveLength(0);
 		await dialog.getByLabel('Alasan').fill('Konten phishing');
 		await confirm.dblclick();
 
@@ -223,6 +244,127 @@ test.describe('admin journeys', () => {
 		await expect(page.getByLabel('Profil batas')).toHaveValue(ids.limitProfile);
 	});
 
+	test('a new limit profile starts from the team defaults, so a name and a reason are enough', async ({
+		page
+	}) => {
+		const calls = await mockAdminApi(page);
+		await page.goto('/admin/limit-profiles');
+
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
+		await expect(form).toContainText('batas default tim bawaan Sakala');
+		await expect(form.getByLabel('Build per jam (opsional)')).toHaveValue('');
+		await form.getByLabel('Nama (wajib)').fill('Magang');
+		await form.getByLabel('Alasan').fill('Pilot magang semester ini');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect(form).toBeHidden();
+		await expect(page.getByText('Profil Magang dibuat.')).toBeVisible();
+		expect(calls.find((call) => call.method === 'POST')?.body).toEqual({
+			name: 'Magang',
+			max_projects: 2,
+			max_active_containers: 2,
+			max_active_deployments: 1,
+			max_memory_mb: 512,
+			max_cpu_millis: 1000,
+			max_builds_per_hour: null,
+			reason: 'Pilot magang semester ini'
+		});
+	});
+
+	test('with no limit profiles yet, an admin creates one and assigns it to a team workspace with a reason', async ({
+		page
+	}) => {
+		// Production on 2026-11-12: no profiles at all, and the workspace on the team default.
+		const workspaceDetail = structuredClone(adminFixture('workspace-detail'));
+		const detailData = (
+			workspaceDetail.body as {
+				data: { workspace: { limit_profile: unknown }; quota: { limit_profile: unknown } };
+			}
+		).data;
+		detailData.workspace.limit_profile = null;
+		detailData.quota.limit_profile = null;
+		const created = adminFixture('limit-profile-create');
+		const createdProfile = (created.body as { data: { id: string } }).data;
+		const listOf = (profiles: unknown[]) => {
+			const list = structuredClone(adminFixture('limit-profiles'));
+			const body = list.body as { data: unknown[]; meta: { total: number } };
+			body.data = profiles;
+			body.meta.total = profiles.length;
+			return list;
+		};
+		let profileCreated = false;
+		const calls = await mockAdminApi(page, {
+			override: ({ method, path }) => {
+				if (method === 'GET' && path === `workspaces/${ids.workspace}`) return workspaceDetail;
+				if (path !== 'limit-profiles') return undefined;
+				if (method === 'POST') {
+					profileCreated = true;
+					return created;
+				}
+				return listOf(profileCreated ? [createdProfile] : []);
+			}
+		});
+
+		await page.goto(`/admin/workspaces/${ids.workspace}`);
+		await page.getByRole('button', { name: 'Ubah profil batas' }).click();
+		const empty = page.getByRole('dialog', { name: 'Ubah profil batas' });
+		await expect(empty.getByRole('heading', { name: 'Belum ada profil batas' })).toBeVisible();
+		await expect(empty).toContainText('Sekarang memakai Default tim.');
+		await expect(empty.getByRole('button', { name: 'Simpan profil' })).toHaveCount(0);
+		await empty.getByRole('link', { name: 'Buat profil batas' }).click();
+
+		await expect(page).toHaveURL(/\/admin\/limit-profiles\?create=1&return_to=/);
+		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
+		await expect(form).toContainText('kamu kembali ke workspace tadi');
+		// Prefilled with the team default this workspace runs on (5, 3, 2, 512 MB, 1,000 m).
+		await expect(form).toContainText('batas Default tim yang berlaku di workspace tadi');
+		await expect(form.getByLabel('Proyek (wajib)', { exact: true })).toHaveValue('5');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+		await expect(form.getByRole('alert')).toHaveText(
+			'Belum bisa dilanjutkan. Periksa isian yang ditandai: Nama. Isi alasan dulu.'
+		);
+		await expect(form.getByLabel('Nama (wajib)')).toBeFocused();
+
+		await form.getByLabel('Nama (wajib)').fill('Magang');
+		await form.getByLabel('Proyek (wajib)', { exact: true }).fill('3');
+		await form.getByLabel('Container berjalan (wajib)').fill('2');
+		await form.getByLabel('Deployment berjalan (wajib)').fill('1');
+		await form.getByLabel('Memori per proyek (MB) (wajib)').fill('512');
+		await form.getByLabel('CPU per proyek (millicore) (wajib)').fill('500');
+		await form.getByLabel('Alasan').fill('Pilot magang semester ini');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect(page).toHaveURL(new RegExp(`/admin/workspaces/${ids.workspace}$`));
+		const assign = page.getByRole('dialog', { name: 'Ubah profil batas' });
+		const select = assign.getByLabel('Profil batas');
+		await expect(select).toHaveValue(createdProfile.id);
+		await expect(select.locator('option:checked')).toHaveText(
+			'Magang (3 proyek, 2 container berjalan, 1 deployment berjalan)'
+		);
+		await assign.getByLabel('Alasan').fill('Workspace magang memakai paket Magang');
+		await assign.getByRole('button', { name: 'Simpan profil' }).click();
+
+		await expect(assign).toBeHidden();
+		await expect(page.getByText('Profil batas disimpan.')).toBeVisible();
+		expect(calls.find((call) => call.method === 'POST')?.body).toEqual({
+			name: 'Magang',
+			max_projects: 3,
+			max_active_containers: 2,
+			max_active_deployments: 1,
+			max_memory_mb: 512,
+			max_cpu_millis: 500,
+			max_builds_per_hour: null,
+			reason: 'Pilot magang semester ini'
+		});
+		const put = calls.find((call) => call.method === 'PUT');
+		expect(put?.path).toBe(`workspaces/${ids.workspace}/limit-profile`);
+		expect(put?.body).toEqual({
+			limit_profile_id: createdProfile.id,
+			reason: 'Workspace magang memakai paket Magang'
+		});
+	});
+
 	test('a new node shows its token once and cannot be closed before it is saved', async ({
 		page
 	}) => {
@@ -241,7 +383,9 @@ test.describe('admin journeys', () => {
 		);
 		await page.keyboard.press('Escape');
 		await expect(tokenDialog).toBeVisible();
-		await expect(tokenDialog.getByRole('button', { name: 'Tutup' })).toBeDisabled();
+		await tokenDialog.getByRole('button', { name: 'Tutup' }).click();
+		await expect(tokenDialog).toBeVisible();
+		await expect(tokenDialog.getByRole('alert')).toContainText('Centang dulu kotak di atas.');
 
 		await tokenDialog.getByLabel('Saya sudah menyimpan token ini').check();
 		await tokenDialog.getByRole('button', { name: 'Tutup' }).click();
