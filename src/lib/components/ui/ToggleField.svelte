@@ -11,7 +11,8 @@
 
 	let { title, description, checked, disabled = false, onToggle }: Props = $props();
 
-	const descriptionId = $derived(`${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-description`);
+	const uid = $props.id();
+	const descriptionId = `${uid}-description`;
 </script>
 
 <div class="flex items-center justify-between gap-4 py-3">
