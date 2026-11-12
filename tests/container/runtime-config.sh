@@ -83,6 +83,23 @@ expect_contains "no env: CSP names the built API" "connect-src 'self' https://ap
 expect_contains "no env: index.html loads the runtime config first" '<script src="/runtime-config.js"></script>' "$(curl -fsS "http://127.0.0.1:$port/projects")"
 expect_contains "no env: runtime config is revalidated on each load" 'Cache-Control: no-cache' "$(curl -fsS -D - -o /dev/null "http://127.0.0.1:$port/runtime-config.js")"
 
+# 1b. Build files never fall back to the SPA shell: a tab left open across a deploy asks for old
+# chunks, and index.html served as JavaScript is what made it reload unpredictably.
+headers() { curl -sS -D - -o /dev/null "http://127.0.0.1:$port$1" | tr -d '\r'; }
+missing=$(headers /_app/immutable/missing.js)
+expect_contains "build files: a missing chunk is a 404" 'HTTP/1.1 404' "$missing"
+expect_absent "build files: a missing chunk is not served as HTML" 'Content-Type: text/html' "$missing"
+expect_contains "build files: a missing chunk keeps the CSP" "Content-Security-Policy: default-src 'self'" "$missing"
+expect_contains "build files: a missing file elsewhere under /_app is a 404" 'HTTP/1.1 404' "$(headers /_app/missing.json)"
+chunk=$(curl -fsS "http://127.0.0.1:$port/projects" | grep -o '/_app/immutable/[^"]*\.js' | head -n 1)
+existing=$(headers "$chunk")
+expect_contains "build files: an existing chunk is served" 'HTTP/1.1 200' "$existing"
+expect_contains "build files: an existing chunk is JavaScript" 'Content-Type: text/javascript' "$existing"
+expect_contains "build files: the version file is served" 'HTTP/1.1 200' "$(headers /_app/version.json)"
+shell=$(headers /projects)
+expect_contains "build files: a deep link still gets the SPA shell" 'Content-Type: text/html' "$shell"
+expect_contains "build files: the SPA shell is revalidated on each load" 'Cache-Control: no-cache' "$shell"
+
 # 2. Another installation.
 selfhost=(
     -e PUBLIC_API_URL=https://api.selfhost.example

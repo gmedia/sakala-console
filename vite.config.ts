@@ -19,7 +19,10 @@ export default defineConfig({
 				fallback: 'index.html',
 				precompress: false,
 				strict: true
-			})
+			}),
+			// An open tab checks /_app/version.json this often, so a deploy is noticed before the old
+			// build asks for chunks that are gone (src/lib/features/app-version/use-app-version.svelte.ts).
+			version: { pollInterval: 120_000 }
 		})
 	],
 	test: {

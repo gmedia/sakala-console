@@ -8,6 +8,7 @@
 		setSessionExpiredHandler,
 		setWorkspaceAccessHandler
 	} from '$lib/api/query-client';
+	import { useAppVersion } from '$lib/features/app-version/use-app-version.svelte';
 	import { handleSessionExpired } from '$lib/features/auth/session-expiry';
 	import { handleWorkspaceAccessLost } from '$lib/features/workspaces/access-lost-handler';
 
@@ -15,6 +16,7 @@
 
 	setSessionExpiredHandler(handleSessionExpired);
 	setWorkspaceAccessHandler((workspaceId) => void handleWorkspaceAccessLost(workspaceId));
+	useAppVersion();
 </script>
 
 <svelte:head>
