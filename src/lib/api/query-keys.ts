@@ -2,6 +2,7 @@ import type { GetInstallationRepositoriesParams } from './resources/github';
 import type { NotificationListParams } from './resources/notifications';
 import type { ProjectsQueryParams } from './resources/projects';
 import type { QueryParams } from './resources/admin/common';
+import type { QueryKey } from '@tanstack/svelte-query';
 
 export const queryKeys = {
 	auth: {
@@ -82,3 +83,23 @@ export const queryKeys = {
 	domainPreview: (name: string) => ['domain-preview', name] as const,
 	pilotLimits: ['pilot-limits'] as const
 };
+
+/**
+ * The workspace a read belongs to, or `null` for a read that spans workspaces or has none. Leaving
+ * a team, deleting it, or losing access to it drops exactly these reads, so nothing asks the API
+ * about that workspace again.
+ */
+export function workspaceIdOfQueryKey(key: QueryKey): string | null {
+	const [root, kind, scope] = key;
+	if (root === 'workspaces' && (kind === 'members' || kind === 'invitations')) {
+		return typeof scope === 'string' && scope ? scope : null;
+	}
+	if (root === 'pilot-limits') {
+		return typeof kind === 'string' && kind !== 'personal' ? kind : null;
+	}
+	if (root === 'projects' && kind === 'list' && scope && typeof scope === 'object') {
+		const workspaceId = (scope as { workspace_id?: unknown }).workspace_id;
+		return typeof workspaceId === 'string' && workspaceId ? workspaceId : null;
+	}
+	return null;
+}

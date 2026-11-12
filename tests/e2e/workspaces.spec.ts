@@ -8,7 +8,8 @@ import {
 	PROJECT_ID,
 	TEAM,
 	captured,
-	mockWorkspaceApi
+	mockWorkspaceApi,
+	watchWorkspaceRequests
 } from './fixtures/workspaces';
 
 const switcher = (page: Page) => page.getByTestId('workspace-switcher').first();
@@ -366,5 +367,92 @@ test.describe('team workspaces', () => {
 
 		await expect.poll(() => calls.createProject.length).toBe(1);
 		expect(calls.createProject[0]).not.toHaveProperty('workspace_id');
+	});
+
+	test('leaving a team never asks about it again and lands in the personal workspace', async ({
+		page
+	}) => {
+		const requests = watchWorkspaceRequests(page);
+		await mockWorkspaceApi(page, { persona: 'viewer' });
+		await page.goto('/projects');
+		await chooseWorkspace(page, TEAM.name);
+		await page.goto(teamPage);
+		await expect(page.getByTestId('member-row')).toHaveCount(3);
+
+		await page.getByRole('button', { name: 'Keluar dari workspace' }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Keluar', exact: true }).click();
+
+		await expect(page).toHaveURL(/\/projects$/);
+		await expect(page.getByText(`Kamu sudah keluar dari ${TEAM.name}.`)).toBeVisible();
+		await expect(switcher(page)).toContainText('Pribadi');
+		await expect(page.getByRole('heading', { name: 'Tugas Pribadi' })).toBeVisible();
+		await page.waitForLoadState('networkidle');
+		expect(requests.after(`/workspaces/${TEAM.id}/leave`, TEAM.id)).toEqual([]);
+
+		// The remembered choice moved too: a reload stays in the personal workspace.
+		await page.reload();
+		await expect(switcher(page)).toContainText('Pribadi');
+		await page.waitForLoadState('networkidle');
+		expect(requests.after(`/workspaces/${TEAM.id}/leave`, TEAM.id)).toEqual([]);
+	});
+
+	test('deleting a team never asks about it again and lands in the personal workspace', async ({
+		page
+	}) => {
+		const requests = watchWorkspaceRequests(page);
+		await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto('/projects');
+		await switcher(page).click();
+		await page.getByRole('menuitem', { name: 'Buat workspace tim' }).click();
+		await page.getByRole('dialog').getByLabel('Nama workspace').fill('Tim Sementara');
+		await page.getByRole('dialog').getByRole('button', { name: 'Buat workspace' }).click();
+		await expect(page).toHaveURL(/\/workspaces\/01a1cb4a-aaaa-/);
+		const createdId = new URL(page.url()).pathname.split('/').at(-1)!;
+		await expect(switcher(page)).toContainText('Tim Sementara');
+
+		const remove = page.getByRole('button', { name: 'Hapus workspace' });
+		await expect(remove).toBeEnabled();
+		await remove.click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Hapus workspace' }).click();
+
+		await expect(page).toHaveURL(/\/projects$/);
+		await expect(page.getByText('Workspace Tim Sementara dihapus.')).toBeVisible();
+		await expect(switcher(page)).toContainText('Pribadi');
+		await page.waitForLoadState('networkidle');
+		expect(requests.after(`DELETE /api/v1/app/workspaces/${createdId}`, createdId)).toEqual([]);
+	});
+
+	test('someone removing you from the team you are looking at moves you to your personal workspace', async ({
+		page
+	}) => {
+		const requests = watchWorkspaceRequests(page);
+		const { workspaces } = await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto('/projects');
+		await chooseWorkspace(page, TEAM.name);
+		await page.goto(teamPage);
+		await expect(page.getByTestId('member-row')).toHaveCount(3);
+
+		// Another owner removes this user. The open page finds out on its next read.
+		workspaces.splice(
+			workspaces.findIndex((item) => item.id === TEAM.id),
+			1
+		);
+		await page.getByRole('button', { name: `Ubah peran ${viewerMember.user.name}` }).click();
+		const dialog = page.getByRole('dialog');
+		await dialog.getByRole('radio', { name: /Anggota/ }).check();
+		await dialog.getByRole('button', { name: 'Simpan peran' }).click();
+
+		await expect(page).toHaveURL(/\/projects$/);
+		await expect(
+			page.getByText(`Kamu bukan anggota ${TEAM.name} lagi. Sekarang kamu di workspace pribadi.`)
+		).toBeVisible();
+		await expect(switcher(page)).toContainText('Pribadi');
+		await expect(page.getByRole('heading', { name: 'Tugas Pribadi' })).toBeVisible();
+		await page.waitForLoadState('networkidle');
+		const settled = requests.about(TEAM.id).length;
+
+		// No loop: nothing asks about the team once the Console has forgotten it.
+		await page.waitForTimeout(1_500);
+		expect(requests.about(TEAM.id)).toHaveLength(settled);
 	});
 });

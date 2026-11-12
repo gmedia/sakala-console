@@ -1,10 +1,12 @@
 import { hashKey, MutationCache, QueryCache, QueryClient } from '@tanstack/svelte-query';
 import { ApiError, LEGAL_ACCEPTANCE_REQUIRED } from './errors';
-import { queryKeys } from './query-keys';
+import { queryKeys, workspaceIdOfQueryKey } from './query-keys';
 
 type SessionExpiredHandler = () => void;
+type WorkspaceAccessHandler = (workspaceId: string) => void;
 
 let sessionExpiredHandler: SessionExpiredHandler | null = null;
+let workspaceAccessHandler: WorkspaceAccessHandler | null = null;
 
 /** The handler lives in features/auth, so this layer needs no router. */
 export function setSessionExpiredHandler(handler: SessionExpiredHandler | null): void {
@@ -27,11 +29,32 @@ export function reportApiError(error: unknown, meta?: Record<string, unknown>): 
 	sessionExpiredHandler?.();
 }
 
+/** The handler lives in features/workspaces, which owns the toast and the navigation. */
+export function setWorkspaceAccessHandler(handler: WorkspaceAccessHandler | null): void {
+	workspaceAccessHandler = handler;
+}
+
+/**
+ * Statuses a read about one workspace gets once the user no longer belongs to it: 403 after being
+ * removed, 404 or 422 (`workspace_id` no longer exists) after it was deleted. The handler checks the
+ * workspace list before acting, because a 403 can also mean a role changed.
+ */
+const LOST_WORKSPACE_STATUSES = new Set([403, 404, 422]);
+
+export function reportWorkspaceQueryError(error: unknown, queryKey: readonly unknown[]): void {
+	if (!(error instanceof ApiError) || !LOST_WORKSPACE_STATUSES.has(error.status)) return;
+	const workspaceId = workspaceIdOfQueryKey(queryKey);
+	if (workspaceId) workspaceAccessHandler?.(workspaceId);
+}
+
 const AUTH_OPTIONS_HASH = hashKey(queryKeys.auth.options);
 
 export const queryClient = new QueryClient({
 	queryCache: new QueryCache({
-		onError: (error, query) => reportApiError(error, query.meta)
+		onError: (error, query) => {
+			reportApiError(error, query.meta);
+			reportWorkspaceQueryError(error, query.queryKey);
+		}
 	}),
 	mutationCache: new MutationCache({
 		onError: (error, _variables, _context, mutation) => reportApiError(error, mutation.meta)
