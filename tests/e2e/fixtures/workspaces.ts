@@ -240,6 +240,10 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 	await page.route(/\/api\/v1\/app\/pilot-limits(\?.*)?$/, (route) => {
 		const url = new URL(route.request().url());
 		const team = url.searchParams.get('workspace_id');
+		// The API refuses limits for a workspace the caller is not (or no longer) a member of.
+		if (team && !workspaces.some((item) => item.id === team)) {
+			return json(route, 403, { message: 'This action is unauthorized.' });
+		}
 		const fixture = captured(team ? 'pilot-limits-team' : 'pilot-limits-personal');
 		const data = fixture.body!.data as { quotas: Record<string, number> };
 		data.quotas.current_projects_count = projectsIn(team ?? workspaces[0].id).length;
@@ -435,6 +439,30 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 	}
 
 	return { calls, wizard, workspaces, members };
+}
+
+/**
+ * Every API request that names a workspace, in order, so a test can assert that nothing asks about
+ * a workspace after the user left it, deleted it, or lost it.
+ */
+export function watchWorkspaceRequests(page: Page) {
+	const seen: string[] = [];
+	page.on('request', (request) => {
+		const url = new URL(request.url());
+		if (url.pathname.includes('/api/'))
+			seen.push(`${request.method()} ${url.pathname}${url.search}`);
+	});
+	return {
+		/** Requests naming the workspace after the first one that matches `marker`. */
+		after(marker: string, workspaceId: string): string[] {
+			const start = seen.findIndex((entry) => entry.includes(marker));
+			if (start === -1) throw new Error(`No request matched ${marker}; saw ${seen.join(', ')}`);
+			return seen.slice(start + 1).filter((entry) => entry.includes(workspaceId));
+		},
+		about(workspaceId: string): string[] {
+			return seen.filter((entry) => entry.includes(workspaceId));
+		}
+	};
 }
 
 export { PROJECT_ID };

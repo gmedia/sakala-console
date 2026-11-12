@@ -3,12 +3,20 @@
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { Toaster } from 'svelte-sonner';
 	import favicon from '$lib/assets/favicon.svg';
-	import { queryClient, setSessionExpiredHandler } from '$lib/api/query-client';
+	import {
+		queryClient,
+		setSessionExpiredHandler,
+		setWorkspaceAccessHandler
+	} from '$lib/api/query-client';
+	import { useAppVersion } from '$lib/features/app-version/use-app-version.svelte';
 	import { handleSessionExpired } from '$lib/features/auth/session-expiry';
+	import { handleWorkspaceAccessLost } from '$lib/features/workspaces/access-lost-handler';
 
 	let { children } = $props();
 
 	setSessionExpiredHandler(handleSessionExpired);
+	setWorkspaceAccessHandler((workspaceId) => void handleWorkspaceAccessLost(workspaceId));
+	useAppVersion();
 </script>
 
 <svelte:head>

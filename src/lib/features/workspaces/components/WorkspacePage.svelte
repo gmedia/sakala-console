@@ -128,11 +128,10 @@
 		}
 	}
 
-	// Leaving or deleting ends access here, so the personal workspace takes over.
+	// Leaving or deleting ends access here. The mutation already forgot the workspace and made the
+	// personal one active (see forget.ts), so this page has nothing left to show.
 	function backToPersonal() {
-		const personal = workspaces.workspaces.find((item) => item.type === 'personal');
-		if (personal) workspaces.select(personal.id);
-		void goto(resolve('/projects'));
+		void goto(resolve('/projects'), { replaceState: true });
 	}
 
 	async function handleLeave() {

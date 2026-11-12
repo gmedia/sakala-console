@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hashKey, partialMatchKey } from '@tanstack/svelte-query';
-import { queryKeys } from './query-keys';
+import { queryKeys, workspaceIdOfQueryKey } from './query-keys';
 
 describe('workspace query keys', () => {
 	it('start with `workspaces`, so one invalidation covers the list, members, and invitations', () => {
@@ -37,5 +37,30 @@ describe('workspace query keys', () => {
 		expect(hashKey(queryKeys.projects.list({ page: 1, workspace_id: 'w1' } as never))).not.toBe(
 			hashKey(queryKeys.projects.list({ page: 1, workspace_id: 'w2' } as never))
 		);
+	});
+});
+
+describe('workspaceIdOfQueryKey', () => {
+	it.each([
+		['members', queryKeys.workspaces.members('w1')],
+		['invitations', queryKeys.workspaces.invitations('w1')],
+		['limits', queryKeys.workspaces.limits('w1')],
+		['a project list filtered to it', queryKeys.projects.list({ page: 1, workspace_id: 'w1' })]
+	])('names the workspace of its %s', (_name, key) => {
+		expect(workspaceIdOfQueryKey(key)).toBe('w1');
+	});
+
+	it.each([
+		['the workspace list', queryKeys.workspaces.list],
+		['my invitations', queryKeys.workspaces.myInvitations],
+		['personal limits', queryKeys.workspaces.limits(null)],
+		['the limits without a workspace', queryKeys.pilotLimits],
+		['a project list across workspaces', queryKeys.projects.list({ page: 1 })],
+		['a project', queryKeys.projects.detail('w1')],
+		['a member read before the workspace is known', queryKeys.workspaces.members('')],
+		['an invitation link', queryKeys.workspaceInvitation('w1', null)],
+		['an admin workspace', queryKeys.admin.workspace('w1')]
+	])('names no workspace for %s', (_name, key) => {
+		expect(workspaceIdOfQueryKey(key)).toBeNull();
 	});
 });

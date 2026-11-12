@@ -35,7 +35,26 @@
 			file_server
 		}
 
+		# Build output never falls back to the SPA shell. A tab left open across a deploy asks for
+		# hashed chunks the new image does not have; answering with index.html sends text/html for a
+		# .js request. A plain 404 lets the app notice the new version instead
+		# (src/lib/features/app-version/use-app-version.svelte.ts).
+		@missingBuildFile {
+			path /_app/*
+			not file
+		}
+		handle @missingBuildFile {
+			header Cache-Control "no-store"
+			respond "Not found" 404
+		}
+
 		try_files {path} /index.html
+
+		# The shell names the current build's chunks, so it is revalidated on every load; a cached
+		# copy would point a reloaded tab back at chunks that are gone.
+		@shell path / /index.html
+		header @shell Cache-Control "no-cache"
+
 		file_server
 	}
 }

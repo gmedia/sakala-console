@@ -14,6 +14,7 @@ import {
 	type Workspace,
 	type WorkspaceRole
 } from '$lib/api/resources/workspaces';
+import { forgetWorkspace } from './forget';
 
 /*
  * A membership change can move projects in or out of view and change what the caller may do,
@@ -60,7 +61,10 @@ export function createDeleteWorkspaceMutation() {
 	const client = useQueryClient();
 	return createMutation(() => ({
 		mutationFn: (workspaceId: string) => deleteWorkspace(workspaceId),
-		onSuccess: () => invalidateMembership(client)
+		// Refreshing the workspace's own reads would only ask the API about a team that is gone.
+		onSuccess: (_result, workspaceId) => {
+			forgetWorkspace(client, workspaceId);
+		}
 	}));
 }
 
@@ -68,7 +72,9 @@ export function createLeaveWorkspaceMutation() {
 	const client = useQueryClient();
 	return createMutation(() => ({
 		mutationFn: (workspaceId: string) => leaveWorkspace(workspaceId),
-		onSuccess: () => invalidateMembership(client)
+		onSuccess: (_result, workspaceId) => {
+			forgetWorkspace(client, workspaceId);
+		}
 	}));
 }
 

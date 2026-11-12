@@ -4,7 +4,8 @@ import {
 	clearSessionCache,
 	queryClient,
 	reportApiError,
-	setSessionExpiredHandler
+	setSessionExpiredHandler,
+	setWorkspaceAccessHandler
 } from './query-client';
 import { queryKeys } from './query-keys';
 
@@ -13,6 +14,7 @@ const handler = vi.fn();
 afterEach(() => {
 	handler.mockReset();
 	setSessionExpiredHandler(null);
+	setWorkspaceAccessHandler(null);
 	queryClient.clear();
 });
 
@@ -77,6 +79,55 @@ describe('a refusal because the terms are not accepted', () => {
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
 		expect(handler).not.toHaveBeenCalled();
 		invalidate.mockRestore();
+	});
+});
+
+describe('a read about a workspace the user may have lost', () => {
+	it.each([403, 404, 422])('hands the workspace to the handler on a %i', async (status) => {
+		setWorkspaceAccessHandler(handler);
+
+		await queryClient
+			.fetchQuery({
+				queryKey: queryKeys.workspaces.members('w1'),
+				queryFn: () => Promise.reject(apiErrorFromResponse(status)),
+				retry: false
+			})
+			.catch(() => {});
+
+		expect(handler).toHaveBeenCalledExactlyOnceWith('w1');
+	});
+
+	it('hands over the workspace of a limits read and of a filtered project list', async () => {
+		setWorkspaceAccessHandler(handler);
+		for (const queryKey of [
+			queryKeys.workspaces.limits('w2'),
+			queryKeys.projects.list({ page: 1, workspace_id: 'w3' })
+		]) {
+			await queryClient
+				.fetchQuery({
+					queryKey,
+					queryFn: () => Promise.reject(apiErrorFromResponse(403)),
+					retry: false
+				})
+				.catch(() => {});
+		}
+
+		expect(handler.mock.calls).toEqual([['w2'], ['w3']]);
+	});
+
+	it.each([
+		['a 500 on a workspace read', queryKeys.workspaces.members('w1'), apiErrorFromResponse(500)],
+		['a network error', queryKeys.workspaces.members('w1'), new NetworkError()],
+		['a 403 on a read that spans workspaces', queryKeys.workspaces.list, apiErrorFromResponse(403)],
+		['a 403 on personal limits', queryKeys.workspaces.limits(null), apiErrorFromResponse(403)]
+	])('stays out of %s', async (_name, queryKey, error) => {
+		setWorkspaceAccessHandler(handler);
+
+		await queryClient
+			.fetchQuery({ queryKey, queryFn: () => Promise.reject(error), retry: false })
+			.catch(() => {});
+
+		expect(handler).not.toHaveBeenCalled();
 	});
 });
 
