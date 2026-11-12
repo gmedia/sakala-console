@@ -31,7 +31,7 @@ routes       -> page composition dan route layouts
 features     -> UI/query/mutation per product domain
 components   -> reusable UI/layout/feedback primitives
 api          -> HTTP, CSRF, errors, resources, OpenAPI types
-stores       -> local UI state only
+realtime     -> Laravel Echo connection and channel subscriptions
 ```
 
 Component tidak boleh memanggil raw `fetch`. Resource wrapper mengelola path dan representation, sementara feature query/mutation mengelola caching dan invalidation.
@@ -432,8 +432,8 @@ Gunakan aturan ini saat bingung harus menaruh kode di mana:
 | Raw HTTP behavior                    | `src/lib/api/client.ts`                                    |
 | Query key                            | `src/lib/api/query-keys.ts`                                |
 | Generated OpenAPI type               | `src/lib/api/generated/schema.d.ts`                        |
-| State sidebar/modal/tab              | `src/lib/stores` atau file `.svelte.ts`                    |
-| Realtime setup nanti                 | `src/lib/realtime`                                         |
+| State sidebar/modal/tab              | File `.svelte.ts` di dalam `src/lib/features/`             |
+| Realtime (WebSocket/Reverb)          | `src/lib/realtime` (boundary untuk Laravel Echo)           |
 
 ## Anti-Patterns
 
