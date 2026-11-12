@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-12
+
 ### Fixed
 
 - Leaving or deleting a team no longer makes the Console keep reading it (found by a browser sweep of staging on 2026-11-12). The workspace's members, invitations, limits, and filtered project lists were invalidated after the team was gone, which asked the API again and got `403`, `404`, and `422`. Those reads are now cancelled and removed, the personal workspace becomes the active and remembered one, the page moves to `/projects`, and only the workspace list, project lists, and limits are refreshed.
@@ -108,7 +110,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/gmedia/sakala-console/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/gmedia/sakala-console/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/gmedia/sakala-console/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gmedia/sakala-console/compare/v0.2.0...v0.3.0
