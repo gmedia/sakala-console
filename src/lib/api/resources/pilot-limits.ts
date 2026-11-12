@@ -2,22 +2,22 @@ import { z } from 'zod';
 import { apiRequest } from '../client';
 import type { components } from '../generated/schema';
 
-type GeneratedPilotLimits = Pick<
-	components['schemas']['PilotLimitsResource'],
-	'quotas' | 'runtime_defaults' | 'timeouts' | 'deleted_project_retention_days'
->;
+type GeneratedPilotLimits = components['schemas']['PilotLimitsResource'];
+type GeneratedQuotas = GeneratedPilotLimits['quotas'];
+type ContainerQuotaKey = 'max_active_containers' | 'current_active_containers_count';
 
 /**
- * The limits of one workspace. The generated type predates workspaces, so the workspace fields are
- * added here; they are optional because an API from before workspaces does not send them.
+ * The part of the resource the Console reads. The workspace and container fields stay optional
+ * because an API from before workspaces does not send them.
  */
-export type PilotLimits = Omit<GeneratedPilotLimits, 'quotas'> & {
-	quotas: GeneratedPilotLimits['quotas'] & {
-		max_active_containers?: number;
-		current_active_containers_count?: number;
-	};
-	workspace_id?: string;
-	limit_profile?: { id: string; name: string } | null;
+type PilotLimitsContract = Pick<
+	GeneratedPilotLimits,
+	'runtime_defaults' | 'timeouts' | 'deleted_project_retention_days'
+> & {
+	quotas: Omit<GeneratedQuotas, ContainerQuotaKey> &
+		Partial<Pick<GeneratedQuotas, ContainerQuotaKey>>;
+	workspace_id?: GeneratedPilotLimits['workspace_id'];
+	limit_profile?: GeneratedPilotLimits['limit_profile'];
 };
 
 const pilotLimitsResponseSchema = z.object({
@@ -45,7 +45,13 @@ const pilotLimitsResponseSchema = z.object({
 		}),
 		deleted_project_retention_days: z.number()
 	})
-}) satisfies z.ZodType<{ data: PilotLimits }>;
+}) satisfies z.ZodType<{ data: PilotLimitsContract }>;
+
+/**
+ * The limits of one workspace, as parsed. Typed from the schema because the API documents
+ * `runtime_defaults.memory_mb` and `cpu_millis` without a type.
+ */
+export type PilotLimits = z.output<typeof pilotLimitsResponseSchema>['data'];
 
 export function parsePilotLimitsResponse(response: unknown): PilotLimits {
 	return pilotLimitsResponseSchema.parse(response).data;

@@ -7,7 +7,8 @@ import {
 import { queryKeys } from '$lib/api/query-keys';
 import type { OnboardingSourceSelection, OnboardingProfileSelection } from './constants';
 
-const SOURCE_SKIP_VALUE = true;
+// The API accepts only `true`: `skip` must be accepted, so `false` is a validation error.
+const SOURCE_SKIP_VALUE = true as const;
 
 export function useSubmitOnboardingSource() {
 	const queryClient = useQueryClient();

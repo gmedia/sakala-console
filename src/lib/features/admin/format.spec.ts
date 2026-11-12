@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	agentName,
 	agentStatus,
 	bucketGrowth,
 	failureCategoryLabel,
@@ -83,6 +84,13 @@ describe('labels', () => {
 		expect(agentStatus('rebooting').label).toBe('rebooting');
 		expect(onboardingSourceLabel(null)).toBe('Belum menjawab');
 		expect(onboardingSourceLabel('campus')).toBe('Kampus');
+	});
+
+	it('names a node without a name by its agent ID', () => {
+		expect(agentName({ name: 'agent-sby-01', agent_id: 'agent-01' })).toBe('agent-sby-01');
+		expect(agentName({ name: null, agent_id: 'agent-01a1cae3-b6e8-701a-9eb2-70683acae471' })).toBe(
+			'agent-01…3acae471'
+		);
 	});
 
 	it('shortens a long ID from both ends', () => {
