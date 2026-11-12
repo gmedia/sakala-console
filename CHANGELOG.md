@@ -7,9 +7,14 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 ### Fixed
 
 - Admin runtime node pages no longer fail to load when a node has no name, which nodes registered before names were required can have; such a node goes by its agent ID.
+- Admins can set a workspace's limit profile again when no profiles exist yet. The dialog used to offer only the default with a "Simpan profil" button that stayed disabled without saying why; it now says there are no profiles, explains that they are made on "Profil batas", and links to the create form, which brings the admin back to the workspace (or user) with the new profile chosen. The user page's personal workspace dialog does the same.
+- "Buat profil batas" no longer stays disabled when every field holds a valid value (seen on v0.5.0 in production). A number input binds a number, and the form called `.trim()` on it, which threw and left the form stuck as invalid. The number fields and the team limit field on the user page now read their value through `String(value ?? '')`, and a component test types every field key by key and checks that the request carries integers.
+- Admin dialogs no longer disable their confirm button until the form is valid. "Alasan" is marked "(wajib)" and says that it goes to the audit log with the admin's name; confirming with something missing keeps the dialog open, marks the field, moves focus to it, and says beside the button what is missing (linked with `aria-describedby`). This covers every dialog built on `ReasonDialog` (limit profiles, workspace and user limit profile, role, team limit, project stop, suspend, unsuspend, reconcile, node provisioning, token rotation and revocation, feedback status) and the "Tutup" button of the node token dialog.
 
 ### Changed
 
+- The "Buat profil batas" form starts from the team default instead of empty number fields: the live limits of the team workspace it was opened for when that workspace runs on the default (the API reports them in the workspace quota), otherwise the documented team defaults of sakala-api (2 projects, 2 running containers, 1 running deployment, 512 MB, 1,000 millicore), and says which one it used. Required fields are marked "(wajib)" and "Build per jam" is marked "(opsional)".
+- The limit profile picker shows each profile's projects, running containers, and running deployments, and summarises the selected one with its memory and CPU. Choosing the profile already in force says that saving changes nothing.
 - Generated API types follow sakala-api v0.4.1. Its OpenAPI export is committed as `src/lib/api/generated/openapi.json`, `pnpm api:types` generates from that file instead of a running API, and `pnpm api:types:check` (part of `pnpm quality` and CI) fails when `schema.d.ts` is out of date.
 
 ## [0.5.0] - 2026-11-12

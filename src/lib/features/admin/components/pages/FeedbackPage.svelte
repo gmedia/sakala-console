@@ -185,22 +185,35 @@
 	consequence="Status hanya untuk admin; pengirim tidak diberi tahu."
 	confirmLabel="Simpan status"
 	{error}
-	fieldsInvalid={editing?.status === nextStatus}
+	fieldsProblem={editing?.status === nextStatus
+		? 'Pilih status yang berbeda dari status sekarang.'
+		: null}
 	onCancel={() => (editing = null)}
 	onConfirm={save}
 >
-	{#snippet fields()}
+	{#snippet fields({ showErrors })}
+		{@const unchanged = editing?.status === nextStatus}
 		<div class="space-y-1.5">
 			<label for="feedback-next-status" class="block text-sm font-medium">Status baru</label>
 			<select
 				id="feedback-next-status"
 				class="control-input cursor-pointer"
 				bind:value={nextStatus}
+				aria-invalid={showErrors && unchanged ? 'true' : undefined}
+				aria-describedby={unchanged ? 'feedback-next-status-hint' : undefined}
 			>
 				{#each FEEDBACK_STATUS_OPTIONS as option (option.value)}
 					<option value={option.value}>{option.label}</option>
 				{/each}
 			</select>
+			{#if unchanged}
+				<p
+					id="feedback-next-status-hint"
+					class="text-xs {showErrors ? 'text-error-base' : 'text-foreground/70'}"
+				>
+					Ini status yang sedang dipakai, jadi menyimpannya tidak mengubah apa pun.
+				</p>
+			{/if}
 		</div>
 	{/snippet}
 </ReasonDialog>

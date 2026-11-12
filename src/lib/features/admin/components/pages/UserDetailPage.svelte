@@ -9,6 +9,7 @@
 	import AdminTable from '../AdminTable.svelte';
 	import DescriptionList from '../DescriptionList.svelte';
 	import ReasonDialog from '../ReasonDialog.svelte';
+	import LimitProfileDialog from '../LimitProfileDialog.svelte';
 	import QuotaCard from '../QuotaCard.svelte';
 	import AuditEventList from '../AuditEventList.svelte';
 	import { createAdminUserQuery, createLimitProfileOptionsQuery } from '../../queries';
@@ -25,6 +26,8 @@
 		formatWibDateTime,
 		onboardingSourceLabel
 	} from '../../format';
+	import { useListUrl } from '../../list-url.svelte';
+	import { ASSIGN_PROFILE_PARAM } from '../../return-to';
 
 	let { id }: { id: string } = $props();
 
@@ -43,22 +46,30 @@
 	let dialogError = $state<unknown>(null);
 
 	let teamLimitDefault = $state(true);
-	let teamLimitValue = $state('');
-	let profileId = $state('');
+	// A number input binds a number (or null when empty), so never call string methods on it.
+	let teamLimitValue = $state<string | number | null>('');
+	let initialProfileId = $state<string | null>(null);
 
 	const profilesQuery = createLimitProfileOptionsQuery(() => dialog === 'profile');
 
-	function open(kind: Exclude<DialogKind, null>) {
+	function open(kind: Exclude<DialogKind, null>, preselect: string | null = null) {
 		dialogError = null;
 		if (kind === 'team-limit') {
 			teamLimitDefault = user?.max_owned_teams === null;
 			teamLimitValue = user?.max_owned_teams?.toString() ?? '';
 		}
-		if (kind === 'profile') {
-			profileId = detail?.personal_workspace_quota?.limit_profile?.id ?? '';
-		}
+		initialProfileId = preselect;
 		dialog = kind;
 	}
+
+	// Coming back from "Profil batas" with a new profile: open the dialog with it chosen.
+	const url = useListUrl();
+	$effect(() => {
+		const created = url.search.get(ASSIGN_PROFILE_PARAM);
+		if (!created || !user) return;
+		open('profile', created);
+		url.update({ [ASSIGN_PROFILE_PARAM]: null }, { replace: true });
+	});
 
 	async function run(action: () => Promise<unknown>, success: string) {
 		dialogError = null;
@@ -73,13 +84,10 @@
 
 	const subject = $derived(user ? `${user.name} (@${user.username})` : '');
 	const promoting = $derived(user?.role !== 'admin');
+	const teamLimitText = $derived(String(teamLimitValue ?? '').trim());
 	const teamLimitInvalid = $derived(
 		!teamLimitDefault &&
-			!(
-				/^\d+$/.test(teamLimitValue) &&
-				Number(teamLimitValue) >= 0 &&
-				Number(teamLimitValue) <= 1000
-			)
+			!(/^\d+$/.test(teamLimitText) && Number(teamLimitText) >= 0 && Number(teamLimitText) <= 1000)
 	);
 </script>
 
@@ -225,20 +233,23 @@
 		consequence={`Berapa tim yang boleh dimiliki akun ini sebagai owner. Sekarang ${formatNumber(detail.owned_teams_count)} tim. Batas di bawah itu hanya menahan tim baru, tim yang ada tetap.`}
 		confirmLabel="Simpan batas"
 		error={dialogError}
-		fieldsInvalid={teamLimitInvalid}
+		fieldsProblem={teamLimitInvalid
+			? 'Isi jumlah tim maksimal dengan bilangan bulat 0 sampai 1.000, atau centang batas default.'
+			: null}
 		onCancel={() => (dialog = null)}
 		onConfirm={(reason) =>
 			run(
 				() =>
 					teamLimitMutation.mutateAsync({
 						id: user.id,
-						max_owned_teams: teamLimitDefault ? null : Number(teamLimitValue),
+						max_owned_teams: teamLimitDefault ? null : Number(teamLimitText),
 						reason
 					}),
 				'Batas tim disimpan.'
 			)}
 	>
-		{#snippet fields()}
+		{#snippet fields({ showErrors })}
+			{@const showLimitError = teamLimitInvalid && (showErrors || teamLimitText !== '')}
 			<label class="flex items-center gap-3 text-sm font-medium">
 				<input type="checkbox" class="size-5" bind:checked={teamLimitDefault} />
 				Pakai batas default dari konfigurasi
@@ -255,59 +266,51 @@
 						inputmode="numeric"
 						class="control-input"
 						bind:value={teamLimitValue}
-						aria-invalid={teamLimitInvalid ? 'true' : undefined}
+						aria-invalid={showLimitError ? 'true' : undefined}
 						aria-describedby="team-limit-hint"
 					/>
 					<p
 						id="team-limit-hint"
-						class="text-xs {teamLimitInvalid ? 'text-error-base' : 'text-foreground/70'}"
+						class="text-xs {showLimitError ? 'text-error-base' : 'text-foreground/70'}"
 					>
-						0 sampai 1000.
+						{showLimitError
+							? 'Isi bilangan bulat 0 sampai 1.000. Angka 0 berarti akun ini tidak boleh membuat tim.'
+							: 'Bilangan bulat 0 sampai 1.000.'}
 					</p>
 				</div>
 			{/if}
 		{/snippet}
 	</ReasonDialog>
 
-	<ReasonDialog
+	<LimitProfileDialog
 		open={dialog === 'profile'}
 		id="user-profile"
-		title="Ubah profil batas"
 		subject={`Workspace pribadi ${subject}`}
 		consequence="Batas baru langsung berlaku. Batas yang sudah terlewati tidak dibatalkan; batas yang lebih rendah hanya menahan proyek dan deployment baru."
-		confirmLabel="Simpan profil"
+		defaultLabel="Default pribadi"
+		defaultLimits={detail.personal_workspace_quota?.limit_profile
+			? null
+			: (detail.personal_workspace_quota?.limits ?? null)}
+		currentProfileId={detail.personal_workspace_quota?.limit_profile?.id ?? null}
+		{initialProfileId}
+		profiles={profilesQuery.data?.data}
+		profilesLoading={!profilesQuery.isError &&
+			(profilesQuery.isPending ||
+				(profilesQuery.isFetching && profilesQuery.data?.data.length === 0))}
+		profilesError={profilesQuery.isError}
+		onRetryProfiles={() => profilesQuery.refetch()}
+		returnTo={{ kind: 'users', id: String(user.id) }}
 		error={dialogError}
-		fieldsInvalid={profilesQuery.isPending}
 		onCancel={() => (dialog = null)}
-		onConfirm={(reason) =>
+		onConfirm={(profileId, reason) =>
 			run(
 				() =>
 					profileMutation.mutateAsync({
 						target: { kind: 'user', id: user.id },
-						limit_profile_id: profileId || null,
+						limit_profile_id: profileId,
 						reason
 					}),
 				'Profil batas disimpan.'
 			)}
-	>
-		{#snippet fields()}
-			<div class="space-y-1.5">
-				<label for="user-profile-select" class="block text-sm font-medium">Profil batas</label>
-				<select
-					id="user-profile-select"
-					class="control-input cursor-pointer"
-					bind:value={profileId}
-					disabled={profilesQuery.isPending}
-				>
-					<option value="">Default pribadi</option>
-					{#each profilesQuery.data?.data ?? [] as profile (profile.id)}
-						<option value={profile.id}>{profile.name}</option>
-					{/each}
-				</select>
-				{#if profilesQuery.isError}
-					<p class="text-xs text-error-base" role="alert">Daftar profil batas gagal dimuat.</p>
-				{/if}
-			</div>
-		{/snippet}
-	</ReasonDialog>
+	/>
 {/if}

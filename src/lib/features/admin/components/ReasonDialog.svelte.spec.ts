@@ -28,19 +28,59 @@ describe('ReasonDialog', () => {
 		await expect.element(page.getByRole('button', { name: 'Tangguhkan' })).not.toHaveFocus();
 	});
 
-	it('keeps the action disabled until a reason is written, blanks included', async () => {
+	it('marks the reason as required and says why it is asked before anyone types', async () => {
+		await render(ReasonDialog, props());
+
+		const reason = page.getByRole('textbox', { name: 'Alasan (wajib)' });
+		await expect.element(reason).toHaveAttribute('required');
+		await expect.element(reason).toHaveAccessibleDescription(/masuk audit log bersama namamu/);
+		await expect.element(page.getByRole('button', { name: 'Tangguhkan' })).toBeEnabled();
+		await expect.element(page.getByRole('alert')).not.toBeInTheDocument();
+	});
+
+	it('explains beside the button why it stopped, when confirmed without a reason', async () => {
 		const onConfirm = vi.fn(() => Promise.resolve());
 		await render(ReasonDialog, props({ onConfirm }));
 		const confirm = page.getByRole('button', { name: 'Tangguhkan' });
 
-		await expect.element(confirm).toBeDisabled();
 		await userEvent.fill(page.getByLabelText('Alasan'), '   ');
-		await expect.element(confirm).toBeDisabled();
-		await userEvent.fill(page.getByLabelText('Alasan'), '  Konten phishing  ');
-		await expect.element(confirm).toBeEnabled();
+		await confirm.click();
 
+		expect(onConfirm).not.toHaveBeenCalled();
+		await expect
+			.element(page.getByRole('alert'))
+			.toHaveTextContent('Belum bisa dilanjutkan. Isi alasan dulu.');
+		await expect
+			.element(confirm)
+			.toHaveAccessibleDescription('Belum bisa dilanjutkan. Isi alasan dulu.');
+		const reason = page.getByLabelText('Alasan');
+		await expect.element(reason).toHaveFocus();
+		await expect.element(reason).toHaveAttribute('aria-invalid', 'true');
+		await expect.element(reason).toHaveAccessibleDescription(/Alasan belum diisi/);
+
+		await userEvent.fill(reason, '  Konten phishing  ');
+		await expect.element(page.getByRole('alert')).not.toBeInTheDocument();
+		await expect.element(confirm).not.toHaveAttribute('aria-describedby');
 		await confirm.click();
 		expect(onConfirm).toHaveBeenCalledWith('Konten phishing');
+	});
+
+	it('puts the problem with the action fields in the same explanation', async () => {
+		const onConfirm = vi.fn(() => Promise.resolve());
+		await render(
+			ReasonDialog,
+			props({ onConfirm, fieldsProblem: 'Pilih profil yang berbeda dari yang sedang dipakai.' })
+		);
+
+		await userEvent.fill(page.getByLabelText('Alasan'), 'Permintaan dosen');
+		await page.getByRole('button', { name: 'Tangguhkan' }).click();
+
+		expect(onConfirm).not.toHaveBeenCalled();
+		await expect
+			.element(page.getByRole('alert'))
+			.toHaveTextContent(
+				'Belum bisa dilanjutkan. Pilih profil yang berbeda dari yang sedang dipakai.'
+			);
 	});
 
 	it('sends once on a double click while the request runs', async () => {
@@ -60,11 +100,14 @@ describe('ReasonDialog', () => {
 	});
 
 	it('refuses a reason over 500 characters before sending', async () => {
-		await render(ReasonDialog, props());
+		const onConfirm = vi.fn(() => Promise.resolve());
+		await render(ReasonDialog, props({ onConfirm }));
 		await userEvent.fill(page.getByLabelText('Alasan'), 'a'.repeat(501));
 
 		await expect.element(page.getByText('Alasan paling panjang 500 karakter.')).toBeVisible();
-		await expect.element(page.getByRole('button', { name: 'Tangguhkan' })).toBeDisabled();
+		await page.getByRole('button', { name: 'Tangguhkan' }).click();
+		expect(onConfirm).not.toHaveBeenCalled();
+		await expect.element(page.getByRole('alert')).toHaveTextContent('Pendekkan alasannya.');
 	});
 
 	it('shows a conflict from the API in its own words, inside the dialog', async () => {

@@ -22,6 +22,10 @@
 		variant?: Variants;
 		emphasis?: Emphasis;
 		confirmDisabled?: boolean;
+		/** Id of the text that explains why confirming cannot go ahead yet, read with the button. */
+		confirmDescribedBy?: string;
+		/** Leaves only the cancel button, for a dialog whose next step lives elsewhere. */
+		hideConfirm?: boolean;
 		/** Where focus lands on open. Defaults to the emphasised button, but never a destructive confirm. */
 		initialFocus?: Emphasis | (() => HTMLElement | null | undefined);
 		/** Where focus goes on close, for a dialog opened from something that is gone by then. */
@@ -46,6 +50,8 @@
 		variant = 'default',
 		emphasis = 'confirm',
 		confirmDisabled = false,
+		confirmDescribedBy,
+		hideConfirm = false,
 		initialFocus,
 		returnFocus,
 		class: className,
@@ -145,20 +151,23 @@
 					{cancelLabel}
 				</DialogPrimitive.Close>
 
-				<Button
-					bind:ref={confirmButtonEl}
-					variant={emphasis === 'confirm' ? emphasised : 'secondary'}
-					class="w-full"
-					onclick={handleConfirm}
-					disabled={loading || confirmDisabled}
-				>
-					{#if loading}
-						<span
-							class="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current"
-						></span>
-					{/if}
-					{confirmLabel}
-				</Button>
+				{#if !hideConfirm}
+					<Button
+						bind:ref={confirmButtonEl}
+						variant={emphasis === 'confirm' ? emphasised : 'secondary'}
+						class="w-full"
+						onclick={handleConfirm}
+						disabled={loading || confirmDisabled}
+						aria-describedby={confirmDescribedBy}
+					>
+						{#if loading}
+							<span
+								class="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current"
+							></span>
+						{/if}
+						{confirmLabel}
+					</Button>
+				{/if}
 			</div>
 		</DialogPrimitive.Content>
 	</DialogPrimitive.Portal>
