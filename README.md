@@ -95,9 +95,11 @@ pnpm build           # static SPA build
 pnpm check           # Svelte dan TypeScript diagnostics
 pnpm lint            # ESLint
 pnpm format:check    # Prettier check
-pnpm test            # unit dan component test
+pnpm test:unit       # unit test
+pnpm test:component  # component test
 pnpm test:e2e        # browser flow test
 pnpm api:types       # generate types dari Scramble OpenAPI
+pnpm api:types:check # cek apakah generated types up-to-date
 pnpm quality         # local quality gate
 ```
 
@@ -105,17 +107,15 @@ pnpm quality         # local quality gate
 
 - `src/routes`: komposisi halaman dan route groups.
 - `src/lib/api`: HTTP, CSRF, error, query, dan generated API contract.
-- `src/lib/features`: UI dan query/mutation per domain ketika fitur mulai dibuat.
 - `src/lib/components/ui`: primitive reusable.
 - `src/lib/components/layout`: shell dan navigation.
-- `src/lib/stores`: UI state lokal, bukan cache response API.
-
-Laravel API Resource dan Scramble OpenAPI adalah source of truth kontrak HTTP. Jalankan `pnpm api:types` ketika endpoint berubah; jangan menulis ulang seluruh kontrak sebagai interface manual.
+- `src/lib/features`: UI dan query/mutation per domain ketika fitur mulai dibuat. State lokal (sidebar/modal) menggunakan file `.svelte.ts` di dalam fiturnya.
+  Laravel API Resource dan Scramble OpenAPI adalah source of truth kontrak HTTP. Jalankan `pnpm api:types` ketika endpoint berubah; jangan menulis ulang seluruh kontrak sebagai interface manual.
 
 Lihat [ARCHITECTURE.md](ARCHITECTURE.md), [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), dan [docs/API_CLIENT.md](docs/API_CLIENT.md).
 
 ## Project Status
 
-Foundation console sudah tersedia. GitHub auth, onboarding, project CRUD, deployment, dan realtime akan ditambahkan bertahap setelah kontrak API masing-masing tersedia.
+Foundation console sudah tersedia. GitHub auth, onboarding, project CRUD, deployment, dan realtime sudah tersedia. Lihat [CHANGELOG.md](CHANGELOG.md) untuk rincian terbaru.
 
 Sakala diinisiasi oleh maintainer Sakala dan didukung GMEDIA sebagai founding sponsor dan infrastructure supporter. Sakala dilisensikan dengan Apache License 2.0.
