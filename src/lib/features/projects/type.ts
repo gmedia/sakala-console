@@ -74,16 +74,8 @@ export interface ProjectBase {
 
 export interface Project extends ProjectBase, ProjectContractFields {}
 
-/**
- * The API sends `id` as an integer (an auto-increment key) and its routes take an integer, but its
- * OpenAPI document types the resource field as a string. Follow the response until the API fixes it.
- */
-export type EnvironmentVariable = Omit<
-	components['schemas']['EnvironmentVariableResource'],
-	'id'
-> & {
-	id: number;
-};
+/** `id` is an integer (an auto-increment key), and the routes take it as one. */
+export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];
 
 export interface CreateEnvVarPayload {
 	key: string;

@@ -56,14 +56,12 @@ Aturan saat tipe hasil generation tidak cocok dengan kode:
 { status: string }`. Nilai baru dari API yang lebih baru tetap tampil, dan label punya fallback.
 - Field yang wajib di API tetapi belum dikirim API lama (`workspace`, `workspace_id`,
   `limit_profile`, kuota container) tetap opsional di Zod dan di tipe Console.
-- Kalau Zod lebih ketat dari dokumen OpenAPI (misalnya `occurred_at` dan `recorded_at` yang
-  didokumentasikan nullable padahal kolomnya `NOT NULL`), tipe yang dipakai aplikasi adalah
-  `z.output` schema, dan schema tetap `satisfies` tipe hasil generation.
+- Kalau Zod lebih ketat dari dokumen OpenAPI, tipe yang dipakai aplikasi adalah `z.output`
+  schema, dan schema tetap `satisfies` tipe hasil generation.
 - Kalau dokumen OpenAPI salah dibanding response nyata, jangan edit file generated. Override field
   itu di tipe Console dengan komentar yang menyebut kesalahannya, dan laporkan ke `sakala-api`.
-  Saat ini: `EnvironmentVariableResource.id` didokumentasikan `string` padahal integer, dan
-  `PilotLimitsResource.runtime_defaults.memory_mb`/`cpu_millis` serta beberapa field
-  `NotificationResource` tidak punya tipe.
+  Saat ini tidak ada override seperti itu. `sakala-api` punya test yang gagal kalau ada field
+  tanpa tipe di dokumennya.
 - Route tanpa nama mendapat operation id dari nama controller, yang berubah kalau controller
   berubah. Untuk route itu, ambil tipe lewat `paths['/v1/...']`, seperti events dan log deployment.
 
