@@ -2295,6 +2295,9 @@
                             }
                         }
                     },
+                    "503": {
+                        "$ref": "#/components/responses/GithubUnavailable"
+                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
@@ -4492,6 +4495,9 @@
                             }
                         }
                     },
+                    "503": {
+                        "$ref": "#/components/responses/GithubUnavailable"
+                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     },
@@ -4540,6 +4546,9 @@
                                 }
                             }
                         }
+                    },
+                    "503": {
+                        "$ref": "#/components/responses/GithubUnavailable"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -16078,6 +16087,38 @@
                             },
                             "required": [
                                 "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "GithubUnavailable": {
+                "description": "GitHub is unavailable or limits Sakala; safe to retry later",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "`GITHUB_UNAVAILABLE`: GitHub answered with an error, an unreadable body, or not at all. `GITHUB_RATE_LIMITED`: GitHub limits Sakala and there is no stored answer.",
+                                    "enum": [
+                                        "GITHUB_UNAVAILABLE",
+                                        "GITHUB_RATE_LIMITED"
+                                    ]
+                                },
+                                "retry_after": {
+                                    "type": "integer",
+                                    "description": "Seconds to wait, also in the `Retry-After` header. Only with `GITHUB_RATE_LIMITED`."
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code"
                             ]
                         }
                     }

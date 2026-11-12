@@ -3763,6 +3763,25 @@ export interface components {
                 };
             };
         };
+        /** @description GitHub is unavailable or limits Sakala; safe to retry later */
+        GithubUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description `GITHUB_UNAVAILABLE`: GitHub answered with an error, an unreadable body, or not at all. `GITHUB_RATE_LIMITED`: GitHub limits Sakala and there is no stored answer.
+                     * @enum {string}
+                     */
+                    code: "GITHUB_UNAVAILABLE" | "GITHUB_RATE_LIMITED";
+                    /** @description Seconds to wait, also in the `Retry-After` header. Only with `GITHUB_RATE_LIMITED`. */
+                    retry_after?: number;
+                };
+            };
+        };
     };
     parameters: never;
     requestBodies: never;
@@ -4803,6 +4822,7 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "projects.deployments.show": {
@@ -5685,6 +5705,7 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "v1.app.github.repositories.branches": {
@@ -5711,6 +5732,7 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "v1.webhooks.github": {
