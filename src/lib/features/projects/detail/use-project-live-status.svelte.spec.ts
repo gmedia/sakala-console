@@ -116,6 +116,45 @@ describe('useProjectLiveStatus', () => {
 		expect(client.invalidateQueries).toHaveBeenCalled();
 	});
 
+	it('applies sleeping from realtime, so an idle sleep shows without polling', () => {
+		setup();
+
+		handlers[UPDATED]({ sequence: 1, project_runtime_status: 'sleeping' });
+
+		const updater = client.setQueryData.mock.calls[0][1] as (current: Project) => Project;
+		expect(updater(project()).runtime_status).toBe('sleeping');
+	});
+
+	it('a sleeping project keeps listening on its active deployment, where the wake arrives', () => {
+		const live = setup(() => project({ runtime_status: 'sleeping' }));
+		expect(channelName()).toBe('deployment.dep_active');
+		expect(live.header.kind).toBe('sleeping');
+
+		handlers[UPDATED]({
+			sequence: 2,
+			project_runtime_status: 'running',
+			deployment_id: 'dep_active',
+			status: 'succeeded'
+		});
+
+		const updater = client.setQueryData.mock.calls[0][1] as (current: Project) => Project;
+		expect(updater(project({ runtime_status: 'sleeping' })).runtime_status).toBe('running');
+		expect(client.invalidateQueries).toHaveBeenCalled();
+	});
+
+	it('passes the idle window to the sleeping notice', () => {
+		let live!: ReturnType<typeof useProjectLiveStatus>;
+		destroy = $effect.root(() => {
+			live = useProjectLiveStatus(
+				() => project({ runtime_status: 'sleeping' }),
+				() => ({ idleSleepMinutes: 45 })
+			);
+		});
+		flushSync();
+
+		expect(live.header.notice?.message).toContain('selama 45 menit');
+	});
+
 	it('ignores a realtime event that arrives out of order', () => {
 		setup();
 

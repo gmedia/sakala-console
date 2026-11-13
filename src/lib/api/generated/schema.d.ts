@@ -1328,6 +1328,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/wake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wake a sleeping project
+         * @description Answers 202: the node starts the kept container, and `runtime_status`
+         *     becomes `running` once it reports back. A wake that is already queued is
+         *     returned instead of a second one. Same rights as deploying.
+         */
+        post: operations["v1.app.projects.wake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/projects": {
         parameters: {
             query?: never;
@@ -1424,6 +1446,31 @@ export interface paths {
         put?: never;
         /** Ask the serving node to reconcile the project's workload */
         post: operations["projectControl.reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/projects/{slug}/wake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wake a sleeping project
+         * @description Called without credentials by the page a sleeping project shows, as a
+         *     simple cross-origin POST that never reads the answer. Always `202` with an
+         *     empty body, also for a slug that does not exist, a project that is not
+         *     sleeping, or one that cannot be woken, so the answer tells nothing about a
+         *     project. A wake that is already queued is not queued twice. The only other
+         *     answers are `409` `PROJECT_WAKE_LIMIT_EXCEEDED` (without counts) and `429`.
+         */
+        post: operations["v1.public.projects.wake"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1930,7 +1977,7 @@ export interface components {
                 /** @enum {string} */
                 status: "draft" | "active" | "failed" | "suspended";
                 /** @enum {string} */
-                runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed";
+                runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
                 build_command: string | null;
                 start_command: string | null;
                 root_directory: string | null;
@@ -2142,7 +2189,7 @@ export interface components {
                 users: number;
                 /** @description Projects that exist now; deleted projects are not counted. */
                 projects: number;
-                /** @description Projects with a deployment serving traffic (`active_deployment_id` set). */
+                /** @description Projects with a deployment serving traffic (`active_deployment_id` set and not `sleeping`). */
                 active_projects: number;
             };
             /** @description Counts for the range. Deployments count by creation time. */
@@ -2240,7 +2287,7 @@ export interface components {
              * @description `not_deployed`, `deploying`, `running`, `stopped`, `failed`, or `crashed`.
              * @enum {string}
              */
-            runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed";
+            runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
             repository_url: string;
             repository_full_name: string | null;
             branch: string;
@@ -2436,6 +2483,8 @@ export interface components {
                      *     without this key, so it is tied to the list, not to detail_counts.
                      */
                     crashed_details?: number;
+                    /** @description Additive within protocol revision 4, sent with `traffic` (idle sleep). */
+                    traffic?: number;
                 };
                 resources: {
                     cpu_total: number | null;
@@ -2465,6 +2514,20 @@ export interface components {
                         oom_killed: boolean;
                         /** Format: date-time */
                         finished_at: string | null;
+                    }[];
+                    /**
+                     * @description Optional, from nodes with the `idle-sleep` capability. The agent
+                     *     caps it at its own max active containers, not at 50; the bound
+                     *     here only keeps one heartbeat cheap. Like crashed_details, a
+                     *     malformed item rejects the whole heartbeat.
+                     */
+                    traffic?: {
+                        /** Format: uuid */
+                        project_id: string;
+                        /** Format: uuid */
+                        deployment_id: string;
+                        /** Format: date-time */
+                        last_request_at: string;
                     }[];
                 };
                 disk_pressure: {
@@ -3024,6 +3087,11 @@ export interface components {
             max_cpu_millis: number;
             /** @description Reserved for the build rate limit; not enforced yet. */
             max_builds_per_hour: number | null;
+            /**
+             * @description Minutes without a request before a project sleeps. `0` never sleeps; `null` follows the global
+             *     `SAKALA_PROJECT_IDLE_SLEEP_MINUTES`.
+             */
+            idle_sleep_minutes: number | null;
             /** @description Workspaces running under this profile. A profile is deleted only at zero. */
             workspaces_count?: number | null;
             created_at: string | null;
@@ -3117,6 +3185,11 @@ export interface components {
                 max_request_bytes: number;
             };
             deleted_project_retention_days: number;
+            /**
+             * @description Minutes without a request before a running project of this workspace is put to sleep, from its
+             *     limit profile or the global setting. `0` means its projects never sleep.
+             */
+            project_idle_sleep_minutes: number;
         };
         /** PilotValidationMetricsResource */
         PilotValidationMetricsResource: {
@@ -3329,9 +3402,18 @@ export interface components {
         RuntimeCleanupTarget: "stale_workspaces" | "stale_images" | "stale_routes";
         /**
          * RuntimeStatus
+         * @description | |
+         *     |---|
+         *     | `not_deployed` <br/>  |
+         *     | `deploying` <br/>  |
+         *     | `running` <br/>  |
+         *     | `stopped` <br/>  |
+         *     | `failed` <br/>  |
+         *     | `crashed` <br/>  |
+         *     | `sleeping` <br/> Put to sleep after being idle; the container is kept and the next request wakes it. |
          * @enum {string}
          */
-        RuntimeStatus: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed";
+        RuntimeStatus: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
         /** ServiceStatusResource */
         ServiceStatusResource: {
             service: string;
@@ -3388,6 +3470,11 @@ export interface components {
             max_cpu_millis: number;
             /** @description Reserved for the build rate limit; stored but not enforced yet. */
             max_builds_per_hour?: number | null;
+            /**
+             * @description Minutes without a request before a project sleeps, up to a week. `0` never puts the workspace's
+             *     projects to sleep; `null` (the default) follows `SAKALA_PROJECT_IDLE_SLEEP_MINUTES`.
+             */
+            idle_sleep_minutes?: number | null;
         };
         /** StoreOnboardingProfileRequest */
         StoreOnboardingProfileRequest: {
@@ -3653,6 +3740,8 @@ export interface components {
                 max_cpu_millis: number;
                 /** @description Reserved for the build rate limit; not enforced yet. */
                 max_builds_per_hour: number | null;
+                /** @description Effective minutes without a request before a project sleeps, from the profile or the global setting. `0` never sleeps. */
+                idle_sleep_minutes: number;
                 /** @description Global, the same for every workspace. */
                 max_active_deployments_per_project: number;
             };
@@ -3760,6 +3849,29 @@ export interface components {
                 "application/json": {
                     /** @description Error overview. */
                     message: string;
+                };
+            };
+        };
+        /** @description The project cannot be woken now */
+        ProjectWakeConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description `PROJECT_WAKE_LIMIT_EXCEEDED`: the workspace already runs as many projects as it may. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.
+                     * @enum {string}
+                     */
+                    code: "PROJECT_WAKE_LIMIT_EXCEEDED" | "PROJECT_NOT_SLEEPING" | "PROJECT_SUSPENDED";
+                    /** @description The workspace limit of running projects. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake. */
+                    limit?: number;
+                    /** @description Projects the workspace runs now. Same presence as `limit`. */
+                    current?: number;
+                    /** @description The current `runtime_status`. Only with `PROJECT_NOT_SLEEPING`. */
+                    runtime_status?: string;
                 };
             };
         };
@@ -6690,6 +6802,36 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["ProjectWakeConflict"];
+        };
+    };
+    "v1.app.projects.wake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProjectResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["ProjectWakeConflict"];
         };
     };
     "v1.admin.project.index": {
@@ -6934,6 +7076,26 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.public.projects.wake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["ProjectWakeConflict"];
         };
     };
     "v1.auth.register": {

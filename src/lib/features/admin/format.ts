@@ -1,6 +1,7 @@
 import type { BadgeTone } from '$lib/components/ui/Badge.svelte';
 import type { TimeRange } from '$lib/api/resources/admin/common';
 import { ONBOARDING_SOURCE_OPTIONS_MAP } from '$lib/features/onboarding/constants';
+import { IDLE_SLEEP_NEVER } from '$lib/features/workspaces/limits';
 
 /** Admin ranges are whole days in WIB, so every date on these pages is shown in WIB too. */
 export const ADMIN_TIMEZONE = 'Asia/Jakarta';
@@ -18,6 +19,7 @@ const RUNTIME_STATUS: Record<string, Label> = {
 	failed: { label: 'Gagal', tone: 'error' },
 	crashed: { label: 'Crash', tone: 'error' },
 	stopped: { label: 'Berhenti', tone: 'muted' },
+	sleeping: { label: 'Tidur', tone: 'muted' },
 	not_deployed: { label: 'Belum deploy', tone: 'neutral' }
 };
 
@@ -161,6 +163,16 @@ const percentFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 
 
 export function formatNumber(value: number): string {
 	return numberFormat.format(value);
+}
+
+/**
+ * A profile's `idle_sleep_minutes`: `null` follows the server's global setting, `0` never sleeps.
+ * `undefined` is an API that does not report it yet.
+ */
+export function formatProfileIdleSleep(minutes: number | null | undefined): string {
+	if (minutes === undefined) return '-';
+	if (minutes === null) return 'Ikut bawaan server';
+	return minutes === IDLE_SLEEP_NEVER ? 'Tidak pernah' : `${formatNumber(minutes)} menit`;
 }
 
 /** `42%`. Null when there is nothing to divide by, which the page says in words. */

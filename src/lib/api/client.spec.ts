@@ -78,6 +78,27 @@ describe('apiRequest errors', () => {
 		expect(error.errors).toEqual({ key: ['Key sudah dipakai.'] });
 	});
 
+	it('keeps the other fields of the body as details, for codes that carry numbers', async () => {
+		stubResponse(409, {
+			message: 'Batas tercapai.',
+			code: 'PROJECT_WAKE_LIMIT_EXCEEDED',
+			limit: 3,
+			current: 3
+		});
+
+		const error = await requestError();
+
+		expect(error.details).toEqual({ limit: 3, current: 3 });
+	});
+
+	it('a JSON body that is not an object leaves the details empty', async () => {
+		stubResponse(409, 'null');
+
+		const error = await requestError();
+
+		expect(error.details).toEqual({});
+	});
+
 	it('survives a non-JSON upstream response', async () => {
 		stubResponse(502, '<html>Bad Gateway</html>');
 

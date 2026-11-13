@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parsePilotLimitsResponse } from '$lib/api/resources/pilot-limits';
 import { getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
-import { workspaceLimitRows } from './limits';
+import { formatIdleSleep, workspaceIdleSleepSummary, workspaceLimitRows } from './limits';
 
 describe('workspaceLimitRows', () => {
 	it('shows projects, running deployments, and active apps of a team', () => {
@@ -25,5 +25,27 @@ describe('workspaceLimitRows', () => {
 		});
 		expect(rows.map((row) => row.label)).toEqual(['Proyek', 'Deployment berjalan']);
 		expect(rows[0].reached).toBe(true);
+	});
+});
+
+describe('workspaceIdleSleepSummary', () => {
+	it('says after how many minutes without visitors a project sleeps, and that it wakes', () => {
+		expect(workspaceIdleSleepSummary({ project_idle_sleep_minutes: 30 })).toBe(
+			'Tidur otomatis: setelah 30 menit tanpa pengunjung, lalu menyala lagi saat URL-nya dibuka.'
+		);
+	});
+
+	it('says never for a workspace whose projects do not sleep', () => {
+		expect(workspaceIdleSleepSummary({ project_idle_sleep_minutes: 0 })).toBe(
+			'Tidur otomatis: tidak pernah.'
+		);
+	});
+
+	it('says nothing for an API that does not report it', () => {
+		expect(workspaceIdleSleepSummary({})).toBeNull();
+	});
+
+	it('writes large numbers the Indonesian way', () => {
+		expect(formatIdleSleep(10080)).toBe('setelah 10.080 menit tanpa pengunjung');
 	});
 });

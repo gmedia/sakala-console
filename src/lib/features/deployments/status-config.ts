@@ -51,7 +51,8 @@ export function getDeploymentStageLabel(stage: DeploymentStage): string {
 }
 
 /** Whether a succeeded deployment is what the public URL serves right now. */
-export type ServingState = 'live' | 'unconfirmed' | 'superseded' | 'not_serving' | 'crash_looping';
+export type ServingState =
+	'live' | 'unconfirmed' | 'superseded' | 'not_serving' | 'crash_looping' | 'sleeping';
 
 export type QueueState = 'assigned' | 'waiting_for_node';
 
@@ -209,6 +210,8 @@ function getSuccessDescription(
 			return `${duration}. Deployment ini sudah digantikan oleh deployment yang lebih baru.`;
 		case 'not_serving':
 			return `${duration}. Aplikasinya sedang tidak melayani, jadi URL-nya belum tentu bisa dibuka.`;
+		case 'sleeping':
+			return `${duration}. Proyeknya sedang tidur karena sepi, dan menyala lagi saat URL-nya dibuka.`;
 		case 'crash_looping':
 			return `${duration}. Aplikasinya terus berhenti dan dimulai ulang, jadi URL-nya kadang bisa dibuka, kadang tidak. Log di sini bisa membantu mencari penyebabnya.`;
 	}

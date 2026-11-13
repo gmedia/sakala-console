@@ -6,6 +6,7 @@ import {
 	createLimitProfile,
 	getAdminWorkspace,
 	listLimitProfiles,
+	updateLimitProfile,
 	parseAdminWorkspaceDetail,
 	parseLimitProfile,
 	parseLimitProfiles
@@ -35,6 +36,7 @@ vi.mock('$lib/api/resources/admin/accounts', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api/resources/admin/accounts')>()),
 	listLimitProfiles: vi.fn(),
 	createLimitProfile: vi.fn(),
+	updateLimitProfile: vi.fn(),
 	getAdminWorkspace: vi.fn()
 }));
 
@@ -55,6 +57,7 @@ beforeEach(() => {
 	vi.mocked(listLimitProfiles).mockReset().mockResolvedValue(emptyList);
 	vi.mocked(createLimitProfile).mockReset().mockResolvedValue(created);
 	vi.mocked(getAdminWorkspace).mockReset();
+	vi.mocked(updateLimitProfile).mockReset().mockResolvedValue(created);
 });
 
 describe('creating a limit profile', () => {
@@ -87,6 +90,7 @@ describe('creating a limit profile', () => {
 			max_memory_mb: 512,
 			max_cpu_millis: 1000,
 			max_builds_per_hour: null,
+			idle_sleep_minutes: null,
 			reason: 'Pilot magang'
 		});
 		expect(goto).not.toHaveBeenCalled();
@@ -151,6 +155,7 @@ describe('creating a limit profile', () => {
 			max_memory_mb: 512,
 			max_cpu_millis: 1000,
 			max_builds_per_hour: 1000,
+			idle_sleep_minutes: null,
 			reason: 'Pilot fakultas'
 		});
 		for (const key of [
@@ -204,6 +209,75 @@ describe('creating a limit profile', () => {
 			max_active_deployments: 2,
 			max_memory_mb: 768,
 			max_cpu_millis: 1500
+		});
+	});
+});
+
+describe('idle sleep in a limit profile', () => {
+	const idleField = () => field('Tidur otomatis (menit) (opsional)');
+
+	it('starts empty, which follows the server, and explains 0 and the range', async () => {
+		await renderPage();
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect.element(idleField()).toHaveValue(null);
+		await expect
+			.element(idleField())
+			.toHaveAccessibleDescription(
+				'Kosong berarti ikut bawaan server, 0 berarti proyek tidak pernah tidur, atau 1 sampai 10.080 menit tanpa pengunjung.'
+			);
+	});
+
+	it('sends 0 as never, not as empty, when typed on the keyboard', async () => {
+		await renderPage();
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
+
+		await userEvent.type(page.getByRole('textbox', { name: 'Nama (wajib)' }), 'Demo');
+		await userEvent.type(idleField(), '0');
+		await userEvent.type(page.getByLabelText('Alasan'), 'Demo selalu menyala');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect.poll(() => vi.mocked(createLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(createLimitProfile).mock.calls[0][0]).toMatchObject({
+			idle_sleep_minutes: 0
+		});
+	});
+
+	it('refuses more than a week before sending', async () => {
+		await renderPage();
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+
+		await userEvent.type(idleField(), '10081');
+
+		await expect
+			.element(idleField())
+			.toHaveAccessibleDescription('Bilangan bulat 0 sampai 10.080.');
+		expect(createLimitProfile).not.toHaveBeenCalled();
+	});
+
+	it('shows the value in the table, and editing to empty sends null to follow the server', async () => {
+		const never = parseLimitProfiles({
+			...profilesFixture.body,
+			data: [{ ...profilesFixture.body.data[0], idle_sleep_minutes: 0 }]
+		});
+		vi.mocked(listLimitProfiles).mockResolvedValue(never);
+		await renderPage();
+
+		await expect.element(page.getByRole('cell', { name: 'Tidak pernah' })).toBeVisible();
+		await page.getByRole('button', { name: 'Ubah Kelas' }).click();
+		await expect.element(idleField()).toHaveValue(0);
+
+		await userEvent.clear(idleField());
+		await userEvent.type(page.getByLabelText('Alasan'), 'Ikut bawaan lagi');
+		await page
+			.getByRole('dialog', { name: 'Ubah profil batas' })
+			.getByRole('button', { name: 'Simpan perubahan' })
+			.click();
+
+		await expect.poll(() => vi.mocked(updateLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(updateLimitProfile).mock.calls[0][1]).toMatchObject({
+			idle_sleep_minutes: null
 		});
 	});
 });

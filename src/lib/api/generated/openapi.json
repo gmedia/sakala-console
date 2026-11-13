@@ -6402,6 +6402,63 @@
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
+                    "409": {
+                        "$ref": "#/components/responses/ProjectWakeConflict"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/wake": {
+            "post": {
+                "operationId": "v1.app.projects.wake",
+                "description": "Answers 202: the node starts the kept container, and `runtime_status`\nbecomes `running` once it reports back. A wake that is already queued is\nreturned instead of a second one. Same rights as deploying.",
+                "summary": "Wake a sleeping project",
+                "tags": [
+                    "Project"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "`ProjectResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ProjectWakeConflict"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
@@ -6964,6 +7021,35 @@
                         "$ref": "#/components/responses/ValidationException"
                     }
                 }
+            }
+        },
+        "/v1/public/projects/{slug}/wake": {
+            "post": {
+                "operationId": "v1.public.projects.wake",
+                "description": "Called without credentials by the page a sleeping project shows, as a\nsimple cross-origin POST that never reads the answer. Always `202` with an\nempty body, also for a slug that does not exist, a project that is not\nsleeping, or one that cannot be woken, so the answer tells nothing about a\nproject. A wake that is already queued is not queued twice. The only other\nanswers are `409` `PROJECT_WAKE_LIMIT_EXCEEDED` (without counts) and `429`.",
+                "summary": "Wake a sleeping project",
+                "tags": [
+                    "ProjectWake"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": ""
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ProjectWakeConflict"
+                    }
+                },
+                "security": []
             }
         },
         "/v1/auth/register": {
@@ -9099,7 +9185,8 @@
                                         "running",
                                         "stopped",
                                         "failed",
-                                        "crashed"
+                                        "crashed",
+                                        "sleeping"
                                     ]
                                 },
                                 "build_command": {
@@ -10028,7 +10115,7 @@
                             },
                             "active_projects": {
                                 "type": "integer",
-                                "description": "Projects with a deployment serving traffic (`active_deployment_id` set)."
+                                "description": "Projects with a deployment serving traffic (`active_deployment_id` set and not `sleeping`)."
                             }
                         },
                         "required": [
@@ -10371,7 +10458,8 @@
                             "running",
                             "stopped",
                             "failed",
-                            "crashed"
+                            "crashed",
+                            "sleeping"
                         ]
                     },
                     "repository_url": {
@@ -11132,6 +11220,11 @@
                                         "type": "integer",
                                         "description": "Additive within protocol revision 4: v0.2.0 sends detail_counts\nwithout this key, so it is tied to the list, not to detail_counts.",
                                         "minimum": 0
+                                    },
+                                    "traffic": {
+                                        "type": "integer",
+                                        "description": "Additive within protocol revision 4, sent with `traffic` (idle sleep).",
+                                        "minimum": 0
                                     }
                                 }
                             },
@@ -11276,6 +11369,33 @@
                                             ]
                                         },
                                         "maxItems": 50
+                                    },
+                                    "traffic": {
+                                        "type": "array",
+                                        "description": "Optional, from nodes with the `idle-sleep` capability. The agent\ncaps it at its own max active containers, not at 50; the bound\nhere only keeps one heartbeat cheap. Like crashed_details, a\nmalformed item rejects the whole heartbeat.",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "project_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "deployment_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "last_request_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "required": [
+                                                "project_id",
+                                                "deployment_id",
+                                                "last_request_at"
+                                            ]
+                                        },
+                                        "maxItems": 500
                                     }
                                 },
                                 "required": [
@@ -13602,6 +13722,13 @@
                         ],
                         "description": "Reserved for the build rate limit; not enforced yet."
                     },
+                    "idle_sleep_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Minutes without a request before a project sleeps. `0` never sleeps; `null` follows the global\n`SAKALA_PROJECT_IDLE_SLEEP_MINUTES`."
+                    },
                     "workspaces_count": {
                         "type": [
                             "integer",
@@ -13631,6 +13758,7 @@
                     "max_memory_mb",
                     "max_cpu_millis",
                     "max_builds_per_hour",
+                    "idle_sleep_minutes",
                     "created_at",
                     "updated_at"
                 ],
@@ -13937,6 +14065,10 @@
                     },
                     "deleted_project_retention_days": {
                         "type": "integer"
+                    },
+                    "project_idle_sleep_minutes": {
+                        "type": "integer",
+                        "description": "Minutes without a request before a running project of this workspace is put to sleep, from its\nlimit profile or the global setting. `0` means its projects never sleep."
                     }
                 },
                 "required": [
@@ -13947,7 +14079,8 @@
                     "runtime_maximums",
                     "timeouts",
                     "log_bounds",
-                    "deleted_project_retention_days"
+                    "deleted_project_retention_days",
+                    "project_idle_sleep_minutes"
                 ],
                 "title": "PilotLimitsResource"
             },
@@ -14743,13 +14876,15 @@
             },
             "RuntimeStatus": {
                 "type": "string",
+                "description": "| |\n|---|\n| `not_deployed` <br/>  |\n| `deploying` <br/>  |\n| `running` <br/>  |\n| `stopped` <br/>  |\n| `failed` <br/>  |\n| `crashed` <br/>  |\n| `sleeping` <br/> Put to sleep after being idle; the container is kept and the next request wakes it. |",
                 "enum": [
                     "not_deployed",
                     "deploying",
                     "running",
                     "stopped",
                     "failed",
-                    "crashed"
+                    "crashed",
+                    "sleeping"
                 ],
                 "title": "RuntimeStatus"
             },
@@ -14958,6 +15093,15 @@
                         "description": "Reserved for the build rate limit; stored but not enforced yet.",
                         "minimum": 1,
                         "maximum": 1000
+                    },
+                    "idle_sleep_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Minutes without a request before a project sleeps, up to a week. `0` never puts the workspace's\nprojects to sleep; `null` (the default) follows `SAKALA_PROJECT_IDLE_SLEEP_MINUTES`.",
+                        "minimum": 0,
+                        "maximum": 10080
                     }
                 },
                 "required": [
@@ -15862,6 +16006,10 @@
                                 ],
                                 "description": "Reserved for the build rate limit; not enforced yet."
                             },
+                            "idle_sleep_minutes": {
+                                "type": "integer",
+                                "description": "Effective minutes without a request before a project sleeps, from the profile or the global setting. `0` never sleeps."
+                            },
                             "max_active_deployments_per_project": {
                                 "type": "integer",
                                 "description": "Global, the same for every workspace."
@@ -15874,6 +16022,7 @@
                             "max_memory_mb",
                             "max_cpu_millis",
                             "max_builds_per_hour",
+                            "idle_sleep_minutes",
                             "max_active_deployments_per_project"
                         ]
                     },
@@ -16087,6 +16236,47 @@
                             },
                             "required": [
                                 "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ProjectWakeConflict": {
+                "description": "The project cannot be woken now",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "`PROJECT_WAKE_LIMIT_EXCEEDED`: the workspace already runs as many projects as it may. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.",
+                                    "enum": [
+                                        "PROJECT_WAKE_LIMIT_EXCEEDED",
+                                        "PROJECT_NOT_SLEEPING",
+                                        "PROJECT_SUSPENDED"
+                                    ]
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "The workspace limit of running projects. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake."
+                                },
+                                "current": {
+                                    "type": "integer",
+                                    "description": "Projects the workspace runs now. Same presence as `limit`."
+                                },
+                                "runtime_status": {
+                                    "type": "string",
+                                    "description": "The current `runtime_status`. Only with `PROJECT_NOT_SLEEPING`."
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code"
                             ]
                         }
                     }

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { WorkspaceQuota } from '$lib/api/resources/admin/accounts';
 	import { formatNumber } from '../format';
+	import { idleSleepLine } from '$lib/features/workspaces/limits';
 
 	let { quota, defaultLabel }: { quota: WorkspaceQuota; defaultLabel: string } = $props();
 
@@ -48,4 +49,7 @@
 		)} millicore,
 		{formatNumber(quota.limits.max_active_deployments_per_project)} deployment berjalan.
 	</p>
+	{#if quota.limits.idle_sleep_minutes !== undefined}
+		<p class="text-xs text-muted">{idleSleepLine(quota.limits.idle_sleep_minutes)}</p>
+	{/if}
 </div>

@@ -6,6 +6,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ### Added
 
+- Idle sleep (requires sakala-api with `sleeping` and the wake endpoint, gmedia/sakala-api#155). A project that sleeps after a stretch without visitors shows a calm "Tidur" badge in the project header, the project list, and the admin pages, and keeps its URL, because opening it wakes the project. The header says how many minutes without visitors put it to sleep (from `project_idle_sleep_minutes`, when the user belongs to the workspace) and that this is normal. "Bangunkan" (hidden for viewers) calls `POST /api/v1/app/projects/{project}/wake`, shows a toast, and follows the project until the node reports it running; a full workspace says how many active apps it runs against its limit. The workspace page shows "Tidur otomatis: setelah N menit tanpa pengunjung" or "tidak pernah". Admins see and set "Tidur otomatis (menit)" on limit profiles (empty follows the server setting, `0` never sleeps, up to 10,080 minutes), see it in the profile table and in a workspace's limits, and can filter projects by "Tidur". The deployment page no longer calls the active deployment of a sleeping project "not serving".
+
 - Every `vX.Y.Z` tag now also publishes a GitHub Release once the image is published. Its notes are that version's section of this file followed by GitHub's generated "What's Changed" list, which credits each contributor. The release workflow fails when the tag has no non-empty section here.
 
 ## [0.5.2] - 2026-11-12

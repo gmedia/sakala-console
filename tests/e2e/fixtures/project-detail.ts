@@ -235,6 +235,7 @@ export type ApiHandlers = {
 	updateProject?: (body: Record<string, unknown>) => JsonReply;
 	deleteProject?: () => JsonReply;
 	redeploy?: () => JsonReply;
+	wake?: () => JsonReply;
 	cancel?: () => JsonReply;
 	updateEnv?: (body: Record<string, unknown>) => JsonReply;
 	envList?: () => unknown[];
@@ -326,6 +327,15 @@ export async function mockProjectApi(page: Page, handlers: ApiHandlers = {}) {
 					meta: { current_page: 1, from: 1, last_page: 1, per_page: 6, to: 1, total: data.length }
 				}
 			});
+		}
+		if (/\/wake\/?$/.test(path) && method === 'POST') {
+			return fulfill(
+				route,
+				handlers.wake?.() ?? {
+					status: 202,
+					body: { data: { ...baseProject, runtime_status: 'sleeping' } }
+				}
+			);
 		}
 		if (/\/environment-variables\/[^/]+\/value\/?$/.test(path)) {
 			return fulfill(route, handlers.revealEnv?.() ?? { body: { data: { value: 'rahasia' } } });

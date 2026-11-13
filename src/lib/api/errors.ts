@@ -35,16 +35,29 @@ export const LEGAL_ACCEPTANCE_REQUIRED = 'LEGAL_ACCEPTANCE_REQUIRED';
 /** An account without a password proves itself by logging in at its provider again. */
 export const REAUTHENTICATION_REQUIRED = 'REAUTHENTICATION_REQUIRED';
 
+/** A 409 on deploy, inspection, or wake: an admin suspended the project. */
+export const PROJECT_SUSPENDED = 'PROJECT_SUSPENDED';
+/** A 409 on wake: the workspace already runs as many projects as it may. Carries `limit`, `current`. */
+export const PROJECT_WAKE_LIMIT_EXCEEDED = 'PROJECT_WAKE_LIMIT_EXCEEDED';
+/** A 409 on wake: the project woke or changed in the meantime. Carries `runtime_status`. */
+export const PROJECT_NOT_SLEEPING = 'PROJECT_NOT_SLEEPING';
+
 export type ValidationErrors = Record<string, string[]>;
 
 export type ApiErrorMeta = {
 	code?: string;
 	retryAfterSeconds?: number;
+	details?: Record<string, unknown>;
 };
 
 export class ApiError extends Error {
 	readonly code?: string;
 	readonly retryAfterSeconds?: number;
+	/**
+	 * The other fields of the error body, such as `limit` and `current`. Unvalidated: read them
+	 * through a schema next to the resource that documents them.
+	 */
+	readonly details: Record<string, unknown>;
 
 	constructor(
 		message: string,
@@ -57,6 +70,7 @@ export class ApiError extends Error {
 		this.name = 'ApiError';
 		this.code = meta.code;
 		this.retryAfterSeconds = meta.retryAfterSeconds;
+		this.details = meta.details ?? {};
 	}
 
 	get isUnauthenticated(): boolean {
@@ -100,10 +114,11 @@ export type ApiErrorInput = {
 	apiMessage?: unknown;
 	code?: unknown;
 	retryAfterSeconds?: number;
+	details?: Record<string, unknown>;
 };
 
 export function apiErrorFromResponse(status: number, input: ApiErrorInput = {}): ApiError {
-	const { errors = {}, apiMessage, retryAfterSeconds } = input;
+	const { errors = {}, apiMessage, retryAfterSeconds, details } = input;
 	const code = typeof input.code === 'string' && input.code ? input.code : undefined;
 
 	return new ApiError(
@@ -113,7 +128,8 @@ export function apiErrorFromResponse(status: number, input: ApiErrorInput = {}):
 		apiMessage,
 		{
 			code,
-			retryAfterSeconds
+			retryAfterSeconds,
+			details
 		}
 	);
 }
