@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- Every `vX.Y.Z` tag now also publishes a GitHub Release once the image is published. Its notes are that version's section of this file followed by GitHub's generated "What's Changed" list, which credits each contributor. The release workflow fails when the tag has no non-empty section here.
+
 ## [0.5.2] - 2026-11-12
 
 ### Fixed
