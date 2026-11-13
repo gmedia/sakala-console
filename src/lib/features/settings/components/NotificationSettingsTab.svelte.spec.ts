@@ -52,6 +52,11 @@ describe('NotificationSettingsTab', () => {
 
 		await expect.element(page.getByRole('switch', { name: 'Masalah proyek' })).toBeVisible();
 		await expect.element(page.getByRole('switch')).toHaveLength(6);
+		await expect
+			.element(page.getByRole('switch', { name: 'Aktifkan semua notifikasi' }))
+			.toHaveAccessibleDescription(
+				'Mengatur notifikasi di lonceng Sakala, bukan email. Kategori yang dimatikan tidak membuat notifikasi sama sekali.'
+			);
 		await expect.element(page.getByText('Penawaran Khusus')).not.toBeInTheDocument();
 		await expect.element(page.getByText('Peringatan Suara')).not.toBeInTheDocument();
 	});
