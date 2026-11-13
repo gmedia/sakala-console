@@ -8,16 +8,20 @@
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Check from 'phosphor-svelte/lib/Check';
+	import Moon from 'phosphor-svelte/lib/Moon';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
 	import { ABUSE_EMAIL } from '$lib/config/project';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { formatRelativeTime } from '$lib/utils/date';
 	import { useProjectLiveStatus } from '$lib/features/projects/detail/use-project-live-status.svelte';
 	import { useProjectRedeploy } from '$lib/features/projects/detail/use-project-redeploy.svelte';
+	import { useProjectWake } from '$lib/features/projects/detail/use-project-wake.svelte';
+	import { useProjectIdleWindow } from '$lib/features/projects/detail/use-project-idle-window.svelte';
 	import {
 		getPortDisplay,
 		getProjectPublicUrl,
-		getPublicUrlLabel
+		getPublicUrlLabel,
+		PROJECT_WAKE_COPY
 	} from '$lib/features/projects/presentation';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import { ROLE_LABELS, workspaceLabel } from '$lib/features/workspaces/presentation';
@@ -28,9 +32,17 @@
 
 	let { project }: Props = $props();
 
-	const live = useProjectLiveStatus(() => project);
-	const redeploy = useProjectRedeploy(() => project);
 	const access = useProjectAccess(() => project);
+	const idleWindow = useProjectIdleWindow(
+		() => project,
+		() => access.role !== null
+	);
+	const live = useProjectLiveStatus(
+		() => project,
+		() => ({ idleSleepMinutes: idleWindow.minutes })
+	);
+	const redeploy = useProjectRedeploy(() => project);
+	const wake = useProjectWake(() => project);
 
 	const header = $derived(live.header);
 	const publicUrl = $derived(getProjectPublicUrl(project));
@@ -145,26 +157,51 @@
 			</dl>
 		</div>
 
-		{#if header.showRedeploy && !access.readOnly}
-			<Button class="max-sm:w-full" onclick={redeploy.trigger} disabled={isBusy}>
-				{#if isBusy}
-					<CircleNotch
-						size={18}
-						weight="bold"
-						class="animate-spin motion-reduce:animate-none"
-						aria-hidden="true"
-					/>
-				{:else}
-					<ArrowsClockwise size={18} weight="bold" aria-hidden="true" />
+		{#if !access.readOnly && (header.showWake || header.showRedeploy)}
+			<div class="flex flex-wrap gap-2 max-sm:w-full">
+				{#if header.showWake}
+					<Button class="max-sm:w-full" onclick={wake.trigger} disabled={wake.isWaking}>
+						{#if wake.isWaking}
+							<CircleNotch
+								size={18}
+								weight="bold"
+								class="animate-spin motion-reduce:animate-none"
+								aria-hidden="true"
+							/>
+							{PROJECT_WAKE_COPY.busy}
+						{:else}
+							<Moon size={18} weight="bold" aria-hidden="true" />
+							{PROJECT_WAKE_COPY.action}
+						{/if}
+					</Button>
 				{/if}
-				{#if header.redeployBusy}
-					Sedang men-deploy
-				{:else if header.kind === 'not_deployed'}
-					Deploy sekarang
-				{:else}
-					Redeploy
+				{#if header.showRedeploy}
+					<Button
+						class="max-sm:w-full"
+						variant={header.showWake ? 'secondary' : 'primary'}
+						onclick={redeploy.trigger}
+						disabled={isBusy}
+					>
+						{#if isBusy}
+							<CircleNotch
+								size={18}
+								weight="bold"
+								class="animate-spin motion-reduce:animate-none"
+								aria-hidden="true"
+							/>
+						{:else}
+							<ArrowsClockwise size={18} weight="bold" aria-hidden="true" />
+						{/if}
+						{#if header.redeployBusy}
+							Sedang men-deploy
+						{:else if header.kind === 'not_deployed'}
+							Deploy sekarang
+						{:else}
+							Redeploy
+						{/if}
+					</Button>
 				{/if}
-			</Button>
+			</div>
 		{/if}
 	</div>
 
@@ -176,6 +213,15 @@
 			Kamu {ROLE_LABELS[access.role].toLowerCase()} di workspace {access.workspace?.name}, jadi
 			halaman proyek ini hanya bisa dilihat. Nilai secret disembunyikan, dan deploy serta perubahan
 			pengaturan dilakukan pemilik atau anggota workspace.
+		</p>
+	{/if}
+
+	{#if wake.errorMessage}
+		<p
+			role="alert"
+			class="rounded-control border border-error/30 bg-error-50 px-4 py-2.5 text-sm text-error-dark"
+		>
+			{wake.errorMessage}
 		</p>
 	{/if}
 

@@ -1,7 +1,11 @@
 import { useQueryClient } from '@tanstack/svelte-query';
 import { SequenceGuard } from '$lib/features/realtime/sequence-guard';
 import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
-import { deriveProjectHeaderState, toRuntimeStatus } from '../presentation';
+import {
+	deriveProjectHeaderState,
+	toRuntimeStatus,
+	type ProjectHeaderOptions
+} from '../presentation';
 import {
 	createRecentDeploymentsQuery,
 	isRunningDeployment,
@@ -19,16 +23,20 @@ type DeploymentUpdatedPayload = {
 
 /**
  * Keeps the project header in step with what runs: `deployment.updated` on the running deployment,
- * or on the active one when nothing runs (a crash arrives there), with polling as the fallback.
+ * or on the active one when nothing runs (a crash, sleep, or wake arrives there, and a sleeping
+ * project keeps its active deployment), with polling as the fallback.
  * Query cache stays the source of what renders.
  */
-export function useProjectLiveStatus(project: () => Project) {
+export function useProjectLiveStatus(
+	project: () => Project,
+	options: () => ProjectHeaderOptions = () => ({})
+) {
 	const client = useQueryClient();
 	const projectId = () => project().id;
 
 	const recentQuery = createRecentDeploymentsQuery(projectId);
 	const deployments = $derived(recentQuery.data?.data ?? []);
-	const header = $derived(deriveProjectHeaderState(project(), deployments));
+	const header = $derived(deriveProjectHeaderState(project(), deployments, options()));
 	const running = $derived(deployments.find(isRunningDeployment));
 	const channelDeploymentId = $derived(running?.id ?? project().active_deployment_id ?? null);
 

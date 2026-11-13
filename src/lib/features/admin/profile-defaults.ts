@@ -1,5 +1,11 @@
 import type { AdminWorkspaceDetail, LimitProfile } from '$lib/api/resources/admin/accounts';
 
+/**
+ * The range sakala-api accepts for `idle_sleep_minutes` (StoreLimitProfileRequest): `0` never
+ * sleeps, the most is a week. Empty is not in the range: it means "follow the server's setting".
+ */
+export const IDLE_SLEEP_MINUTES_RANGE = { min: 0, max: 7 * 24 * 60 } as const;
+
 export type ProfileNumbers = Pick<
 	LimitProfile,
 	| 'max_projects'

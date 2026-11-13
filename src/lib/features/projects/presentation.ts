@@ -1,6 +1,14 @@
 import type { PilotLimits } from '$lib/api/resources/pilot-limits';
-import { ApiError, NetworkError } from '$lib/api/errors';
+import {
+	ApiError,
+	getErrorMessage,
+	NetworkError,
+	PROJECT_NOT_SLEEPING,
+	PROJECT_SUSPENDED,
+	PROJECT_WAKE_LIMIT_EXCEEDED
+} from '$lib/api/errors';
 import type { RuntimeStatus } from '$lib/api/resources/projects';
+import { parseWakeLimitDetails } from '$lib/api/resources/project-wake';
 import { getDeploymentStatusLabel } from '$lib/features/deployments/status-config';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
 
@@ -33,6 +41,11 @@ export const runtimeStatusPresentation: Record<RuntimeStatus, RuntimeStatusPrese
 	not_deployed: {
 		label: 'Belum deploy',
 		variant: 'muted'
+	},
+	// Sleeping is the normal state of a quiet project, so it reads calm, not as a warning.
+	sleeping: {
+		label: 'Tidur',
+		variant: 'muted'
 	}
 };
 
@@ -57,14 +70,8 @@ export function getProjectListStatusPresentation(project: {
 	return status ? runtimeStatusPresentation[status] : { label: 'Lainnya', variant: 'neutral' };
 }
 
-const knownRuntimeStatuses = [
-	'not_deployed',
-	'deploying',
-	'running',
-	'stopped',
-	'failed',
-	'crashed'
-] as const;
+/** Every status the Console has a label for; anything newer shows as Lainnya. */
+const knownRuntimeStatuses = Object.keys(runtimeStatusPresentation) as readonly RuntimeStatus[];
 
 export type ProjectListErrorState = 'unauthenticated' | 'network' | 'server' | 'unknown';
 
@@ -152,6 +159,19 @@ export function isProjectServing(
 	return project.runtime_status === 'deploying' && Boolean(project.active_deployment_id);
 }
 
+/**
+ * Whether a card links its address. A sleeping project does not serve, but opening its URL shows a
+ * page that wakes it, so the link stays. The list sends `suspension` instead of `status`.
+ */
+export function isListedProjectUrlReachable(project: {
+	runtime_status: string;
+	suspension: unknown;
+}): boolean {
+	if (project.suspension != null) return false;
+	const status = toRuntimeStatus(project.runtime_status);
+	return status === 'running' || status === 'sleeping';
+}
+
 export type ProjectHeaderKind =
 	| 'suspended'
 	| 'deploying'
@@ -161,10 +181,12 @@ export type ProjectHeaderKind =
 	| 'live_failed_attempt'
 	| 'crashed'
 	| 'stopped'
+	| 'sleeping'
 	| 'unknown';
 
 export type ProjectHeaderNotice = {
-	tone: 'info' | 'warning' | 'error' | 'muted';
+	/** `info` spins, because something is in progress; `sleeping` is calm on purpose. */
+	tone: 'info' | 'warning' | 'error' | 'muted' | 'sleeping';
 	message: string;
 	link?: { label: string; deploymentId: string; toLogs: boolean };
 };
@@ -176,6 +198,8 @@ export type ProjectHeaderState = {
 	showRedeploy: boolean;
 	/** A deployment is already running, and a second click would only hit the limit. */
 	redeployBusy: boolean;
+	/** The project sleeps, so Bangunkan is the main action. */
+	showWake: boolean;
 	/** The public URL answers right now, so it may be shown. */
 	serving: boolean;
 	/** The address is worth showing though the project is not reliably serving. */
@@ -200,6 +224,45 @@ function describeRunningDeployment(deployment: HeaderDeployment | null): string 
 	return `${name} sedang berjalan, tahap ${getDeploymentStatusLabel(deployment.status)}.`;
 }
 
+export type ProjectHeaderOptions = {
+	/** The workspace's effective idle window, when known; `0` means its projects never sleep. */
+	idleSleepMinutes?: number | null;
+};
+
+/** Neutral on purpose: sleeping is what a quiet project does, not something that went wrong. */
+export function getSleepingNotice(idleSleepMinutes?: number | null): string {
+	const why = idleSleepMinutes
+		? `tidak ada pengunjung selama ${decimal.format(idleSleepMinutes)} menit`
+		: 'lama tidak ada pengunjung';
+	return `Proyek ini sedang tidur karena ${why}. Ini normal: proyek menyala lagi saat URL-nya dibuka.`;
+}
+
+export const PROJECT_WAKE_COPY = {
+	action: 'Bangunkan',
+	busy: 'Membangunkan...',
+	requested: 'Proyek sedang dibangunkan. Statusnya berubah jadi Live begitu aplikasinya siap.',
+	failed: 'Proyek belum berhasil dibangunkan. Silakan coba lagi.',
+	suspended: 'Proyek ini ditangguhkan admin Sakala, jadi belum bisa dibangunkan.'
+} as const;
+
+/**
+ * What to say when a wake is refused. `null` for a project that is no longer asleep: the refreshed
+ * header already tells the truth, so there is nothing to apologise for.
+ */
+export function getProjectWakeErrorMessage(error: unknown): string | null {
+	if (error instanceof ApiError) {
+		if (error.code === PROJECT_NOT_SLEEPING) return null;
+		if (error.code === PROJECT_SUSPENDED) return PROJECT_WAKE_COPY.suspended;
+		if (error.code === PROJECT_WAKE_LIMIT_EXCEEDED) {
+			const usage = parseWakeLimitDetails(error.details);
+			if (usage) {
+				return `Batas aplikasi aktif workspace sudah penuh, ${usage.current} dari ${usage.limit}. Coba lagi setelah ada proyek lain yang tidur atau dihapus.`;
+			}
+		}
+	}
+	return getErrorMessage(error, PROJECT_WAKE_COPY.failed);
+}
+
 /**
  * One truthful reading of a project, from what the API reports. `status` only says draft, active,
  * or suspended, and stays draft until a deployment first succeeds, so apart from suspended it never
@@ -208,7 +271,8 @@ function describeRunningDeployment(deployment: HeaderDeployment | null): string 
  */
 export function deriveProjectHeaderState(
 	project: Pick<Project, 'status' | 'runtime_status' | 'active_deployment_id'>,
-	recentDeployments: readonly HeaderDeployment[] = []
+	recentDeployments: readonly HeaderDeployment[] = [],
+	options: ProjectHeaderOptions = {}
 ): ProjectHeaderState {
 	const latest = recentDeployments.reduce<HeaderDeployment | null>(
 		(newest, deployment) =>
@@ -219,7 +283,13 @@ export function deriveProjectHeaderState(
 	const runtimeStatus = toRuntimeStatus(project.runtime_status);
 	const serving = isProjectServing(project);
 
-	const base = { showRedeploy: true, redeployBusy: false, serving: false, notice: null };
+	const base = {
+		showRedeploy: true,
+		redeployBusy: false,
+		showWake: false,
+		serving: false,
+		notice: null
+	};
 
 	if (project.status === 'suspended') {
 		return {
@@ -307,6 +377,16 @@ export function deriveProjectHeaderState(
 					message:
 						'Aplikasi sedang dihentikan dan tidak melayani. Redeploy untuk menyalakannya lagi.'
 				}
+			};
+
+		case 'sleeping':
+			return {
+				...base,
+				kind: 'sleeping',
+				badge: runtimeStatusPresentation.sleeping,
+				showWake: true,
+				showUrl: true,
+				notice: { tone: 'sleeping', message: getSleepingNotice(options.idleSleepMinutes) }
 			};
 
 		case 'running':

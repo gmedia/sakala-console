@@ -21,6 +21,8 @@ Jangan memanggil raw `fetch` dari route atau component. Tambahkan wrapper domain
 
 `ApiError.code` membawa kode stabil dari API kalau ada. `message` memakai teks API untuk penolakan bisnis 4xx: selalu kalau ada `code`, dan untuk 402, 403, 409, 422, dan 423 kalau belum ada `code`. Pesan bawaan Laravel, teks yang memuat nama class atau SQL, serta semua teks pada 401, 419, dan 5xx diganti pesan aman. Tampilkan error di UI lewat `getErrorMessage(error, fallback)`, supaya pesan `ZodError` atau `TypeError` tidak sampai ke user.
 
+Field lain di body error, misalnya `limit` dan `current` pada `PROJECT_WAKE_LIMIT_EXCEEDED`, ada di `ApiError.details` tanpa divalidasi. Bacalah lewat schema Zod di resource yang mendokumentasikannya, contohnya `parseWakeLimitDetails()` di `api/resources/project-wake.ts`. Kode yang dibaca Console disimpan sebagai konstanta di `api/errors.ts`.
+
 ## Generated Types
 
 `src/lib/api/generated/openapi.json` adalah export Scramble OpenAPI dari `sakala-api` yang di-commit,
@@ -152,7 +154,7 @@ PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` meng
 
 ## Daftar Project
 
-`GET app/projects` mengirim `public_url` dan `latest_deployment`, yang boleh `null` untuk project tanpa deployment. Kartu hanya menautkan URL saat `runtime_status` bernilai `running`. Satu baca daftar berarti satu request untuk enam kartu.
+`GET app/projects` mengirim `public_url` dan `latest_deployment`, yang boleh `null` untuk project tanpa deployment. Kartu hanya menautkan URL saat `runtime_status` bernilai `running` atau `sleeping` dan project tidak ditangguhkan, karena membuka URL project yang tidur membangunkannya (`isListedProjectUrlReachable()`). Satu baca daftar berarti satu request untuk enam kartu.
 
 `useProjectListLive()` mengikuti `deployment.updated` di channel `deployment.{id}` untuk setiap deployment yang masih berjalan di halaman itu, jadi tiap tahap membaca ulang daftar, satu request per rentetan event. Channel-nya tetap terbuka selama deployment itu berjalan dan ditutup begitu selesai. `notification.created` di `users.{id}` juga membaca ulang daftar, karena notifikasi itulah yang mengabarkan akhir deployment. API belum punya channel per project atau per user yang mengabarkan deployment baru, jadi deployment yang dimulai dari tempat lain, misalnya webhook, hanya terlihat lewat polling `resolveProjectListPollInterval()`: tanpa realtime 15 detik saat ada yang berjalan dan 60 detik saat tidak, dengan realtime 5 menit sebagai jaring pengaman.
 
@@ -161,6 +163,8 @@ PHP hanya mem-parse body multipart pada `POST`. Karena itu `uploadAvatar()` meng
 `deriveProjectHeaderState()` di `features/projects/presentation.ts` adalah satu-satunya tempat yang menentukan klaim header project: badge, boleh tidaknya Redeploy, URL, dan pesan. `project.status` tetap `draft` sampai deployment pertama berhasil, dan deployment yang masih `queued` belum mengubah `runtime_status`, jadi fungsi ini juga membaca deployment terbaru.
 
 `useProjectLiveStatus()` mengikuti `deployment.updated` pada deployment yang berjalan, atau pada deployment aktif kalau tidak ada yang berjalan, karena `project_runtime_status` saat crash dikirim ke sana. Polling menjadi cadangannya: 10 detik saat ada deployment berjalan, 60 detik kalau realtime terhubung atau idle.
+
+`sleeping` berarti project ditidurkan karena sepi. Ini perilaku normal: badge "Tidur" bernada `muted`, URL tetap tampil karena membukanya membangunkan project, dan pesannya menyebut jendela sepi dari `project_idle_sleep_minutes` di `GET app/pilot-limits` kalau user anggota workspace itu (`useProjectIdleWindow()`). Tombol Bangunkan (tidak tampil untuk viewer) memanggil `POST app/projects/{project}/wake` lewat `createWakeProjectMutation()`. Jawabannya `202` dengan project yang masih `sleeping`; sampai node melapor, `useProjectWake()` membaca ulang project setiap 5 detik selama paling lama 2 menit, dan `deployment.updated` di channel deployment aktif mempercepatnya kalau realtime terhubung. `PROJECT_WAKE_LIMIT_EXCEEDED` menyebut batas aplikasi aktif beserta angkanya, `PROJECT_SUSPENDED` dan `PROJECT_NOT_SLEEPING` membaca ulang project, dan yang terakhir tidak menampilkan pesan.
 
 `crashed` berarti aplikasi sedang restart atau crash loop, jadi URL tetap tampil dan pesannya bilang URL bisa kadang terbuka. Port yang tampil adalah `serving_port` kalau API mengirimnya, dan `effective_port` ditandai berlaku di deploy berikutnya kalau berbeda.
 

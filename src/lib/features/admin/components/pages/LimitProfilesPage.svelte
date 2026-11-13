@@ -21,9 +21,13 @@
 	} from '../../mutations';
 	import { useListUrl } from '../../list-url.svelte';
 	import { readListState, toApiParams } from '../../url-state';
-	import { formatNumber } from '../../format';
+	import { formatNumber, formatProfileIdleSleep } from '../../format';
 	import { ASSIGN_PROFILE_PARAM, parseProfileReturn } from '../../return-to';
-	import { profilePrefill, type ProfilePrefill } from '../../profile-defaults';
+	import {
+		IDLE_SLEEP_MINUTES_RANGE,
+		profilePrefill,
+		type ProfilePrefill
+	} from '../../profile-defaults';
 
 	const SPEC = { search: 'text' } as const;
 	const url = useListUrl();
@@ -56,7 +60,7 @@
 			label: 'Container berjalan',
 			min: 1,
 			max: 1000,
-			hint: 'Proyek yang melayani atau sedang di-deploy sekaligus.'
+			hint: 'Proyek yang melayani atau sedang di-deploy sekaligus. Proyek yang tidur tidak dihitung.'
 		},
 		{
 			key: 'max_active_deployments',
@@ -86,6 +90,13 @@
 			max: 1000,
 			hint: 'Boleh dikosongkan. API belum menegakkan batas ini; nilainya disimpan untuk nanti.',
 			optional: true
+		},
+		{
+			key: 'idle_sleep_minutes',
+			label: 'Tidur otomatis (menit)',
+			...IDLE_SLEEP_MINUTES_RANGE,
+			hint: `Kosong berarti ikut bawaan server, 0 berarti proyek tidak pernah tidur, atau 1 sampai ${formatNumber(IDLE_SLEEP_MINUTES_RANGE.max)} menit tanpa pengunjung.`,
+			optional: true
 		}
 	];
 
@@ -100,7 +111,8 @@
 		max_active_deployments: '',
 		max_memory_mb: '',
 		max_cpu_millis: '',
-		max_builds_per_hour: ''
+		max_builds_per_hour: '',
+		idle_sleep_minutes: ''
 	});
 
 	let deleting = $state<LimitProfile | null>(null);
@@ -271,6 +283,7 @@
 			{ label: 'Deployment', class: 'text-right' },
 			{ label: 'Memori', class: 'text-right' },
 			{ label: 'CPU', class: 'text-right' },
+			{ label: 'Tidur otomatis', class: 'text-right' },
 			{ label: 'Dipakai', class: 'text-right' },
 			{ label: 'Aksi', srOnly: true }
 		]}
@@ -296,6 +309,9 @@
 					>
 					<td class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
 						>{formatNumber(profile.max_cpu_millis)} m</td
+					>
+					<td class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
+						>{formatProfileIdleSleep(profile.idle_sleep_minutes)}</td
 					>
 					<td class="px-4 py-3 text-right">
 						<a

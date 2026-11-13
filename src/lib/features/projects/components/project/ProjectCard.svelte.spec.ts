@@ -196,6 +196,20 @@ describe('ProjectCard, what the list now knows', () => {
 		expect(url.element().className).toContain('z-10');
 	});
 
+	test('a sleeping project says Tidur and keeps its address, because opening it wakes it', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			runtime_status: 'sleeping',
+			public_url: 'https://toko.run.sakala.dev',
+			latest_deployment: latest
+		});
+
+		await expect.element(page.getByTestId('runtime-status-badge')).toHaveTextContent('Tidur');
+		await expect
+			.element(page.getByTestId('project-card-url'))
+			.toHaveAttribute('href', 'https://toko.run.sakala.dev');
+	});
+
 	test('does not offer a site that is not up', async () => {
 		await render(ProjectCard, {
 			...baseProject,

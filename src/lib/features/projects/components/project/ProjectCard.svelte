@@ -10,7 +10,7 @@
 		getFrameworkLabel,
 		getProjectPublicUrl,
 		getPublicUrlLabel,
-		toRuntimeStatus
+		isListedProjectUrlReachable
 	} from '../../presentation';
 	import { workspaceLabel } from '$lib/features/workspaces/presentation';
 	import RuntimeStatusBadge from './RuntimeStatusBadge.svelte';
@@ -24,10 +24,8 @@
 	const latest = $derived(project.latest_deployment);
 	const publicUrl = $derived(getProjectPublicUrl(project));
 	// A project that serves nothing has an address, and showing it as a link would promise a site.
-	// A suspended one has its traffic cut even while the agent has not stopped it yet.
-	const isLive = $derived(
-		project.suspension == null && toRuntimeStatus(project.runtime_status) === 'running'
-	);
+	// A sleeping one wakes when the link is opened, so it keeps the link, like its header does.
+	const showUrl = $derived(isListedProjectUrlReachable(project));
 	const lastActivityAt = $derived(latest?.created_at ?? project.last_deployed_at);
 </script>
 
@@ -45,7 +43,7 @@
 				{project.name}
 			</a>
 		</h2>
-		{#if isLive && publicUrl}
+		{#if showUrl && publicUrl}
 			<a
 				href={publicUrl}
 				target="_blank"

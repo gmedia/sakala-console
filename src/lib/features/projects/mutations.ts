@@ -10,6 +10,7 @@ import {
 	triggerRedeploy,
 	addEnvironmentVariable,
 	requestProjectInspection,
+	wakeProject,
 	updateEnvironmentVariable,
 	deleteEnvironmentVariable
 } from './api';
@@ -121,6 +122,28 @@ export function createRedeployMutation() {
 					queryKey: projectKeys.detail(variables.projectId),
 					exact: true
 				});
+			}
+		}
+	}));
+}
+
+/**
+ * The 202 carries the project still `sleeping`; the node reports `running` later. A coded refusal
+ * (suspended, woken already, limit) means the cached project is out of date.
+ */
+export function createWakeProjectMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (projectId: string) => wakeProject(projectId),
+		onSuccess: (project: Project, projectId: string) => {
+			queryClient.setQueryData(projectKeys.detail(projectId), project);
+			queryClient.invalidateQueries({ queryKey: queryKeys.pilotLimits });
+		},
+		onError: (error, projectId) => {
+			if (error instanceof ApiError && error.code) {
+				queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId), exact: true });
+				queryClient.invalidateQueries({ queryKey: queryKeys.pilotLimits });
 			}
 		}
 	}));

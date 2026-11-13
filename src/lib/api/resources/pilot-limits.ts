@@ -7,8 +7,8 @@ type GeneratedQuotas = GeneratedPilotLimits['quotas'];
 type ContainerQuotaKey = 'max_active_containers' | 'current_active_containers_count';
 
 /**
- * The part of the resource the Console reads. The workspace and container fields stay optional
- * because an API from before workspaces does not send them.
+ * The part of the resource the Console reads. The workspace, container, and idle sleep fields stay
+ * optional because an older API does not send them.
  */
 type PilotLimitsContract = Pick<
 	GeneratedPilotLimits,
@@ -18,6 +18,7 @@ type PilotLimitsContract = Pick<
 		Partial<Pick<GeneratedQuotas, ContainerQuotaKey>>;
 	workspace_id?: GeneratedPilotLimits['workspace_id'];
 	limit_profile?: GeneratedPilotLimits['limit_profile'];
+	project_idle_sleep_minutes?: GeneratedPilotLimits['project_idle_sleep_minutes'];
 };
 
 const pilotLimitsResponseSchema = z.object({
@@ -43,7 +44,9 @@ const pilotLimitsResponseSchema = z.object({
 			start_timeout_seconds: z.number(),
 			command_timeout_seconds: z.number()
 		}),
-		deleted_project_retention_days: z.number()
+		deleted_project_retention_days: z.number(),
+		/** `0`: projects of this workspace never sleep. */
+		project_idle_sleep_minutes: z.number().optional()
 	})
 }) satisfies z.ZodType<{ data: PilotLimitsContract }>;
 

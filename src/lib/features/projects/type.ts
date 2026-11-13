@@ -1,6 +1,7 @@
 import type { components } from '$lib/api/generated/schema';
 import type { DeploymentStatus } from '$lib/features/deployments/type';
 import type { WorkspaceSummary } from '$lib/api/resources/workspaces';
+import type { RuntimeStatus } from '$lib/api/resources/projects';
 
 type ProjectContractFields = Pick<
 	components['schemas']['ProjectResource'],
@@ -24,8 +25,7 @@ type DeploymentContractFields = Pick<
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
 >;
 
-export type RuntimeStatus =
-	'not_deployed' | 'deploying' | 'running' | 'stopped' | 'failed' | 'crashed';
+export type { RuntimeStatus };
 
 export type ProjectStatus = 'draft' | 'active' | 'failed' | 'suspended';
 

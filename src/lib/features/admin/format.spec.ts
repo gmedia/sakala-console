@@ -4,8 +4,11 @@ import {
 	agentStatus,
 	bucketGrowth,
 	failureCategoryLabel,
+	formatProfileIdleSleep,
 	formatRange,
 	formatShare,
+	runtimeStatus,
+	RUNTIME_STATUS_OPTIONS,
 	formatWibDateTime,
 	onboardingSourceLabel,
 	shortId,
@@ -96,5 +99,19 @@ describe('labels', () => {
 	it('shortens a long ID from both ends', () => {
 		expect(shortId('agent-01a1cae3-b6e8-701a-9eb2-70683acae471')).toBe('agent-01…3acae471');
 		expect(shortId('short')).toBe('short');
+	});
+});
+
+describe('sleeping projects in the admin', () => {
+	it('labels sleeping calmly, and offers it as a filter', () => {
+		expect(runtimeStatus('sleeping')).toEqual({ label: 'Tidur', tone: 'muted' });
+		expect(RUNTIME_STATUS_OPTIONS).toContainEqual({ value: 'sleeping', label: 'Tidur' });
+	});
+
+	it("tells a profile that follows the server's setting from one that never sleeps", () => {
+		expect(formatProfileIdleSleep(null)).toBe('Ikut bawaan server');
+		expect(formatProfileIdleSleep(0)).toBe('Tidak pernah');
+		expect(formatProfileIdleSleep(10080)).toBe('10.080 menit');
+		expect(formatProfileIdleSleep(undefined)).toBe('-');
 	});
 });

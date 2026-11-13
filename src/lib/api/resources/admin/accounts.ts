@@ -38,7 +38,9 @@ const quotaSchema = z.object({
 		max_memory_mb: z.number(),
 		max_cpu_millis: z.number(),
 		max_builds_per_hour: z.number().nullable(),
-		max_active_deployments_per_project: z.number()
+		max_active_deployments_per_project: z.number(),
+		/** Effective, from the profile or the global setting; `0` never sleeps. Newer APIs only. */
+		idle_sleep_minutes: z.number().optional()
 	}),
 	usage: z.object({
 		projects: z.number(),
@@ -124,6 +126,8 @@ export const limitProfileSchema = z.object({
 	max_memory_mb: z.number(),
 	max_cpu_millis: z.number(),
 	max_builds_per_hour: z.number().nullable(),
+	/** `null` follows the global setting, `0` never sleeps. Missing from an older API. */
+	idle_sleep_minutes: z.number().nullable().optional(),
 	workspaces_count: z.number().optional(),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
@@ -225,6 +229,7 @@ export type LimitProfileFields = Pick<
 	| 'max_memory_mb'
 	| 'max_cpu_millis'
 	| 'max_builds_per_hour'
+	| 'idle_sleep_minutes'
 >;
 
 export async function listLimitProfiles(params: QueryParams) {

@@ -25,6 +25,7 @@ type ErrorPayload = {
 	code?: unknown;
 	errors?: unknown;
 	retry_after?: unknown;
+	[field: string]: unknown;
 };
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
@@ -98,19 +99,23 @@ async function createApiError(response: Response): Promise<ApiError> {
 	let payload: ErrorPayload = {};
 
 	try {
-		payload = (await response.json()) as ErrorPayload;
+		const body: unknown = await response.json();
+		if (body && typeof body === 'object' && !Array.isArray(body)) payload = body as ErrorPayload;
 	} catch {
 		// A non-JSON upstream response still becomes a predictable API error.
 	}
 
+	const { message, code, errors, retry_after: retryAfter, ...details } = payload;
+
 	return apiErrorFromResponse(response.status, {
-		errors: normalizeValidationErrors(payload.errors),
-		apiMessage: payload.message,
-		code: payload.code,
+		errors: normalizeValidationErrors(errors),
+		apiMessage: message,
+		code,
+		details,
 		// Cross-origin, this header is only readable when the API lists it in exposed_headers.
 		retryAfterSeconds:
 			parseRetryAfter(response.headers.get('Retry-After')) ??
-			(typeof payload.retry_after === 'number' ? payload.retry_after : undefined)
+			(typeof retryAfter === 'number' ? retryAfter : undefined)
 	});
 }
 

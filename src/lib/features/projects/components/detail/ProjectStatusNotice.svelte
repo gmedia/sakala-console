@@ -3,6 +3,7 @@
 	import { resolveRoute } from '$app/paths';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Link from 'phosphor-svelte/lib/Link';
+	import Moon from 'phosphor-svelte/lib/Moon';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import type { Snippet } from 'svelte';
 	import type { ResolvedPathname } from '$app/types';
@@ -47,6 +48,8 @@
 			<WarningCircle size={24} class="shrink-0 text-error" />
 		{:else if notice.tone === 'warning'}
 			<WarningCircle size={24} class="shrink-0 text-warning-dark" />
+		{:else if notice.tone === 'sleeping'}
+			<Moon size={24} class="shrink-0 text-muted" aria-hidden="true" />
 		{:else}
 			<Link size={24} class="shrink-0 text-foreground" />
 		{/if}

@@ -15,9 +15,20 @@ import {
 	getPortDisplay,
 	getActiveDeploymentLimitNotice,
 	getProjectQuotaNotice,
-	isProjectQuotaReached
+	getProjectWakeErrorMessage,
+	getSleepingNotice,
+	isListedProjectUrlReachable,
+	isProjectQuotaReached,
+	isProjectServing,
+	PROJECT_WAKE_COPY
 } from './presentation';
-import { apiErrorFromResponse, NetworkError } from '$lib/api/errors';
+import {
+	apiErrorFromResponse,
+	NetworkError,
+	PROJECT_NOT_SLEEPING,
+	PROJECT_SUSPENDED,
+	PROJECT_WAKE_LIMIT_EXCEEDED
+} from '$lib/api/errors';
 
 describe('runtimeStatusPresentation', () => {
 	it.each([
@@ -26,7 +37,8 @@ describe('runtimeStatusPresentation', () => {
 		['stopped', 'Berhenti', 'muted'],
 		['crashed', 'Crash', 'error'],
 		['deploying', 'Men-deploy', 'running'],
-		['not_deployed', 'Belum deploy', 'muted']
+		['not_deployed', 'Belum deploy', 'muted'],
+		['sleeping', 'Tidur', 'muted']
 	] as const)('memiliki presentation untuk status %s', (status, label, variant) => {
 		expect(runtimeStatusPresentation[status]).toEqual({
 			label,
@@ -77,10 +89,16 @@ describe('getProjectListStatusPresentation', () => {
 			getProjectListStatusPresentation({ runtime_status: 'maintenance', suspension: null }).label
 		).toBe('Lainnya');
 	});
+
+	it('a sleeping project reads Tidur, calm rather than a warning', () => {
+		expect(
+			getProjectListStatusPresentation({ runtime_status: 'sleeping', suspension: null })
+		).toEqual({ label: 'Tidur', variant: 'muted' });
+	});
 });
 
 describe('toRuntimeStatus', () => {
-	it.each(['not_deployed', 'deploying', 'running', 'stopped', 'failed', 'crashed'])(
+	it.each(['not_deployed', 'deploying', 'running', 'stopped', 'failed', 'crashed', 'sleeping'])(
 		'menerima runtime status yang dikenal: %s',
 		(status) => {
 			expect(toRuntimeStatus(status)).toBe(status);
@@ -282,6 +300,59 @@ describe('deriveProjectHeaderState', () => {
 		expect(state.kind).toBe('failed');
 		expect(state.notice?.message).toContain('belum ada URL publik');
 		expect(state.notice?.link?.deploymentId).toBe('dep_1');
+	});
+
+	it('sleeping: not Live, keeps the URL, offers Bangunkan, and says it is normal', () => {
+		const state = deriveProjectHeaderState({ ...live, runtime_status: 'sleeping' }, [], {
+			idleSleepMinutes: 30
+		});
+
+		expect(state.kind).toBe('sleeping');
+		expect(state.badge).toEqual({ label: 'Tidur', variant: 'muted' });
+		expect(state.serving).toBe(false);
+		expect(state.showUrl).toBe(true);
+		expect(state.showWake).toBe(true);
+		expect(state.showRedeploy).toBe(true);
+		expect(state.notice).toEqual({
+			tone: 'sleeping',
+			message:
+				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka.'
+		});
+	});
+
+	it('sleeping without a known idle window leaves the number out', () => {
+		const state = deriveProjectHeaderState({ ...live, runtime_status: 'sleeping' });
+
+		expect(state.notice?.message).toBe(getSleepingNotice());
+		expect(state.notice?.message).toContain('lama tidak ada pengunjung');
+		expect(state.notice?.message).not.toMatch(/\d/);
+	});
+
+	it('a deployment started while asleep reads as deploying, without Bangunkan', () => {
+		const state = deriveProjectHeaderState({ ...live, runtime_status: 'sleeping' }, [
+			attempt('building')
+		]);
+
+		expect(state.kind).toBe('deploying');
+		expect(state.showWake).toBe(false);
+	});
+
+	it('only a sleeping project offers Bangunkan', () => {
+		for (const runtime_status of ['running', 'stopped', 'crashed', 'failed'] as const) {
+			expect(deriveProjectHeaderState({ ...live, runtime_status }).showWake).toBe(false);
+		}
+	});
+
+	it('suspended wins over sleeping: no Bangunkan and no URL', () => {
+		const state = deriveProjectHeaderState({
+			...live,
+			status: 'suspended',
+			runtime_status: 'sleeping'
+		});
+
+		expect(state.kind).toBe('suspended');
+		expect(state.showWake).toBe(false);
+		expect(state.showUrl).toBeUndefined();
 	});
 
 	it('suspended: no Redeploy, says why, and wins over everything else', () => {
@@ -486,5 +557,71 @@ describe('a suspended project', () => {
 		expect(state.kind).toBe('suspended');
 		expect(state.showRedeploy).toBe(false);
 		expect(state.serving).toBe(false);
+	});
+});
+
+describe('a sleeping project and its URL', () => {
+	const sleeping = {
+		status: 'active',
+		runtime_status: 'sleeping',
+		active_deployment_id: 'dep_1'
+	} as const;
+
+	it('is not serving, so it never claims Live', () => {
+		expect(isProjectServing(sleeping)).toBe(false);
+	});
+
+	it('the list links running and sleeping projects, never suspended ones', () => {
+		expect(isListedProjectUrlReachable({ runtime_status: 'sleeping', suspension: null })).toBe(
+			true
+		);
+		expect(isListedProjectUrlReachable({ runtime_status: 'running', suspension: null })).toBe(true);
+		expect(isListedProjectUrlReachable({ runtime_status: 'stopped', suspension: null })).toBe(
+			false
+		);
+		expect(
+			isListedProjectUrlReachable({
+				runtime_status: 'sleeping',
+				suspension: { reason: null, suspended_at: null }
+			})
+		).toBe(false);
+	});
+});
+
+describe('getProjectWakeErrorMessage', () => {
+	const conflict = (code: string, extra: Record<string, unknown> = {}) =>
+		apiErrorFromResponse(409, { code, apiMessage: 'Pesan dari API.', details: extra });
+
+	it('names the workspace limit with the counts the API sent', () => {
+		expect(
+			getProjectWakeErrorMessage(conflict(PROJECT_WAKE_LIMIT_EXCEEDED, { limit: 3, current: 3 }))
+		).toBe(
+			'Batas aplikasi aktif workspace sudah penuh, 3 dari 3. Coba lagi setelah ada proyek lain yang tidur atau dihapus.'
+		);
+	});
+
+	it("falls back to the API's words when the counts are missing", () => {
+		expect(getProjectWakeErrorMessage(conflict(PROJECT_WAKE_LIMIT_EXCEEDED))).toBe(
+			'Pesan dari API.'
+		);
+	});
+
+	it('says nothing for a project that is already awake, because the header catches up', () => {
+		expect(
+			getProjectWakeErrorMessage(conflict(PROJECT_NOT_SLEEPING, { runtime_status: 'running' }))
+		).toBeNull();
+	});
+
+	it('says a suspended project cannot be woken, instead of the deploy wording', () => {
+		expect(getProjectWakeErrorMessage(conflict(PROJECT_SUSPENDED))).toBe(
+			PROJECT_WAKE_COPY.suspended
+		);
+	});
+
+	it('keeps a safe fallback for anything else', () => {
+		expect(getProjectWakeErrorMessage(new TypeError('boom'))).toBe(PROJECT_WAKE_COPY.failed);
+		expect(getProjectWakeErrorMessage(new NetworkError())).toBe(
+			'Sakala API tidak dapat dijangkau.'
+		);
 	});
 });

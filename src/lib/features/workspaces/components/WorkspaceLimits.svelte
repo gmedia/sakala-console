@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { PilotLimits } from '$lib/api/resources/pilot-limits';
-	import { workspaceLimitRows } from '../limits';
+	import { workspaceIdleSleepSummary, workspaceLimitRows } from '../limits';
 
 	let { limits, isLoading = false }: { limits: PilotLimits | undefined; isLoading?: boolean } =
 		$props();
 
 	const rows = $derived(limits ? workspaceLimitRows(limits) : []);
+	const idleSleep = $derived(limits ? workspaceIdleSleepSummary(limits) : null);
 </script>
 
 <section class="surface-card flex flex-col gap-3 p-4 sm:p-6" aria-labelledby="limits-heading">
@@ -37,6 +38,9 @@
 				</div>
 			{/each}
 		</dl>
+		{#if idleSleep}
+			<p class="text-sm text-foreground">{idleSleep}</p>
+		{/if}
 		<p class="text-xs text-muted">
 			Batas berlaku untuk seluruh workspace, dipakai bersama semua anggota. Admin Sakala bisa
 			memasang profil batas yang lebih besar.

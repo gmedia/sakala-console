@@ -119,6 +119,8 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 			return deploymentQuery.data?.servingUnconfirmed ? 'unconfirmed' : 'superseded';
 		}
 		if (project?.runtime_status === 'crashed') return 'crash_looping';
+		// Asleep is normal for a quiet project, not a deployment that stopped serving.
+		if (project?.runtime_status === 'sleeping' && project.status !== 'suspended') return 'sleeping';
 		return project && !isProjectServing(project) ? 'not_serving' : 'live';
 	});
 	const events = $derived(deploymentEventsQuery.data?.data ?? []);

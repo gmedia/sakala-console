@@ -42,6 +42,17 @@ export async function requestProjectInspection(id: string): Promise<Project> {
 }
 
 /**
+ * Wake a sleeping project. Answers 202 with the project still `sleeping`: it turns `running` once
+ * the node has started the kept container and reported back.
+ */
+export async function wakeProject(id: string): Promise<Project> {
+	const res = await apiRequest<{ data: Project }>(`/api/v1/app/projects/${id}/wake`, {
+		method: 'POST'
+	});
+	return res.data;
+}
+
+/**
  * Delete project
  */
 export async function deleteProject(id: string): Promise<void> {
