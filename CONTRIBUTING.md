@@ -33,7 +33,7 @@ docs(console): explain static fallback
 
 ## Release
 
-Rilis dimulai dari commit persiapan lewat pull request ke `main`, misalnya `chore(release): prepare v0.4.0`. Commit itu memindahkan isi `[Unreleased]` di `CHANGELOG.md` ke bagian versi baru dan menaikkan `version` di `package.json` ke versi yang sama, karena sidebar menampilkan versi dari situ. Setelah commit itu masuk `main`, beri tag `v<versi>` pada commit tersebut. Workflow `release` menolak tag yang tidak bisa dicapai dari `main` atau yang tidak sama dengan `version` di `package.json`.
+Rilis dimulai dari commit persiapan lewat pull request ke `main`, misalnya `chore(release): prepare v0.4.0`. Commit itu memindahkan isi `[Unreleased]` di `CHANGELOG.md` ke bagian versi baru dan menaikkan `version` di `package.json` ke versi yang sama, karena sidebar menampilkan versi dari situ. Setelah commit itu masuk `main`, beri tag `v<versi>` pada commit tersebut. Workflow `release` menolak tag yang tidak bisa dicapai dari `main` atau yang tidak sama dengan `version` di `package.json`. Setelah image terbit, workflow yang sama membuat GitHub Release untuk tag itu dari bagian versinya di `CHANGELOG.md`, ditambah daftar "What's Changed" buatan GitHub, dan gagal kalau bagian itu tidak ada atau kosong.
 
 ## Pull Request Checklist
 
