@@ -114,7 +114,7 @@ function makeProject(overrides = {}) {
 		status: 'active',
 		runtime_status: 'running',
 		active_deployment_id: 'dep_1',
-		default_domain: 'test.run.staging.sakala.dev',
+		default_domain: 'test.staging.sakala.app',
 		...overrides
 	};
 }
@@ -254,7 +254,7 @@ describe('useDeploymentDetail', () => {
 
 		it('null ketika API tidak mengirim public_url, walaupun ada default_domain', () => {
 			mockCreateProjectQuery.mockReturnValue({
-				data: makeProject({ public_url: null, default_domain: 'test.run.staging.sakala.dev' })
+				data: makeProject({ public_url: null, default_domain: 'test.staging.sakala.app' })
 			} as never);
 
 			const { detail, destroy } = runComposable();

@@ -210,7 +210,7 @@ const listProject = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: null,
-	public_url: 'https://toko-kopi.run.sakala.dev',
+	public_url: 'https://toko-kopi.sakala.app',
 	latest_deployment: null,
 	runtime_status: 'running',
 	suspension: null,
@@ -630,7 +630,7 @@ test.describe('project cards with what the list now sends', () => {
 	const live = {
 		...listProject,
 		runtime_status: 'running',
-		public_url: 'https://toko-kopi.run.sakala.dev',
+		public_url: 'https://toko-kopi.sakala.app',
 		latest_deployment: {
 			id: 'dep-1',
 			sequence: 4,
@@ -650,7 +650,7 @@ test.describe('project cards with what the list now sends', () => {
 		await page.goto('/projects');
 
 		const url = page.getByTestId('project-card-url');
-		await expect(url).toHaveAttribute('href', 'https://toko-kopi.run.sakala.dev');
+		await expect(url).toHaveAttribute('href', 'https://toko-kopi.sakala.app');
 		await expect(page.getByText('feat: tambah halaman menu')).toBeVisible();
 		await expect(page.getByText('a3f2c9d', { exact: true })).toBeVisible();
 
@@ -659,7 +659,7 @@ test.describe('project cards with what the list now sends', () => {
 			([x, y]) => document.elementFromPoint(x, y)?.closest('a')?.href,
 			[box!.x + 4, box!.y + box!.height / 2]
 		);
-		expect(hit).toContain('toko-kopi.run.sakala.dev');
+		expect(hit).toContain('toko-kopi.sakala.app');
 	});
 
 	test('a project with no deployment still renders a whole card', async ({ page }) => {

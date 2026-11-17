@@ -14,7 +14,7 @@ const baseProject: Project = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: null,
-	public_url: 'https://sakala-console.run.sakala.dev',
+	public_url: 'https://sakala-console.sakala.app',
 	latest_deployment: null,
 	runtime_status: 'running',
 	suspension: null,
@@ -186,13 +186,13 @@ describe('ProjectCard, what the list now knows', () => {
 	test('links a live project to its address, above the link to the project', async () => {
 		await render(ProjectCard, {
 			...baseProject,
-			public_url: 'https://toko.run.sakala.dev',
+			public_url: 'https://toko.sakala.app',
 			latest_deployment: latest
 		});
 
 		const url = page.getByTestId('project-card-url');
-		await expect.element(url).toHaveAttribute('href', 'https://toko.run.sakala.dev');
-		await expect.element(url).toHaveTextContent('toko.run.sakala.dev');
+		await expect.element(url).toHaveAttribute('href', 'https://toko.sakala.app');
+		await expect.element(url).toHaveTextContent('toko.sakala.app');
 		expect(url.element().className).toContain('z-10');
 	});
 
@@ -200,21 +200,21 @@ describe('ProjectCard, what the list now knows', () => {
 		await render(ProjectCard, {
 			...baseProject,
 			runtime_status: 'sleeping',
-			public_url: 'https://toko.run.sakala.dev',
+			public_url: 'https://toko.sakala.app',
 			latest_deployment: latest
 		});
 
 		await expect.element(page.getByTestId('runtime-status-badge')).toHaveTextContent('Tidur');
 		await expect
 			.element(page.getByTestId('project-card-url'))
-			.toHaveAttribute('href', 'https://toko.run.sakala.dev');
+			.toHaveAttribute('href', 'https://toko.sakala.app');
 	});
 
 	test('does not offer a site that is not up', async () => {
 		await render(ProjectCard, {
 			...baseProject,
 			runtime_status: 'failed',
-			public_url: 'https://toko.run.sakala.dev',
+			public_url: 'https://toko.sakala.app',
 			latest_deployment: latest
 		});
 

@@ -8,7 +8,7 @@ const live = {
 	status: 'success' as const,
 	durationLabel: '1 menit 52 detik',
 	servingState: 'live' as const,
-	publicUrl: 'https://toko-kopi-web.run.sakala.dev'
+	publicUrl: 'https://toko-kopi-web.sakala.app'
 };
 
 describe('the moment a project first goes live', () => {
@@ -19,7 +19,7 @@ describe('the moment a project first goes live', () => {
 			.element(page.getByRole('heading', { name: 'toko-kopi-web sudah live' }))
 			.toBeVisible();
 		await expect
-			.element(page.getByRole('link', { name: 'toko-kopi-web.run.sakala.dev' }))
+			.element(page.getByRole('link', { name: 'toko-kopi-web.sakala.app' }))
 			.toHaveAttribute('href', live.publicUrl);
 		await expect.element(page.getByRole('link', { name: 'Buka situs' })).toBeVisible();
 		await expect.element(page.getByRole('button', { name: 'Salin URL' })).toBeVisible();

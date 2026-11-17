@@ -5,6 +5,9 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(import.meta.dirname, '../..');
 // Split so this file does not contain what it searches for.
 const CONTRIBUTOR_MARKERS = ['sasong' + 'ko', 'ssn' + 'gk'];
+// Project domains belong to the installation: the API sends `default_domain`,
+// `public_url`, and the domain preview. The hosted domain and the one before it.
+const HOSTED_PROJECT_DOMAINS = ['sakala.app', 'run.sakala.dev'];
 
 function sourceFiles(directory: string): string[] {
 	return readdirSync(directory).flatMap((entry) => {
@@ -48,7 +51,10 @@ describe('production source holds no leftover personal or sample data', () => {
 		);
 		const hits = production.filter((path) => {
 			const content = readFileSync(path, 'utf8');
-			return /from '[^']*\/mock(\/[^']*)?'/.test(content) || content.includes('run.sakala.dev');
+			return (
+				/from '[^']*\/mock(\/[^']*)?'/.test(content) ||
+				HOSTED_PROJECT_DOMAINS.some((domain) => content.includes(domain))
+			);
 		});
 
 		expect(hits).toEqual([]);
