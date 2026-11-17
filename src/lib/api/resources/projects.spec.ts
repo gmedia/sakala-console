@@ -16,7 +16,7 @@ function buildProject(overrides: Partial<Project> = {}): Project {
 		github_repository_id: 456,
 		branch: 'main',
 		thumbnail_url: 'https://example.com/thumb.png',
-		public_url: 'https://sakala-console.run.sakala.dev',
+		public_url: 'https://sakala-console.sakala.app',
 		latest_deployment: null,
 		runtime_status: 'running',
 		suspension: null,

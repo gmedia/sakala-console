@@ -280,7 +280,7 @@ test.describe('create project wizard, from a public URL', () => {
 				name: 'situs',
 				repository_source: 'public_url',
 				repository_full_name: 'publik/situs',
-				public_url: 'https://situs.run.sakala.dev',
+				public_url: 'https://situs.sakala.app',
 				latest_deployment: null,
 				branch: 'gh-pages',
 				inspection: {

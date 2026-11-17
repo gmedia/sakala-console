@@ -26,7 +26,7 @@ const validProject = {
 	github_repository_id: 456,
 	branch: 'main',
 	thumbnail_url: 'https://example.com/thumb.png',
-	public_url: 'https://sakala-console.run.sakala.dev',
+	public_url: 'https://sakala-console.sakala.app',
 	latest_deployment: null,
 	runtime_status: 'running',
 	suspension: null,
@@ -246,7 +246,7 @@ async function mockDeploymentDetail(page: Page, status: DeploymentStatus) {
 					id: 'proj_1',
 					name: 'Sakala Console',
 					slug: 'sakala-console',
-					default_domain: 'sakala-console.run.staging.sakala.dev'
+					default_domain: 'sakala-console.staging.sakala.app'
 				}
 			})
 		});
