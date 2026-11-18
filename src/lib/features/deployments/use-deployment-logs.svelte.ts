@@ -1,6 +1,9 @@
 import { useQueryClient } from '@tanstack/svelte-query';
 import { z } from 'zod';
-import { createCoalescedTask } from '$lib/features/realtime/coalesced-task';
+import {
+	createCoalescedTask,
+	type CoalescedRequestOptions
+} from '$lib/features/realtime/coalesced-task';
 import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
 import {
 	flattenLogPages,
@@ -54,8 +57,8 @@ export function useDeploymentLogs(
 		if (refreshQueued) requestTailRefresh();
 	}, LOG_REALTIME_COALESCE_MS);
 
-	function requestTailRefresh() {
-		tailRefresh.request();
+	function requestTailRefresh(options?: CoalescedRequestOptions) {
+		tailRefresh.request(options);
 	}
 
 	$effect(() => () => tailRefresh.dispose());
@@ -83,7 +86,7 @@ export function useDeploymentLogs(
 	let wasRunning = false;
 	$effect(() => {
 		const terminal = isTerminal();
-		if (terminal && wasRunning) requestTailRefresh();
+		if (terminal && wasRunning) requestTailRefresh({ evenIfHidden: true });
 		wasRunning = !terminal;
 	});
 

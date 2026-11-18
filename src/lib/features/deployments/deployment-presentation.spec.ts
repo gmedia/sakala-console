@@ -10,7 +10,8 @@ import {
 	formatResourceLimit,
 	getDeploymentTriggerLabel,
 	getCommitUrl,
-	isFirstSuccessfulDeployment
+	isFirstSuccessfulDeployment,
+	isDeploymentEndBroadcast
 } from './deployment-presentation';
 import type { DeploymentEvent } from '$lib/api/resources/deployment';
 
@@ -350,5 +351,32 @@ describe('getCommitUrl', () => {
 		['no commit', 'https://github.com/rani/toko', null]
 	])('gives no link for %s', (_name, url, sha) => {
 		expect(getCommitUrl(url, sha)).toBeNull();
+	});
+});
+
+describe('isDeploymentEndBroadcast', () => {
+	it('is the broadcast that ended the deployment', () => {
+		expect(isDeploymentEndBroadcast({ sequence: 4, status: 'failed' })).toBe(true);
+		expect(isDeploymentEndBroadcast({ sequence: 4, status: 'succeeded' })).toBe(true);
+		expect(isDeploymentEndBroadcast({ sequence: 4, status: 'cancelled' })).toBe(true);
+	});
+
+	it('is not a step forward', () => {
+		expect(isDeploymentEndBroadcast({ sequence: 2, status: 'building' })).toBe(false);
+	});
+
+	it('is not a runtime change, which carries its own status', () => {
+		expect(
+			isDeploymentEndBroadcast({
+				sequence: 9,
+				status: 'succeeded',
+				project_runtime_status: 'crashed'
+			})
+		).toBe(false);
+	});
+
+	it('is not a payload it cannot read', () => {
+		expect(isDeploymentEndBroadcast(null)).toBe(false);
+		expect(isDeploymentEndBroadcast({ sequence: 1 })).toBe(false);
 	});
 });

@@ -23,6 +23,7 @@ import {
 	deriveDurationLabel,
 	getDeploymentErrorConfig,
 	TERMINAL_STATUSES,
+	isDeploymentEndBroadcast,
 	deriveLastUpdateTimestamp,
 	formatDeploymentTime
 } from './deployment-presentation';
@@ -30,6 +31,9 @@ import { getProjectPublicUrl, isProjectServing } from '$lib/features/projects/pr
 import { createProjectQuery, requestProjectRefresh } from '$lib/features/projects/queries';
 
 type RealtimePayload = { sequence?: number };
+
+/** The end of a deployment is read even in a background tab: the broadcast cannot carry it. */
+const FINAL_READ = { evenIfHidden: true } as const;
 
 export function useDeploymentDetail(projectId: () => string, deploymentId: () => string) {
 	const client = useQueryClient();
@@ -79,8 +83,9 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 			const seq = (payload as RealtimePayload).sequence;
 			if (typeof seq !== 'number' || !deploymentGuard.accept(seq)) return;
 			if (!applyRealtimeDeploymentUpdate(client, projectId(), deploymentId(), payload)) {
-				deploymentRefresh.request();
-				eventsRefresh.request();
+				const options = isDeploymentEndBroadcast(payload) ? FINAL_READ : undefined;
+				deploymentRefresh.request(options);
+				eventsRefresh.request(options);
 			}
 		}
 	});
@@ -109,7 +114,7 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 	$effect(() => {
 		const status = deployment?.status;
 		if (lastStatus && status && status !== lastStatus && TERMINAL_STATUSES.has(status)) {
-			requestProjectRefresh(client, projectId());
+			requestProjectRefresh(client, projectId(), FINAL_READ);
 		}
 		lastStatus = status;
 	});

@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Fixed
+
+- A deployment that ends while its page sits in a background tab is read right away instead of when the tab is next looked at. The `deployment.updated` broadcast only carries the status, so until that read the page showed a failure as "Penyebabnya belum bisa dipastikan" (for example a `runtime_capacity_exceeded` failure, whose reason is "Deployment gagal karena batas resource") and kept Redeploy locked with "Deployment lain sedang berjalan", because the project still read as deploying. The read happens once per deployment end; steps forward in a background tab still cost no request. The project re-read is now also kept per query client.
+
 ## [0.7.0] - 2026-11-18
 
 ### Added

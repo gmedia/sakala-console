@@ -1,5 +1,8 @@
 import { createQuery, type QueryClient } from '@tanstack/svelte-query';
-import { createCoalescedTask } from '$lib/features/realtime/coalesced-task';
+import {
+	createCoalescedTask,
+	type CoalescedRequestOptions
+} from '$lib/features/realtime/coalesced-task';
 import { queryKeys } from '$lib/api/query-keys';
 import { getDomainPreview, getListProjects } from '$lib/api/resources/projects';
 import { getPilotLimits } from '$lib/api/resources/pilot-limits';
@@ -100,23 +103,36 @@ export function hasProjectInProgress(
 	);
 }
 
-const projectRefreshes = new Map<string, ReturnType<typeof createCoalescedTask>>();
+/** Per client too: a task closes over the client it invalidates. */
+const projectRefreshes = new WeakMap<
+	QueryClient,
+	Map<string, ReturnType<typeof createCoalescedTask>>
+>();
 
 /**
  * Re-reads what the header shows once a deployment has moved on. The header and the deployment page
  * both ask for this at the same moment, so they share one read.
  */
-export function requestProjectRefresh(client: QueryClient, projectId: string): void {
-	let task = projectRefreshes.get(projectId);
+export function requestProjectRefresh(
+	client: QueryClient,
+	projectId: string,
+	options?: CoalescedRequestOptions
+): void {
+	let tasks = projectRefreshes.get(client);
+	if (!tasks) {
+		tasks = new Map();
+		projectRefreshes.set(client, tasks);
+	}
+	let task = tasks.get(projectId);
 	if (!task) {
 		task = createCoalescedTask(() => {
 			void client.invalidateQueries({ queryKey: projectKeys.detail(projectId), exact: true });
 			void client.invalidateQueries({ queryKey: projectKeys.deployments(projectId) });
 			void client.invalidateQueries({ queryKey: queryKeys.pilotLimits });
 		});
-		projectRefreshes.set(projectId, task);
+		tasks.set(projectId, task);
 	}
-	task.request();
+	task.request(options);
 }
 
 export function createProjectQuery(projectId: () => string, options: { poll?: boolean } = {}) {
