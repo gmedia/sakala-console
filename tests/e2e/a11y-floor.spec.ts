@@ -180,31 +180,16 @@ test('onboarding fits 320 px and has a page heading', async ({ page }) => {
 	);
 
 	await page.goto('/onboarding');
-	await expect(page.getByText('Langkah 1 dari 3')).toBeVisible();
+	await expect(
+		page.getByRole('heading', { level: 1, name: 'Selamat datang di Sakala' })
+	).toBeVisible();
 
 	const audit = await auditDom(page, 24, 44);
 	expect(audit.overflow).toEqual([]);
 	expect(audit.h1).toBe(1);
 	expect(audit.main).toBe(1);
-	const next = await page.getByRole('button', { name: 'Lanjutkan' }).boundingBox();
-	expect(next!.x + next!.width).toBeLessThanOrEqual(320);
-});
-
-test('onboarding starts from the name on the account, and keeps an edit', async ({ page }) => {
-	await mockEveryRoute(page);
-	await page.route('**/api/v1/auth/user', (route) =>
-		route.fulfill({
-			contentType: 'application/json',
-			body: JSON.stringify({ data: { ...signedInUser, onboarding_completed_at: null } })
-		})
-	);
-
-	await page.goto('/onboarding');
-	const name = page.getByLabel('Nama lengkap');
-	await expect(name).toHaveValue(signedInUser.name);
-
-	await name.fill('Rani W.');
-	await expect(name).toHaveValue('Rani W.');
+	const start = await page.getByRole('button', { name: 'Buat proyek pertama' }).boundingBox();
+	expect(start!.x + start!.width).toBeLessThanOrEqual(320);
 });
 
 test.describe('keyboard', () => {

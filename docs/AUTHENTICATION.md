@@ -53,6 +53,12 @@ Auth guard (`src/lib/features/auth/components/AuthGuard.svelte`) akan membaca st
 
 `AuthGuard` juga menjaga `/onboarding` lewat route group `(onboarding)`: user tanpa session diarahkan ke login, dan user yang sudah menyelesaikan onboarding diarahkan ke `/projects`.
 
+Onboarding adalah satu layar sambutan tanpa isian. "Buat proyek pertama" memanggil `POST onboarding/complete` lalu membuka `/projects/new`, dan "Lihat dashboard dulu" memanggil endpoint yang sama lalu membuka `/projects`. `POST onboarding/profile` tidak dipanggil Console lagi. Pertanyaan "Dari mana kamu tahu Sakala?" muncul di halaman deployment pertama yang live, untuk user yang `onboarding_source`-nya masih `null`, dan dikirim lewat `POST onboarding/source`. Endpoint itu menerima jawaban walaupun onboarding sudah selesai. Kalau dilewati, Console tidak mengirim apa pun dan menyimpan `onboarding_source_prompt_dismissed:<user id>` di `localStorage`.
+
+### Halaman Masuk dan Daftar
+
+`/login` menampilkan semua cara masuk sekaligus: provider OAuth yang dikonfigurasi API, lalu form email dan kata sandi. Metode yang terakhir dipakai di browser ini (`last_login_provider` di `localStorage`) ditaruh paling atas dengan lencana "Terakhir dipakai". `/register` memakai pola yang sama, dengan form pendaftaran hanya kalau pengiriman email menyala. Tautan lama dengan `?method=email` tetap berfungsi dan memberi fokus ke field email.
+
 ### Persetujuan Dokumen
 
 Formulir daftar punya satu kotak centang wajib, dengan teks yang tertulis di `sakala-api/docs/AUTHENTICATION.md`. Console mengirim `accept_terms` bersama `terms_version` dan `acceptable_use_version` dari `GET auth/options`, yaitu versi yang benar-benar ditampilkan. Pemberitahuan Privasi hanya ditautkan, tanpa kotak, karena tidak disetujui. Kalau versinya tidak bisa dibaca, formulir tidak bisa dikirim dan menawarkan "Coba lagi".

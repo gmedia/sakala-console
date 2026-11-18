@@ -220,3 +220,87 @@ test.describe('the first time a project goes live', () => {
 		await expect(page.getByRole('link', { name: 'Kunjungi situs' })).toBeVisible();
 	});
 });
+
+test.describe('where someone heard of Sakala, asked after the first deploy', () => {
+	const first = { ...succeededDeployment, sequence: 1 };
+	const unansweredUser = {
+		id: 1,
+		name: 'Rani Wulandari',
+		username: 'rani',
+		email: 'rani@sakala.local',
+		avatar_url: null,
+		role: 'user',
+		onboarding_source: null as string | null,
+		onboarding_role: null,
+		onboarding_completed_at: '2026-01-01T00:00:00Z',
+		last_login_at: '2026-01-01T00:00:00Z',
+		has_password: true,
+		legal_acceptance_required: false,
+		pending_email: null,
+		created_at: '2026-01-01T00:00:00Z'
+	};
+	const unanswered = (page: Page) =>
+		page.route('**/api/v1/auth/user', (route) =>
+			route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({ data: unansweredUser })
+			})
+		);
+
+	test('one tap saves the answer to the onboarding source endpoint', async ({ page }) => {
+		await mockProjectApi(page, { deployment: () => first, deploymentList: () => [first] });
+		await unanswered(page);
+		const bodies: unknown[] = [];
+		await page.route('**/api/v1/onboarding/source', (route) => {
+			bodies.push(route.request().postDataJSON());
+			return route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({ data: { ...unansweredUser, onboarding_source: 'campus' } })
+			});
+		});
+		await page.goto(DETAIL_URL);
+
+		const prompt = page.getByTestId('source-prompt');
+		await expect(
+			prompt.getByRole('heading', { name: 'Dari mana kamu tahu Sakala?' })
+		).toBeVisible();
+		await expect(page.getByTestId('first-live')).toBeVisible();
+		await prompt.getByRole('button', { name: 'Kampus', exact: true }).click();
+
+		await expect(prompt.getByRole('status')).toHaveText('Terima kasih, jawabanmu tersimpan.');
+		expect(bodies).toEqual([{ source: 'campus' }]);
+		await expect(page.getByRole('log')).toBeVisible();
+	});
+
+	test('skipping sends nothing and is remembered on this browser', async ({ page }) => {
+		await mockProjectApi(page, { deployment: () => first, deploymentList: () => [first] });
+		await unanswered(page);
+		let sent = 0;
+		await page.route('**/api/v1/onboarding/source', (route) => {
+			sent += 1;
+			return route.fulfill({ contentType: 'application/json', body: '{"data":{}}' });
+		});
+		await page.goto(DETAIL_URL);
+
+		await page.getByTestId('source-prompt').getByRole('button', { name: 'Lewati' }).click();
+		await expect(page.getByTestId('source-prompt')).toHaveCount(0);
+
+		await page.reload();
+		await expect(page.getByTestId('first-live')).toBeVisible();
+		await expect(page.getByTestId('source-prompt')).toHaveCount(0);
+		expect(sent).toBe(0);
+	});
+
+	test('is not asked on a later deployment', async ({ page }) => {
+		const later = { ...succeededDeployment, sequence: 2 };
+		await mockProjectApi(page, {
+			deployment: () => later,
+			deploymentList: () => [later, { ...succeededDeployment, id: 'a', sequence: 1 }]
+		});
+		await unanswered(page);
+		await page.goto(DETAIL_URL);
+
+		await expect(page.getByRole('heading', { name: 'Deployment berhasil' })).toBeVisible();
+		await expect(page.getByTestId('source-prompt')).toHaveCount(0);
+	});
+});

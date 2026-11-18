@@ -49,7 +49,7 @@ test.describe('email delivery is off (the state of staging and production today)
 		await expect(page.getByText('Pendaftaran lewat email belum tersedia')).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Masuk dengan Google' })).toHaveCount(0);
 
-		await page.getByRole('button', { name: 'Masuk dengan email' }).click();
+		// The password form is on the page from the start; no button opens it.
 		await expect(page.getByLabel('Kata sandi', { exact: true })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Lupa kata sandi?' })).toHaveCount(0);
 	});
@@ -78,7 +78,7 @@ test.describe('email delivery is on', () => {
 		await mockOptions(page, true, true);
 
 		await page.goto('/register');
-		await expect(page.getByRole('button', { name: 'Daftar dengan email' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Buat akun', exact: true })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Daftar dengan Google' })).toBeVisible();
 		await expect(page.getByText('belum tersedia')).toHaveCount(0);
 
@@ -119,7 +119,7 @@ test.describe('the flag is not known', () => {
 		answer();
 
 		await expect(page.getByRole('button', { name: 'Daftar dengan GitHub' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Daftar dengan email' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Buat akun', exact: true })).toHaveCount(0);
 	});
 
 	test('a failed fetch keeps today’s options, and the API refusal is shown', async ({ page }) => {

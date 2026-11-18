@@ -1,4 +1,4 @@
-import type { OnboardingSource, OnboardingProfile } from '$lib/api/resources/onboarding';
+import type { OnboardingSource } from '$lib/api/resources/onboarding';
 
 export const ONBOARDING_SOURCE_VALUES = [
 	'campus',
@@ -22,24 +22,6 @@ export const ONBOARDING_SOURCE_OPTIONS_MAP: Record<OnboardingSource, string> = {
 	other: 'Lainnya'
 };
 
-export const ONBOARDING_PROFILE_VALUES = [
-	'student',
-	'developer',
-	'devops',
-	'architect',
-	'mentor',
-	'other'
-] as const satisfies readonly OnboardingProfile[];
-
-export const ONBOARDING_PROFILE_OPTIONS_MAP: Record<OnboardingProfile, string> = {
-	developer: 'Developer',
-	devops: 'DevOps',
-	architect: 'Architect',
-	student: 'Mahasiswa',
-	mentor: 'Mentor',
-	other: 'Lainnya'
-};
-
 type AssertExhaustive<T, U extends T> = [T] extends [U] ? true : never;
 
 const _onboardingSourceExhaustive: AssertExhaustive<
@@ -48,18 +30,14 @@ const _onboardingSourceExhaustive: AssertExhaustive<
 > = true;
 void _onboardingSourceExhaustive;
 
-const _onboardingProfileExhaustive: AssertExhaustive<
-	OnboardingProfile,
-	(typeof ONBOARDING_PROFILE_VALUES)[number]
-> = true;
-void _onboardingProfileExhaustive;
-
 export type OnboardingSourceSelection =
 	{ type: 'source'; source: OnboardingSource } | { type: 'skip' };
 
-export type OnboardingProfileSelection = {
-	name?: string;
-	role?: OnboardingProfile;
-	/** Only `true`: the API rejects `skip: false`. */
-	skip?: true;
-};
+/** Where a new user goes from the welcome screen: the wizard, or the project list to look around. */
+export const ONBOARDING_DESTINATIONS = {
+	createProject: '/projects/new',
+	projects: '/projects'
+} as const;
+
+export type OnboardingDestination =
+	(typeof ONBOARDING_DESTINATIONS)[keyof typeof ONBOARDING_DESTINATIONS];

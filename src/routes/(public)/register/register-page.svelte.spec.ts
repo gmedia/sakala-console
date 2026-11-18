@@ -85,21 +85,41 @@ describe('register page and email delivery', () => {
 		await expect.element(page.getByRole('heading', { name: 'Daftar', exact: true })).toBeVisible();
 	});
 
-	it('offers email when delivery is on', async () => {
-		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
+	it('shows the providers and the email form together when delivery is on', async () => {
+		vi.mocked(getAuthOptions).mockResolvedValue(options(true, true));
 		await renderPage();
 
-		await expect.element(provider('email')).toBeVisible();
+		await expect.element(provider('GitHub')).toBeVisible();
+		await expect.element(provider('Google')).toBeVisible();
+		await expect.element(page.getByLabelText('Email')).toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'Buat akun', exact: true }))
+			.toBeVisible();
+		await expect.element(provider('email')).not.toBeInTheDocument();
 		await expect.element(page.getByText('belum tersedia')).not.toBeInTheDocument();
 	});
 
-	it('shows the form for ?method=email when delivery is on', async () => {
+	it('registers with email without choosing email first', async () => {
+		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
+		vi.mocked(register).mockResolvedValue(undefined);
+		await renderPage();
+
+		await fillForm();
+		await page.getByRole('checkbox').click();
+		await page.getByRole('button', { name: 'Buat akun', exact: true }).click();
+
+		await expect.element(page.getByText('Cek email kamu')).toBeVisible();
+	});
+
+	it('focuses the email field for an old ?method=email link', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
 		await renderPage('?method=email');
 
 		await expect
 			.element(page.getByRole('button', { name: 'Buat akun', exact: true }))
 			.toBeVisible();
+		await expect.element(page.getByLabelText('Email')).toHaveFocus();
+		await expect.element(provider('GitHub')).toBeVisible();
 	});
 
 	it('shows no option and no form until the flag is known', async () => {

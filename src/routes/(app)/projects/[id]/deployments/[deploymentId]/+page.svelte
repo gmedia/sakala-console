@@ -30,6 +30,7 @@
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import DeploymentLiveAnnouncement from '$lib/components/feedback/DeploymentLiveAnnouncement.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
+	import OnboardingSourcePrompt from '$lib/features/onboarding/components/OnboardingSourcePrompt.svelte';
 
 	const detail = useDeploymentDetail(
 		() => page.params.id ?? '',
@@ -67,6 +68,13 @@
 			isFirstSuccessfulDeployment(detail.deployment, recentDeployments.data?.data ?? [])
 			? detail.project.name
 			: null
+	);
+	// The same moment the banner celebrates: live, with an address. A first deploy that crashes is
+	// no time to ask anything.
+	const showSourcePrompt = $derived(
+		Boolean(firstLiveProjectName && detail.publicUrl) &&
+			detail.bannerInput.status === 'success' &&
+			detail.bannerInput.servingState === 'live'
 	);
 	const commitUrl = $derived(
 		getCommitUrl(detail.project?.repository_url, detail.deployment?.commit_sha)
@@ -192,6 +200,11 @@
 			redeployError={redeploy.errorMessage}
 			{redeployBlockedReason}
 		/>
+
+		<!-- Asked at the high point of a first deploy, never before it, and never in the way. -->
+		{#if showSourcePrompt}
+			<OnboardingSourcePrompt />
+		{/if}
 
 		<CancelDeploymentDialog
 			open={cancelOpen && !isFinished}

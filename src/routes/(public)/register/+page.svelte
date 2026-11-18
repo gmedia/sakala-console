@@ -2,16 +2,13 @@
 	import { pageTitle } from '$lib/utils/page-title';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import {
-		redirectToGithubAuth,
-		redirectToGoogleAuth,
-		type AuthProviderId
-	} from '$lib/features/auth/utils/oauth';
+	import { tick } from 'svelte';
+	import { redirectToGithubAuth, redirectToGoogleAuth } from '$lib/features/auth/utils/oauth';
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import AuthSplitLayout from '$lib/features/auth/components/AuthSplitLayout.svelte';
-	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
+	import AuthProviderButtons from '$lib/features/auth/components/AuthProviderButtons.svelte';
+	import AuthDivider from '$lib/features/auth/components/AuthDivider.svelte';
 	import ResendVerification from '$lib/features/auth/components/ResendVerification.svelte';
 	import AuthOptionsSkeleton from '$lib/features/auth/components/AuthOptionsSkeleton.svelte';
 	import EmailDeliveryNotice from '$lib/features/auth/components/EmailDeliveryNotice.svelte';
@@ -27,9 +24,11 @@
 	import { queryKeys } from '$lib/api/query-keys';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import {
-		registerProviders,
+		oauthProviders,
+		registerOffersEmail,
 		registrationUnavailableMessage,
-		resolveAuthAvailability
+		resolveAuthAvailability,
+		type OAuthProviderId
 	} from '$lib/features/auth/availability';
 	import { useAuthOptions } from '$lib/features/auth/queries';
 	import { useRegister } from '$lib/features/auth/mutations';
@@ -39,14 +38,18 @@
 	const authOptions = useAuthOptions();
 	const legal = $derived(authOptions.data?.legal);
 	const availability = $derived(resolveAuthAvailability(authOptions));
-	const authProviders = $derived(registerProviders(availability));
+	const authProviders = $derived(oauthProviders(availability));
+	const offersEmail = $derived(registerOffersEmail(availability));
 
-	/** `?method=email` is a link anyone can keep, so the form still needs delivery to be on. */
-	let authMethod = $derived(
-		page.url.searchParams.get('method') === 'email' && !availability.emailDeliveryOff
-			? 'email'
-			: 'choice'
-	);
+	/** Older links ask for the email form with `?method=email`; it is always here now, so it gets focus. */
+	const EMAIL_METHOD_PARAM = 'email';
+	const focusEmailOnLoad = page.url.searchParams.get('method') === EMAIL_METHOD_PARAM;
+	let emailFocused = false;
+	$effect(() => {
+		if (!focusEmailOnLoad || emailFocused || availability.isLoading || !offersEmail) return;
+		emailFocused = true;
+		void tick().then(() => document.getElementById('email')?.focus());
+	});
 
 	let email = $state('');
 	let name = $state('');
@@ -65,19 +68,11 @@
 
 	const registerMutation = useRegister();
 
-	function handleProviderClick(id: AuthProviderId) {
+	function handleProviderClick(id: OAuthProviderId) {
 		const returnTo = page.url.searchParams.get('returnTo');
 
-		if (id === 'email') {
-			const query = returnTo
-				? `?method=email&returnTo=${encodeURIComponent(returnTo)}`
-				: '?method=email';
-			goto(resolve(`/register${query}` as '/register'), { keepFocus: true });
-		} else if (id === 'github') {
-			redirectToGithubAuth(returnTo);
-		} else if (id === 'google') {
-			redirectToGoogleAuth(returnTo);
-		}
+		if (id === 'github') redirectToGithubAuth(returnTo);
+		else redirectToGoogleAuth(returnTo);
 	}
 
 	function handleEmailInput() {
@@ -224,11 +219,7 @@
 	<title>{pageTitle('Daftar')}</title>
 </svelte:head>
 
-<AuthSplitLayout
-	title={authMethod === 'email' && !availability.isLoading ? 'Daftar dengan email' : 'Daftar'}
-	description="Dari repository ke URL publik."
-	mode="register"
->
+<AuthSplitLayout title="Daftar" description="Dari repository ke URL publik." mode="register">
 	<div class="space-y-6">
 		{#if availability.emailDeliveryOff}
 			<EmailDeliveryNotice message={registrationUnavailableMessage(availability)} />
@@ -236,20 +227,6 @@
 
 		{#if availability.isLoading}
 			<AuthOptionsSkeleton />
-		{:else if authMethod === 'choice'}
-			<div class="space-y-3">
-				{#each authProviders as provider (provider.id ?? provider)}
-					<Button
-						variant="secondary"
-						size="lg"
-						class="w-full"
-						onclick={() => handleProviderClick(provider.id)}
-					>
-						<SocialLogo name={provider.id} />
-						<span>Daftar dengan {provider.name}</span>
-					</Button>
-				{/each}
-			</div>
 		{:else if isRegistered}
 			<div class="space-y-3 rounded-card border border-primary/20 bg-primary-50 p-6 text-center">
 				<div class="text-base font-semibold text-primary-dark">Cek email kamu</div>
@@ -264,6 +241,20 @@
 				</div>
 			</div>
 		{:else}
+			<!-- Every way to register at once; the email form needs no extra click. -->
+			{#if authProviders.length > 0}
+				<AuthProviderButtons
+					providers={authProviders}
+					verb="Daftar"
+					onSelect={handleProviderClick}
+				/>
+			{/if}
+			{#if offersEmail && authProviders.length > 0}
+				<AuthDivider label="atau daftar dengan email" />
+			{/if}
+		{/if}
+
+		{#if !availability.isLoading && !isRegistered && offersEmail}
 			<form class="space-y-4" onsubmit={handleSubmit} novalidate>
 				{#if errors.general}
 					<div
@@ -369,7 +360,8 @@
 			</a>
 		</p>
 
-		{#if authMethod === 'choice' && !availability.isLoading}
+		<!-- The consent field carries the privacy link; without it, this is where the notice is read. -->
+		{#if !availability.isLoading && !isRegistered && !(offersEmail && legal)}
 			<p class="text-center text-sm text-muted">
 				Baca <LegalLink href={LEGAL_LINKS.privacy}>Pemberitahuan Privasi</LegalLink> untuk tahu bagaimana
 				datamu diproses. Syarat Layanan kamu setujui setelah masuk.

@@ -1,7 +1,8 @@
 import type { AuthOptions } from '$lib/api/resources/auth';
 import type { AuthProviderId } from './utils/oauth';
 
-export type AuthProviderOption = { id: AuthProviderId; name: string };
+export type OAuthProviderId = Exclude<AuthProviderId, 'email'>;
+export type AuthProviderOption = { id: OAuthProviderId; name: string };
 
 export type AuthAvailability = {
 	/** The API has not answered yet, so no option may be shown or hidden based on it. */
@@ -29,22 +30,48 @@ export function resolveAuthAvailability(query: {
 	};
 }
 
-function oauthProviders(availability: AuthAvailability): AuthProviderOption[] {
+/** The OAuth providers the API has configured, in the order the auth screens list them. */
+export function oauthProviders(availability: AuthAvailability): AuthProviderOption[] {
 	return [
 		...(availability.github ? [{ id: 'github' as const, name: 'GitHub' }] : []),
 		...(availability.google ? [{ id: 'google' as const, name: 'Google' }] : [])
 	];
 }
 
-/** Password login needs no email, so an account that is already verified can always use it. */
-export function loginProviders(availability: AuthAvailability): AuthProviderOption[] {
-	return [...oauthProviders(availability), { id: 'email', name: 'email' }];
+export type LoginMethodLayout = {
+	/** OAuth providers in display order, the one used last on this browser first. */
+	providers: AuthProviderOption[];
+	/** The method that gets "Terakhir dipakai", or null when the remembered one is not offered. */
+	lastUsed: AuthProviderId | null;
+	/** The email form leads when it was the method used last. */
+	emailFirst: boolean;
+};
+
+/**
+ * Every login method shows at once. Password login needs no email delivery, so an account that is
+ * already verified can always use it; a remembered provider that is no longer configured is
+ * ignored rather than offered.
+ */
+export function loginMethodLayout(
+	availability: AuthAvailability,
+	remembered: AuthProviderId | null
+): LoginMethodLayout {
+	const providers = oauthProviders(availability);
+	const lastUsed =
+		remembered === 'email' || providers.some((provider) => provider.id === remembered)
+			? remembered
+			: null;
+
+	return {
+		providers: [...providers].sort((a, b) => Number(b.id === lastUsed) - Number(a.id === lastUsed)),
+		lastUsed,
+		emailFirst: lastUsed === 'email'
+	};
 }
 
-export function registerProviders(availability: AuthAvailability): AuthProviderOption[] {
-	return availability.emailDeliveryOff
-		? oauthProviders(availability)
-		: [...oauthProviders(availability), { id: 'email', name: 'email' }];
+/** Registering with a password sends a verification email, so it needs delivery to be on. */
+export function registerOffersEmail(availability: AuthAvailability): boolean {
+	return !availability.emailDeliveryOff;
 }
 
 /** The sentence that says where to go instead, naming only providers that really work. */

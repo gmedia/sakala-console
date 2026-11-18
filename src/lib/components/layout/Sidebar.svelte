@@ -1,6 +1,7 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { page } from '$app/state';
+	import { DEPLOY_GUIDE_URL } from '$lib/config/project';
 	import { base } from '$app/paths';
 	import { version } from '../../../../package.json';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
@@ -64,7 +65,7 @@
 			icon: ChatCircleText
 		},
 		{
-			href: 'https://sakala.dev/docs/deploy-pertama',
+			href: DEPLOY_GUIDE_URL,
 			label: 'Panduan',
 			icon: BookOpenText,
 			isExternal: true
