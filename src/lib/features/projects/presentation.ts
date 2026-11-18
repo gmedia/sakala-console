@@ -5,6 +5,7 @@ import {
 	getErrorMessage,
 	NetworkError,
 	PROJECT_NOT_SLEEPING,
+	PROJECT_RELEASE_COMMAND_UNSUPPORTED,
 	PROJECT_REPLICAS_UNSUPPORTED,
 	PROJECT_SUSPENDED,
 	PROJECT_WAKE_LIMIT_EXCEEDED
@@ -16,6 +17,7 @@ import {
 	parseReplicasUnsupportedDetails
 } from '$lib/api/resources/project-deploy-refusals';
 import { getDeploymentStatusLabel } from '$lib/features/deployments/status-config';
+import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
 
@@ -282,12 +284,19 @@ export function getProjectWakeErrorMessage(error: unknown): string | null {
 	return getErrorMessage(error, PROJECT_WAKE_COPY.failed);
 }
 
+/** Emptying the field deploys without the command, so the message says the command is skipped. */
+export const RELEASE_COMMAND_UNSUPPORTED_MESSAGE = `Proyek ini punya release command, tetapi server yang menjalankannya belum bisa menjalankan release command. Untuk deploy sekarang tanpa perintah itu, kosongkan ${RELEASE_COMMAND_LABEL} di tab Pengaturan. Atau coba lagi setelah servernya diperbarui.`;
+
 /**
- * What to say when a deployment is refused. The replica refusals point at the setting that causes
- * them; anything else, and a refusal without its counts, keeps the API's own words.
+ * What to say when a deployment is refused. The replica and release command refusals point at the
+ * setting that causes them; anything else, and a refusal without its counts, keeps the API's own
+ * words.
  */
 export function getDeployErrorMessage(error: unknown, fallback: string): string {
 	if (error instanceof ApiError) {
+		if (error.code === PROJECT_RELEASE_COMMAND_UNSUPPORTED) {
+			return RELEASE_COMMAND_UNSUPPORTED_MESSAGE;
+		}
 		if (error.code === PROJECT_REPLICAS_UNSUPPORTED) {
 			const setting = parseReplicasUnsupportedDetails(error.details);
 			if (setting?.node_maximum != null) {

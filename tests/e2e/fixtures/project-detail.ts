@@ -195,6 +195,7 @@ export const baseProject = {
 	replicas_ready: null,
 	build_command: null,
 	start_command: null,
+	release_command: null,
 	root_directory: null,
 	auto_deploy: true,
 	redeploy_required: false,

@@ -8,6 +8,7 @@ import {
 	personalWorkspace,
 	PROJECT_ID
 } from '../../../../../../tests/e2e/fixtures/project-detail';
+import { RELEASE_COMMAND_HELP, RELEASE_COMMAND_LABEL } from '../../build-help';
 import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
 import { REPLICAS_COPY } from '../../replicas';
 import ProjectSettingsTab from './ProjectSettingsTab.svelte';
@@ -153,5 +154,98 @@ describe('ProjectSettingsTab, replicas', () => {
 			.toHaveAccessibleDescription(
 				'Proyek di workspace ini paling banyak berjalan dengan 4 replika. Minta admin menaikkan batasnya bila butuh lebih.'
 			);
+	});
+});
+
+describe('ProjectSettingsTab, release command', () => {
+	const migrate = 'php artisan migrate --force';
+	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
+
+	it('explains when the command runs and what a failure does', async () => {
+		await renderTab();
+
+		await expect.element(releaseField()).toHaveValue('');
+		await expect.element(releaseField()).toHaveAttribute('placeholder', migrate);
+		await expect.element(releaseField()).toHaveAccessibleDescription(RELEASE_COMMAND_HELP);
+	});
+
+	it('saves a new command alone, then says the project needs a redeploy', async () => {
+		await renderTab();
+
+		await userEvent.fill(releaseField(), `  ${migrate} `);
+		await save().click();
+
+		await expect.poll(() => saved).toEqual([{ release_command: migrate }]);
+		await expect
+			.element(page.getByText('Perubahan tersimpan. Berlaku mulai deployment berikutnya.'))
+			.toBeVisible();
+		await expect.element(page.getByText(REDEPLOY_REQUIRED_COPY.settings)).toBeVisible();
+		await expect.element(releaseField()).toHaveValue(migrate);
+	});
+
+	it('clears a saved command by sending null', async () => {
+		project = { ...project, release_command: migrate };
+		await renderTab();
+		await expect.element(releaseField()).toHaveValue(migrate);
+
+		await userEvent.clear(releaseField());
+		await save().click();
+
+		await expect.poll(() => saved).toEqual([{ release_command: null }]);
+		await expect.element(releaseField()).toHaveValue('');
+	});
+
+	it('refuses a command over 1000 characters before sending', async () => {
+		await renderTab();
+
+		await userEvent.fill(releaseField(), 'a'.repeat(1001));
+		await save().click();
+
+		await expect
+			.element(releaseField())
+			.toHaveAccessibleDescription('Release command paling panjang 1000 karakter.');
+		expect(saved).toEqual([]);
+	});
+
+	it('shows the API refusal on the field', async () => {
+		const refusal = 'Perintah rilis harus satu baris.';
+		vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+			const request = new Request(input, init);
+			if (request.method === 'PUT') {
+				return json(422, {
+					message: 'Data tidak valid.',
+					errors: { release_command: [refusal] }
+				});
+			}
+			return answer(request);
+		});
+		await renderTab();
+
+		await userEvent.fill(releaseField(), migrate);
+		await save().click();
+
+		await expect.element(releaseField()).toHaveAccessibleDescription(refusal);
+	});
+
+	it('shows the command to a viewer as a fact', async () => {
+		const team = { ...personalWorkspace, id: 'team-workspace', type: 'team', role: 'viewer' };
+		project = {
+			...project,
+			release_command: migrate,
+			workspace: { id: team.id, name: team.name, slug: team.slug, type: team.type }
+		};
+		vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+			const request = new Request(input, init);
+			if (new URL(request.url).pathname === '/api/v1/app/workspaces') {
+				return json(200, {
+					data: [{ ...team, projects_count: 1, active_deployments_count: 0 }]
+				});
+			}
+			return answer(request);
+		});
+		await renderTab();
+
+		await expect.element(page.getByTestId('settings-read-only')).toHaveTextContent(migrate);
+		await expect.element(releaseField()).not.toBeInTheDocument();
 	});
 });

@@ -85,8 +85,10 @@
 			durationLabel,
 			failedStepLabel,
 			failureCategory,
+			failureCode,
 			failureSummary,
 			userFixable,
+			recoveryHint,
 			servingState,
 			queueState,
 			cancelRequested
@@ -100,7 +102,7 @@
 	);
 	let isFirstLive = $derived(isLive && Boolean(firstLiveProjectName && publicUrl && displayUrl));
 	let hasFailureDetails = $derived(
-		status === 'failed' && Boolean(failureCode || failureDetail || recoveryHint)
+		status === 'failed' && Boolean(failureCode || failureDetail || display.recoveryHint)
 	);
 	let canRedeploy = $derived(status === 'failed' || status === 'cancelled');
 
@@ -270,10 +272,10 @@
 				)}
 			>
 				<div class="min-w-0 space-y-2">
-					{#if recoveryHint}
+					{#if display.recoveryHint}
 						<p class="text-sm wrap-anywhere text-foreground">
 							<span class="font-semibold">{getRecoveryHintLabel(userFixable)}</span>
-							{recoveryHint}
+							{display.recoveryHint}
 						</p>
 					{/if}
 					{#if failureCode}

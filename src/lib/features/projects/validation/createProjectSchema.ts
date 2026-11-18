@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
+import { RELEASE_COMMAND_LABEL } from '../build-help';
 
 export const createProjectFormSchema = z.object({
 	name: z
@@ -72,6 +73,7 @@ export const buildConfigurationSchema = z.object({
 		.transform((value) => (value === '' ? null : Number(value))),
 	build_command: commandSchema('Build command'),
 	start_command: commandSchema('Start command'),
+	release_command: commandSchema(RELEASE_COMMAND_LABEL),
 	root_directory: z
 		.string()
 		.trim()
@@ -100,6 +102,7 @@ export type CreateProjectFieldErrors = {
 	configured_port?: string;
 	build_command?: string;
 	start_command?: string;
+	release_command?: string;
 	root_directory?: string;
 	general?: string;
 };
@@ -110,6 +113,7 @@ const CONFIGURATION_FIELDS = [
 	'configured_port',
 	'build_command',
 	'start_command',
+	'release_command',
 	'root_directory'
 ] as const;
 

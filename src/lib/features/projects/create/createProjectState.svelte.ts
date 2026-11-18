@@ -32,6 +32,7 @@ export function createProjectWizardState() {
 	let configuredPort = $state('');
 	let buildCommand = $state('');
 	let startCommand = $state('');
+	let releaseCommand = $state('');
 	let rootDirectory = $state('');
 	let autoDeploy = $state(false);
 
@@ -151,6 +152,12 @@ export function createProjectWizardState() {
 		},
 		set startCommand(command: string) {
 			startCommand = command;
+		},
+		get releaseCommand() {
+			return releaseCommand;
+		},
+		set releaseCommand(command: string) {
+			releaseCommand = command;
 		},
 		get rootDirectory() {
 			return rootDirectory;

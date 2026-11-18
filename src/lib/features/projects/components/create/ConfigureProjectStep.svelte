@@ -24,6 +24,8 @@
 		AUTO_DEPLOY_HELP,
 		AUTO_DEPLOY_UNAVAILABLE_HELP,
 		BUILD_COMMAND_HELP,
+		RELEASE_COMMAND_HELP,
+		RELEASE_COMMAND_LABEL,
 		ROOT_DIRECTORY_HELP,
 		START_COMMAND_HELP
 	} from '../../build-help';
@@ -132,6 +134,7 @@
 			configured_port: wizard.configuredPort,
 			build_command: wizard.buildCommand,
 			start_command: wizard.startCommand,
+			release_command: wizard.releaseCommand,
 			root_directory: wizard.rootDirectory
 		})
 	);
@@ -147,7 +150,11 @@
 	// Open when coming back to this step with something filled in, and whenever a field in it is wrong.
 	let advancedOpen = $state(
 		Boolean(
-			wizard.configuredPort || wizard.buildCommand || wizard.startCommand || wizard.rootDirectory
+			wizard.configuredPort ||
+			wizard.buildCommand ||
+			wizard.startCommand ||
+			wizard.releaseCommand ||
+			wizard.rootDirectory
 		)
 	);
 	const hasAdvancedError = $derived(
@@ -155,6 +162,7 @@
 			fieldError('configured_port') ||
 			fieldError('build_command') ||
 			fieldError('start_command') ||
+			fieldError('release_command') ||
 			fieldError('root_directory')
 		)
 	);
@@ -209,6 +217,7 @@
 			}),
 			...(configuration.build_command && { build_command: configuration.build_command }),
 			...(configuration.start_command && { start_command: configuration.start_command }),
+			...(configuration.release_command && { release_command: configuration.release_command }),
 			...(configuration.root_directory && { root_directory: configuration.root_directory }),
 			...(isGithub && wizard.autoDeploy && { auto_deploy: true })
 		});
@@ -347,8 +356,8 @@
 				/>
 			</button>
 			<p class="text-sm text-foreground/70">
-				Port, build command, start command, dan root directory. Boleh dikosongkan, Sakala
-				mendeteksinya dari repository.
+				Port, build command, start command, release command, dan root directory. Boleh dikosongkan.
+				Sakala mendeteksi port dan command dari repository, kecuali release command.
 			</p>
 			<div id="wizard-advanced" class="mt-3 flex-col gap-5 {advancedVisible ? 'flex' : 'hidden'}">
 				<div>
@@ -383,6 +392,18 @@
 						spellcheck={false}
 						error={fieldError('start_command')}
 						hint={START_COMMAND_HELP}
+						inputClass="font-mono"
+					/>
+				</div>
+				<div>
+					<FormField
+						id="project-release-command"
+						label={`${RELEASE_COMMAND_LABEL} (opsional)`}
+						bind:value={wizard.releaseCommand}
+						placeholder="php artisan migrate --force"
+						spellcheck={false}
+						error={fieldError('release_command')}
+						hint={RELEASE_COMMAND_HELP}
 						inputClass="font-mono"
 					/>
 				</div>

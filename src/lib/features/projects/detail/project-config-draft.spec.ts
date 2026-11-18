@@ -10,6 +10,7 @@ const project = {
 	configured_port: null,
 	build_command: null,
 	start_command: null,
+	release_command: null,
 	root_directory: null,
 	auto_deploy: false,
 	replicas: 1
@@ -62,5 +63,51 @@ describe('replicas in the settings draft', () => {
 		);
 		expect(errors.configured_port).toBeTruthy();
 		expect(errors.replicas).toBe('Isi jumlah replika dengan bilangan bulat 1 sampai 2.');
+	});
+});
+
+describe('release command in the settings draft', () => {
+	const migrate = 'php artisan migrate --force';
+	const withCommand = projectConfigDraftFrom({ ...project, release_command: migrate });
+
+	it('starts empty when the project has none, or the API does not send it', () => {
+		expect(original.release_command).toBe('');
+		expect(projectConfigDraftFrom({ ...project, release_command: undefined }).release_command).toBe(
+			''
+		);
+	});
+
+	it('sends a new command trimmed, next to nothing else', () => {
+		expect(buildConfigPayload({ ...original, release_command: `  ${migrate} ` }, original)).toEqual(
+			{ release_command: migrate }
+		);
+	});
+
+	it('sends null when the command is cleared, which removes it', () => {
+		expect(buildConfigPayload({ ...withCommand, release_command: '  ' }, withCommand)).toEqual({
+			release_command: null
+		});
+	});
+
+	it('refuses a command over 1000 characters or on several lines', () => {
+		expect(
+			projectConfigErrors({ ...original, release_command: 'a'.repeat(1001) }, original, {
+				maxReplicas: 1
+			}).release_command
+		).toBe('Release command paling panjang 1000 karakter.');
+		expect(
+			projectConfigErrors(
+				{ ...original, release_command: 'php artisan migrate\nphp artisan db:seed' },
+				original,
+				{ maxReplicas: 1 }
+			).release_command
+		).toContain('harus satu baris');
+		expect(
+			hasConfigErrors(
+				projectConfigErrors({ ...original, release_command: 'a'.repeat(1000) }, original, {
+					maxReplicas: 1
+				})
+			)
+		).toBe(false);
 	});
 });

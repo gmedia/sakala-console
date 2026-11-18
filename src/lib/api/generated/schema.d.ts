@@ -693,6 +693,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/edge/v1/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The route table Sakala Edge pulls: which node routers serve each
+         *     project host. Answers `304` without a body when `If-None-Match` carries
+         *     the current revision. A failure is a `5xx`, never a `200` with fewer
+         *     routes
+         */
+        get: operations["edge.v1.routes.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/email/change": {
         parameters: {
             query?: never;
@@ -1477,6 +1499,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Regions a project may run in: those of runtime nodes that are allowed
+         *     work, sorted. Empty while no node reports a region; projects then keep
+         *     `region` null and run anywhere
+         */
+        get: operations["v1.app.regions.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/register": {
         parameters: {
             query?: never;
@@ -1980,6 +2023,7 @@ export interface components {
                 runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
                 build_command: string | null;
                 start_command: string | null;
+                release_command: string | null;
                 root_directory: string | null;
                 configured_port: number | null;
                 auto_deploy: boolean;
@@ -2110,6 +2154,24 @@ export interface components {
             hostname: string | null;
             /** @description The Docker network workloads join on the node, not an IP address. */
             runtime_network: string | null;
+            /**
+             * @description The region the node serves: `region_override`, else `reported_region`, else null (it then only takes
+             *     projects without a region).
+             */
+            region: string | null;
+            region_override: string | null;
+            /** @description From the last heartbeat (`SAKALA_AGENT_REGION`). */
+            reported_region: string | null;
+            /**
+             * @description `host:port` where Sakala Edge reaches the node's runtime router: `edge_address_override`, else
+             *     `reported_edge_address`. Null leaves the node's projects out of the Edge route table.
+             */
+            edge_address: string | null;
+            edge_address_override: string | null;
+            /** @description From the last heartbeat. */
+            reported_edge_address: string | null;
+            /** @description Free memory and container slots from the last heartbeat, as the scheduler ranks nodes. */
+            capacity: components["schemas"]["AgentNodeCapacityResource"];
             /** @description For example `docker`, `caddy`, `railpack`. */
             capabilities: string[];
             /** @description Projects whose serving deployment runs on this node. */
@@ -2546,6 +2608,12 @@ export interface components {
                      *     heartbeat; null when the node's driver cannot run replicas.
                      */
                     maximum_replicas_per_project?: number | null;
+                    /**
+                     * @description Optional and additive within protocol revision 4: the most
+                     *     containers the node runs at once (SAKALA_MAX_ACTIVE_CONTAINERS),
+                     *     for capacity-aware placement.
+                     */
+                    maximum_active_workloads?: number | null;
                     replicas?: {
                         /** Format: uuid */
                         project_id: string;
@@ -2554,6 +2622,16 @@ export interface components {
                         desired: number;
                         ready: number;
                     }[];
+                };
+                /**
+                 * @description Optional and additive within protocol revision 4: where the node
+                 *     is (SAKALA_AGENT_REGION) and where Sakala Edge reaches its
+                 *     runtime router. An admin override on the node wins over both.
+                 *     A malformed value rejects the heartbeat, like the lists above.
+                 */
+                runtime?: {
+                    region?: string | null;
+                    edge_address?: string | null;
                 };
                 disk_pressure: {
                     state: string;
@@ -2622,6 +2700,17 @@ export interface components {
             /** Format: date-time */
             last_seen_at: string | null;
         };
+        /** AgentNodeCapacityResource */
+        AgentNodeCapacityResource: {
+            memory_total_bytes: number | null;
+            memory_available_bytes: number | null;
+            /** @description Containers the node runs. */
+            active_workloads: number | null;
+            /** @description The most containers the node runs at once (`SAKALA_MAX_ACTIVE_CONTAINERS`). */
+            maximum_active_workloads: number | null;
+            /** @description `maximum_active_workloads` minus `active_workloads`, never below 0. */
+            free_workload_slots: number | null;
+        };
         /** AgentNodeControlResource */
         AgentNodeControlResource: {
             agent_node_id: string;
@@ -2668,6 +2757,10 @@ export interface components {
             /** @enum {string} */
             desired_state: "active" | "draining" | "drained" | "maintenance";
             protocol_version: number | null;
+            /** @description The region the node serves: the admin override, else the reported one. */
+            region: string | null;
+            /** @description `host:port` where Sakala Edge reaches the node's router: the admin override, else the reported one. */
+            edge_address: string | null;
             last_seen_at: string | null;
             created_at: string;
             updated_at: string;
@@ -2776,6 +2869,8 @@ export interface components {
             effective_port: number;
             build_command: string | null;
             start_command: string | null;
+            /** @description Run once per deployment before the new version takes traffic, for example database migrations. */
+            release_command: string | null;
             root_directory: string | null;
             auto_deploy: boolean;
             inspection_error_code: string | null;
@@ -2810,7 +2905,7 @@ export interface components {
          * DeploymentFailureCategory
          * @enum {string}
          */
-        DeploymentFailureCategory: "checkout" | "build" | "start" | "health" | "route" | "timeout" | "resource" | "node" | "scheduling" | "unknown";
+        DeploymentFailureCategory: "checkout" | "build" | "release" | "start" | "health" | "route" | "timeout" | "resource" | "node" | "scheduling" | "unknown";
         /** DeploymentLogResource */
         DeploymentLogResource: {
             sequence: number;
@@ -2898,6 +2993,30 @@ export interface components {
         /** DrainAgentNodeRequest */
         DrainAgentNodeRequest: {
             reason: string;
+        };
+        /** EdgeRouteTableResource */
+        EdgeRouteTableResource: {
+            /** @description When the API built this table (RFC 3339); up to `SAKALA_EDGE_ROUTES_CACHE_SECONDS` old. */
+            generated_at: string;
+            /** @description SHA-256 (lowercase hex) of `expected_minimum_routes`, `routes`, and `skipped_routes`; also the ETag. */
+            revision: string;
+            /** @description Routes the API built; a response with fewer `routes` is truncated and must be rejected. */
+            expected_minimum_routes: number;
+            /** @description One route per project that holds a workload on a node, sorted by `host`. */
+            routes: {
+                host: string;
+                project_id: string;
+                upstreams: string[];
+            }[];
+            /**
+             * @description Projects that hold a workload but have no route, sorted by `host`. `reason` is
+             *     `node_without_edge_address` or `invalid_host`.
+             */
+            skipped_routes: {
+                host: string;
+                project_id: string;
+                reason: string;
+            }[];
         };
         /** EnvironmentVariableRequest */
         EnvironmentVariableRequest: {
@@ -3119,6 +3238,8 @@ export interface components {
             idle_sleep_minutes: number | null;
             /** @description Most replicas per project. `null` allows one, so replicas stay off. */
             max_replicas: number | null;
+            /** @description Region the workspace's projects run in unless a project sets its own; `null` for any region. */
+            default_region: string | null;
             /** @description Workspaces running under this profile. A profile is deleted only at zero. */
             workspaces_count?: number | null;
             created_at: string | null;
@@ -3292,10 +3413,21 @@ export interface components {
              *     Null when nothing serves or the node has not reported yet.
              */
             replicas_ready: number | null;
+            /**
+             * @description Region the project runs in, one of `GET app/regions`; `null` follows the workspace's default region, or
+             *     any region without one. Placement reads it only while the project has no workload on a node.
+             */
+            region: string | null;
             build_command: string | null;
             start_command: string | null;
+            /** @description Run once per deployment before the new version takes traffic, for example database migrations. */
+            release_command: string | null;
             root_directory: string | null;
             auto_deploy: boolean;
+            /**
+             * @description True while the serving deployment was created with another deploy-relevant configuration: branch, port,
+             *     build configuration, replicas, or environment variables. Changing a value back makes it false again.
+             */
             redeploy_required: boolean;
             active_deployment_id: string | null;
             latest_deployment: components["schemas"]["LatestDeploymentResource"] | null;
@@ -3357,6 +3489,11 @@ export interface components {
          * @enum {string}
          */
         ReconcileWorkloadAction: "restart_log_follower" | "cleanup_failed_candidate" | "restore_route";
+        /** RegionResource */
+        RegionResource: {
+            /** @description The value a project's `region` or a profile's `default_region` takes, for example `jkt`. */
+            slug: string;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             name: string;
@@ -3525,6 +3662,11 @@ export interface components {
              *     project run on one node, which may cap them lower.
              */
             max_replicas?: number | null;
+            /**
+             * @description Region the workspace's projects run in unless a project sets its own, for example `jkt`. `null` (the
+             *     default) places them in any region. Lowercase letters, digits, and single inner hyphens, up to 32 characters.
+             */
+            default_region?: string | null;
         };
         /** StoreOnboardingProfileRequest */
         StoreOnboardingProfileRequest: {
@@ -3560,6 +3702,11 @@ export interface components {
             configured_port?: number | null;
             build_command?: string | null;
             start_command?: string | null;
+            /**
+             * @description Run once per deployment, before the new version takes traffic, for example database migrations.
+             *     Only nodes with the `release-command` capability run it.
+             */
+            release_command?: string | null;
             root_directory?: string | null;
             auto_deploy?: boolean;
         };
@@ -3654,6 +3801,11 @@ export interface components {
             configured_port?: number | null;
             build_command?: string | null;
             start_command?: string | null;
+            /**
+             * @description Run once per deployment, before the new version takes traffic, for example database migrations.
+             *     Only nodes with the `release-command` capability run it.
+             */
+            release_command?: string | null;
             root_directory?: string | null;
             auto_deploy?: boolean;
             /**
@@ -3661,6 +3813,11 @@ export interface components {
              *     Applies from the next deployment; `redeploy_required` turns true until then.
              */
             replicas?: number;
+            /**
+             * @description Region the project runs in, one of `GET app/regions`; `null` follows the workspace's default region, or
+             *     any region without one. Applies to the next placement on a node: a project that already runs stays on its node.
+             */
+            region?: string | null;
         };
         /** UpdateUserRoleRequest */
         UpdateUserRoleRequest: {
@@ -5423,6 +5580,32 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "edge.v1.routes.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `EdgeRouteTableResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeRouteTableResource"];
+                };
+            };
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     "v1.auth.email.change": {
         parameters: {
             query?: never;
@@ -7169,6 +7352,29 @@ export interface operations {
                 content?: never;
             };
             409: components["responses"]["ProjectWakeConflict"];
+        };
+    };
+    "v1.app.regions.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `RegionResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RegionResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
         };
     };
     "v1.auth.register": {

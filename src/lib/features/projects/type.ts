@@ -28,6 +28,11 @@ type ProjectReplicaFields = Partial<
 	>
 >;
 
+/** Added by the API with the release command, so an older one leaves it out. */
+type ProjectReleaseFields = Partial<
+	Pick<components['schemas']['ProjectResource'], 'release_command'>
+>;
+
 type DeploymentContractFields = Pick<
 	components['schemas']['DeploymentResource'],
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
@@ -80,7 +85,8 @@ export interface ProjectBase {
 	updated_at: string;
 }
 
-export interface Project extends ProjectBase, ProjectContractFields, ProjectReplicaFields {}
+export interface Project
+	extends ProjectBase, ProjectContractFields, ProjectReplicaFields, ProjectReleaseFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */
 export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];

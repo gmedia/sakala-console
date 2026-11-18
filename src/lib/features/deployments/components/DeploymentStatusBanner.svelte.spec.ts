@@ -111,3 +111,28 @@ describe('a failed deployment', () => {
 		expect(onViewError).toHaveBeenCalledOnce();
 	});
 });
+
+describe('a failed release command', () => {
+	it("shows the API's words with the exit code from the detail", async () => {
+		await render(DeploymentStatusBanner, {
+			status: 'failed',
+			failureCategory: 'release',
+			failureCode: 'release_command_failed',
+			failureSummary:
+				'Perintah rilis keluar dengan kode selain 0, jadi versi baru tidak dijalankan.',
+			failureDetail: 'exit code 1',
+			userFixable: true,
+			recoveryHint: 'Buka log deployment bagian rilis untuk melihat error-nya.',
+			onRedeploy: vi.fn()
+		});
+
+		await expect
+			.element(page.getByText('Deployment gagal saat menjalankan release command'))
+			.toBeVisible();
+		await expect.element(page.getByText('exit code 1')).toBeVisible();
+		await expect.element(page.getByText('release_command_failed')).toBeVisible();
+		await expect
+			.element(page.getByText('Buka log deployment bagian rilis untuk melihat error-nya.'))
+			.toBeVisible();
+	});
+});
