@@ -13,6 +13,17 @@ const triggerLabels: Record<string, string> = {
 
 export const TERMINAL_STATUSES = new Set(['succeeded', 'failed', 'cancelled']);
 
+/**
+ * A `deployment.updated` that ended the deployment. It carries only the status, so how it ended has
+ * to be read, even in a background tab. A runtime change (crash, sleep, wake) also arrives with a
+ * final status, but brings `project_runtime_status` along, so its read can wait.
+ */
+export function isDeploymentEndBroadcast(payload: unknown): boolean {
+	if (typeof payload !== 'object' || payload === null) return false;
+	const { status, project_runtime_status: runtimeStatus } = payload as Record<string, unknown>;
+	return typeof status === 'string' && TERMINAL_STATUSES.has(status) && runtimeStatus === undefined;
+}
+
 export type LifecycleTimestamps = {
 	created_at?: string | null;
 	started_at?: string | null;

@@ -1,4 +1,6 @@
 import { useQueryClient } from '@tanstack/svelte-query';
+import { isDeploymentEndBroadcast } from '$lib/features/deployments/deployment-presentation';
+import type { CoalescedRequestOptions } from '$lib/features/realtime/coalesced-task';
 import { SequenceGuard } from '$lib/features/realtime/sequence-guard';
 import { usePrivateChannel } from '$lib/features/realtime/use-channel.svelte';
 import {
@@ -40,8 +42,8 @@ export function useProjectLiveStatus(
 	const running = $derived(deployments.find(isRunningDeployment));
 	const channelDeploymentId = $derived(running?.id ?? project().active_deployment_id ?? null);
 
-	function refreshProject() {
-		requestProjectRefresh(client, projectId());
+	function refreshProject(options?: CoalescedRequestOptions) {
+		requestProjectRefresh(client, projectId(), options);
 	}
 
 	// The header reads a running deployment from the list, so only a new deployment or the end of
@@ -102,7 +104,9 @@ export function useProjectLiveStatus(
 			);
 
 			// A step forward is in the list now. The end of a deployment changes the project as well.
-			if (!isRunningDeployment({ status: status as Deployment['status'] })) refreshProject();
+			if (!isRunningDeployment({ status: status as Deployment['status'] })) {
+				refreshProject(isDeploymentEndBroadcast(payload) ? { evenIfHidden: true } : undefined);
+			}
 		}
 	});
 

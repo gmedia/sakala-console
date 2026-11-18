@@ -279,7 +279,7 @@ describe('requests of one tab on a 5-minute deployment', () => {
 	);
 
 	it(
-		'a background tab polls nothing, and realtime events cost nothing',
+		'a background tab polls nothing, and only the end of the deployment costs a read',
 		{ timeout: 60_000 },
 		async () => {
 			vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
@@ -290,7 +290,15 @@ describe('requests of one tab on a 5-minute deployment', () => {
 
 			const afterLoad = requests.filter((r) => r.second > 5);
 			console.info('[budget] hidden', afterLoad.length, JSON.stringify(afterLoad));
-			expect(afterLoad).toEqual([]);
+			expect(afterLoad.filter((r) => r.second <= DURATION_S)).toEqual([]);
+			// The broadcast only carries the status, so the outcome is read once, right away.
+			const atEnd = afterLoad.filter((r) => r.second > DURATION_S);
+			expect(atEnd.every((r) => r.second <= DURATION_S + 5)).toBe(true);
+			const reads = (suffix: string) => atEnd.filter((r) => r.path.endsWith(suffix)).length;
+			expect(reads(`/deployments/${DEPLOYMENT_ID}`)).toBe(1);
+			expect(reads(`/projects/${PROJECT_ID}`)).toBe(1);
+			expect(reads('/deployments')).toBe(1);
+			expect(reads('/logs')).toBe(1);
 		}
 	);
 });

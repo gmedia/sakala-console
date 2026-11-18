@@ -188,7 +188,7 @@ Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan 
 
 - Payload realtime langsung masuk cache (`applyRealtimeDeploymentUpdate`, `applyRealtimeDeploymentEvent`), jadi satu langkah deployment tidak memicu request. Baca ulang hanya terjadi saat deployment selesai, karena `failure` dan `is_active` tidak ada di payload, dan digabung lewat `createCoalescedTask` dan `requestProjectRefresh`.
 - Selama realtime terhubung, polling deployment dan event hanya tiap 60 detik sebagai jaring pengaman. Tanpa realtime tiap 5 detik.
-- Tab di background tidak polling dan menunda baca ulang sampai dilihat.
+- Tab di background tidak polling dan menunda baca ulang sampai dilihat, kecuali baca ulang saat deployment selesai (`request({ evenIfHidden: true })`). Payload akhir hanya membawa status, jadi tanpa baca itu halaman menampilkan deployment gagal tanpa penyebabnya, dan Redeploy terkunci karena proyek masih terbaca men-deploy. Biayanya satu kali per deployment.
 - GET yang kena `429` mengisi gerbang di `api/rate-limit.ts`. Sampai `Retry-After` habis, GET lain tidak dikirim, termasuk dari tab lain lewat `localStorage`. Write tetap dikirim, dan `429` dari write tidak menutup gerbang karena limit-nya lebih sempit.
 - Event deployment hanya bertambah dan API membatasi 10 per halaman, jadi baca ulang melanjutkan dari halaman terakhir (`resumeCursor`), bukan mengulang semua halaman dari awal.
 - Unduh data (`separateRateLimit`) punya limit sendiri, jadi tidak ikut gerbang di atas.
