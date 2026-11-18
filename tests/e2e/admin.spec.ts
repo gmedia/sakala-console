@@ -269,6 +269,7 @@ test.describe('admin journeys', () => {
 			max_cpu_millis: 1000,
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
+			max_replicas: null,
 			reason: 'Pilot magang semester ini'
 		});
 	});
@@ -357,6 +358,7 @@ test.describe('admin journeys', () => {
 			max_cpu_millis: 500,
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
+			max_replicas: null,
 			reason: 'Pilot magang semester ini'
 		});
 		const put = calls.find((call) => call.method === 'PUT');

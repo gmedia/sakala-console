@@ -207,3 +207,37 @@ describe('ProjectHeaderBanner, a sleeping project', () => {
 		await expect.element(page.getByRole('button', { name: 'Bangunkan' })).not.toBeInTheDocument();
 	});
 });
+
+describe('ProjectHeaderBanner, replica health', () => {
+	const live = { ...baseProject, runtime_status: 'running' };
+	const badgeOf = () =>
+		page.getByTestId('project-replica-health').element().parentElement?.className ?? '';
+
+	it('says nothing about replicas for a single container', async () => {
+		project = { ...live, replicas: 1, serving_replicas: 1, replicas_ready: 1 };
+		await renderBanner();
+
+		await expect.element(page.getByText('Live', { exact: true })).toBeVisible();
+		await expect.element(page.getByTestId('project-replica-health')).not.toBeInTheDocument();
+	});
+
+	it('shows 3/3 healthy replicas calmly next to the status', async () => {
+		project = { ...live, replicas: 3, serving_replicas: 3, replicas_ready: 3 };
+		await renderBanner();
+
+		await expect
+			.element(page.getByTestId('project-replica-health'))
+			.toHaveTextContent('3/3 replika sehat');
+		expect(badgeOf()).not.toContain('text-warning');
+	});
+
+	it('warns when fewer replicas are ready than the deployment runs', async () => {
+		project = { ...live, replicas: 3, serving_replicas: 3, replicas_ready: 2 };
+		await renderBanner();
+
+		await expect
+			.element(page.getByTestId('project-replica-health'))
+			.toHaveTextContent('2/3 replika sehat');
+		expect(badgeOf()).toContain('text-warning');
+	});
+});

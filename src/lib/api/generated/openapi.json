@@ -6456,14 +6456,14 @@
                     "409": {
                         "$ref": "#/components/responses/ProjectWakeConflict"
                     },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -6528,6 +6528,14 @@
                         "name": "suspended",
                         "in": "query",
                         "description": "`true` for suspended projects only, `false` to leave them out.",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "idle_sleep_blocked",
+                        "in": "query",
+                        "description": "`true` for projects the idle sweep gave up on (`idle_sleep_blocked`), `false` to leave them out.",
                         "schema": {
                             "type": "boolean"
                         }
@@ -10451,7 +10459,7 @@
                     },
                     "runtime_status": {
                         "type": "string",
-                        "description": "`not_deployed`, `deploying`, `running`, `stopped`, `failed`, or `crashed`.",
+                        "description": "`not_deployed`, `deploying`, `running`, `stopped`, `failed`, `crashed`, or `sleeping`.",
                         "enum": [
                             "not_deployed",
                             "deploying",
@@ -10482,6 +10490,10 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "idle_sleep_blocked": {
+                        "type": "boolean",
+                        "description": "Whether idle sleep gave up on the active deployment: the node\nreported its container missing (`runtime_workload_not_found`).\nA new deployment, or a wake or restart that succeeds, clears it."
                     },
                     "workspace": {
                         "type": [
@@ -10592,6 +10604,7 @@
                     "branch",
                     "public_url",
                     "active_deployment_id",
+                    "idle_sleep_blocked",
                     "workspace",
                     "creator",
                     "latest_deployment",
@@ -11225,6 +11238,11 @@
                                         "type": "integer",
                                         "description": "Additive within protocol revision 4, sent with `traffic` (idle sleep).",
                                         "minimum": 0
+                                    },
+                                    "replicas": {
+                                        "type": "integer",
+                                        "description": "Additive within protocol revision 4, sent with `replicas`.",
+                                        "minimum": 0
                                     }
                                 }
                             },
@@ -11393,6 +11411,48 @@
                                                 "project_id",
                                                 "deployment_id",
                                                 "last_request_at"
+                                            ]
+                                        },
+                                        "maxItems": 500
+                                    },
+                                    "maximum_replicas_per_project": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ],
+                                        "description": "Optional, from nodes with the `replicas` capability: one item\nper deployment that runs replicas. Bounded and strict like\ntraffic. Partial readiness is not a crash; only crashed_details\nchanges runtime state.\nSent by agents with the `replicas` capability on every\nheartbeat; null when the node's driver cannot run replicas.",
+                                        "minimum": 1,
+                                        "maximum": 64
+                                    },
+                                    "replicas": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "project_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "deployment_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "desired": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 1000
+                                                },
+                                                "ready": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 1000
+                                                }
+                                            },
+                                            "required": [
+                                                "project_id",
+                                                "deployment_id",
+                                                "desired",
+                                                "ready"
                                             ]
                                         },
                                         "maxItems": 500
@@ -13729,6 +13789,13 @@
                         ],
                         "description": "Minutes without a request before a project sleeps. `0` never sleeps; `null` follows the global\n`SAKALA_PROJECT_IDLE_SLEEP_MINUTES`."
                     },
+                    "max_replicas": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Most replicas per project. `null` allows one, so replicas stay off."
+                    },
                     "workspaces_count": {
                         "type": [
                             "integer",
@@ -13759,6 +13826,7 @@
                     "max_cpu_millis",
                     "max_builds_per_hour",
                     "idle_sleep_minutes",
+                    "max_replicas",
                     "created_at",
                     "updated_at"
                 ],
@@ -13970,7 +14038,12 @@
                                 "type": "integer"
                             },
                             "current_active_containers_count": {
-                                "type": "integer"
+                                "type": "integer",
+                                "description": "Replicas of the projects that serve or are being deployed; sleeping projects do not count."
+                            },
+                            "max_replicas": {
+                                "type": "integer",
+                                "description": "Most replicas per project, from the workspace's limit profile; 1 without one."
                             }
                         },
                         "required": [
@@ -13980,7 +14053,8 @@
                             "current_projects_count",
                             "current_active_deployments_count",
                             "max_active_containers",
-                            "current_active_containers_count"
+                            "current_active_containers_count",
+                            "max_replicas"
                         ]
                     },
                     "runtime_defaults": {
@@ -14183,13 +14257,25 @@
                             "type",
                             "status"
                         ]
+                    },
+                    "wake": {
+                        "anyOf": [
+                            {
+                                "description": "Unsuspend only: whether the kept container was started again\n(`command` is then the WakeProject). Null for the other actions.\n| |\n|---|\n| `requested` <br/> A WakeProject was queued for the node that keeps the container. |\n| `container_limit_reached` <br/> The workspace already runs as many containers as it may; the project stays stopped. |\n| `node_cannot_wake` <br/> The node that keeps the container does not advertise `idle-sleep`, so it cannot wake it. |\n| `nothing_to_wake` <br/> No container is kept (never deployed, or stopped), or the project did not stop. |",
+                                "$ref": "#/components/schemas/UnsuspendWakeOutcome"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
                     "project_id",
                     "status",
                     "runtime_status",
-                    "command"
+                    "command",
+                    "wake"
                 ],
                 "title": "ProjectControlResource"
             },
@@ -14302,6 +14388,28 @@
                             "integer",
                             "null"
                         ]
+                    },
+                    "replicas": {
+                        "type": "integer",
+                        "description": "Containers the next deployment runs behind the node's router. Changing it applies from the next deployment."
+                    },
+                    "max_replicas": {
+                        "type": "integer",
+                        "description": "Most replicas a project of this workspace may run, from its limit profile; 1 without one."
+                    },
+                    "serving_replicas": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Replicas the serving deployment runs, which can differ from `replicas` until the next deployment.\nNull when nothing serves, like `serving_port`."
+                    },
+                    "replicas_ready": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Replicas of the serving deployment that pass the router's health check, from the node's heartbeat.\nNull when nothing serves or the node has not reported yet."
                     },
                     "build_command": {
                         "type": [
@@ -14519,6 +14627,10 @@
                     "configured_port",
                     "effective_port",
                     "serving_port",
+                    "replicas",
+                    "max_replicas",
+                    "serving_replicas",
+                    "replicas_ready",
                     "build_command",
                     "start_command",
                     "root_directory",
@@ -15102,6 +15214,15 @@
                         "description": "Minutes without a request before a project sleeps, up to a week. `0` never puts the workspace's\nprojects to sleep; `null` (the default) follows `SAKALA_PROJECT_IDLE_SLEEP_MINUTES`.",
                         "minimum": 0,
                         "maximum": 10080
+                    },
+                    "max_replicas": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Most replicas per project, 1 to 10. `null` (the default) allows one, so replicas stay off. All replicas of a\nproject run on one node, which may cap them lower.",
+                        "minimum": 1,
+                        "maximum": 10
                     }
                 },
                 "required": [
@@ -15359,6 +15480,17 @@
                 ],
                 "title": "UnsuspendProjectRequest"
             },
+            "UnsuspendWakeOutcome": {
+                "type": "string",
+                "description": "Whether lifting a suspension started the project's kept container again.\n| |\n|---|\n| `requested` <br/> A WakeProject was queued for the node that keeps the container. |\n| `container_limit_reached` <br/> The workspace already runs as many containers as it may; the project stays stopped. |\n| `node_cannot_wake` <br/> The node that keeps the container does not advertise `idle-sleep`, so it cannot wake it. |\n| `nothing_to_wake` <br/> No container is kept (never deployed, or stopped), or the project did not stop. |",
+                "enum": [
+                    "requested",
+                    "container_limit_reached",
+                    "node_cannot_wake",
+                    "nothing_to_wake"
+                ],
+                "title": "UnsuspendWakeOutcome"
+            },
             "UpdateEnvironmentVariableRequest": {
                 "type": "object",
                 "properties": {
@@ -15482,6 +15614,11 @@
                     },
                     "auto_deploy": {
                         "type": "boolean"
+                    },
+                    "replicas": {
+                        "type": "integer",
+                        "description": "Containers the project runs behind the node's router, from 1 to `max_replicas` of its workspace.\nApplies from the next deployment; `redeploy_required` turns true until then.",
+                        "minimum": 1
                     }
                 },
                 "title": "UpdateProjectRequest"
@@ -16010,6 +16147,10 @@
                                 "type": "integer",
                                 "description": "Effective minutes without a request before a project sleeps, from the profile or the global setting. `0` never sleeps."
                             },
+                            "max_replicas": {
+                                "type": "integer",
+                                "description": "Effective most replicas per project, from the profile; 1 without one."
+                            },
                             "max_active_deployments_per_project": {
                                 "type": "integer",
                                 "description": "Global, the same for every workspace."
@@ -16023,6 +16164,7 @@
                             "max_cpu_millis",
                             "max_builds_per_hour",
                             "idle_sleep_minutes",
+                            "max_replicas",
                             "max_active_deployments_per_project"
                         ]
                     },
@@ -16034,7 +16176,7 @@
                             },
                             "active_containers": {
                                 "type": "integer",
-                                "description": "Projects that serve or are being deployed."
+                                "description": "Replicas of the projects that serve or are being deployed; sleeping projects do not count."
                             },
                             "active_deployments": {
                                 "type": "integer"
@@ -16254,7 +16396,7 @@
                                 },
                                 "code": {
                                     "type": "string",
-                                    "description": "`PROJECT_WAKE_LIMIT_EXCEEDED`: the workspace already runs as many projects as it may. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.",
+                                    "description": "`PROJECT_WAKE_LIMIT_EXCEEDED`: the replicas of the project would take the workspace past its limit of running containers. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.",
                                     "enum": [
                                         "PROJECT_WAKE_LIMIT_EXCEEDED",
                                         "PROJECT_NOT_SLEEPING",
@@ -16263,11 +16405,15 @@
                                 },
                                 "limit": {
                                     "type": "integer",
-                                    "description": "The workspace limit of running projects. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake."
+                                    "description": "The workspace limit of running containers. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake."
                                 },
                                 "current": {
                                     "type": "integer",
-                                    "description": "Projects the workspace runs now. Same presence as `limit`."
+                                    "description": "Containers the other projects of the workspace run now, every replica counted. Same presence as `limit`."
+                                },
+                                "requested": {
+                                    "type": "integer",
+                                    "description": "Containers the wake would start: every replica of the sleeping deployment. Same presence as `limit`."
                                 },
                                 "runtime_status": {
                                     "type": "string",

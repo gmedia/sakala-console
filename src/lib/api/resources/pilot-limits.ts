@@ -4,18 +4,20 @@ import type { components } from '../generated/schema';
 
 type GeneratedPilotLimits = components['schemas']['PilotLimitsResource'];
 type GeneratedQuotas = GeneratedPilotLimits['quotas'];
-type ContainerQuotaKey = 'max_active_containers' | 'current_active_containers_count';
+/** Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas. */
+type OptionalQuotaKey =
+	'max_active_containers' | 'current_active_containers_count' | 'max_replicas';
 
 /**
- * The part of the resource the Console reads. The workspace, container, and idle sleep fields stay
- * optional because an older API does not send them.
+ * The part of the resource the Console reads. The workspace, container, replica, and idle sleep
+ * fields stay optional because an older API does not send them.
  */
 type PilotLimitsContract = Pick<
 	GeneratedPilotLimits,
 	'runtime_defaults' | 'timeouts' | 'deleted_project_retention_days'
 > & {
-	quotas: Omit<GeneratedQuotas, ContainerQuotaKey> &
-		Partial<Pick<GeneratedQuotas, ContainerQuotaKey>>;
+	quotas: Omit<GeneratedQuotas, OptionalQuotaKey> &
+		Partial<Pick<GeneratedQuotas, OptionalQuotaKey>>;
 	workspace_id?: GeneratedPilotLimits['workspace_id'];
 	limit_profile?: GeneratedPilotLimits['limit_profile'];
 	project_idle_sleep_minutes?: GeneratedPilotLimits['project_idle_sleep_minutes'];
@@ -32,7 +34,9 @@ const pilotLimitsResponseSchema = z.object({
 			current_projects_count: z.number(),
 			current_active_deployments_count: z.number(),
 			max_active_containers: z.number().optional(),
-			current_active_containers_count: z.number().optional()
+			current_active_containers_count: z.number().optional(),
+			/** Most replicas per project; `1` means replicas are off for this workspace. */
+			max_replicas: z.number().optional()
 		}),
 		runtime_defaults: z.object({
 			memory_mb: z.number(),

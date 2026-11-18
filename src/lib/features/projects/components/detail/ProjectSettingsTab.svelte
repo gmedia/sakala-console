@@ -25,12 +25,19 @@
 	import {
 		createProjectDetailState,
 		getProjectDetailContext,
+		hasConfigErrors,
 		projectConfigDraftFrom,
-		type ProjectConfigDraft
+		projectConfigErrors,
+		type ProjectConfigDraft,
+		type ProjectConfigErrors,
+		type ProjectConfigLimits
 	} from '../../detail/projectDetailState.svelte';
-	import { buildConfigurationSchema } from '../../validation/createProjectSchema';
+	import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
+	import { maxReplicasOf, REPLICAS_COPY, replicasOf } from '../../replicas';
 	import BranchCombobox from '../create/BranchCombobox.svelte';
 	import DeleteProjectConfirmModal from './DeleteProjectConfirmModal.svelte';
+	import ProjectReplicasField from './ProjectReplicasField.svelte';
+	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 
 	let { projectId }: { projectId: string } = $props();
@@ -55,6 +62,9 @@
 		projectQuery.data ? projectConfigDraftFrom(projectQuery.data) : null
 	);
 	const config = $derived(draft.draftConfig ?? originalConfig);
+	const configLimits = $derived<ProjectConfigLimits | null>(
+		projectQuery.data ? { maxReplicas: maxReplicasOf(projectQuery.data) } : null
+	);
 	const isGithubInstallation = $derived(
 		projectQuery.data?.repository_source === 'github_installation'
 	);
@@ -81,8 +91,7 @@
 			: fetched;
 	});
 
-	type ConfigErrors = Partial<Record<keyof ProjectConfigDraft, string>>;
-	let configErrors = $state<ConfigErrors>({});
+	let configErrors = $state<ProjectConfigErrors>({});
 
 	let nameError = $state('');
 	let branchError = $state('');
@@ -112,8 +121,8 @@
 	}
 
 	function updateConfig(patch: Partial<ProjectConfigDraft>) {
-		if (!config || !originalConfig) return;
-		draft.setConfigDraft({ ...config, ...patch }, originalConfig);
+		if (!config || !originalConfig || !configLimits) return;
+		draft.setConfigDraft({ ...config, ...patch }, originalConfig, configLimits);
 		for (const field of Object.keys(patch) as (keyof ProjectConfigDraft)[]) {
 			configErrors[field] = undefined;
 		}
@@ -122,20 +131,9 @@
 	}
 
 	function validateConfig(): boolean {
-		if (!config) return true;
-		const result = buildConfigurationSchema.safeParse(config);
-		if (result.success) {
-			configErrors = {};
-			return true;
-		}
-		const fields = result.error.flatten().fieldErrors;
-		configErrors = {
-			configured_port: fields.configured_port?.[0],
-			build_command: fields.build_command?.[0],
-			start_command: fields.start_command?.[0],
-			root_directory: fields.root_directory?.[0]
-		};
-		return false;
+		if (!config || !originalConfig || !configLimits) return true;
+		configErrors = projectConfigErrors(config, originalConfig, configLimits);
+		return !hasConfigErrors(configErrors);
 	}
 
 	// `isPending` updates a tick after mutate(), which is too late for a double click.
@@ -193,9 +191,10 @@
 							configured_port: error.errors.configured_port?.[0],
 							build_command: error.errors.build_command?.[0],
 							start_command: error.errors.start_command?.[0],
-							root_directory: error.errors.root_directory?.[0]
+							root_directory: error.errors.root_directory?.[0],
+							replicas: error.errors.replicas?.[0]
 						};
-						if (nameError || branchError || Object.values(configErrors).some(Boolean)) return;
+						if (nameError || branchError || hasConfigErrors(configErrors)) return;
 					}
 					formError = getErrorMessage(error, 'Perubahan belum tersimpan. Silakan coba lagi.');
 				},
@@ -239,7 +238,7 @@
 {#snippet configField(
 	id: string,
 	label: string,
-	field: Exclude<keyof ProjectConfigDraft, 'auto_deploy'>,
+	field: Exclude<keyof ProjectConfigDraft, 'auto_deploy' | 'replicas'>,
 	placeholder: string,
 	hint: string,
 	options: { mono?: boolean; numeric?: boolean } = {}
@@ -272,13 +271,21 @@
 				Pengaturan proyek hanya bisa diubah pemilik dan anggota workspace.
 			</p>
 			<dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
-				{#each [['Nama proyek', data.name ?? data.project_name], ['Branch', data.branch], ['Subdomain', data.slug], ['Root directory', data.root_directory || 'Root repository'], ['Port', String(data.configured_port ?? data.effective_port)], ['Build command', data.build_command || 'Dideteksi otomatis'], ['Start command', data.start_command || 'Dideteksi otomatis'], ['Auto-deploy', data.auto_deploy ? 'Aktif' : 'Tidak aktif']] as [label, value] (label)}
+				{#each [['Nama proyek', data.name ?? data.project_name], ['Branch', data.branch], ['Subdomain', data.slug], ['Root directory', data.root_directory || 'Root repository'], ['Port', String(data.configured_port ?? data.effective_port)], ['Build command', data.build_command || 'Dideteksi otomatis'], ['Start command', data.start_command || 'Dideteksi otomatis'], ['Auto-deploy', data.auto_deploy ? 'Aktif' : 'Tidak aktif'], [REPLICAS_COPY.label, String(replicasOf(data))]] as [label, value] (label)}
 					<dt class="text-muted">{label}</dt>
 					<dd class="min-w-0 font-mono wrap-anywhere text-foreground">{value}</dd>
 				{/each}
 			</dl>
 		</section>
 	{:else if projectQuery.data}
+		{#if projectQuery.data.redeploy_required}
+			<div class="flex flex-col gap-2">
+				<RedeployRequiredNotice
+					project={projectQuery.data}
+					message={REDEPLOY_REQUIRED_COPY.settings}
+				/>
+			</div>
+		{/if}
 		<form onsubmit={handleSave} novalidate class="surface-card flex flex-col gap-5 p-4 sm:p-6">
 			<FormField
 				id="projectName"
@@ -349,6 +356,15 @@
 				{ mono: true }
 			)}
 
+			{#if config && configLimits}
+				<ProjectReplicasField
+					value={config.replicas}
+					maxReplicas={configLimits.maxReplicas}
+					error={configErrors.replicas}
+					onValueChange={(value) => updateConfig({ replicas: value })}
+				/>
+			{/if}
+
 			<div class="border-t border-border">
 				<ToggleField
 					title="Auto-deploy"
@@ -360,7 +376,7 @@
 			</div>
 
 			<p class="text-xs text-foreground/70">
-				Branch, port, command, dan root directory baru dipakai mulai deployment berikutnya.
+				Branch, port, command, root directory, dan replika baru dipakai mulai deployment berikutnya.
 				<strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan yang belum
 				tersimpan.
 			</p>

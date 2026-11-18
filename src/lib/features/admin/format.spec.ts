@@ -5,6 +5,7 @@ import {
 	bucketGrowth,
 	failureCategoryLabel,
 	formatProfileIdleSleep,
+	formatProfileMaxReplicas,
 	formatRange,
 	formatShare,
 	runtimeStatus,
@@ -113,5 +114,13 @@ describe('sleeping projects in the admin', () => {
 		expect(formatProfileIdleSleep(0)).toBe('Tidak pernah');
 		expect(formatProfileIdleSleep(10080)).toBe('10.080 menit');
 		expect(formatProfileIdleSleep(undefined)).toBe('-');
+	});
+});
+
+describe('replicas in a limit profile', () => {
+	it('reads empty as the default of one, and a number as it is', () => {
+		expect(formatProfileMaxReplicas(null)).toBe('1 (bawaan)');
+		expect(formatProfileMaxReplicas(10)).toBe('10');
+		expect(formatProfileMaxReplicas(undefined)).toBe('-');
 	});
 });

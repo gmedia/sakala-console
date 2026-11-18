@@ -21,10 +21,11 @@
 	} from '../../mutations';
 	import { useListUrl } from '../../list-url.svelte';
 	import { readListState, toApiParams } from '../../url-state';
-	import { formatNumber, formatProfileIdleSleep } from '../../format';
+	import { formatNumber, formatProfileIdleSleep, formatProfileMaxReplicas } from '../../format';
 	import { ASSIGN_PROFILE_PARAM, parseProfileReturn } from '../../return-to';
 	import {
 		IDLE_SLEEP_MINUTES_RANGE,
+		MAX_REPLICAS_RANGE,
 		profilePrefill,
 		type ProfilePrefill
 	} from '../../profile-defaults';
@@ -97,6 +98,13 @@
 			...IDLE_SLEEP_MINUTES_RANGE,
 			hint: `Kosong berarti ikut bawaan server, 0 berarti proyek tidak pernah tidur, atau 1 sampai ${formatNumber(IDLE_SLEEP_MINUTES_RANGE.max)} menit tanpa pengunjung.`,
 			optional: true
+		},
+		{
+			key: 'max_replicas',
+			label: 'Maks. replika',
+			...MAX_REPLICAS_RANGE,
+			hint: `Replika per proyek, ${MAX_REPLICAS_RANGE.min} sampai ${MAX_REPLICAS_RANGE.max}. Kosong berarti ${MAX_REPLICAS_RANGE.min}, jadi replika tidak aktif. Semua replika satu proyek berjalan di satu node, yang bisa membatasinya lebih rendah.`,
+			optional: true
 		}
 	];
 
@@ -112,7 +120,8 @@
 		max_memory_mb: '',
 		max_cpu_millis: '',
 		max_builds_per_hour: '',
-		idle_sleep_minutes: ''
+		idle_sleep_minutes: '',
+		max_replicas: ''
 	});
 
 	let deleting = $state<LimitProfile | null>(null);
@@ -284,6 +293,7 @@
 			{ label: 'Memori', class: 'text-right' },
 			{ label: 'CPU', class: 'text-right' },
 			{ label: 'Tidur otomatis', class: 'text-right' },
+			{ label: 'Replika', class: 'text-right' },
 			{ label: 'Dipakai', class: 'text-right' },
 			{ label: 'Aksi', srOnly: true }
 		]}
@@ -312,6 +322,9 @@
 					>
 					<td class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
 						>{formatProfileIdleSleep(profile.idle_sleep_minutes)}</td
+					>
+					<td class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
+						>{formatProfileMaxReplicas(profile.max_replicas)}</td
 					>
 					<td class="px-4 py-3 text-right">
 						<a

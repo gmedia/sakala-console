@@ -18,12 +18,13 @@
 		createDeleteEnvironmentVariableMutation,
 		createUpdateEnvironmentVariableMutation
 	} from '../../mutations';
-	import { useProjectRedeploy } from '../../detail/use-project-redeploy.svelte';
+	import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
 	import type { EnvironmentVariable } from '../../type';
 	import { getEnvironmentVariableValue } from '../../api';
 	import { ENV_KEY_REGEX, normalizeEnvKey } from '../../validation/environmentVariable';
 	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
 	import EnvKey from './EnvKey.svelte';
+	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 
 	let { projectId }: { projectId: string } = $props();
@@ -34,10 +35,6 @@
 	const deleteMutation = createDeleteEnvironmentVariableMutation();
 	const updateMutation = createUpdateEnvironmentVariableMutation();
 	const projectQuery = createProjectQuery(() => projectId);
-	const redeploy = useProjectRedeploy(() => ({
-		id: projectId,
-		branch: projectQuery.data?.branch ?? ''
-	}));
 	// A viewer reads keys and plain values; the API refuses secret values and every change.
 	const access = useProjectAccess(() => projectQuery.data);
 
@@ -330,23 +327,12 @@
 	{/if}
 
 	{#if projectQuery.data?.redeploy_required && !access.readOnly}
-		<div
-			role="status"
-			class="mb-4 flex flex-col justify-between gap-3 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 md:flex-row md:items-center"
-		>
-			<p class="min-w-0 text-sm text-foreground">
-				Perubahan variabel belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya
-				berlaku.
-			</p>
-			<Button onclick={redeploy.trigger} disabled={redeploy.isProcessing}>
-				{redeploy.isProcessing ? 'Menjalankan...' : 'Redeploy sekarang'}
-			</Button>
+		<div class="mb-4 flex flex-col gap-2">
+			<RedeployRequiredNotice
+				project={projectQuery.data}
+				message={REDEPLOY_REQUIRED_COPY.variables}
+			/>
 		</div>
-		{#if redeploy.errorMessage}
-			<p role="alert" class="mb-4 text-sm text-error-dark">
-				{redeploy.errorMessage}
-			</p>
-		{/if}
 	{/if}
 
 	<div class="@container w-full rounded-control border border-border bg-surface">

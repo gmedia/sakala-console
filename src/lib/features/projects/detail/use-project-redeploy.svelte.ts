@@ -3,6 +3,7 @@ import { toast } from 'svelte-sonner';
 import { resolveRoute } from '$app/paths';
 import { getErrorMessage } from '$lib/api/errors';
 import { createRedeployMutation, createUpdateProjectMutation } from '../mutations';
+import { getDeployErrorMessage } from '../presentation';
 import type { Project } from '../type';
 import { getProjectDetailContext } from './projectDetailState.svelte';
 import { executeRedeployFlow, redeployStartedMessage } from './redeploy';
@@ -46,7 +47,7 @@ export function useProjectRedeploy(project: () => Pick<Project, 'id' | 'branch'>
 							);
 						},
 						onError: (error) => {
-							errorMessage = getErrorMessage(
+							errorMessage = getDeployErrorMessage(
 								error,
 								'Redeploy belum berhasil dijalankan. Silakan coba lagi.'
 							);

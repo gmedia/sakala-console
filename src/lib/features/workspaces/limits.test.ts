@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { parsePilotLimitsResponse } from '$lib/api/resources/pilot-limits';
 import { getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
-import { formatIdleSleep, workspaceIdleSleepSummary, workspaceLimitRows } from './limits';
+import {
+	formatIdleSleep,
+	replicasLine,
+	workspaceIdleSleepSummary,
+	workspaceLimitRows,
+	workspaceReplicasSummary
+} from './limits';
 
 describe('workspaceLimitRows', () => {
 	it('shows projects, running deployments, and active apps of a team', () => {
@@ -47,5 +53,27 @@ describe('workspaceIdleSleepSummary', () => {
 
 	it('writes large numbers the Indonesian way', () => {
 		expect(formatIdleSleep(10080)).toBe('setelah 10.080 menit tanpa pengunjung');
+	});
+});
+
+describe('replicas in the workspace limits', () => {
+	const quotas = parsePilotLimitsResponse(getWorkspaceFixture('pilot-limits-team').body).quotas;
+
+	it('says how many replicas a project may run, and that each takes an active app', () => {
+		expect(workspaceReplicasSummary({ quotas: { ...quotas, max_replicas: 3 } })).toBe(
+			'Replika: paling banyak 3 per proyek. Setiap replika dihitung sebagai satu aplikasi aktif.'
+		);
+		expect(replicasLine(3)).toBe('Replika: paling banyak 3 per proyek.');
+	});
+
+	it('says replicas are not available at one', () => {
+		expect(workspaceReplicasSummary({ quotas: { ...quotas, max_replicas: 1 } })).toBe(
+			'Replika belum aktif untuk workspace ini.'
+		);
+	});
+
+	it('says nothing for an API that does not report replicas, like this recorded answer', () => {
+		expect(quotas.max_replicas).toBeUndefined();
+		expect(workspaceReplicasSummary({ quotas })).toBeNull();
 	});
 });

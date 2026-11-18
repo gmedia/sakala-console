@@ -14,6 +14,7 @@ import {
 	formatPilotRuntime,
 	getPortDisplay,
 	getActiveDeploymentLimitNotice,
+	getDeployErrorMessage,
 	getProjectQuotaNotice,
 	getProjectWakeErrorMessage,
 	getSleepingNotice,
@@ -23,9 +24,11 @@ import {
 	PROJECT_WAKE_COPY
 } from './presentation';
 import {
+	ACTIVE_CONTAINER_LIMIT_EXCEEDED,
 	apiErrorFromResponse,
 	NetworkError,
 	PROJECT_NOT_SLEEPING,
+	PROJECT_REPLICAS_UNSUPPORTED,
 	PROJECT_SUSPENDED,
 	PROJECT_WAKE_LIMIT_EXCEEDED
 } from '$lib/api/errors';
@@ -622,6 +625,110 @@ describe('getProjectWakeErrorMessage', () => {
 		expect(getProjectWakeErrorMessage(new TypeError('boom'))).toBe(PROJECT_WAKE_COPY.failed);
 		expect(getProjectWakeErrorMessage(new NetworkError())).toBe(
 			'Sakala API tidak dapat dijangkau.'
+		);
+	});
+});
+
+describe('replicas in the project header', () => {
+	const serving = {
+		status: 'active',
+		runtime_status: 'running',
+		active_deployment_id: 'dep_1'
+	} as const;
+
+	it('hides the count for a single container', () => {
+		expect(
+			deriveProjectHeaderState({ ...serving, serving_replicas: 1, replicas_ready: 1 }).replicaHealth
+		).toBeNull();
+	});
+
+	it('shows 3/3 calmly and 2/3 as a warning while the project serves', () => {
+		expect(
+			deriveProjectHeaderState({ ...serving, serving_replicas: 3, replicas_ready: 3 }).replicaHealth
+		).toEqual({ label: '3/3 replika sehat', tone: 'neutral' });
+		expect(
+			deriveProjectHeaderState({ ...serving, serving_replicas: 3, replicas_ready: 2 }).replicaHealth
+		).toEqual({ label: '2/3 replika sehat', tone: 'warning' });
+	});
+
+	it('says nothing about replicas of a project that does not serve', () => {
+		expect(
+			deriveProjectHeaderState({
+				status: 'suspended',
+				runtime_status: 'running',
+				active_deployment_id: 'dep_1',
+				serving_replicas: 3,
+				replicas_ready: 3
+			}).replicaHealth
+		).toBeNull();
+	});
+});
+
+describe('replica-aware refusals', () => {
+	const refusal = (status: number, code: string, details: Record<string, unknown> = {}) =>
+		apiErrorFromResponse(status, { code, apiMessage: 'Pesan dari API.', details });
+	const fallback = 'Redeploy belum berhasil dijalankan. Silakan coba lagi.';
+
+	it('names the node maximum when the node runs fewer replicas than the setting', () => {
+		expect(
+			getDeployErrorMessage(
+				refusal(409, PROJECT_REPLICAS_UNSUPPORTED, { replicas: 6, node_maximum: 4 }),
+				fallback
+			)
+		).toBe(
+			'Proyek ini diatur berjalan dengan 6 replika, tetapi server yang menjalankannya paling banyak menjalankan 4 replika per proyek. Kurangi replika di tab Pengaturan menjadi 4 atau kurang, lalu deploy lagi.'
+		);
+	});
+
+	it('points a node without replicas at the setting', () => {
+		expect(
+			getDeployErrorMessage(
+				refusal(409, PROJECT_REPLICAS_UNSUPPORTED, { replicas: 3, node_maximum: null }),
+				fallback
+			)
+		).toBe(
+			'Proyek ini diatur berjalan dengan 3 replika, tetapi server yang menjalankannya belum mendukung replika. Ubah Replika menjadi 1 di tab Pengaturan untuk deploy sekarang, atau coba lagi setelah servernya diperbarui.'
+		);
+	});
+
+	it('names the replicas and the container counts when the limit is reached', () => {
+		expect(
+			getDeployErrorMessage(
+				refusal(422, ACTIVE_CONTAINER_LIMIT_EXCEEDED, { limit: 4, current: 2, requested: 3 }),
+				fallback
+			)
+		).toBe(
+			'Deployment ini menjalankan 3 replika, sementara workspace sudah menjalankan 2 dari batas 4 container. Kurangi replika di tab Pengaturan, hapus proyek yang tidak dipakai, atau tunggu sampai ada proyek yang tidur.'
+		);
+	});
+
+	it("keeps the API's words for a single container, missing counts, and other refusals", () => {
+		expect(
+			getDeployErrorMessage(
+				refusal(422, ACTIVE_CONTAINER_LIMIT_EXCEEDED, { limit: 2, current: 2, requested: 1 }),
+				fallback
+			)
+		).toBe('Pesan dari API.');
+		expect(getDeployErrorMessage(refusal(409, PROJECT_REPLICAS_UNSUPPORTED), fallback)).toBe(
+			'Pesan dari API.'
+		);
+		expect(getDeployErrorMessage(new TypeError('boom'), fallback)).toBe(fallback);
+	});
+
+	it('a wake names the replicas that would not fit', () => {
+		expect(
+			getProjectWakeErrorMessage(
+				refusal(409, PROJECT_WAKE_LIMIT_EXCEEDED, { limit: 4, current: 2, requested: 3 })
+			)
+		).toBe(
+			'Proyek ini berjalan dengan 3 replika, dan batas aplikasi aktif workspace tidak cukup: 2 dari 4 sudah terpakai. Coba lagi setelah ada proyek lain yang tidur atau dihapus.'
+		);
+		expect(
+			getProjectWakeErrorMessage(
+				refusal(409, PROJECT_WAKE_LIMIT_EXCEEDED, { limit: 3, current: 3, requested: 1 })
+			)
+		).toBe(
+			'Batas aplikasi aktif workspace sudah penuh, 3 dari 3. Coba lagi setelah ada proyek lain yang tidur atau dihapus.'
 		);
 	});
 });

@@ -152,6 +152,13 @@ describe('admin schemas against real API responses', () => {
 });
 
 describe('admin error bodies', () => {
+	it('reads max_replicas of a profile, where null allows one', () => {
+		const { data: profile } = fixture('limit-profile-create').body as { data: object };
+
+		expect(parseLimitProfile({ data: { ...profile, max_replicas: null } }).max_replicas).toBeNull();
+		expect(parseLimitProfile({ data: { ...profile, max_replicas: 4 } }).max_replicas).toBe(4);
+	});
+
 	it('keeps the stable code and the API text of the limit profile conflict', () => {
 		const { status, body } = fixture('limit-profile-delete-in-use');
 		const payload = body as { message: string; code: string };

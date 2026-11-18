@@ -1,12 +1,12 @@
 import { goto } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 import { resolveRoute } from '$app/paths';
-import { getErrorMessage } from '$lib/api/errors';
 import {
 	executeRedeployFlow,
 	redeployStartedMessage
 } from '$lib/features/projects/detail/redeploy';
 import { createRedeployMutation } from '$lib/features/projects/mutations';
+import { getDeployErrorMessage } from '$lib/features/projects/presentation';
 
 const REDEPLOY_FALLBACK_ERROR = 'Redeploy belum berhasil dijalankan. Silakan coba lagi.';
 
@@ -42,7 +42,7 @@ export function useFailedDeploymentRedeploy(project: () => { id: string; branch?
 						);
 					},
 					onError: (error) => {
-						errorMessage = getErrorMessage(error, REDEPLOY_FALLBACK_ERROR);
+						errorMessage = getDeployErrorMessage(error, REDEPLOY_FALLBACK_ERROR);
 					},
 					onSettled: () => {
 						submitting = false;

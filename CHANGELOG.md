@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- Replicas (requires sakala-api with replicas, gmedia/sakala-api#162). The project settings tab has a "Replika" number input from 1 to the workspace's `max_replicas`, with a short explanation that replicas split visitors across copies of the app, suit stateless apps (files and sessions on the container disk are not shared), and apply from the next deployment; it is disabled with "Replika belum aktif untuk workspace ini" when the workspace allows one. Saving shows the same redeploy notice as environment variables, now also on the settings tab. The project header shows "2/3 replika sehat" next to the status while more than one replica serves, in a warning tone only when fewer are ready. A deploy refused with `PROJECT_REPLICAS_UNSUPPORTED` (naming the node's `node_maximum` when it has one), or with `ACTIVE_CONTAINER_LIMIT_EXCEEDED` for several replicas, points at the setting and names the counts; a wake refused for several replicas says so. The workspace page shows the replica limit. Admins set "Maks. replika" on limit profiles (empty means 1, up to 10) and see it in the profile table and in a workspace's limits. API types are regenerated from the sakala-api `feat/replicas` branch, which also brings already merged fields such as `idle_sleep_blocked`.
+
 ## [0.6.0] - 2026-11-13
 
 ### Added

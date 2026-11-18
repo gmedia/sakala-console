@@ -20,6 +20,14 @@ type ProjectContractFields = Pick<
 	| 'suspension'
 >;
 
+/** Added by the API with replicas, so an older one leaves them out. */
+type ProjectReplicaFields = Partial<
+	Pick<
+		components['schemas']['ProjectResource'],
+		'replicas' | 'max_replicas' | 'serving_replicas' | 'replicas_ready'
+	>
+>;
+
 type DeploymentContractFields = Pick<
 	components['schemas']['DeploymentResource'],
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
@@ -72,7 +80,7 @@ export interface ProjectBase {
 	updated_at: string;
 }
 
-export interface Project extends ProjectBase, ProjectContractFields {}
+export interface Project extends ProjectBase, ProjectContractFields, ProjectReplicaFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */
 export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];
