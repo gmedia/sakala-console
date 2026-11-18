@@ -217,27 +217,50 @@ test.describe('project overview', () => {
 		);
 	});
 
-	test('the diagram is a list in visiting order, said in words, with links to each tab', async ({
+	test('the canvas reads in visiting order, is described in words, and explains a block on demand', async ({
 		page
-	}) => {
+	}, testInfo) => {
 		await mockProjectApi(page, STATES[1].handlers);
 		await openOverview(page);
 
 		const path = page.getByRole('list', { name: 'Jalur dari alamat ke aplikasi' });
-		await expect(path.getByRole('listitem')).toHaveCount(4);
-		await expect(path.getByRole('listitem').nth(0)).toContainText('toko-kopi-web.sakala.app');
-		await expect(path.getByRole('listitem').nth(1)).toContainText('Sakala Edge');
-		await expect(path.getByRole('listitem').nth(2)).toContainText('Region otomatis');
-		await expect(path.getByRole('listitem').nth(3)).toContainText('2/3 replika sehat');
-		await expect(page.getByTestId('topology-summary')).toHaveText(
+		await expect(path.getByRole('list', { name: 'Jaringan' }).getByRole('listitem')).toHaveText([
+			/Alamat\s*toko-kopi-web\.sakala\.app/,
+			/Sakala Edge\s*aktif/
+		]);
+		await expect(
+			path.getByRole('list', { name: 'Region otomatis' }).getByRole('listitem')
+		).toHaveText([/Node\s*otomatis/, /Aplikasi\s*Live\s*port 3000/]);
+		await expect(page.getByRole('img', { name: '2 dari 3 replika sehat' })).toHaveText('2/3');
+		await expect(page.getByRole('region', { name: 'Alur pengunjung' })).toHaveAccessibleDescription(
 			'Pengunjung membuka toko-kopi-web.sakala.app, lalu Sakala Edge meneruskannya ke node di region yang dipilih otomatis, tempat aplikasi berjalan dengan 2 dari 3 replika sehat di port 3000. Aplikasi memakai 3 environment variable dan menjalankan release command sebelum setiap versi baru menerima trafik.'
 		);
-		// Connectors are drawing only; the list and the sentence carry the order.
+		// Connectors are drawing only; the lists and the description carry the order.
 		for (const connector of await page.locator('.connector').all()) {
 			await expect(connector).toHaveAttribute('aria-hidden', 'true');
 		}
 
-		await page.getByTestId('topology-attached-variables').click();
+		// Details on demand, by keyboard: Enter opens, Esc closes and gives focus back.
+		const app = page.getByTestId('topology-block-app');
+		await app.focus();
+		await page.keyboard.press('Enter');
+		const detail = page.getByRole('dialog', { name: 'Aplikasi' });
+		await expect(detail).toContainText('1 replika belum lolos health check.');
+		await expect(app).toHaveAttribute('aria-expanded', 'true');
+		for (const width of WIDTHS) {
+			await page.setViewportSize({ width, height: 900 });
+			await expect(detail).toBeInViewport();
+			await page.screenshot({ path: testInfo.outputPath(`overview-detail-app-${width}.png`) });
+		}
+		await page.keyboard.press('Escape');
+		await expect(detail).toBeHidden();
+		await expect(app).toBeFocused();
+
+		await page.getByTestId('topology-block-variables').click();
+		await page
+			.getByRole('dialog', { name: 'Environment variable' })
+			.getByRole('link', { name: 'Buka Variabel' })
+			.click();
 		await expect(page).toHaveURL(new RegExp(`${OVERVIEW_URL}/environments$`));
 	});
 

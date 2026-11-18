@@ -31,6 +31,10 @@
 		/** The steps the value axis may tick at, such as whole numbers for counts. uPlot picks otherwise. */
 		increments?: readonly number[];
 		height?: number;
+		/** The readout under the chart. Off for small charts whose card states the numbers. */
+		legend?: boolean;
+		/** Fewer, wider-spaced ticks and no cursor, for a small chart that only shows the shape. */
+		compact?: boolean;
 	};
 
 	let {
@@ -42,7 +46,9 @@
 		formatPointTime,
 		band,
 		increments,
-		height = 160
+		height = 160,
+		legend = true,
+		compact = false
 	}: Props = $props();
 
 	let container: HTMLDivElement | undefined = $state();
@@ -58,6 +64,8 @@
 	/** Space between a value label and the plot, past the tick. */
 	const AXIS_LABEL_GAP_PX = 8;
 	const NO_VALUE = '–';
+	/** Least room between ticks on a compact chart, in px: about three times and two values. */
+	const COMPACT_TICK_SPACE = { x: 48, y: 28 } as const;
 
 	/** The design tokens as colours the canvas understands, read off the hidden swatches below. */
 	function readPalette(root: HTMLElement) {
@@ -125,8 +133,8 @@
 		return {
 			width,
 			height,
-			cursor: { points: { size: 8 }, drag: { x: false, y: false } },
-			legend: { show: true, live: true },
+			cursor: compact ? { show: false } : { points: { size: 8 }, drag: { x: false, y: false } },
+			legend: { show: legend, live: legend },
 			scales: {
 				x: { time: true, range: () => xRange },
 				y: {
@@ -139,10 +147,12 @@
 			axes: [
 				{
 					...axis,
+					space: compact ? COMPACT_TICK_SPACE.x : undefined,
 					values: (_plot, splits) => splits.map((seconds) => formatAxisTime(seconds))
 				},
 				{
 					...axis,
+					space: compact ? COMPACT_TICK_SPACE.y : undefined,
 					size: axisSize,
 					incrs: increments ? [...increments] : undefined,
 					values: (_plot, splits) => splits.map((value) => formatValue(value))

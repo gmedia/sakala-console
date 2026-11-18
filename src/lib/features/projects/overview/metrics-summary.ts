@@ -1,7 +1,9 @@
 import type { ProjectMetrics } from '$lib/api/resources/project-metrics';
 import {
 	cpuChart,
+	hasPoints,
 	memoryChart,
+	replicasChart,
 	restartsChart,
 	type AlignedColumns
 } from '../monitoring/chart-data';
@@ -14,79 +16,87 @@ export const OVERVIEW_METRICS_COPY = {
 	title: 'Metrik 24 jam terakhir',
 	link: 'Lihat di Metrik',
 	notRunning: 'Metrik muncul beberapa menit setelah aplikasi pertama kali berjalan.',
-	memory: 'Memori terakhir',
-	cpu: 'CPU terakhir',
-	restarts: 'Restart dalam 24 jam',
-	cpuSparkline: 'Rata-rata CPU tiap step, 24 jam terakhir'
+	titles: { memory: 'Memori', cpu: 'CPU', replicas: 'Replika' },
+	noData: 'Belum ada data di rentang ini.'
 } as const;
 
-export type OverviewMemory = {
-	/** `256 MiB`, or null without a sample. */
-	value: string | null;
-	/** `dari batas 1 GiB`, or a note that no limit was reported. */
-	note: string;
-	/** Newest average against the limit, 0 to 1, for the meter. `null` without both. */
-	ratio: number | null;
-};
+export type MiniChartId = keyof typeof OVERVIEW_METRICS_COPY.titles;
 
-export type OverviewCpu = {
-	value: string | null;
-	note: string;
-	/** `[times, avg]`, with `null` where the project had no samples, so the line breaks there. */
-	sparkline: AlignedColumns;
+export type MiniChart = {
+	id: MiniChartId;
+	title: string;
+	/** The newest value in words, shown at once and read instead of the canvas. */
+	latest: string;
+	/** `Maks 512 MiB`: the highest point of the day, in the chart's header. */
+	peak: string | null;
+	/**
+	 * `[times, values...]` with gaps as `null`, exactly as the Metrik tab draws them: memory is
+	 * `[times, average, peak, limit]`, CPU `[times, average, peak]`, replicas `[times, count]`. The
+	 * peak line is kept so the "Maks" in the header is a point the reader can see.
+	 */
+	columns: AlignedColumns;
+	hasData: boolean;
 };
-
-export type OverviewRestarts = { value: string; note: string };
 
 export type OverviewMetrics = {
-	memory: OverviewMemory;
-	cpu: OverviewCpu;
-	restarts: OverviewRestarts;
+	charts: MiniChart[];
+	/** Restarts over the day, as a sentence under the charts. */
+	restarts: string;
 };
 
-const NO_SAMPLE_NOTE = 'Belum ada data di rentang ini.';
-
 /**
- * The three numbers the overview leads with, from the same series and helpers as the Metrik tab, so
- * the two never disagree: memory against its limit, CPU now and at its peak, and restarts.
+ * Three small charts from the same series and helpers as the Metrik tab, so the two never
+ * disagree: memory with its limit, CPU, and replicas. Restarts become one sentence.
  */
 export function summarizeMetrics(metrics: ProjectMetrics): OverviewMetrics {
 	const memory = memoryChart(metrics);
 	const cpu = cpuChart(metrics);
+	const replicas = replicasChart(metrics);
 	const restarts = restartsChart(metrics);
+	const { titles, noData } = OVERVIEW_METRICS_COPY;
 
-	const memoryRatio =
-		memory.latest !== null && memory.limit !== null
-			? Math.min(1, Math.max(0, memory.latest / memory.limit))
-			: null;
+	const memoryLatest =
+		memory.latest === null
+			? noData
+			: memory.limit === null
+				? `Terakhir ${formatBytes(memory.latest)}.`
+				: `Terakhir ${formatBytes(memory.latest)} dari batas ${formatBytes(memory.limit)}.`;
 
 	return {
-		memory: {
-			value: memory.latest === null ? null : formatBytes(memory.latest),
-			note:
-				memory.latest === null
-					? NO_SAMPLE_NOTE
-					: memory.limit === null
-						? 'Batasnya tidak tercatat.'
-						: `dari batas ${formatBytes(memory.limit)}`,
-			ratio: memoryRatio
-		},
-		cpu: {
-			value: cpu.latest === null ? null : formatPercent(cpu.latest),
-			note: cpu.peak === null ? NO_SAMPLE_NOTE : `tertinggi ${formatPercent(cpu.peak)}`,
-			// Only the average: the sparkline shows the shape of the day, the Metrik tab the detail.
-			sparkline: [cpu.columns[0], cpu.columns[1] ?? []]
-		},
+		charts: [
+			{
+				id: 'memory',
+				title: titles.memory,
+				latest: memoryLatest,
+				peak: memory.peak === null ? null : `Maks ${formatBytes(memory.peak)}`,
+				columns: memory.columns,
+				hasData: hasPoints(memory.columns)
+			},
+			{
+				id: 'cpu',
+				title: titles.cpu,
+				latest: cpu.latest === null ? noData : `Terakhir ${formatPercent(cpu.latest)} dari 1 core.`,
+				peak: cpu.peak === null ? null : `Maks ${formatPercent(cpu.peak)}`,
+				columns: cpu.columns,
+				hasData: hasPoints(cpu.columns)
+			},
+			{
+				id: 'replicas',
+				title: titles.replicas,
+				latest:
+					replicas.latest === null
+						? noData
+						: `Terakhir ${formatCount(replicas.latest)} replika berjalan.`,
+				peak: replicas.peak === null ? null : `Maks ${formatCount(replicas.peak)}`,
+				columns: replicas.columns,
+				hasData: hasPoints(replicas.columns)
+			}
+		],
 		restarts:
 			restarts.columns[0].length === 0
-				? { value: '-', note: NO_SAMPLE_NOTE }
+				? 'Belum ada data restart dalam 24 jam terakhir.'
 				: restarts.total === 0
-					? { value: '0', note: 'tidak ada restart' }
-					: { value: formatCount(restarts.total), note: 'kali container dimulai ulang' }
+					? 'Tidak ada restart dalam 24 jam terakhir.'
+					: `${formatCount(restarts.total)} restart dalam 24 jam terakhir.`
 	};
-}
-
-/** `25%`, for the meter's accessible value. */
-export function formatRatio(ratio: number): string {
-	return formatPercent(Math.round(ratio * 100));
 }

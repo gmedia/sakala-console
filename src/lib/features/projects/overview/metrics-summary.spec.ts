@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ProjectMetrics } from '$lib/api/resources/project-metrics';
-import { formatRatio, summarizeMetrics } from './metrics-summary';
+import { summarizeMetrics } from './metrics-summary';
 
 const STEP = 900;
 const T0 = 1_795_000_000;
@@ -22,8 +22,19 @@ function metrics(series: Partial<ProjectMetrics['series']> = {}): ProjectMetrics
 	};
 }
 
-describe('the overview numbers', () => {
-	it('puts the newest memory against its limit, as words and as a ratio', () => {
+const chart = (summary: ReturnType<typeof summarizeMetrics>, id: string) =>
+	summary.charts.find((item) => item.id === id);
+
+describe('the overview charts', () => {
+	it('are memory, CPU, and replicas, in that order', () => {
+		expect(summarizeMetrics(metrics()).charts.map((item) => item.id)).toEqual([
+			'memory',
+			'cpu',
+			'replicas'
+		]);
+	});
+
+	it('give memory now against its limit, its peak, and the Metrik tab columns with the limit line', () => {
 		const summary = summarizeMetrics(
 			metrics({
 				memory_bytes: [
@@ -34,22 +45,26 @@ describe('the overview numbers', () => {
 				replicas: [{ t: at(0), count: 1 }]
 			})
 		);
-		expect(summary.memory).toEqual({ value: '256 MiB', note: 'dari batas 1 GiB', ratio: 0.25 });
-		expect(formatRatio(0.25)).toBe('25%');
+		const memory = chart(summary, 'memory');
+		expect(memory?.latest).toBe('Terakhir 256 MiB dari batas 1 GiB.');
+		expect(memory?.peak).toBe('Maks 300 MiB');
+		expect(memory?.columns).toEqual([
+			[at(0), at(1)],
+			[100 * MIB, 256 * MIB],
+			[120 * MIB, 300 * MIB],
+			[1024 * MIB, 1024 * MIB]
+		]);
+		expect(memory?.hasData).toBe(true);
 	});
 
-	it('draws no meter without a limit, and says so', () => {
+	it('leave the limit out of the words when none was reported', () => {
 		const summary = summarizeMetrics(
 			metrics({ memory_bytes: [{ t: at(0), avg: 64 * MIB, max: 64 * MIB }] })
 		);
-		expect(summary.memory).toEqual({
-			value: '64 MiB',
-			note: 'Batasnya tidak tercatat.',
-			ratio: null
-		});
+		expect(chart(summary, 'memory')?.latest).toBe('Terakhir 64 MiB.');
 	});
 
-	it('gives CPU now and at its peak, and the average line for the sparkline', () => {
+	it('give CPU in percent of one core, with its peak', () => {
 		const summary = summarizeMetrics(
 			metrics({
 				cpu_percent: [
@@ -58,15 +73,13 @@ describe('the overview numbers', () => {
 				]
 			})
 		);
-		expect(summary.cpu.value).toBe('12,5%');
-		expect(summary.cpu.note).toBe('tertinggi 150%');
-		expect(summary.cpu.sparkline).toEqual([
-			[at(0), at(1)],
-			[40, 12.5]
-		]);
+		expect(chart(summary, 'cpu')).toMatchObject({
+			latest: 'Terakhir 12,5% dari 1 core.',
+			peak: 'Maks 150%'
+		});
 	});
 
-	it('breaks the sparkline where samples are missing, like the Metrik chart', () => {
+	it('break lines where samples are missing, like the Metrik chart', () => {
 		const summary = summarizeMetrics(
 			metrics({
 				cpu_percent: [
@@ -75,10 +88,35 @@ describe('the overview numbers', () => {
 				]
 			})
 		);
-		expect(summary.cpu.sparkline[1]).toEqual([10, null, 20]);
+		expect(chart(summary, 'cpu')?.columns[1]).toEqual([10, null, 20]);
 	});
 
-	it('counts restarts over the day, and says when there were none or no samples', () => {
+	it('give replicas as a step, with the most that ran', () => {
+		const summary = summarizeMetrics(
+			metrics({
+				replicas: [
+					{ t: at(0), count: 1 },
+					{ t: at(1), count: 3 },
+					{ t: at(2), count: 2 }
+				]
+			})
+		);
+		expect(chart(summary, 'replicas')).toMatchObject({
+			latest: 'Terakhir 2 replika berjalan.',
+			peak: 'Maks 3'
+		});
+	});
+
+	it('say a series has no samples instead of drawing an empty chart', () => {
+		const memory = chart(summarizeMetrics(metrics()), 'memory');
+		expect(memory).toMatchObject({
+			latest: 'Belum ada data di rentang ini.',
+			peak: null,
+			hasData: false
+		});
+	});
+
+	it('count restarts over the day, and say when there were none or no samples', () => {
 		const counted = summarizeMetrics(
 			metrics({
 				restarts: [
@@ -87,20 +125,12 @@ describe('the overview numbers', () => {
 				]
 			})
 		);
-		expect(counted.restarts).toEqual({ value: '3', note: 'kali container dimulai ulang' });
-		const none = summarizeMetrics(metrics({ restarts: [{ t: at(0), count: 0 }] }));
-		expect(none.restarts).toEqual({ value: '0', note: 'tidak ada restart' });
-		expect(summarizeMetrics(metrics()).restarts.value).toBe('-');
-	});
-
-	it('caps the meter at a full bar when memory passes the limit', () => {
-		const summary = summarizeMetrics(
-			metrics({
-				memory_bytes: [{ t: at(0), avg: 600 * MIB, max: 600 * MIB }],
-				memory_limit_bytes: 512 * MIB,
-				replicas: [{ t: at(0), count: 1 }]
-			})
+		expect(counted.restarts).toBe('3 restart dalam 24 jam terakhir.');
+		expect(summarizeMetrics(metrics({ restarts: [{ t: at(0), count: 0 }] })).restarts).toBe(
+			'Tidak ada restart dalam 24 jam terakhir.'
 		);
-		expect(summary.memory.ratio).toBe(1);
+		expect(summarizeMetrics(metrics()).restarts).toBe(
+			'Belum ada data restart dalam 24 jam terakhir.'
+		);
 	});
 });

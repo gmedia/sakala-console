@@ -3,9 +3,12 @@ import { baseProject, failedDeployment } from '../../../../../tests/e2e/fixtures
 import { deriveProjectHeaderState } from '../presentation';
 import type { Deployment, Project } from '../type';
 import {
+	deriveReplicaCells,
 	deriveTopology,
 	getAddressAvailability,
 	TOPOLOGY_COPY,
+	type Topology,
+	type TopologyBlockId,
 	type VariablesState
 } from './topology';
 
@@ -25,152 +28,195 @@ function topologyOf(
 	});
 }
 
-const node = (topology: ReturnType<typeof topologyOf>, id: string) =>
-	topology.path.find((item) => item.id === id);
+const block = (topology: Topology, id: TopologyBlockId) =>
+	[...topology.path, topology.attached]
+		.flatMap((group) => group.blocks)
+		.find((item) => item.id === id);
 
-describe('the visitor path', () => {
-	it('runs address, Sakala Edge, node, app, in that order', () => {
+describe('the canvas groups', () => {
+	it('puts the address and Sakala Edge in Jaringan, then the node and app in their region', () => {
 		const topology = topologyOf();
-		expect(topology.path.map((item) => item.id)).toEqual(['address', 'edge', 'node', 'app']);
-		expect(node(topology, 'address')?.value).toBe('toko-kopi-web.sakala.app');
-		expect(node(topology, 'edge')?.value).toBe(TOPOLOGY_COPY.edge);
+		expect(topology.path.map((group) => group.label)).toEqual(['Jaringan', 'Region otomatis']);
+		expect(topology.path.map((group) => group.blocks.map((item) => item.id))).toEqual([
+			['address', 'edge'],
+			['node', 'app']
+		]);
+		expect(topology.attached.label).toBe('Terpasang');
 	});
 
-	it('leaves Sakala Edge out of the boxes and the sentence when the install has none', () => {
+	it('names the region group and the node by the region slug when the project has one', () => {
+		const topology = topologyOf({ region: 'id-jkt' });
+		expect(topology.path[1].label).toBe('Region id-jkt');
+		expect(block(topology, 'node')).toMatchObject({ fact: 'id-jkt', mono: true });
+		expect(block(topologyOf(), 'node')).toMatchObject({ fact: 'otomatis', mono: false });
+	});
+
+	it('leaves Sakala Edge out of the blocks and the description when the install has none', () => {
 		const topology = topologyOf({}, { edge: false });
-		expect(topology.path.map((item) => item.id)).toEqual(['address', 'node', 'app']);
+		expect(topology.path[0].blocks.map((item) => item.id)).toEqual(['address']);
 		expect(topology.summary).not.toContain('Sakala Edge');
-		expect(topology.summary).toContain('pengunjung diteruskan ke node');
 	});
 
-	it('names the region slug, or says placement picks one', () => {
-		expect(node(topologyOf({ region: 'id-jkt' }), 'node')?.value).toBe('Region id-jkt');
-		expect(node(topologyOf({ region: null }), 'node')?.value).toBe('Region otomatis');
-		// An API from before regions sends no field at all.
-		expect(node(topologyOf(), 'node')?.value).toBe('Region otomatis');
-	});
-
-	it('links only the boxes that have somewhere to go', () => {
-		const targets = topologyOf().path.map((item) => item.target);
-		expect(targets).toEqual(['address', null, null, 'deployments']);
+	it('never stands in for a database the API does not report', () => {
+		expect(topologyOf().attached.blocks.map((item) => item.id)).toEqual([
+			'variables',
+			'release_command'
+		]);
 	});
 });
 
-describe('the app box', () => {
-	it('is Live with every replica healthy and the port that serves', () => {
-		const app = node(
-			topologyOf({ serving_replicas: 3, replicas_ready: 3, serving_port: 8080 }),
-			'app'
-		);
-		expect(app?.badge).toEqual({ label: 'Live', tone: 'success' });
-		expect(app?.facts).toEqual(['3/3 replika sehat', 'port 8080']);
-		expect(app?.tone).toBe('live');
-		expect(app?.detail).toBeNull();
+describe('one fact per block', () => {
+	it('gives the hostname, Edge active, the port, the variable count, and whether a release command is set', () => {
+		const topology = topologyOf({ release_command: 'php artisan migrate --force' });
+		expect(block(topology, 'address')).toMatchObject({
+			fact: 'toko-kopi-web.sakala.app',
+			mono: true
+		});
+		expect(block(topology, 'edge')?.fact).toBe(TOPOLOGY_COPY.edgeActive);
+		expect(block(topology, 'app')).toMatchObject({
+			fact: 'port 3000',
+			badge: { label: 'Live', tone: 'success' }
+		});
+		expect(block(topology, 'variables')?.fact).toBe('3 variabel');
+		expect(block(topology, 'release_command')?.fact).toBe('diatur');
+		expect(block(topology, 'release_command')?.detail.value).toBe('php artisan migrate --force');
 	});
 
-	it('warns, and says how many replicas fail the health check, when some do', () => {
-		const app = node(topologyOf({ serving_replicas: 3, replicas_ready: 1 }), 'app');
-		expect(app?.facts[0]).toBe('1/3 replika sehat');
+	it('reads an absence as an absence, and does not claim a count it has not read', () => {
+		expect(block(topologyOf({ release_command: '  ' }), 'release_command')?.fact).toBe(
+			'belum diatur'
+		);
+		expect(
+			block(topologyOf({}, { variables: { state: 'ready', count: 0 } }), 'variables')?.fact
+		).toBe('belum ada');
+		expect(block(topologyOf({}, { variables: { state: 'loading' } }), 'variables')?.fact).toBe(
+			TOPOLOGY_COPY.variablesLoading
+		);
+		expect(block(topologyOf({}, { variables: { state: 'error' } }), 'variables')?.fact).toBe(
+			TOPOLOGY_COPY.variablesError
+		);
+	});
+
+	it('moves the explanations into the details, each with the place to act', () => {
+		const topology = topologyOf();
+		expect(block(topology, 'app')?.detail.link).toEqual({
+			label: 'Lihat riwayat',
+			target: 'deployments'
+		});
+		expect(block(topology, 'variables')?.detail.link?.target).toBe('variables');
+		expect(block(topology, 'release_command')?.detail.link?.target).toBe('release_command');
+		expect(block(topology, 'address')?.detail.link?.target).toBe('address');
+		// Nothing to change about Edge or the node from the Console.
+		expect(block(topology, 'edge')?.detail.link).toBeNull();
+		expect(block(topology, 'node')?.detail.link).toBeNull();
+	});
+
+	it('says Edge cuts traffic for a suspended project', () => {
+		const topology = topologyOf({
+			status: 'suspended',
+			suspension: { reason: null, suspended_at: null }
+		});
+		expect(block(topology, 'edge')?.fact).toBe(TOPOLOGY_COPY.edgeCut);
+		expect(block(topology, 'app')?.badge?.label).toBe('Ditangguhkan');
+		expect(topology.summary).toMatch(/^Proyek ini ditangguhkan/);
+	});
+});
+
+describe('replica cells', () => {
+	it('fills one teal cell per healthy replica, and marks the rest not ready', () => {
+		expect(deriveReplicaCells({ serving_replicas: 3, replicas_ready: 2 }, true)).toEqual({
+			cells: ['ready', 'ready', 'unready'],
+			label: '2/3',
+			accessibleLabel: '2 dari 3 replika sehat'
+		});
+	});
+
+	it('draws outlines without a health claim before the node reports', () => {
+		expect(deriveReplicaCells({ serving_replicas: 2, replicas_ready: null }, true)).toEqual({
+			cells: ['unknown', 'unknown'],
+			label: '2',
+			accessibleLabel: '2 replika, kesehatannya belum dilaporkan'
+		});
+	});
+
+	it('draws the setting as idle cells while nothing runs', () => {
+		expect(deriveReplicaCells({ replicas: 3, serving_replicas: null }, false)).toEqual({
+			cells: ['idle', 'idle', 'idle'],
+			label: '3',
+			accessibleLabel: '3 replika diatur, tidak ada yang berjalan'
+		});
+		// An API from before replicas: one container.
+		expect(deriveReplicaCells({}, false).cells).toEqual(['idle']);
+	});
+
+	it('never draws more ready cells than replicas, nor fewer than none', () => {
+		expect(deriveReplicaCells({ serving_replicas: 2, replicas_ready: 5 }, true).label).toBe('2/2');
+		expect(deriveReplicaCells({ serving_replicas: 2, replicas_ready: -1 }, true).cells).toEqual([
+			'unready',
+			'unready'
+		]);
+	});
+});
+
+describe('the app block by state', () => {
+	it('is live with every replica healthy', () => {
+		const app = block(topologyOf({ serving_replicas: 3, replicas_ready: 3 }), 'app');
+		expect(app?.tone).toBe('live');
+		expect(app?.replicas?.label).toBe('3/3');
+		expect(app?.detail.body).toContain(
+			'Semua replika lolos health check, dan pengunjung dibagi di antaranya.'
+		);
+	});
+
+	it('warns when some replicas fail the health check, and says how many', () => {
+		const topology = topologyOf({ serving_replicas: 3, replicas_ready: 1 });
+		const app = block(topology, 'app');
 		expect(app?.tone).toBe('warning');
-		expect(app?.detail).toBe(
+		expect(app?.detail.body).toContain(
 			'2 replika belum lolos health check. Pengunjung dilayani replika yang sehat.'
 		);
+		expect(topology.summary).toContain('1 dari 3 replika sehat');
 	});
 
-	it('gives a count without a health claim before the node reports', () => {
-		const app = node(topologyOf({ serving_replicas: 2, replicas_ready: null }), 'app');
-		expect(app?.facts[0]).toBe('2 replika');
-		expect(app?.tone).toBe('live');
-	});
-
-	it('says a sleeping app wakes on the first visit, and keeps the replica setting', () => {
+	it('dims the runtime and keeps the network awake while the app sleeps', () => {
 		const topology = topologyOf({ runtime_status: 'sleeping', replicas: 2 });
-		const app = node(topology, 'app');
-		expect(app?.badge?.label).toBe('Tidur');
-		expect(app?.facts).toEqual(['Diatur 2 replika', 'port 3000']);
-		expect(app?.detail).toBe('Kunjungan pertama membangunkannya.');
+		expect(topology.asleep).toBe(true);
+		expect(block(topology, 'app')?.tone).toBe('asleep');
+		expect(block(topology, 'node')?.tone).toBe('asleep');
+		expect(block(topology, 'edge')?.tone).toBe('neutral');
+		expect(block(topology, 'app')?.replicas?.cells).toEqual(['idle', 'idle']);
+		expect(block(topology, 'app')?.detail.body[0]).toMatch(/Kunjungan pertama membangunkannya/);
 		expect(topology.summary).toContain('tempat aplikasi sedang tidur');
-		expect(topology.summary).toContain('Kunjungan pertama membangunkannya');
 	});
 
-	it('marks a failed first deploy as an error, with nothing serving', () => {
+	it('marks a failed first deploy as an error and describes the path as a future', () => {
 		const topology = topologyOf(
 			{ runtime_status: 'failed', status: 'draft', active_deployment_id: null },
 			{ deployments: [failedDeployment] }
 		);
-		expect(node(topology, 'app')?.tone).toBe('error');
-		expect(node(topology, 'app')?.detail).toBe(
-			'Deploy terakhir gagal, belum ada versi yang melayani.'
-		);
+		expect(block(topology, 'app')?.tone).toBe('error');
 		expect(topology.summary).toMatch(/^Setelah deploy pertama berhasil, pengunjung/);
 	});
 
 	it('says the previous version serves when only the newest attempt failed', () => {
 		const topology = topologyOf({}, { deployments: [failedDeployment] });
-		expect(node(topology, 'app')?.tone).toBe('warning');
+		expect(block(topology, 'app')?.tone).toBe('warning');
 		expect(topology.summary).toContain(
 			'Deploy terakhir gagal, jadi versi sebelumnya yang melayani.'
 		);
 	});
 
-	it('describes the path as a future for a project never deployed', () => {
+	it('describes a never-deployed project in words for screen readers', () => {
 		const topology = topologyOf({
 			runtime_status: 'not_deployed',
 			status: 'draft',
 			active_deployment_id: null,
 			serving_replicas: null
 		});
-		expect(node(topology, 'app')?.badge?.label).toBe('Belum deploy');
-		expect(node(topology, 'app')?.facts).toEqual(['port 3000']);
-		expect(node(topology, 'address')?.detail).toBe('Bisa dibuka setelah deploy pertama berhasil.');
+		expect(block(topology, 'app')?.badge?.label).toBe('Belum deploy');
 		expect(topology.summary).toBe(
 			'Setelah deploy pertama berhasil, pengunjung yang membuka toko-kopi-web.sakala.app diteruskan Sakala Edge ke node di region yang dipilih otomatis, lalu ke aplikasi di port 3000. Aplikasi memakai 3 environment variable dan belum punya release command.'
 		);
-	});
-
-	it('says a suspended project is cut off, whatever the runtime still does', () => {
-		const topology = topologyOf({
-			status: 'suspended',
-			suspension: { reason: null, suspended_at: null }
-		});
-		expect(node(topology, 'app')?.badge?.label).toBe('Ditangguhkan');
-		expect(topology.summary).toMatch(/^Proyek ini ditangguhkan/);
-	});
-});
-
-describe('what is attached to the app', () => {
-	it('counts variables and shows the release command', () => {
-		const [variables, release] = topologyOf({
-			release_command: 'php artisan migrate --force'
-		}).attached;
-		expect(variables).toMatchObject({ value: '3 variabel', empty: false, target: 'variables' });
-		expect(release).toMatchObject({
-			value: 'php artisan migrate --force',
-			mono: true,
-			empty: false,
-			target: 'release_command'
-		});
-	});
-
-	it('reads an absence as an absence', () => {
-		const [variables, release] = topologyOf(
-			{ release_command: '   ' },
-			{ variables: { state: 'ready', count: 0 } }
-		).attached;
-		expect(variables).toMatchObject({ value: 'Belum ada', empty: true });
-		expect(release).toMatchObject({ value: 'Belum diatur', empty: true, mono: false });
-	});
-
-	it('does not claim a count it has not read', () => {
-		const loading = topologyOf({}, { variables: { state: 'loading' } });
-		expect(loading.attached[0].value).toBe(TOPOLOGY_COPY.variablesLoading);
-		expect(loading.summary).not.toContain('environment variable');
-		const failed = topologyOf({}, { variables: { state: 'error' } });
-		expect(failed.attached[0].value).toBe(TOPOLOGY_COPY.variablesError);
-	});
-
-	it('never stands in for a database the API does not report', () => {
-		expect(topologyOf().attached.map((item) => item.id)).toEqual(['variables', 'release_command']);
 	});
 });
 

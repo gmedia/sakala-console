@@ -5,15 +5,26 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { createProjectMetricsQuery } from '../../monitoring/queries';
 	import { hasNoMetrics } from '../../monitoring/chart-data';
-	import { emptyTitle, freshnessNote, MONITORING_COPY } from '../../monitoring/format';
+	import {
+		BYTE_AXIS_STEPS,
+		COUNT_AXIS_STEPS,
+		emptyTitle,
+		formatAxisTime,
+		formatBytes,
+		formatCount,
+		formatPercent,
+		formatPointTime,
+		freshnessNote,
+		MONITORING_COPY
+	} from '../../monitoring/format';
 	import { metricsRangeOption, resolveMetricsPollInterval } from '../../monitoring/ranges';
 	import {
-		formatRatio,
 		OVERVIEW_METRICS_COPY,
 		OVERVIEW_METRICS_RANGE,
-		summarizeMetrics
+		summarizeMetrics,
+		type MiniChartId
 	} from '../../overview/metrics-summary';
-	import Sparkline from './Sparkline.svelte';
+	import type { ChartSeries } from '../monitoring/TimeSeriesChart.svelte';
 
 	type Props = {
 		projectId: string;
@@ -27,6 +38,8 @@
 	);
 	const NOT_DEPLOYED = 'not_deployed';
 	const SLEEPING = 'sleeping';
+	/** Small enough for three side by side, tall enough for two value ticks. */
+	const MINI_CHART_HEIGHT = 112;
 
 	// A project that never ran has no samples, so the overview does not spend a request finding out.
 	const hasRun = $derived(runtimeStatus !== NOT_DEPLOYED);
@@ -50,6 +63,38 @@
 	const freshness = $derived(
 		metricsQuery.dataUpdatedAt > 0 ? freshnessNote(metricsQuery.dataUpdatedAt, polls) : null
 	);
+
+	const { average, peak, limit } = MONITORING_COPY.series;
+	/** The same lines as the Metrik tab's charts, so a shape here is the shape there. */
+	const SERIES: Record<MiniChartId, ChartSeries[]> = {
+		memory: [
+			{ label: average, tone: 'primary' },
+			{ label: peak, tone: 'soft' },
+			{ label: limit, tone: 'reference', dashed: true }
+		],
+		cpu: [
+			{ label: average, tone: 'primary' },
+			{ label: peak, tone: 'soft' }
+		],
+		replicas: [{ label: MONITORING_COPY.series.replicas, tone: 'primary', kind: 'step' }]
+	};
+	const FORMAT: Record<MiniChartId, (value: number) => string> = {
+		memory: formatBytes,
+		cpu: formatPercent,
+		replicas: formatCount
+	};
+	const INCREMENTS: Partial<Record<MiniChartId, readonly number[]>> = {
+		memory: BYTE_AXIS_STEPS,
+		replicas: COUNT_AXIS_STEPS
+	};
+	const STAT_BAND: [number, number] = [1, 0];
+	const axisTime = (seconds: number) => formatAxisTime(seconds, rangeOption);
+
+	/**
+	 * uPlot loads with its own chunk, after the numbers are on screen, so the overview's first paint
+	 * never waits for it. The Metrik tab shares the same chunk.
+	 */
+	const loadChart = () => import('../monitoring/TimeSeriesChart.svelte');
 </script>
 
 <section
@@ -89,8 +134,8 @@
 			{#each [1, 2, 3] as item (item)}
 				<div class="flex flex-col gap-2" aria-hidden="true">
 					<div class="skeleton h-4 w-16"></div>
-					<div class="skeleton h-6 w-24"></div>
-					<div class="skeleton h-8 w-full"></div>
+					<div class="skeleton h-4 w-32"></div>
+					<div class="skeleton h-28 w-full"></div>
 				</div>
 			{/each}
 		</div>
@@ -113,56 +158,60 @@
 			<p class="text-sm text-muted">{MONITORING_COPY.empty.description}</p>
 		</div>
 	{:else}
-		<dl class="grid gap-x-6 gap-y-4 sm:grid-cols-3">
-			<div class="flex min-w-0 flex-col gap-1" data-testid="overview-metric-memory">
-				<dt class="text-xs font-medium text-muted">{OVERVIEW_METRICS_COPY.memory}</dt>
-				<dd class="flex flex-col gap-2">
-					<span class="flex flex-wrap items-baseline gap-x-1.5">
-						<span class="text-xl font-semibold text-foreground tabular-nums"
-							>{summary.memory.value ?? '-'}</span
-						>
-						<span class="text-xs text-muted">{summary.memory.note}</span>
-					</span>
-					{#if summary.memory.ratio !== null}
-						<!-- A ratio to a limit is a meter; the text above carries both numbers. -->
-						<span
-							role="meter"
-							aria-label="Memori terpakai dari batas"
-							aria-valuemin={0}
-							aria-valuemax={100}
-							aria-valuenow={Math.round(summary.memory.ratio * 100)}
-							aria-valuetext={formatRatio(summary.memory.ratio)}
-							class="block h-2 w-full overflow-hidden rounded-full bg-primary-100"
-						>
-							<span
-								class="block h-full rounded-full bg-primary"
-								style:width={`${summary.memory.ratio * 100}%`}
-							></span>
-						</span>
-					{/if}
-				</dd>
-			</div>
-			<div class="flex min-w-0 flex-col gap-1" data-testid="overview-metric-cpu">
-				<dt class="text-xs font-medium text-muted">{OVERVIEW_METRICS_COPY.cpu}</dt>
-				<dd class="flex flex-col gap-1">
-					<span class="flex flex-wrap items-baseline gap-x-1.5">
-						<span class="text-xl font-semibold text-foreground tabular-nums"
-							>{summary.cpu.value ?? '-'}</span
-						>
-						<span class="text-xs text-muted">{summary.cpu.note}</span>
-					</span>
-					<Sparkline columns={summary.cpu.sparkline} {xRange} />
-				</dd>
-			</div>
-			<div class="flex min-w-0 flex-col gap-1" data-testid="overview-metric-restarts">
-				<dt class="text-xs font-medium text-muted">{OVERVIEW_METRICS_COPY.restarts}</dt>
-				<dd class="flex flex-wrap items-baseline gap-x-1.5">
-					<span class="text-xl font-semibold text-foreground tabular-nums"
-						>{summary.restarts.value}</span
+		<div class="@container">
+			<div class="grid gap-x-6 gap-y-5 @xl:grid-cols-3">
+				{#each summary.charts as chart (chart.id)}
+					<figure
+						class="m-0 flex min-w-0 flex-col gap-1"
+						aria-labelledby={`overview-chart-${chart.id}-title`}
+						aria-describedby={`overview-chart-${chart.id}-summary`}
+						data-testid={`overview-chart-${chart.id}`}
 					>
-					<span class="text-xs text-muted">{summary.restarts.note}</span>
-				</dd>
+						<figcaption class="flex flex-col gap-0.5">
+							<span class="flex items-baseline justify-between gap-2">
+								<h3
+									id={`overview-chart-${chart.id}-title`}
+									class="text-sm font-semibold text-foreground"
+								>
+									{chart.title}
+								</h3>
+								{#if chart.peak}
+									<span class="text-xs font-medium text-foreground tabular-nums">{chart.peak}</span>
+								{/if}
+							</span>
+							<span id={`overview-chart-${chart.id}-summary`} class="text-xs text-muted"
+								>{chart.latest}</span
+							>
+						</figcaption>
+						{#if chart.hasData}
+							<div style:min-height={`${MINI_CHART_HEIGHT}px`}>
+								{#await loadChart()}
+									<div
+										class="skeleton w-full"
+										style:height={`${MINI_CHART_HEIGHT}px`}
+										aria-hidden="true"
+									></div>
+								{:then { default: TimeSeriesChart }}
+									<TimeSeriesChart
+										columns={chart.columns}
+										series={SERIES[chart.id]}
+										band={chart.id === 'replicas' ? undefined : STAT_BAND}
+										increments={INCREMENTS[chart.id]}
+										{xRange}
+										formatValue={FORMAT[chart.id]}
+										formatAxisTime={axisTime}
+										{formatPointTime}
+										height={MINI_CHART_HEIGHT}
+										legend={false}
+										compact
+									/>
+								{/await}
+							</div>
+						{/if}
+					</figure>
+				{/each}
 			</div>
-		</dl>
+		</div>
+		<p class="text-sm text-foreground" data-testid="overview-restarts">{summary.restarts}</p>
 	{/if}
 </section>

@@ -111,7 +111,8 @@ const renderOverview = () =>
 	});
 
 const summary = () => page.getByTestId('topology-summary');
-const appNode = () => page.getByTestId('topology-node-app');
+const appBlock = () => page.getByTestId('topology-block-app');
+const appDetail = () => page.getByRole('dialog', { name: 'Aplikasi' });
 
 beforeEach(() => {
 	localStorage.clear();
@@ -144,16 +145,42 @@ describe('ProjectOverview, states', () => {
 			.toHaveTextContent(
 				'Pengunjung membuka toko-kopi-web.sakala.app, lalu Sakala Edge meneruskannya ke node di region yang dipilih otomatis, tempat aplikasi berjalan dengan 1 replika di port 3000. Aplikasi memakai 2 environment variable dan belum punya release command.'
 			);
+		await expect
+			.element(page.getByRole('region', { name: 'Alur pengunjung' }))
+			.toHaveAccessibleDescription(/^Pengunjung membuka toko-kopi-web.sakala.app/);
 		const path = page.getByRole('list', { name: 'Jalur dari alamat ke aplikasi' });
 		await expect.element(path).toBeVisible();
-		expect(path.getByRole('listitem').all()).toHaveLength(4);
-		await expect.element(appNode()).toHaveTextContent('Live');
-		await expect.element(page.getByTestId('overview-metric-memory')).toHaveTextContent('256 MiB');
-		await expect.element(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '25');
-		await expect.element(page.getByTestId('overview-metric-cpu')).toHaveTextContent('12,5%');
 		await expect
-			.element(page.getByTestId('overview-metric-restarts'))
-			.toHaveTextContent('2 kali container dimulai ulang');
+			.element(page.getByRole('list', { name: 'Jaringan' }))
+			.toHaveTextContent(/Alamat.*toko-kopi-web.*Sakala Edge.*aktif/);
+		await expect
+			.element(page.getByRole('list', { name: 'Region otomatis' }))
+			.toHaveTextContent(/Node.*otomatis.*Aplikasi.*Live.*port 3000/);
+		await expect
+			.element(page.getByTestId('topology-block-variables'))
+			.toHaveTextContent('2 variabel');
+		await expect
+			.element(page.getByTestId('topology-block-release_command'))
+			.toHaveTextContent('belum diatur');
+		await expect
+			.element(page.getByRole('figure', { name: 'Memori' }))
+			.toHaveAccessibleDescription('Terakhir 256 MiB dari batas 1 GiB.');
+		await expect
+			.element(page.getByRole('figure', { name: 'CPU' }))
+			.toHaveAccessibleDescription('Terakhir 12,5% dari 1 core.');
+		await expect
+			.element(page.getByRole('figure', { name: 'Replika' }))
+			.toHaveAccessibleDescription('Terakhir 1 replika berjalan.');
+		await expect
+			.element(page.getByTestId('overview-chart-memory'))
+			.toHaveTextContent('Maks 300 MiB');
+		await expect
+			.element(page.getByTestId('overview-restarts'))
+			.toHaveTextContent('2 restart dalam 24 jam terakhir.');
+		// uPlot arrives in its own chunk, after the numbers.
+		await expect
+			.poll(() => document.querySelectorAll('[data-testid="overview-metrics"] canvas').length)
+			.toBe(3);
 		await expect.element(page.getByRole('link', { name: 'Buka (tab baru)' })).toBeVisible();
 	});
 
@@ -161,21 +188,37 @@ describe('ProjectOverview, states', () => {
 		project = { ...baseProject, replicas: 3, serving_replicas: 3, replicas_ready: 2 };
 		await renderOverview();
 
-		await expect.element(appNode()).toHaveTextContent('2/3 replika sehat');
+		const cells = page.getByRole('img', { name: '2 dari 3 replika sehat' });
+		await expect.element(cells).toBeVisible();
+		await expect.element(cells).toHaveTextContent('2/3');
+		const states = [...document.querySelectorAll('[data-cell]')].map((cell) =>
+			cell.getAttribute('data-cell')
+		);
+		expect(states).toEqual(['ready', 'ready', 'unready']);
+		await expect.element(summary()).toHaveTextContent('2 dari 3 replika sehat');
+
+		await userEvent.click(appBlock());
 		await expect
-			.element(appNode())
+			.element(appDetail())
 			.toHaveTextContent(
 				'1 replika belum lolos health check. Pengunjung dilayani replika yang sehat.'
 			);
-		await expect.element(summary()).toHaveTextContent('2 dari 3 replika sehat');
 	});
 
 	it('sleeping: the app box and the sentence say the first visit wakes it', async () => {
 		project = { ...baseProject, runtime_status: 'sleeping', serving_replicas: null };
 		await renderOverview();
 
-		await expect.element(appNode()).toHaveTextContent('Tidur');
-		await expect.element(appNode()).toHaveTextContent('Kunjungan pertama membangunkannya.');
+		await expect.element(appBlock()).toHaveTextContent('Tidur');
+		await expect
+			.element(page.getByRole('img', { name: '1 replika diatur, tidak ada yang berjalan' }))
+			.toBeVisible();
+		// Ghosted, not faded: a dashed edge on the canvas colour, with the moon on the app.
+		await expect.element(appBlock()).toHaveClass(/border-dashed/);
+		await expect.element(page.getByTestId('topology-block-node')).toHaveClass(/border-dashed/);
+		await expect.element(page.getByTestId('topology-block-edge')).not.toHaveClass(/border-dashed/);
+		await userEvent.click(appBlock());
+		await expect.element(appDetail()).toHaveTextContent('Kunjungan pertama membangunkannya');
 		await expect.element(summary()).toHaveTextContent('tempat aplikasi sedang tidur');
 		await expect
 			.element(page.getByTestId('overview-metrics'))
@@ -195,10 +238,12 @@ describe('ProjectOverview, states', () => {
 		deployments = [failedDeployment];
 		await renderOverview();
 
-		await expect.element(appNode()).toHaveTextContent('Gagal');
+		await expect.element(appBlock()).toHaveTextContent('Gagal');
+		await userEvent.click(appBlock());
 		await expect
-			.element(appNode())
-			.toHaveTextContent('Deploy terakhir gagal, belum ada versi yang melayani.');
+			.element(appDetail())
+			.toHaveTextContent('Deploy terakhir gagal, jadi belum ada versi yang melayani.');
+		await userEvent.keyboard('{Escape}');
 		await expect.element(summary()).toHaveTextContent(/^Setelah deploy pertama berhasil/);
 		await expect
 			.element(page.getByTestId('overview-domain'))
@@ -222,7 +267,7 @@ describe('ProjectOverview, states', () => {
 		deployments = [];
 		await renderOverview();
 
-		await expect.element(appNode()).toHaveTextContent('Belum deploy');
+		await expect.element(appBlock()).toHaveTextContent('Belum deploy');
 		await expect
 			.element(page.getByTestId('overview-metrics'))
 			.toHaveTextContent('Metrik muncul beberapa menit setelah aplikasi pertama kali berjalan.');
@@ -241,14 +286,14 @@ describe('ProjectOverview, states', () => {
 		await expect
 			.element(page.getByTestId('overview-metrics-empty'))
 			.toHaveTextContent('Belum ada data metrik dalam 24 jam terakhir.');
-		await expect.element(page.getByRole('meter')).not.toBeInTheDocument();
+		await expect.element(page.getByRole('figure', { name: 'CPU' })).not.toBeInTheDocument();
 	});
 });
 
 describe('ProjectOverview, behaviour', () => {
 	it('reads each endpoint once: the header and the overview share the project and the history', async () => {
 		await renderOverview();
-		await expect.element(page.getByTestId('overview-metric-cpu')).toBeVisible();
+		await expect.element(page.getByTestId('overview-chart-cpu')).toBeVisible();
 
 		const count = (path: string) => requests.filter((request) => request === path).length;
 		expect(count(BASE)).toBe(1);
@@ -257,19 +302,50 @@ describe('ProjectOverview, behaviour', () => {
 		expect(count(`${BASE}/environment-variables`)).toBe(1);
 	});
 
-	it('connectors are hidden from assistive technology; the attached group has its own heading', async () => {
+	it('connectors are hidden from assistive technology; each frame has its own heading', async () => {
 		await renderOverview();
-		await expect.element(summary()).toBeVisible();
+		await expect.element(summary()).toBeInTheDocument();
 
 		const connectors = document.querySelectorAll('.connector');
 		expect(connectors.length).toBeGreaterThan(0);
 		connectors.forEach((connector) => expect(connector.getAttribute('aria-hidden')).toBe('true'));
+		for (const name of ['Jaringan', 'Region otomatis', 'Terpasang']) {
+			await expect.element(page.getByRole('heading', { name })).toBeVisible();
+		}
+	});
+
+	it('a block opens its details on demand, Esc closes them, and focus goes back to the block', async () => {
+		await renderOverview();
+		const trigger = page.getByTestId('topology-block-variables');
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
+
+		await userEvent.click(trigger);
+		const detail = page.getByRole('dialog', { name: 'Environment variable' });
+		await expect.element(detail).toBeVisible();
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'true');
 		await expect
-			.element(page.getByRole('heading', { name: 'Terpasang ke aplikasi' }))
-			.toBeVisible();
-		await expect
-			.element(page.getByRole('link', { name: /Environment variable\s*2 variabel/ }))
+			.element(detail.getByRole('link', { name: 'Buka Variabel' }))
 			.toHaveAttribute('href', `/projects/${PROJECT_ID}/environments`);
+
+		await userEvent.keyboard('{Escape}');
+		await expect.element(detail).not.toBeInTheDocument();
+		await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
+		await expect.element(trigger).toHaveFocus();
+	});
+
+	it('opens details from the keyboard too', async () => {
+		await renderOverview();
+		const trigger = page.getByTestId('topology-block-release_command');
+		await expect.element(trigger).toBeVisible();
+		(trigger.element() as HTMLElement).focus();
+		await userEvent.keyboard('{Enter}');
+		const detail = page.getByRole('dialog', { name: 'Release command' });
+		await expect.element(detail).toBeVisible();
+		await expect
+			.element(detail.getByRole('link', { name: 'Atur di Pengaturan' }))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings#releaseCommand`);
+		await userEvent.keyboard('{Escape}');
+		await expect.element(trigger).toHaveFocus();
 	});
 
 	it('hides a suggestion for this project and remembers it', async () => {
@@ -315,7 +391,7 @@ describe('ProjectOverview, behaviour', () => {
 		);
 		await renderOverview();
 
-		await expect.element(summary()).toBeVisible();
+		await expect.element(summary()).toBeInTheDocument();
 		await expect.element(page.getByTestId('overview-next-steps')).not.toBeInTheDocument();
 	});
 });
