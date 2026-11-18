@@ -24,7 +24,7 @@
 		width={SHOT_WIDTH}
 		height={SHOT_HEIGHT}
 		decoding="async"
-		alt="Layar Sakala Console setelah deploy pertama berhasil: judul portfolio-mahasiswa sudah live, alamat publiknya dengan tombol Buka situs dan Salin, tahapan deployment yang semuanya selesai, dan panel log yang diburamkan."
+		alt="Layar Sakala Console setelah deploy pertama berhasil: judul portofolio-mahasiswa sudah live, alamat publiknya dengan tombol Buka situs dan Salin, tahapan deployment yang semuanya selesai, dan panel log yang diburamkan."
 		class="block h-auto w-full bg-background"
 	/>
 </figure>
