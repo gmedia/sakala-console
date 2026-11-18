@@ -51,6 +51,18 @@
 	--color-terminal-error: #fca5a5;
 	--color-white: #ffffff;
 	--color-scrim: #17211b;
+	/*
+	 * Project avatar tiles, picked from the project id. White initials hold 4.5:1 on each, and none
+	 * is a red, orange, or green, so a tile never reads as Gagal, Mengantre, or Live.
+	 * avatar-1 is primary-700.
+	 */
+	--color-avatar-1: #0b544e;
+	--color-avatar-2: #0369a1;
+	--color-avatar-3: #1d4ed8;
+	--color-avatar-4: #4338ca;
+	--color-avatar-5: #6d28d9;
+	--color-avatar-6: #86198f;
+	--color-avatar-7: #475569;
 
 	--font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
 	--font-display: 'Montserrat', 'Inter', 'Segoe UI', system-ui, sans-serif;

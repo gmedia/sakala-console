@@ -82,6 +82,16 @@ describe('colour tokens', () => {
 		}
 	);
 
+	const avatarTones = [...css.matchAll(/--color-(avatar-\d+):/g)].map((match) => match[1]);
+
+	it('has a palette of project avatar tiles', () => {
+		expect(avatarTones.length).toBeGreaterThanOrEqual(6);
+	});
+
+	it.each(avatarTones)('white initials hold 4.5:1 on the %s tile', (tone) => {
+		expect(ratio('#ffffff', token(tone))).toBeGreaterThanOrEqual(4.5);
+	});
+
 	it('terminal text holds 4.5:1 and the terminal matches Figma', () => {
 		expect(token('terminal').toLowerCase()).toBe('#1e1e1d');
 		expect(ratio(token('terminal-text'), token('terminal'))).toBeGreaterThanOrEqual(4.5);

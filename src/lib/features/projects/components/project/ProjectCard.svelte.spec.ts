@@ -4,6 +4,11 @@ import { render } from 'vitest-browser-svelte';
 import ProjectCard from './ProjectCard.svelte';
 import type { Project, RuntimeStatus } from '$lib/api/resources/projects';
 import { formatDate } from '$lib/utils/date';
+import { getProjectAvatarTone } from '../../project-avatar';
+
+// A tiny valid image, so the thumbnail test does not depend on the network.
+const THUMBNAIL =
+	'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"></svg>';
 
 const baseProject: Project = {
 	id: 'proj_1',
@@ -104,10 +109,14 @@ describe('ProjectCard — long content', () => {
 });
 
 describe('ProjectCard — isi', () => {
-	test('tidak punya kotak thumbnail, bahkan kalau API mengirim thumbnail_url', async () => {
-		await render(ProjectCard, { ...baseProject, thumbnail_url: 'https://example.test/a.png' });
+	// The API's thumbnail_url is shown when set; the monogram is the fallback and stays when the image fails.
+	test('menampilkan thumbnail_url dari API sebagai gambar dekoratif, tanpa kotak placeholder', async () => {
+		await render(ProjectCard, { ...baseProject, thumbnail_url: THUMBNAIL });
 
-		await expect.element(page.getByRole('img')).not.toBeInTheDocument();
+		const thumbnail = page.getByTestId('project-avatar-thumbnail');
+		await expect.element(thumbnail).toHaveAttribute('src', THUMBNAIL);
+		await expect.element(thumbnail).toHaveAttribute('alt', '');
+		await expect.element(page.getByTestId('project-avatar')).not.toBeInTheDocument();
 		await expect.element(page.getByTestId('thumbnail-placeholder')).not.toBeInTheDocument();
 	});
 
@@ -247,5 +256,52 @@ describe('ProjectCard, what the list now knows', () => {
 			latest_deployment: { ...latest, commit_message: null, commit_sha: null }
 		});
 		await expect.element(page.getByTestId('project-card-commit')).not.toBeInTheDocument();
+	});
+});
+
+describe('ProjectCard — avatar', () => {
+	test('shows the initials on a tile coloured from the project id, hidden from assistive tech', async () => {
+		await render(ProjectCard, { ...baseProject, name: 'Toko Online' });
+
+		const avatar = page.getByTestId('project-avatar');
+		await expect.element(avatar).toHaveTextContent('TO');
+		await expect.element(avatar).toHaveAttribute('aria-hidden', 'true');
+		await expect.element(avatar).toHaveClass(getProjectAvatarTone(baseProject.id));
+	});
+
+	test('keeps the whole card one link: the tile adds no tab stop and no name', async () => {
+		await render(ProjectCard, { ...baseProject, name: 'Toko Online' });
+
+		await expect
+			.element(page.getByRole('link', { name: 'Toko Online', exact: true }))
+			.toBeVisible();
+		expect(page.getByTestId('project-avatar').element().closest('a, button')).toBeNull();
+		expect(page.getByTestId('project-avatar').element().getAttribute('tabindex')).toBeNull();
+	});
+
+	test('shows an icon on the tile when neither the name nor the address has a letter', async () => {
+		await render(ProjectCard, { ...baseProject, name: '🚀🔥', public_url: 'https://' });
+
+		await expect.element(page.getByTestId('project-avatar-icon')).toBeInTheDocument();
+		await expect.element(page.getByTestId('project-avatar')).toHaveTextContent('');
+	});
+
+	test('falls back to the monogram when the thumbnail fails to load', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			name: 'Toko Online',
+			thumbnail_url: 'data:image/png;base64,bm90IGFuIGltYWdl'
+		});
+
+		await expect.element(page.getByTestId('project-avatar')).toHaveTextContent('TO');
+		await expect.element(page.getByTestId('project-avatar-thumbnail')).not.toBeInTheDocument();
+	});
+
+	test('a very long name still clamps beside the tile', async () => {
+		const longName = 'Proyek dengan nama super panjang '.repeat(5).trim();
+		await render(ProjectCard, { ...baseProject, name: longName });
+
+		await expect.element(page.getByRole('link', { name: longName })).toHaveClass(/line-clamp-2/);
+		await expect.element(page.getByTestId('project-avatar')).toHaveClass(/shrink-0/);
 	});
 });
