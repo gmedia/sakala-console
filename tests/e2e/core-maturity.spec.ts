@@ -1672,7 +1672,7 @@ test.describe('project settings', () => {
 });
 
 test.describe('project detail shell (#75)', () => {
-	test('the three tabs fit a narrow screen with short names', async ({ page }) => {
+	test('the four tabs fit a narrow screen with short names', async ({ page }) => {
 		await mockProjectApi(page, {
 			project: () => ({ ...baseProject, name: `nama-${'panjang'.repeat(20)}` })
 		});

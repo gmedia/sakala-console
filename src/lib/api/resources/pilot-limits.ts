@@ -4,9 +4,15 @@ import type { components } from '../generated/schema';
 
 type GeneratedPilotLimits = components['schemas']['PilotLimitsResource'];
 type GeneratedQuotas = GeneratedPilotLimits['quotas'];
-/** Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas. */
+/**
+ * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas.
+ * `max_builds_per_hour` is not read by the Console yet.
+ */
 type OptionalQuotaKey =
-	'max_active_containers' | 'current_active_containers_count' | 'max_replicas';
+	| 'max_active_containers'
+	| 'current_active_containers_count'
+	| 'max_replicas'
+	| 'max_builds_per_hour';
 
 /**
  * The part of the resource the Console reads. The workspace, container, replica, and idle sleep

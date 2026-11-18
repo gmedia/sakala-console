@@ -186,6 +186,19 @@ Project bisa berjalan sebagai beberapa container di belakang router node. `repli
 - `getDeployErrorMessage()` mengganti teks `PROJECT_RELEASE_COMMAND_UNSUPPORTED` dengan pesan yang menyebut field-nya dan bahwa mengosongkannya berarti deploy tanpa perintah itu.
 - `release_command_failed` dan `release_command_timeout` punya judul sendiri di `status-config.ts`. Ringkasan dan saran tetap dari API; teks Console hanya dipakai kalau API belum mengenal kodenya (`failure` kosong atau kategori `unknown`).
 
+## Monitoring
+
+Tab Metrik (`/projects/{id}/monitoring`) membaca `GET app/projects/{project}/metrics?range=1h|6h|24h|7d|30d` (gmedia/sakala-api#128). Tipenya di-generate dari branch `feat/project-metrics` sakala-api (PR #175); schema Zod di `api/resources/project-metrics.ts` mengubah `t` (awal step, ISO 8601 UTC) menjadi detik Unix, dan setiap bentuk titik `satisfies` tipe hasil generation. `range` selalu dikirim, karena tanpa parameter API menjawab untuk 1 jam, sedangkan Console memakai 24 jam. `series.per_replica` tidak diminta dan tidak dibaca.
+
+- `cpu_percent` adalah persen dari satu core, dijumlah semua replika, jadi bisa lebih dari 100. Nilainya bacaan sesaat (sekitar 1 detik) yang diambil sekali per menit, bukan rata-rata satu menit penuh, dan catatan di kartu CPU menyebutnya.
+- `memory_bytes` juga jumlah semua replika. `memory_limit_bytes` adalah satu angka: jumlah batas replika di step terbaru, `null` tanpa data atau kalau ada replika tanpa batas. Batas itu hanya berlaku selama jumlah replika sama, jadi garis putus-putusnya digambar dari titik memori terbaru ke belakang selama jumlah replika masih sama dengan step terbaru (`memoryChart()` di `features/projects/monitoring/chart-data.ts`), dan catatannya menyebut kalau garis itu tidak mencakup seluruh rentang.
+- `restarts` menghitung restart container selama berjalan. Hitungan di agent mulai dari nol setiap container dinyalakan lagi (bangun dari tidur, restart, replika dipulihkan), dan catatan di kartu Restart menyebutnya.
+- Titik yang tidak ada adalah celah. `alignColumns()` menyisipkan baris `null` setelah jarak lebih dari 1,5 kali `step_seconds`, jadi garis berhenti di situ dan tidak menyeberangi celah. Titik yang rusak dilewati satu per satu.
+- Grafik memakai [uPlot](https://github.com/leeoniya/uPlot) di `TimeSeriesChart.svelte`, satu-satunya tempat library itu dipakai, dan hanya dimuat bersama tab ini. Warnanya dibaca dari token lewat elemen tersembunyi, karena canvas tidak mengerti `var()`, dan setiap garis punya kontras minimal 3:1 terhadap kartu. Canvas disembunyikan dari pembaca layar; setiap kartu adalah `figure` dengan judul dan ringkasan teks (nilai terakhir dan tertinggi dalam rentang) sebagai deskripsinya.
+- Rentang ada di query string (`?range=7d`, default `24h` tanpa parameter), lewat `useListUrl()`, jadi bisa dibagikan dan Back membatalkannya.
+- Hemat request: tab ini membaca ulang tiap 60 detik hanya untuk rentang sampai 24 jam dan hanya selama `runtime_status` `running`. Rentang 7 dan 30 hari, proyek yang tidur atau berhenti, dan tab di background tidak polling (`resolveMetricsPollInterval()`, `refetchIntervalInBackground` mati). `429` menunggu `Retry-After`. Waktu baca terakhir tampil di atas grafik.
+- Proyek yang tidur tidak mengirim sampel, dan tab ini menyebutnya. Kalau semua seri kosong, tab menampilkan "Belum ada data metrik dalam {rentang}" dengan tombol untuk melihat 30 hari terakhir.
+
 ## Alasan Penangguhan
 
 Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.

@@ -1,0 +1,295 @@
+import { page, userEvent } from 'vitest/browser';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from 'vitest-browser-svelte';
+import { QueryClient } from '@tanstack/svelte-query';
+import { resetRateLimit } from '$lib/api/rate-limit';
+import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
+import { baseProject, PROJECT_ID } from '../../../../../../tests/e2e/fixtures/project-detail';
+import { MONITORING_COPY } from '../../monitoring/format';
+import { METRICS_POLL_MS } from '../../monitoring/ranges';
+import MonitoringTab from './MonitoringTab.svelte';
+
+vi.mock('$lib/config/public', () => ({ publicConfig: { apiUrl: 'http://api.test' } }));
+
+const MIB = 1024 * 1024;
+const STEP = 900;
+const METRICS_PATH = `/api/v1/app/projects/${PROJECT_ID}/metrics`;
+
+type Body = Record<string, unknown>;
+
+let runtimeStatus: string;
+let metricsBody: Body;
+let failMetrics: number;
+let metricsRequests: string[];
+
+function json(status: number, body: unknown) {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: { 'Content-Type': 'application/json' }
+	});
+}
+
+const iso = (seconds: number) => new Date(seconds * 1_000).toISOString();
+
+/** Two steps, as the API sends them: wrapped in `data`, `t` in ISO 8601. */
+function series(overrides: Body = {}) {
+	const now = Math.floor(Date.now() / 1_000);
+	const t = (stepsAgo: number) => iso(now - stepsAgo * STEP);
+	return {
+		data: {
+			range: '24h',
+			step_seconds: STEP,
+			series: {
+				cpu_percent: [
+					{ t: t(2), avg: 40, max: 150 },
+					{ t: t(1), avg: 12.5, max: 30 }
+				],
+				memory_bytes: [
+					{ t: t(2), avg: 200 * MIB, max: 300 * MIB },
+					{ t: t(1), avg: 256 * MIB, max: 280 * MIB }
+				],
+				// Both replicas' limits together.
+				memory_limit_bytes: 1024 * MIB,
+				replicas: [
+					{ t: t(2), count: 2 },
+					{ t: t(1), count: 2 }
+				],
+				restarts: [
+					{ t: t(2), count: 1 },
+					{ t: t(1), count: 2 }
+				],
+				...overrides
+			}
+		}
+	};
+}
+
+const EMPTY_SERIES = {
+	cpu_percent: [],
+	memory_bytes: [],
+	memory_limit_bytes: null,
+	replicas: [],
+	restarts: []
+};
+
+function answer(request: Request): Response {
+	const url = new URL(request.url);
+	if (url.pathname === METRICS_PATH) {
+		metricsRequests.push(url.searchParams.get('range') ?? '');
+		if (failMetrics > 0) {
+			failMetrics--;
+			return json(500, { message: 'Server Error' });
+		}
+		return json(200, metricsBody);
+	}
+	return json(200, { data: { ...baseProject, runtime_status: runtimeStatus } });
+}
+
+const renderTab = () =>
+	render(QueryTestHost, {
+		props: {
+			component: MonitoringTab,
+			props: { projectId: PROJECT_ID },
+			client: new QueryClient({
+				defaultOptions: { queries: { retry: false, staleTime: 30_000 } }
+			})
+		}
+	});
+
+const card = (id: string) => page.getByTestId(`metric-${id}`);
+
+beforeEach(() => {
+	runtimeStatus = 'running';
+	metricsBody = series();
+	failMetrics = 0;
+	metricsRequests = [];
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => answer(new Request(input, init)))
+	);
+});
+
+afterEach(() => {
+	resetRateLimit();
+	vi.useRealTimers();
+	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
+});
+
+describe('MonitoringTab, states', () => {
+	it('shows four charts, each with its numbers in words', async () => {
+		await renderTab();
+
+		await expect
+			.element(card('cpu'))
+			.toHaveAccessibleDescription('Terakhir 12,5%, tertinggi 150% dalam 24 jam terakhir.');
+		await expect.element(card('cpu')).toHaveTextContent(MONITORING_COPY.cpuNote);
+		await expect
+			.element(card('memory'))
+			.toHaveAccessibleDescription('Terakhir 256 MiB, tertinggi 300 MiB dalam 24 jam terakhir.');
+		await expect
+			.element(card('memory'))
+			.toHaveTextContent('Batas 1 GiB untuk 2 replika (512 MiB per replika).');
+		await expect
+			.element(card('replicas'))
+			.toHaveAccessibleDescription('Terakhir 2 replika, paling banyak 2 dalam 24 jam terakhir.');
+		await expect
+			.element(card('restarts'))
+			.toHaveAccessibleDescription('3 restart dalam 24 jam terakhir.');
+		await expect.element(page.getByRole('figure', { name: 'CPU' })).toBeVisible();
+
+		// The canvas is drawn, and kept from screen readers, which get the summary instead.
+		await expect
+			.poll(() => document.querySelectorAll('[data-testid^="metric-"] canvas').length)
+			.toBe(4);
+		const chart = document.querySelector('[data-testid="metric-cpu"] .time-series-chart');
+		expect(chart?.getAttribute('aria-hidden')).toBe('true');
+	});
+
+	it('explains an empty series inside its own card', async () => {
+		metricsBody = series({ restarts: [] });
+		await renderTab();
+
+		await expect
+			.element(card('restarts'))
+			.toHaveAccessibleDescription(MONITORING_COPY.noPointsInRange);
+		await expect.element(card('cpu')).toHaveTextContent('Terakhir 12,5%');
+		expect(document.querySelector('[data-testid="metric-restarts"] canvas')).toBeNull();
+	});
+
+	it('shows the empty state before any sample exists, and offers the longest range', async () => {
+		metricsBody = { data: { range: '24h', step_seconds: STEP, series: EMPTY_SERIES } };
+		await renderTab();
+
+		await expect
+			.element(page.getByRole('heading', { name: 'Belum ada data metrik dalam 24 jam terakhir' }))
+			.toBeVisible();
+		await expect.element(page.getByText(MONITORING_COPY.empty.description)).toBeVisible();
+		await expect.element(card('cpu')).not.toBeInTheDocument();
+
+		await userEvent.click(page.getByRole('button', { name: 'Lihat 30 hari terakhir' }));
+
+		await expect.element(page.getByRole('radio', { name: '30 hari' })).toBeChecked();
+		await expect
+			.element(page.getByRole('heading', { name: 'Belum ada data metrik dalam 30 hari terakhir' }))
+			.toBeVisible();
+		// Already the longest: nothing wider to offer.
+		await expect.element(page.getByRole('button', { name: /^Lihat / })).not.toBeInTheDocument();
+		expect(metricsRequests).toEqual(['24h', '30d']);
+	});
+
+	it('says when the charts were read, and that they keep up while the project runs', async () => {
+		await renderTab();
+
+		await expect
+			.element(page.getByTestId('metrics-freshness'))
+			.toHaveTextContent(/^Diperbarui pukul \d{2}\.\d{2}, dibaca ulang tiap menit\.$/);
+
+		await userEvent.click(page.getByRole('radio', { name: '7 hari' }));
+
+		await expect.element(card('cpu')).toHaveAccessibleDescription(/7 hari terakhir/);
+		await expect
+			.element(page.getByTestId('metrics-freshness'))
+			.toHaveTextContent(/^Diperbarui pukul \d{2}\.\d{2}\.$/);
+	});
+
+	it('says no samples are collected while the project sleeps', async () => {
+		runtimeStatus = 'sleeping';
+		await renderTab();
+
+		await expect.element(page.getByText(MONITORING_COPY.sleeping)).toBeVisible();
+		await expect.element(card('cpu')).toBeVisible();
+	});
+
+	it('does not mention sleep for a running project', async () => {
+		await renderTab();
+
+		await expect.element(card('cpu')).toBeVisible();
+		await expect.element(page.getByText(MONITORING_COPY.sleeping)).not.toBeInTheDocument();
+	});
+
+	it('shows an error with a retry that loads the charts', async () => {
+		failMetrics = 1;
+		await renderTab();
+
+		const alert = page.getByRole('alert');
+		await expect.element(alert).toHaveTextContent(MONITORING_COPY.error);
+		await userEvent.click(page.getByRole('button', { name: MONITORING_COPY.retry }));
+
+		await expect.element(card('cpu')).toBeVisible();
+		await expect.element(alert).not.toBeInTheDocument();
+		expect(metricsRequests).toEqual(['24h', '24h']);
+	});
+});
+
+describe('MonitoringTab, range', () => {
+	it('starts at 24 hours and reads another range when one is picked', async () => {
+		await renderTab();
+
+		const group = page.getByRole('radiogroup', { name: MONITORING_COPY.rangeLabel });
+		await expect.element(group.getByRole('radio', { name: '24 jam' })).toBeChecked();
+		await expect.element(card('cpu')).toHaveAccessibleDescription(/24 jam terakhir/);
+
+		await userEvent.click(group.getByRole('radio', { name: '7 hari' }));
+
+		await expect.element(group.getByRole('radio', { name: '7 hari' })).toBeChecked();
+		await expect.element(card('cpu')).toHaveAccessibleDescription(/7 hari terakhir/);
+		expect(metricsRequests).toEqual(['24h', '7d']);
+	});
+
+	it('moves between ranges with the arrow keys', async () => {
+		await renderTab();
+
+		const group = page.getByRole('radiogroup', { name: MONITORING_COPY.rangeLabel });
+		await userEvent.click(group.getByRole('radio', { name: '24 jam' }));
+		await userEvent.keyboard('{ArrowLeft}');
+
+		await expect.element(group.getByRole('radio', { name: '6 jam' })).toBeChecked();
+		await expect.poll(() => metricsRequests).toEqual(['24h', '6h']);
+	});
+});
+
+describe('MonitoringTab, requests', () => {
+	const MINUTES = 5;
+
+	async function requestsOver(minutes: number) {
+		vi.useFakeTimers({
+			toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date']
+		});
+		await renderTab();
+		await vi.advanceTimersByTimeAsync(1_000);
+		const atLoad = metricsRequests.length;
+		await vi.advanceTimersByTimeAsync(minutes * 60_000);
+		return metricsRequests.length - atLoad;
+	}
+
+	function hideTab() {
+		vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+		vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+		document.dispatchEvent(new Event('visibilitychange'));
+	}
+
+	it('reads a running project once a minute on a short range', { timeout: 30_000 }, async () => {
+		const polled = await requestsOver(MINUTES);
+		// The interval starts once the project's status is known, a moment after the first read.
+		const perInterval = (MINUTES * 60_000) / METRICS_POLL_MS;
+		expect(polled).toBeGreaterThanOrEqual(perInterval - 1);
+		expect(polled).toBeLessThanOrEqual(perInterval);
+	});
+
+	it('reads nothing more while the tab is hidden', { timeout: 30_000 }, async () => {
+		hideTab();
+		expect(await requestsOver(MINUTES)).toBe(0);
+		expect(metricsRequests).toHaveLength(1);
+	});
+
+	it('reads nothing more while the project sleeps', { timeout: 30_000 }, async () => {
+		runtimeStatus = 'sleeping';
+		expect(await requestsOver(MINUTES)).toBe(0);
+	});
+
+	it('reads nothing more for a stopped project', { timeout: 30_000 }, async () => {
+		runtimeStatus = 'stopped';
+		expect(await requestsOver(MINUTES)).toBe(0);
+	});
+});

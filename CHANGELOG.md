@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- "Metrik" tab per project, at `/projects/{id}/monitoring` (requires sakala-api with `GET app/projects/{project}/metrics`, gmedia/sakala-api#175). A range selector (1 jam, 6 jam, 24 jam by default, 7 hari, 30 hari) kept in the query string, and four charts: Memori (average and peak in MiB/GiB, with the limit as a dashed line, for example "Batas 1 GiB untuk 2 replika (512 MiB per replika)", drawn only over the stretch with the newest replica count, which is what the API's single limit adds up), CPU (average and peak in percent of one core, noting that 100% is one core, the sum over replicas can pass it, and it is an instant reading once a minute), Restart (bars per step, noting that the count starts again when a container is started again), and Replika (a step line). Missing samples show as gaps instead of lines across them. Each chart is a figure whose description is a text summary (newest value and the highest in the range), and the canvas is hidden from screen readers; the readout under each chart shows the newest point, or the one under the cursor. The tab says when it was read, that a sleeping project collects no samples, shows an empty state with a way to the 30-day range, and an error with a retry. It re-reads every 60 seconds only for ranges up to 24 hours while the project runs and the tab is visible. Charts use uPlot, loaded only with this tab (the tab's chunk is about 30 KB gzip, uPlot included). The project tabs sit closer together below 640 px so all four fit a 320 px screen. API types are regenerated from the sakala-api `feat/project-metrics` branch, which this change depends on and must merge after; it also brings already merged API changes such as Sakala Edge and `max_builds_per_hour`.
+
 ## [0.8.0] - 2026-11-18
 
 ### Added

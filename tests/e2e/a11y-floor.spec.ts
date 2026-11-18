@@ -275,6 +275,7 @@ test.describe('keyboard', () => {
 		['projects', '/projects'],
 		['deployments', `/projects/${PROJECT_ID}/deployments`],
 		['environments', `/projects/${PROJECT_ID}/environments`],
+		['monitoring', `/projects/${PROJECT_ID}/monitoring`],
 		['settings', '/settings']
 	] as const) {
 		test(`every Tab stop on ${name} shows focus`, async ({ page }) => {

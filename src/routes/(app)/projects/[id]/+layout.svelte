@@ -5,6 +5,7 @@
 	import ProjectHeaderBanner from '$lib/features/projects/components/detail/ProjectHeaderBanner.svelte';
 	import { resolveRoute } from '$app/paths';
 	import { initProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
+	import { MONITORING_COPY } from '$lib/features/projects/monitoring/format';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -38,7 +39,7 @@
 	{/if}
 
 	<div class="w-full min-w-0 border-b border-border">
-		<nav class="-mb-px flex gap-x-6 overflow-x-auto sm:gap-x-8" aria-label="Bagian proyek">
+		<nav class="-mb-px flex gap-x-2 overflow-x-auto sm:gap-x-8" aria-label="Bagian proyek">
 			<a
 				href={resolveRoute('/(app)/projects/[id]/deployments', { id: projectId || '' })}
 				aria-current={currentPath.includes('/deployments') ? 'page' : undefined}
@@ -48,6 +49,16 @@
 					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
 			>
 				Riwayat
+			</a>
+			<a
+				href={resolveRoute('/(app)/projects/[id]/monitoring', { id: projectId || '' })}
+				aria-current={currentPath.includes('/monitoring') ? 'page' : undefined}
+				class="border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap transition-colors
+				{currentPath.includes('/monitoring')
+					? 'border-primary text-primary'
+					: 'border-transparent text-muted hover:border-border hover:text-foreground'}"
+			>
+				{MONITORING_COPY.tab}
 			</a>
 			<a
 				href={resolveRoute('/(app)/projects/[id]/environments', { id: projectId || '' })}
