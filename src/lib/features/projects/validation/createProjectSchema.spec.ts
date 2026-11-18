@@ -105,7 +105,13 @@ describe('createProjectFormSchema', () => {
 });
 
 describe('buildConfigurationSchema mirrors the API rules', () => {
-	const empty = { configured_port: '', build_command: '', start_command: '', root_directory: '' };
+	const empty = {
+		configured_port: '',
+		build_command: '',
+		start_command: '',
+		release_command: '',
+		root_directory: ''
+	};
 	const firstError = (input: Partial<typeof empty>, field: keyof typeof empty) => {
 		const result = buildConfigurationSchema.safeParse({ ...empty, ...input });
 		return result.success ? undefined : result.error.flatten().fieldErrors[field]?.[0];
@@ -116,6 +122,7 @@ describe('buildConfigurationSchema mirrors the API rules', () => {
 			configured_port: null,
 			build_command: null,
 			start_command: null,
+			release_command: null,
 			root_directory: null
 		});
 	});

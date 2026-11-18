@@ -83,6 +83,7 @@ describe('bucketGrowth', () => {
 describe('labels', () => {
 	it('names API values in Indonesian and shows unknown values as they are', () => {
 		expect(failureCategoryLabel('health')).toBe('Health check');
+		expect(failureCategoryLabel('release')).toBe('Release command');
 		expect(failureCategoryLabel('quantum')).toBe('quantum');
 		expect(agentStatus('offline')).toEqual({ label: 'Offline', tone: 'error' });
 		expect(agentStatus('rebooting').label).toBe('rebooting');

@@ -55,6 +55,11 @@ export const ACTIVE_CONTAINER_LIMIT_EXCEEDED = 'ACTIVE_CONTAINER_LIMIT_EXCEEDED'
  * no such node runs replicas yet. Carries `replicas` and `node_maximum` (`null`: none runs them).
  */
 export const PROJECT_REPLICAS_UNSUPPORTED = 'PROJECT_REPLICAS_UNSUPPORTED';
+/**
+ * A 409 on deploy: the project has a release command, and the node that would run the deployment
+ * is too old to run one.
+ */
+export const PROJECT_RELEASE_COMMAND_UNSUPPORTED = 'PROJECT_RELEASE_COMMAND_UNSUPPORTED';
 
 export type ValidationErrors = Record<string, string[]>;
 

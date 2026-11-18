@@ -111,6 +111,10 @@ export const FEEDBACK_STATUS_OPTIONS = Object.entries(FEEDBACK_STATUS).map(
 export const FAILURE_CATEGORIES: Record<string, { label: string; help: string }> = {
 	checkout: { label: 'Checkout', help: 'Repository tidak bisa di-clone atau branch tidak ada.' },
 	build: { label: 'Build', help: 'Install dependency, script build, atau Dockerfile gagal.' },
+	release: {
+		label: 'Release command',
+		help: 'Release command, misalnya migration, gagal atau melewati batas waktunya.'
+	},
 	start: {
 		label: 'Start aplikasi',
 		help: 'Container dibuat tetapi aplikasinya berhenti saat start.'

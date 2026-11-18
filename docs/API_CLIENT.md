@@ -178,6 +178,14 @@ Project bisa berjalan sebagai beberapa container di belakang router node. `repli
 
 `crashed` berarti aplikasi sedang restart atau crash loop, jadi URL tetap tampil dan pesannya bilang URL bisa kadang terbuka. Port yang tampil adalah `serving_port` kalau API mengirimnya, dan `effective_port` ditandai berlaku di deploy berikutnya kalau berbeda.
 
+## Release command
+
+`release_command` dijalankan agent sekali setiap deployment, setelah build dan sebelum versi baru menerima trafik, misalnya untuk migration. Field-nya dibaca opsional, dan API lama dianggap tidak punya. Label dan teks bantuannya ada di `features/projects/build-help.ts`.
+
+- Tab Pengaturan dan langkah Persiapan deployment punya field "Release command" dengan aturan yang sama seperti command lain di `buildConfigurationSchema`. Nilainya bagian dari draft pengaturan, jadi Simpan dan Redeploy mengirimnya hanya kalau berubah, dan mengosongkannya mengirim `null`. Setelah tersimpan, API mengembalikan `redeploy_required: true`.
+- `getDeployErrorMessage()` mengganti teks `PROJECT_RELEASE_COMMAND_UNSUPPORTED` dengan pesan yang menyebut field-nya dan bahwa mengosongkannya berarti deploy tanpa perintah itu.
+- `release_command_failed` dan `release_command_timeout` punya judul sendiri di `status-config.ts`. Ringkasan dan saran tetap dari API; teks Console hanya dipakai kalau API belum mengenal kodenya (`failure` kosong atau kategori `unknown`).
+
 ## Alasan Penangguhan
 
 Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.

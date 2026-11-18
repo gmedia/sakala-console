@@ -107,6 +107,7 @@ export const createdProject = {
 	effective_port: 3000,
 	build_command: null,
 	start_command: null,
+	release_command: null,
 	root_directory: null,
 	auto_deploy: false,
 	redeploy_required: false,

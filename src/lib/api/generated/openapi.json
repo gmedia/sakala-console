@@ -3483,6 +3483,30 @@
                 }
             }
         },
+        "/edge/v1/routes": {
+            "get": {
+                "operationId": "edge.v1.routes.index",
+                "summary": "The route table Sakala Edge pulls: which node routers serve each\nproject host. Answers `304` without a body when `If-None-Match` carries\nthe current revision. A failure is a `5xx`, never a `200` with fewer\nroutes",
+                "tags": [
+                    "EdgeRoute"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`EdgeRouteTableResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EdgeRouteTableResource"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/v1/auth/email/change": {
             "post": {
                 "operationId": "v1.auth.email.change",
@@ -7060,6 +7084,41 @@
                 "security": []
             }
         },
+        "/v1/app/regions": {
+            "get": {
+                "operationId": "v1.app.regions.index",
+                "summary": "Regions a project may run in: those of runtime nodes that are allowed\nwork, sorted. Empty while no node reports a region; projects then keep\n`region` null and run anywhere",
+                "tags": [
+                    "Region"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `RegionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RegionResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/register": {
             "post": {
                 "operationId": "v1.auth.register",
@@ -9209,6 +9268,12 @@
                                         "null"
                                     ]
                                 },
+                                "release_command": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
                                 "root_directory": {
                                     "type": [
                                         "string",
@@ -9255,6 +9320,7 @@
                                 "runtime_status",
                                 "build_command",
                                 "start_command",
+                                "release_command",
                                 "root_directory",
                                 "configured_port",
                                 "auto_deploy",
@@ -9812,6 +9878,50 @@
                         ],
                         "description": "The Docker network workloads join on the node, not an IP address."
                     },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The region the node serves: `region_override`, else `reported_region`, else null (it then only takes\nprojects without a region)."
+                    },
+                    "region_override": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reported_region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "From the last heartbeat (`SAKALA_AGENT_REGION`)."
+                    },
+                    "edge_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`host:port` where Sakala Edge reaches the node's runtime router: `edge_address_override`, else\n`reported_edge_address`. Null leaves the node's projects out of the Edge route table."
+                    },
+                    "edge_address_override": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reported_edge_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "From the last heartbeat."
+                    },
+                    "capacity": {
+                        "description": "Free memory and container slots from the last heartbeat, as the scheduler ranks nodes.",
+                        "$ref": "#/components/schemas/AgentNodeCapacityResource"
+                    },
                     "capabilities": {
                         "type": "array",
                         "description": "For example `docker`, `caddy`, `railpack`.",
@@ -9873,6 +9983,13 @@
                     "agent_version",
                     "hostname",
                     "runtime_network",
+                    "region",
+                    "region_override",
+                    "reported_region",
+                    "edge_address",
+                    "edge_address_override",
+                    "reported_edge_address",
+                    "capacity",
                     "capabilities",
                     "registered_at",
                     "last_seen_at",
@@ -11424,6 +11541,14 @@
                                         "minimum": 1,
                                         "maximum": 64
                                     },
+                                    "maximum_active_workloads": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ],
+                                        "description": "Optional and additive within protocol revision 4: the most\ncontainers the node runs at once (SAKALA_MAX_ACTIVE_CONTAINERS),\nfor capacity-aware placement.",
+                                        "minimum": 0
+                                    },
                                     "replicas": {
                                         "type": "array",
                                         "items": {
@@ -11465,6 +11590,26 @@
                                     "stopped",
                                     "unhealthy_details"
                                 ]
+                            },
+                            "runtime": {
+                                "type": "object",
+                                "description": "Optional and additive within protocol revision 4: where the node\nis (SAKALA_AGENT_REGION) and where Sakala Edge reaches its\nruntime router. An admin override on the node wins over both.\nA malformed value rejects the heartbeat, like the lists above.",
+                                "properties": {
+                                    "region": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 32
+                                    },
+                                    "edge_address": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 255
+                                    }
+                                }
                             },
                             "disk_pressure": {
                                 "type": "object",
@@ -11781,6 +11926,52 @@
                 ],
                 "title": "AgentHeartbeatResource"
             },
+            "AgentNodeCapacityResource": {
+                "type": "object",
+                "properties": {
+                    "memory_total_bytes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "memory_available_bytes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "active_workloads": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Containers the node runs."
+                    },
+                    "maximum_active_workloads": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "The most containers the node runs at once (`SAKALA_MAX_ACTIVE_CONTAINERS`)."
+                    },
+                    "free_workload_slots": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "`maximum_active_workloads` minus `active_workloads`, never below 0."
+                    }
+                },
+                "required": [
+                    "memory_total_bytes",
+                    "memory_available_bytes",
+                    "active_workloads",
+                    "maximum_active_workloads",
+                    "free_workload_slots"
+                ],
+                "title": "AgentNodeCapacityResource"
+            },
             "AgentNodeControlResource": {
                 "type": "object",
                 "properties": {
@@ -11976,6 +12167,20 @@
                             "null"
                         ]
                     },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The region the node serves: the admin override, else the reported one."
+                    },
+                    "edge_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`host:port` where Sakala Edge reaches the node's router: the admin override, else the reported one."
+                    },
                     "last_seen_at": {
                         "type": [
                             "string",
@@ -11999,6 +12204,8 @@
                     "status",
                     "desired_state",
                     "protocol_version",
+                    "region",
+                    "edge_address",
                     "last_seen_at",
                     "created_at",
                     "updated_at"
@@ -12407,6 +12614,13 @@
                             "null"
                         ]
                     },
+                    "release_command": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Run once per deployment before the new version takes traffic, for example database migrations."
+                    },
                     "root_directory": {
                         "type": [
                             "string",
@@ -12473,6 +12687,7 @@
                     "effective_port",
                     "build_command",
                     "start_command",
+                    "release_command",
                     "root_directory",
                     "auto_deploy",
                     "inspection_error_code",
@@ -12539,6 +12754,7 @@
                 "enum": [
                     "checkout",
                     "build",
+                    "release",
                     "start",
                     "health",
                     "route",
@@ -12968,6 +13184,80 @@
                     "reason"
                 ],
                 "title": "DrainAgentNodeRequest"
+            },
+            "EdgeRouteTableResource": {
+                "type": "object",
+                "properties": {
+                    "generated_at": {
+                        "type": "string",
+                        "description": "When the API built this table (RFC 3339); up to `SAKALA_EDGE_ROUTES_CACHE_SECONDS` old."
+                    },
+                    "revision": {
+                        "type": "string",
+                        "description": "SHA-256 (lowercase hex) of `expected_minimum_routes`, `routes`, and `skipped_routes`; also the ETag."
+                    },
+                    "expected_minimum_routes": {
+                        "type": "integer",
+                        "description": "Routes the API built; a response with fewer `routes` is truncated and must be rejected."
+                    },
+                    "routes": {
+                        "type": "array",
+                        "description": "One route per project that holds a workload on a node, sorted by `host`.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "host": {
+                                    "type": "string"
+                                },
+                                "project_id": {
+                                    "type": "string"
+                                },
+                                "upstreams": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "host",
+                                "project_id",
+                                "upstreams"
+                            ]
+                        }
+                    },
+                    "skipped_routes": {
+                        "type": "array",
+                        "description": "Projects that hold a workload but have no route, sorted by `host`. `reason` is\n`node_without_edge_address` or `invalid_host`.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "host": {
+                                    "type": "string"
+                                },
+                                "project_id": {
+                                    "type": "string"
+                                },
+                                "reason": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "host",
+                                "project_id",
+                                "reason"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "generated_at",
+                    "revision",
+                    "expected_minimum_routes",
+                    "routes",
+                    "skipped_routes"
+                ],
+                "title": "EdgeRouteTableResource"
             },
             "EnvironmentVariableRequest": {
                 "type": "object",
@@ -13796,6 +14086,13 @@
                         ],
                         "description": "Most replicas per project. `null` allows one, so replicas stay off."
                     },
+                    "default_region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Region the workspace's projects run in unless a project sets its own; `null` for any region."
+                    },
                     "workspaces_count": {
                         "type": [
                             "integer",
@@ -13827,6 +14124,7 @@
                     "max_builds_per_hour",
                     "idle_sleep_minutes",
                     "max_replicas",
+                    "default_region",
                     "created_at",
                     "updated_at"
                 ],
@@ -14411,6 +14709,13 @@
                         ],
                         "description": "Replicas of the serving deployment that pass the router's health check, from the node's heartbeat.\nNull when nothing serves or the node has not reported yet."
                     },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Region the project runs in, one of `GET app/regions`; `null` follows the workspace's default region, or\nany region without one. Placement reads it only while the project has no workload on a node."
+                    },
                     "build_command": {
                         "type": [
                             "string",
@@ -14423,6 +14728,13 @@
                             "null"
                         ]
                     },
+                    "release_command": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Run once per deployment before the new version takes traffic, for example database migrations."
+                    },
                     "root_directory": {
                         "type": [
                             "string",
@@ -14433,7 +14745,8 @@
                         "type": "boolean"
                     },
                     "redeploy_required": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "True while the serving deployment was created with another deploy-relevant configuration: branch, port,\nbuild configuration, replicas, or environment variables. Changing a value back makes it false again."
                     },
                     "active_deployment_id": {
                         "type": [
@@ -14631,8 +14944,10 @@
                     "max_replicas",
                     "serving_replicas",
                     "replicas_ready",
+                    "region",
                     "build_command",
                     "start_command",
+                    "release_command",
                     "root_directory",
                     "auto_deploy",
                     "redeploy_required",
@@ -14711,6 +15026,19 @@
                     "restore_route"
                 ],
                 "title": "ReconcileWorkloadAction"
+            },
+            "RegionResource": {
+                "type": "object",
+                "properties": {
+                    "slug": {
+                        "type": "string",
+                        "description": "The value a project's `region` or a profile's `default_region` takes, for example `jkt`."
+                    }
+                },
+                "required": [
+                    "slug"
+                ],
+                "title": "RegionResource"
             },
             "RegisterRequest": {
                 "type": "object",
@@ -15223,6 +15551,14 @@
                         "description": "Most replicas per project, 1 to 10. `null` (the default) allows one, so replicas stay off. All replicas of a\nproject run on one node, which may cap them lower.",
                         "minimum": 1,
                         "maximum": 10
+                    },
+                    "default_region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Region the workspace's projects run in unless a project sets its own, for example `jkt`. `null` (the\ndefault) places them in any region. Lowercase letters, digits, and single inner hyphens, up to 32 characters.",
+                        "maxLength": 32
                     }
                 },
                 "required": [
@@ -15345,6 +15681,14 @@
                             "string",
                             "null"
                         ],
+                        "maxLength": 1000
+                    },
+                    "release_command": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Run once per deployment, before the new version takes traffic, for example database migrations.\nOnly nodes with the `release-command` capability run it.",
                         "maxLength": 1000
                     },
                     "root_directory": {
@@ -15604,6 +15948,14 @@
                         ],
                         "maxLength": 1000
                     },
+                    "release_command": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Run once per deployment, before the new version takes traffic, for example database migrations.\nOnly nodes with the `release-command` capability run it.",
+                        "maxLength": 1000
+                    },
                     "root_directory": {
                         "type": [
                             "string",
@@ -15619,6 +15971,14 @@
                         "type": "integer",
                         "description": "Containers the project runs behind the node's router, from 1 to `max_replicas` of its workspace.\nApplies from the next deployment; `redeploy_required` turns true until then.",
                         "minimum": 1
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Region the project runs in, one of `GET app/regions`; `null` follows the workspace's default region, or\nany region without one. Applies to the next placement on a node: a project that already runs stays on its node.",
+                        "maxLength": 32
                     }
                 },
                 "title": "UpdateProjectRequest"

@@ -21,13 +21,15 @@ import {
 	isListedProjectUrlReachable,
 	isProjectQuotaReached,
 	isProjectServing,
-	PROJECT_WAKE_COPY
+	PROJECT_WAKE_COPY,
+	RELEASE_COMMAND_UNSUPPORTED_MESSAGE
 } from './presentation';
 import {
 	ACTIVE_CONTAINER_LIMIT_EXCEEDED,
 	apiErrorFromResponse,
 	NetworkError,
 	PROJECT_NOT_SLEEPING,
+	PROJECT_RELEASE_COMMAND_UNSUPPORTED,
 	PROJECT_REPLICAS_UNSUPPORTED,
 	PROJECT_SUSPENDED,
 	PROJECT_WAKE_LIMIT_EXCEEDED
@@ -713,6 +715,18 @@ describe('replica-aware refusals', () => {
 			'Pesan dari API.'
 		);
 		expect(getDeployErrorMessage(new TypeError('boom'), fallback)).toBe(fallback);
+	});
+
+	it('points a node without release command support at the setting, and says it is skipped', () => {
+		const message = getDeployErrorMessage(
+			refusal(409, PROJECT_RELEASE_COMMAND_UNSUPPORTED),
+			fallback
+		);
+
+		expect(message).toBe(RELEASE_COMMAND_UNSUPPORTED_MESSAGE);
+		expect(message).toBe(
+			'Proyek ini punya release command, tetapi server yang menjalankannya belum bisa menjalankan release command. Untuk deploy sekarang tanpa perintah itu, kosongkan Release command di tab Pengaturan. Atau coba lagi setelah servernya diperbarui.'
+		);
 	});
 
 	it('a wake names the replicas that would not fit', () => {

@@ -12,6 +12,8 @@
 		AUTO_DEPLOY_HELP,
 		AUTO_DEPLOY_UNAVAILABLE_HELP,
 		BUILD_COMMAND_HELP,
+		RELEASE_COMMAND_HELP,
+		RELEASE_COMMAND_LABEL,
 		ROOT_DIRECTORY_HELP,
 		START_COMMAND_HELP
 	} from '../../build-help';
@@ -191,6 +193,7 @@
 							configured_port: error.errors.configured_port?.[0],
 							build_command: error.errors.build_command?.[0],
 							start_command: error.errors.start_command?.[0],
+							release_command: error.errors.release_command?.[0],
 							root_directory: error.errors.root_directory?.[0],
 							replicas: error.errors.replicas?.[0]
 						};
@@ -271,7 +274,7 @@
 				Pengaturan proyek hanya bisa diubah pemilik dan anggota workspace.
 			</p>
 			<dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
-				{#each [['Nama proyek', data.name ?? data.project_name], ['Branch', data.branch], ['Subdomain', data.slug], ['Root directory', data.root_directory || 'Root repository'], ['Port', String(data.configured_port ?? data.effective_port)], ['Build command', data.build_command || 'Dideteksi otomatis'], ['Start command', data.start_command || 'Dideteksi otomatis'], ['Auto-deploy', data.auto_deploy ? 'Aktif' : 'Tidak aktif'], [REPLICAS_COPY.label, String(replicasOf(data))]] as [label, value] (label)}
+				{#each [['Nama proyek', data.name ?? data.project_name], ['Branch', data.branch], ['Subdomain', data.slug], ['Root directory', data.root_directory || 'Root repository'], ['Port', String(data.configured_port ?? data.effective_port)], ['Build command', data.build_command || 'Dideteksi otomatis'], ['Start command', data.start_command || 'Dideteksi otomatis'], [RELEASE_COMMAND_LABEL, data.release_command || 'Tidak ada'], ['Auto-deploy', data.auto_deploy ? 'Aktif' : 'Tidak aktif'], [REPLICAS_COPY.label, String(replicasOf(data))]] as [label, value] (label)}
 					<dt class="text-muted">{label}</dt>
 					<dd class="min-w-0 font-mono wrap-anywhere text-foreground">{value}</dd>
 				{/each}
@@ -353,6 +356,14 @@
 				'start_command',
 				'npm start',
 				START_COMMAND_HELP,
+				{ mono: true }
+			)}
+			{@render configField(
+				'releaseCommand',
+				RELEASE_COMMAND_LABEL,
+				'release_command',
+				'php artisan migrate --force',
+				RELEASE_COMMAND_HELP,
 				{ mono: true }
 			)}
 

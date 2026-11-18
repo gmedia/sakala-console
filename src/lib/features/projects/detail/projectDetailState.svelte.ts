@@ -10,6 +10,7 @@ export type ProjectConfigDraft = {
 	configured_port: string;
 	build_command: string;
 	start_command: string;
+	release_command: string;
 	root_directory: string;
 	auto_deploy: boolean;
 	replicas: string;
@@ -27,6 +28,7 @@ export function projectConfigDraftFrom(
 		| 'configured_port'
 		| 'build_command'
 		| 'start_command'
+		| 'release_command'
 		| 'root_directory'
 		| 'auto_deploy'
 		| 'replicas'
@@ -36,6 +38,7 @@ export function projectConfigDraftFrom(
 		configured_port: project.configured_port === null ? '' : String(project.configured_port),
 		build_command: project.build_command ?? '',
 		start_command: project.start_command ?? '',
+		release_command: project.release_command ?? '',
 		root_directory: project.root_directory ?? '',
 		auto_deploy: project.auto_deploy,
 		replicas: String(replicasOf(project))
@@ -64,6 +67,7 @@ export function projectConfigErrors(
 		errors.configured_port = fields.configured_port?.[0];
 		errors.build_command = fields.build_command?.[0];
 		errors.start_command = fields.start_command?.[0];
+		errors.release_command = fields.release_command?.[0];
 		errors.root_directory = fields.root_directory?.[0];
 	}
 	if (replicasChanged(draft, original)) {
@@ -97,6 +101,9 @@ export function buildConfigPayload(
 	if (draft.start_command.trim() !== original.start_command) {
 		payload.start_command = parsed.start_command;
 	}
+	if (draft.release_command.trim() !== original.release_command) {
+		payload.release_command = parsed.release_command;
+	}
 	if (draft.root_directory.trim() !== original.root_directory) {
 		payload.root_directory = parsed.root_directory;
 	}
@@ -112,6 +119,7 @@ function configIsDirty(draft: ProjectConfigDraft, original: ProjectConfigDraft):
 		draft.configured_port.trim() !== original.configured_port ||
 		draft.build_command.trim() !== original.build_command ||
 		draft.start_command.trim() !== original.start_command ||
+		draft.release_command.trim() !== original.release_command ||
 		draft.root_directory.trim() !== original.root_directory ||
 		draft.auto_deploy !== original.auto_deploy ||
 		replicasChanged(draft, original)

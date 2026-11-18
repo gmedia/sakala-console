@@ -8,6 +8,8 @@ import {
 	getRecoveryHintLabel,
 	getStatusDisplay,
 	getTimelineItemDisplay,
+	RELEASE_COMMAND_FAILED,
+	RELEASE_COMMAND_TIMEOUT,
 	getTimeLabel,
 	deriveBannerState,
 	parseBannerStatus,
@@ -585,5 +587,63 @@ describe('states a deployment can end up in', () => {
 		).map((input) => getStatusDisplay(input).desc);
 
 		for (const text of texts) expect(text).not.toMatch(/%|\bsekitar\b|\bperkiraan\b|\bETA\b/i);
+	});
+});
+
+describe('getStatusDisplay - release command failures', () => {
+	const classified = {
+		status: 'failed',
+		failureCategory: 'release',
+		userFixable: true,
+		failureSummary: 'Ringkasan dari API.',
+		recoveryHint: 'Saran dari API.'
+	} as const;
+
+	it('names the release category for a failure without a code', () => {
+		expect(getStatusDisplay({ status: 'failed', failureCategory: 'release' }).title).toBe(
+			'Deployment gagal saat menjalankan release command'
+		);
+	});
+
+	it('names the release command in the headline', () => {
+		expect(getStatusDisplay({ ...classified, failureCode: RELEASE_COMMAND_FAILED }).title).toBe(
+			'Deployment gagal saat menjalankan release command'
+		);
+		expect(getStatusDisplay({ ...classified, failureCode: RELEASE_COMMAND_TIMEOUT }).title).toBe(
+			'Release command melewati batas waktu'
+		);
+	});
+
+	it("keeps the API's summary and hint when the API classified the code", () => {
+		const display = getStatusDisplay({ ...classified, failureCode: RELEASE_COMMAND_FAILED });
+
+		expect(display.desc).toBe('Ringkasan dari API.');
+		expect(display.recoveryHint).toBe('Saran dari API.');
+	});
+
+	it('explains a failed command and points at the log and the setting when the API did not', () => {
+		const display = getStatusDisplay({
+			status: 'failed',
+			failureCategory: 'unknown',
+			userFixable: false,
+			failureCode: RELEASE_COMMAND_FAILED,
+			failureSummary: 'Deployment gagal karena terjadi kesalahan yang belum dikenali.',
+			recoveryHint: 'Coba deploy ulang.'
+		});
+
+		expect(display.desc).toBe(
+			'Release command selesai dengan error, jadi versi baru tidak dijalankan. Kalau ada versi sebelumnya, versi itu tetap melayani.'
+		);
+		expect(display.recoveryHint).toContain('bagian release command di log deployment');
+		expect(display.recoveryHint).toContain('tab Pengaturan');
+	});
+
+	it('says only an admin changes the time limit, for a timeout without an API classification', () => {
+		const display = getStatusDisplay({ status: 'failed', failureCode: RELEASE_COMMAND_TIMEOUT });
+
+		expect(display.desc).toContain('batas waktunya habis');
+		expect(display.desc).toContain('Kalau ada versi sebelumnya, versi itu tetap melayani.');
+		expect(display.recoveryHint).toContain('bagian release command di log deployment');
+		expect(display.recoveryHint).toContain('Batas waktunya hanya bisa diubah admin Sakala.');
 	});
 });

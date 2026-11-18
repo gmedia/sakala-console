@@ -156,6 +156,7 @@ export function deriveLiveInfoTimestamp({
 const failureHeadlines: Record<string, string> = {
 	checkout: 'Deployment gagal saat mengambil source code',
 	build: 'Deployment gagal saat build',
+	release: 'Deployment gagal saat menjalankan release command',
 	start: 'Deployment gagal saat menjalankan aplikasi',
 	health: 'Deployment gagal saat pengecekan aplikasi',
 	route: 'Deployment gagal saat menyiapkan alamat publik',
@@ -165,8 +166,48 @@ const failureHeadlines: Record<string, string> = {
 	scheduling: 'Deployment gagal karena belum ada server yang tersedia'
 };
 
-export function getFailureHeadline(category?: string): string {
-	return (category && failureHeadlines[category]) || 'Deployment gagal';
+/** Failure codes of the release command, which runs after build and before the switch. */
+export const RELEASE_COMMAND_FAILED = 'release_command_failed';
+export const RELEASE_COMMAND_TIMEOUT = 'release_command_timeout';
+
+type FailureCodeCopy = { headline: string; summary: string; recoveryHint: string };
+
+const PREVIOUS_VERSION_SERVES = 'Kalau ada versi sebelumnya, versi itu tetap melayani.';
+
+/**
+ * Codes that need words of their own. The headline replaces the category's. The summary and hint
+ * only stand in for an API that did not classify the code (no failure, or `unknown`); otherwise the
+ * API's words win, as for every other failure.
+ */
+const failureCodeCopy: Record<string, FailureCodeCopy> = {
+	[RELEASE_COMMAND_FAILED]: {
+		headline: failureHeadlines.release,
+		summary: `Release command selesai dengan error, jadi versi baru tidak dijalankan. ${PREVIOUS_VERSION_SERVES}`,
+		recoveryHint:
+			'Buka bagian release command di log deployment untuk melihat error-nya. Perbaiki perintahnya di tab Pengaturan, atau perbaiki migration di repository, lalu deploy ulang.'
+	},
+	[RELEASE_COMMAND_TIMEOUT]: {
+		headline: 'Release command melewati batas waktu',
+		summary: `Release command belum selesai saat batas waktunya habis, jadi versi baru tidak dijalankan. ${PREVIOUS_VERSION_SERVES}`,
+		recoveryHint:
+			'Buka bagian release command di log deployment untuk melihat langkah yang lama. Pastikan perintahnya selesai sendiri tanpa menunggu input, lalu deploy ulang. Batas waktunya hanya bisa diubah admin Sakala.'
+	}
+};
+
+const UNKNOWN_CATEGORY = 'unknown';
+
+export function getFailureHeadline(category?: string, code?: string): string {
+	return (
+		(code && failureCodeCopy[code]?.headline) ||
+		(category && failureHeadlines[category]) ||
+		'Deployment gagal'
+	);
+}
+
+/** The Console's words for a known code, where the API sent none of its own. */
+function getFallbackFailureCopy(code?: string, category?: string): FailureCodeCopy | undefined {
+	if (!code || (category && category !== UNKNOWN_CATEGORY)) return undefined;
+	return failureCodeCopy[code];
 }
 
 /**
@@ -174,7 +215,7 @@ export function getFailureHeadline(category?: string): string {
  * carries the same flag, but nobody knows the cause yet, so it does not claim the platform either.
  */
 function isPlatformFailure(category?: string, userFixable?: boolean): boolean {
-	return userFixable === false && category !== 'unknown';
+	return userFixable === false && category !== UNKNOWN_CATEGORY;
 }
 
 /** One sentence on the cause. The API's summary says it best, when it sent one. */
@@ -259,6 +300,7 @@ export function getStatusDisplay({
 	durationLabel,
 	failedStepLabel,
 	failureCategory,
+	failureCode,
 	failureSummary,
 	userFixable,
 	recoveryHint,
@@ -266,6 +308,10 @@ export function getStatusDisplay({
 	queueState,
 	cancelRequested
 }: StatusDisplayInput) {
+	const fallback = getFallbackFailureCopy(failureCode, failureCategory);
+	const failureDescription = fallback
+		? fallback.summary
+		: getFailureDescription(failedStepLabel, failureCategory, userFixable, failureSummary);
 	const isQueued = status === 'running' && Boolean(queueState) && !cancelRequested;
 	const isUnhealthy =
 		status === 'success' && (servingState === 'crash_looping' || servingState === 'not_serving');
@@ -276,8 +322,8 @@ export function getStatusDisplay({
 			desc: getSuccessDescription(durationLabel, servingState)
 		},
 		failed: {
-			title: getFailureHeadline(failureCategory),
-			desc: getFailureDescription(failedStepLabel, failureCategory, userFixable, failureSummary)
+			title: getFailureHeadline(failureCategory, failureCode),
+			desc: failureDescription
 		},
 		cancelled: {
 			title: 'Deployment dibatalkan',
@@ -287,7 +333,7 @@ export function getStatusDisplay({
 
 	return {
 		...messages[status],
-		recoveryHint: status === 'failed' ? recoveryHint : undefined,
+		recoveryHint: status === 'failed' ? (fallback?.recoveryHint ?? recoveryHint) : undefined,
 		// Running is healthy, so teal. Waiting in a queue is the one state that may need a look.
 		bannerBgClass: isQueued
 			? 'bg-queued-soft'
