@@ -2284,7 +2284,7 @@ export interface components {
              */
             status: "draft" | "active" | "failed" | "suspended";
             /**
-             * @description `not_deployed`, `deploying`, `running`, `stopped`, `failed`, or `crashed`.
+             * @description `not_deployed`, `deploying`, `running`, `stopped`, `failed`, `crashed`, or `sleeping`.
              * @enum {string}
              */
             runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
@@ -2293,6 +2293,12 @@ export interface components {
             branch: string;
             public_url: string;
             active_deployment_id: string | null;
+            /**
+             * @description Whether idle sleep gave up on the active deployment: the node
+             *     reported its container missing (`runtime_workload_not_found`).
+             *     A new deployment, or a wake or restart that succeeds, clears it.
+             */
+            idle_sleep_blocked: boolean;
             /** @description The owning workspace. */
             workspace: {
                 id: string;
@@ -2485,6 +2491,8 @@ export interface components {
                     crashed_details?: number;
                     /** @description Additive within protocol revision 4, sent with `traffic` (idle sleep). */
                     traffic?: number;
+                    /** @description Additive within protocol revision 4, sent with `replicas`. */
+                    replicas?: number;
                 };
                 resources: {
                     cpu_total: number | null;
@@ -2528,6 +2536,23 @@ export interface components {
                         deployment_id: string;
                         /** Format: date-time */
                         last_request_at: string;
+                    }[];
+                    /**
+                     * @description Optional, from nodes with the `replicas` capability: one item
+                     *     per deployment that runs replicas. Bounded and strict like
+                     *     traffic. Partial readiness is not a crash; only crashed_details
+                     *     changes runtime state.
+                     *     Sent by agents with the `replicas` capability on every
+                     *     heartbeat; null when the node's driver cannot run replicas.
+                     */
+                    maximum_replicas_per_project?: number | null;
+                    replicas?: {
+                        /** Format: uuid */
+                        project_id: string;
+                        /** Format: uuid */
+                        deployment_id: string;
+                        desired: number;
+                        ready: number;
                     }[];
                 };
                 disk_pressure: {
@@ -3092,6 +3117,8 @@ export interface components {
              *     `SAKALA_PROJECT_IDLE_SLEEP_MINUTES`.
              */
             idle_sleep_minutes: number | null;
+            /** @description Most replicas per project. `null` allows one, so replicas stay off. */
+            max_replicas: number | null;
             /** @description Workspaces running under this profile. A profile is deleted only at zero. */
             workspaces_count?: number | null;
             created_at: string | null;
@@ -3161,7 +3188,10 @@ export interface components {
                 current_projects_count: number;
                 current_active_deployments_count: number;
                 max_active_containers: number;
+                /** @description Replicas of the projects that serve or are being deployed; sleeping projects do not count. */
                 current_active_containers_count: number;
+                /** @description Most replicas per project, from the workspace's limit profile; 1 without one. */
+                max_replicas: number;
             };
             runtime_defaults: {
                 memory_mb: number;
@@ -3216,6 +3246,7 @@ export interface components {
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             } | null;
+            wake: components["schemas"]["UnsuspendWakeOutcome"] | null;
         };
         /** ProjectResource */
         ProjectResource: {
@@ -3247,6 +3278,20 @@ export interface components {
             configured_port: number | null;
             effective_port: number;
             serving_port: number | null;
+            /** @description Containers the next deployment runs behind the node's router. Changing it applies from the next deployment. */
+            replicas: number;
+            /** @description Most replicas a project of this workspace may run, from its limit profile; 1 without one. */
+            max_replicas: number;
+            /**
+             * @description Replicas the serving deployment runs, which can differ from `replicas` until the next deployment.
+             *     Null when nothing serves, like `serving_port`.
+             */
+            serving_replicas: number | null;
+            /**
+             * @description Replicas of the serving deployment that pass the router's health check, from the node's heartbeat.
+             *     Null when nothing serves or the node has not reported yet.
+             */
+            replicas_ready: number | null;
             build_command: string | null;
             start_command: string | null;
             root_directory: string | null;
@@ -3475,6 +3520,11 @@ export interface components {
              *     projects to sleep; `null` (the default) follows `SAKALA_PROJECT_IDLE_SLEEP_MINUTES`.
              */
             idle_sleep_minutes?: number | null;
+            /**
+             * @description Most replicas per project, 1 to 10. `null` (the default) allows one, so replicas stay off. All replicas of a
+             *     project run on one node, which may cap them lower.
+             */
+            max_replicas?: number | null;
         };
         /** StoreOnboardingProfileRequest */
         StoreOnboardingProfileRequest: {
@@ -3554,6 +3604,18 @@ export interface components {
         UnsuspendProjectRequest: {
             reason: string;
         };
+        /**
+         * UnsuspendWakeOutcome
+         * @description Whether lifting a suspension started the project's kept container again.
+         *     | |
+         *     |---|
+         *     | `requested` <br/> A WakeProject was queued for the node that keeps the container. |
+         *     | `container_limit_reached` <br/> The workspace already runs as many containers as it may; the project stays stopped. |
+         *     | `node_cannot_wake` <br/> The node that keeps the container does not advertise `idle-sleep`, so it cannot wake it. |
+         *     | `nothing_to_wake` <br/> No container is kept (never deployed, or stopped), or the project did not stop. |
+         * @enum {string}
+         */
+        UnsuspendWakeOutcome: "requested" | "container_limit_reached" | "node_cannot_wake" | "nothing_to_wake";
         /** UpdateEnvironmentVariableRequest */
         UpdateEnvironmentVariableRequest: {
             value?: string;
@@ -3594,6 +3656,11 @@ export interface components {
             start_command?: string | null;
             root_directory?: string | null;
             auto_deploy?: boolean;
+            /**
+             * @description Containers the project runs behind the node's router, from 1 to `max_replicas` of its workspace.
+             *     Applies from the next deployment; `redeploy_required` turns true until then.
+             */
+            replicas?: number;
         };
         /** UpdateUserRoleRequest */
         UpdateUserRoleRequest: {
@@ -3742,12 +3809,14 @@ export interface components {
                 max_builds_per_hour: number | null;
                 /** @description Effective minutes without a request before a project sleeps, from the profile or the global setting. `0` never sleeps. */
                 idle_sleep_minutes: number;
+                /** @description Effective most replicas per project, from the profile; 1 without one. */
+                max_replicas: number;
                 /** @description Global, the same for every workspace. */
                 max_active_deployments_per_project: number;
             };
             usage: {
                 projects: number;
-                /** @description Projects that serve or are being deployed. */
+                /** @description Replicas of the projects that serve or are being deployed; sleeping projects do not count. */
                 active_containers: number;
                 active_deployments: number;
             };
@@ -3862,14 +3931,16 @@ export interface components {
                     /** @description Error overview, in Indonesian. */
                     message: string;
                     /**
-                     * @description `PROJECT_WAKE_LIMIT_EXCEEDED`: the workspace already runs as many projects as it may. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.
+                     * @description `PROJECT_WAKE_LIMIT_EXCEEDED`: the replicas of the project would take the workspace past its limit of running containers. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.
                      * @enum {string}
                      */
                     code: "PROJECT_WAKE_LIMIT_EXCEEDED" | "PROJECT_NOT_SLEEPING" | "PROJECT_SUSPENDED";
-                    /** @description The workspace limit of running projects. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake. */
+                    /** @description The workspace limit of running containers. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake. */
                     limit?: number;
-                    /** @description Projects the workspace runs now. Same presence as `limit`. */
+                    /** @description Containers the other projects of the workspace run now, every replica counted. Same presence as `limit`. */
                     current?: number;
+                    /** @description Containers the wake would start: every replica of the sleeping deployment. Same presence as `limit`. */
+                    requested?: number;
                     /** @description The current `runtime_status`. Only with `PROJECT_NOT_SLEEPING`. */
                     runtime_status?: string;
                 };
@@ -6846,6 +6917,8 @@ export interface operations {
                 workspace_id?: string;
                 /** @description `true` for suspended projects only, `false` to leave them out. */
                 suspended?: boolean;
+                /** @description `true` for projects the idle sweep gave up on (`idle_sleep_blocked`), `false` to leave them out. */
+                idle_sleep_blocked?: boolean;
             };
             header?: never;
             path?: never;

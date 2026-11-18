@@ -37,10 +37,24 @@ export const REAUTHENTICATION_REQUIRED = 'REAUTHENTICATION_REQUIRED';
 
 /** A 409 on deploy, inspection, or wake: an admin suspended the project. */
 export const PROJECT_SUSPENDED = 'PROJECT_SUSPENDED';
-/** A 409 on wake: the workspace already runs as many projects as it may. Carries `limit`, `current`. */
+/**
+ * A 409 on wake: every replica of the sleeping deployment would take the workspace past its limit
+ * of running containers. Carries `limit`, `current`, and, from an API with replicas, `requested`.
+ */
 export const PROJECT_WAKE_LIMIT_EXCEEDED = 'PROJECT_WAKE_LIMIT_EXCEEDED';
 /** A 409 on wake: the project woke or changed in the meantime. Carries `runtime_status`. */
 export const PROJECT_NOT_SLEEPING = 'PROJECT_NOT_SLEEPING';
+/**
+ * A 422 on deploy: the deployment would run more containers than the workspace may. `current`
+ * counts every running replica in the workspace, this project's included; `requested` is the
+ * replicas the deployment runs.
+ */
+export const ACTIVE_CONTAINER_LIMIT_EXCEEDED = 'ACTIVE_CONTAINER_LIMIT_EXCEEDED';
+/**
+ * A 409 on deploy: the project asks for more replicas than any node that could run it allows, or
+ * no such node runs replicas yet. Carries `replicas` and `node_maximum` (`null`: none runs them).
+ */
+export const PROJECT_REPLICAS_UNSUPPORTED = 'PROJECT_REPLICAS_UNSUPPORTED';
 
 export type ValidationErrors = Record<string, string[]>;
 

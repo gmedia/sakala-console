@@ -10,8 +10,12 @@ type ProjectWakeConflict =
 
 const wakeLimitDetailsSchema = z.object({
 	limit: z.number(),
-	current: z.number()
-}) satisfies z.ZodType<Required<Pick<ProjectWakeConflict, 'limit' | 'current'>>>;
+	current: z.number(),
+	/** Every replica of the sleeping deployment. Missing from an API without replicas. */
+	requested: z.number().optional()
+}) satisfies z.ZodType<
+	Required<Pick<ProjectWakeConflict, 'limit' | 'current'>> & Pick<ProjectWakeConflict, 'requested'>
+>;
 
 export type WakeLimitDetails = z.output<typeof wakeLimitDetailsSchema>;
 

@@ -1,10 +1,18 @@
 import type { AdminWorkspaceDetail, LimitProfile } from '$lib/api/resources/admin/accounts';
+import { MIN_REPLICAS } from '$lib/features/projects/replicas';
 
 /**
  * The range sakala-api accepts for `idle_sleep_minutes` (StoreLimitProfileRequest): `0` never
  * sleeps, the most is a week. Empty is not in the range: it means "follow the server's setting".
  */
 export const IDLE_SLEEP_MINUTES_RANGE = { min: 0, max: 7 * 24 * 60 } as const;
+
+/**
+ * The range sakala-api accepts for `max_replicas` (StoreLimitProfileRequest,
+ * `LimitProfile::MAX_REPLICAS_CEILING`). Empty is not in the range: it means one, so replicas
+ * stay off.
+ */
+export const MAX_REPLICAS_RANGE = { min: MIN_REPLICAS, max: 10 } as const;
 
 export type ProfileNumbers = Pick<
 	LimitProfile,

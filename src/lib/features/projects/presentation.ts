@@ -1,15 +1,22 @@
 import type { PilotLimits } from '$lib/api/resources/pilot-limits';
 import {
+	ACTIVE_CONTAINER_LIMIT_EXCEEDED,
 	ApiError,
 	getErrorMessage,
 	NetworkError,
 	PROJECT_NOT_SLEEPING,
+	PROJECT_REPLICAS_UNSUPPORTED,
 	PROJECT_SUSPENDED,
 	PROJECT_WAKE_LIMIT_EXCEEDED
 } from '$lib/api/errors';
 import type { RuntimeStatus } from '$lib/api/resources/projects';
 import { parseWakeLimitDetails } from '$lib/api/resources/project-wake';
+import {
+	parseContainerLimitDetails,
+	parseReplicasUnsupportedDetails
+} from '$lib/api/resources/project-deploy-refusals';
 import { getDeploymentStatusLabel } from '$lib/features/deployments/status-config';
+import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
 
 export type RuntimeStatusPresentation = {
@@ -205,7 +212,16 @@ export type ProjectHeaderState = {
 	/** The address is worth showing though the project is not reliably serving. */
 	showUrl?: boolean;
 	notice: ProjectHeaderNotice | null;
+	/** Healthy replicas of the serving deployment, only while it serves more than one. */
+	replicaHealth: ReplicaHealth | null;
 };
+
+type HeaderClaims = Omit<ProjectHeaderState, 'replicaHealth'>;
+
+type HeaderProject = Pick<
+	Project,
+	'status' | 'runtime_status' | 'active_deployment_id' | 'serving_replicas' | 'replicas_ready'
+>;
 
 type HeaderDeployment = Pick<
 	Deployment,
@@ -255,6 +271,9 @@ export function getProjectWakeErrorMessage(error: unknown): string | null {
 		if (error.code === PROJECT_SUSPENDED) return PROJECT_WAKE_COPY.suspended;
 		if (error.code === PROJECT_WAKE_LIMIT_EXCEEDED) {
 			const usage = parseWakeLimitDetails(error.details);
+			if (usage && (usage.requested ?? MIN_REPLICAS) > MIN_REPLICAS) {
+				return `Proyek ini berjalan dengan ${usage.requested} replika, dan batas aplikasi aktif workspace tidak cukup: ${usage.current} dari ${usage.limit} sudah terpakai. Coba lagi setelah ada proyek lain yang tidur atau dihapus.`;
+			}
 			if (usage) {
 				return `Batas aplikasi aktif workspace sudah penuh, ${usage.current} dari ${usage.limit}. Coba lagi setelah ada proyek lain yang tidur atau dihapus.`;
 			}
@@ -264,16 +283,61 @@ export function getProjectWakeErrorMessage(error: unknown): string | null {
 }
 
 /**
+ * What to say when a deployment is refused. The replica refusals point at the setting that causes
+ * them; anything else, and a refusal without its counts, keeps the API's own words.
+ */
+export function getDeployErrorMessage(error: unknown, fallback: string): string {
+	if (error instanceof ApiError) {
+		if (error.code === PROJECT_REPLICAS_UNSUPPORTED) {
+			const setting = parseReplicasUnsupportedDetails(error.details);
+			if (setting?.node_maximum != null) {
+				return `Proyek ini diatur berjalan dengan ${setting.replicas} replika, tetapi server yang menjalankannya paling banyak menjalankan ${setting.node_maximum} replika per proyek. Kurangi ${REPLICAS_COPY.label.toLowerCase()} di tab Pengaturan menjadi ${setting.node_maximum} atau kurang, lalu deploy lagi.`;
+			}
+			if (setting) {
+				return `Proyek ini diatur berjalan dengan ${setting.replicas} replika, tetapi server yang menjalankannya belum mendukung replika. Ubah ${REPLICAS_COPY.label} menjadi ${MIN_REPLICAS} di tab Pengaturan untuk deploy sekarang, atau coba lagi setelah servernya diperbarui.`;
+			}
+		}
+		if (error.code === ACTIVE_CONTAINER_LIMIT_EXCEEDED) {
+			const usage = parseContainerLimitDetails(error.details);
+			if (usage && (usage.requested ?? MIN_REPLICAS) > MIN_REPLICAS) {
+				return `Deployment ini menjalankan ${usage.requested} replika, sementara workspace sudah menjalankan ${usage.current} dari batas ${usage.limit} container. Kurangi ${REPLICAS_COPY.label.toLowerCase()} di tab Pengaturan, hapus proyek yang tidak dipakai, atau tunggu sampai ada proyek yang tidur.`;
+			}
+		}
+	}
+	return getErrorMessage(error, fallback);
+}
+
+/** The notice for settings the running deployment does not use yet (`redeploy_required`). */
+export const REDEPLOY_REQUIRED_COPY = {
+	variables:
+		'Perubahan variabel belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya berlaku.',
+	settings:
+		'Proyek ini perlu redeploy: ada perubahan yang belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya berlaku.',
+	action: 'Redeploy sekarang',
+	busy: 'Menjalankan...'
+} as const;
+
+/**
  * One truthful reading of a project, from what the API reports. `status` only says draft, active,
  * or suspended, and stays draft until a deployment first succeeds, so apart from suspended it never
  * decides what the header claims. A queued attempt has not touched `runtime_status` yet, which is
  * why the newest deployment counts too.
  */
 export function deriveProjectHeaderState(
-	project: Pick<Project, 'status' | 'runtime_status' | 'active_deployment_id'>,
+	project: HeaderProject,
 	recentDeployments: readonly HeaderDeployment[] = [],
 	options: ProjectHeaderOptions = {}
 ): ProjectHeaderState {
+	const claims = deriveHeaderClaims(project, recentDeployments, options);
+	// Replica counts describe the deployment that serves, so they only show while it does.
+	return { ...claims, replicaHealth: claims.serving ? getReplicaHealth(project) : null };
+}
+
+function deriveHeaderClaims(
+	project: HeaderProject,
+	recentDeployments: readonly HeaderDeployment[],
+	options: ProjectHeaderOptions
+): HeaderClaims {
 	const latest = recentDeployments.reduce<HeaderDeployment | null>(
 		(newest, deployment) =>
 			!newest || deployment.sequence > newest.sequence ? deployment : newest,

@@ -1,4 +1,7 @@
 import type { PilotLimits } from '$lib/api/resources/pilot-limits';
+import { REPLICAS_COPY, replicasAvailable } from '$lib/features/projects/replicas';
+
+const count = new Intl.NumberFormat('id-ID');
 
 export type LimitRow = { label: string; used: number; max: number; reached: boolean };
 
@@ -23,12 +26,29 @@ function row(label: string, used: number, max: number): LimitRow {
 	return { label, used, max, reached: used >= max };
 }
 
+/** One line about replicas for a limits card, the same for members and admins. */
+export function replicasLine(maxReplicas: number): string {
+	return replicasAvailable(maxReplicas)
+		? `${REPLICAS_COPY.label}: paling banyak ${count.format(maxReplicas)} per proyek.`
+		: REPLICAS_COPY.unavailable;
+}
+
+/**
+ * The replica line for members, who see running containers as active apps: each replica takes one.
+ * `null` for an API that does not report replicas yet.
+ */
+export function workspaceReplicasSummary(limits: Pick<PilotLimits, 'quotas'>): string | null {
+	const max = limits.quotas.max_replicas;
+	if (max === undefined) return null;
+	return replicasAvailable(max)
+		? `${replicasLine(max)} Setiap replika dihitung sebagai satu aplikasi aktif.`
+		: replicasLine(max);
+}
+
 /** `project_idle_sleep_minutes` of `0`: the workspace's projects never sleep. */
 export const IDLE_SLEEP_NEVER = 0;
 
 const IDLE_SLEEP_LABEL = 'Tidur otomatis';
-
-const count = new Intl.NumberFormat('id-ID');
 
 /** How long a project of the workspace stays up without visitors, in words. */
 export function formatIdleSleep(minutes: number): string {

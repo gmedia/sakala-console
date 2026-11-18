@@ -31,6 +31,15 @@ const response = {
 };
 
 describe('pilot limits resource', () => {
+	it('reads the most replicas per project, and leaves it out for an older API', () => {
+		const withReplicas = {
+			data: { ...response.data, quotas: { ...response.data.quotas, max_replicas: 3 } }
+		};
+
+		expect(parsePilotLimitsResponse(withReplicas).quotas.max_replicas).toBe(3);
+		expect(parsePilotLimitsResponse(response).quotas.max_replicas).toBeUndefined();
+	});
+
 	it('reads the quotas, the runtime defaults, and the timeouts', () => {
 		const limits = parsePilotLimitsResponse(response);
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { WorkspaceQuota } from '$lib/api/resources/admin/accounts';
 	import { formatNumber } from '../format';
-	import { idleSleepLine } from '$lib/features/workspaces/limits';
+	import { idleSleepLine, replicasLine } from '$lib/features/workspaces/limits';
 
 	let { quota, defaultLabel }: { quota: WorkspaceQuota; defaultLabel: string } = $props();
 
@@ -51,5 +51,8 @@
 	</p>
 	{#if quota.limits.idle_sleep_minutes !== undefined}
 		<p class="text-xs text-muted">{idleSleepLine(quota.limits.idle_sleep_minutes)}</p>
+	{/if}
+	{#if quota.limits.max_replicas !== undefined}
+		<p class="text-xs text-muted">{replicasLine(quota.limits.max_replicas)}</p>
 	{/if}
 </div>

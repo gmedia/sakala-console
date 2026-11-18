@@ -91,6 +91,7 @@ describe('creating a limit profile', () => {
 			max_cpu_millis: 1000,
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
+			max_replicas: null,
 			reason: 'Pilot magang'
 		});
 		expect(goto).not.toHaveBeenCalled();
@@ -156,6 +157,7 @@ describe('creating a limit profile', () => {
 			max_cpu_millis: 1000,
 			max_builds_per_hour: 1000,
 			idle_sleep_minutes: null,
+			max_replicas: null,
 			reason: 'Pilot fakultas'
 		});
 		for (const key of [
@@ -279,5 +281,75 @@ describe('idle sleep in a limit profile', () => {
 		expect(vi.mocked(updateLimitProfile).mock.calls[0][1]).toMatchObject({
 			idle_sleep_minutes: null
 		});
+	});
+});
+
+describe('replicas in a limit profile', () => {
+	const replicasField = () => field('Maks. replika (opsional)');
+
+	it('starts empty, which allows one replica, and explains the range', async () => {
+		await renderPage();
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect.element(replicasField()).toHaveValue(null);
+		await expect
+			.element(replicasField())
+			.toHaveAccessibleDescription(
+				'Replika per proyek, 1 sampai 10. Kosong berarti 1, jadi replika tidak aktif. Semua replika satu proyek berjalan di satu node, yang bisa membatasinya lebih rendah.'
+			);
+	});
+
+	it.each(['0', '11'])('refuses %s before sending', async (value) => {
+		await renderPage();
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
+
+		await userEvent.type(page.getByRole('textbox', { name: 'Nama (wajib)' }), 'Demo');
+		await userEvent.type(replicasField(), value);
+		await userEvent.type(page.getByLabelText('Alasan'), 'Coba replika');
+
+		await expect
+			.element(replicasField())
+			.toHaveAccessibleDescription('Bilangan bulat 1 sampai 10.');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+		await expect.element(form).toHaveTextContent('Periksa isian yang ditandai: Maks. replika.');
+		expect(createLimitProfile).not.toHaveBeenCalled();
+	});
+
+	it('sends the number typed', async () => {
+		await renderPage();
+		await page.getByRole('button', { name: 'Buat profil' }).click();
+		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
+
+		await userEvent.type(page.getByRole('textbox', { name: 'Nama (wajib)' }), 'Demo');
+		await userEvent.type(replicasField(), '3');
+		await userEvent.type(page.getByLabelText('Alasan'), 'Demo dengan replika');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect.poll(() => vi.mocked(createLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(createLimitProfile).mock.calls[0][0]).toMatchObject({ max_replicas: 3 });
+	});
+
+	it('shows the value in the table, and editing to empty sends null for one replica', async () => {
+		const withReplicas = parseLimitProfiles({
+			...profilesFixture.body,
+			data: [{ ...profilesFixture.body.data[0], max_replicas: 4 }]
+		});
+		vi.mocked(listLimitProfiles).mockResolvedValue(withReplicas);
+		await renderPage();
+
+		await expect.element(page.getByRole('columnheader', { name: 'Replika' })).toBeVisible();
+		await page.getByRole('button', { name: 'Ubah Kelas' }).click();
+		await expect.element(replicasField()).toHaveValue(4);
+
+		await userEvent.clear(replicasField());
+		await userEvent.type(page.getByLabelText('Alasan'), 'Replika dimatikan');
+		await page
+			.getByRole('dialog', { name: 'Ubah profil batas' })
+			.getByRole('button', { name: 'Simpan perubahan' })
+			.click();
+
+		await expect.poll(() => vi.mocked(updateLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(updateLimitProfile).mock.calls[0][1]).toMatchObject({ max_replicas: null });
 	});
 });

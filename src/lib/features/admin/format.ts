@@ -2,6 +2,7 @@ import type { BadgeTone } from '$lib/components/ui/Badge.svelte';
 import type { TimeRange } from '$lib/api/resources/admin/common';
 import { ONBOARDING_SOURCE_OPTIONS_MAP } from '$lib/features/onboarding/constants';
 import { IDLE_SLEEP_NEVER } from '$lib/features/workspaces/limits';
+import { MIN_REPLICAS } from '$lib/features/projects/replicas';
 
 /** Admin ranges are whole days in WIB, so every date on these pages is shown in WIB too. */
 export const ADMIN_TIMEZONE = 'Asia/Jakarta';
@@ -173,6 +174,17 @@ export function formatProfileIdleSleep(minutes: number | null | undefined): stri
 	if (minutes === undefined) return '-';
 	if (minutes === null) return 'Ikut bawaan server';
 	return minutes === IDLE_SLEEP_NEVER ? 'Tidak pernah' : `${formatNumber(minutes)} menit`;
+}
+
+/**
+ * A profile's `max_replicas`: `null` allows one, so replicas stay off. `undefined` is an API that
+ * does not report it yet.
+ */
+export function formatProfileMaxReplicas(maxReplicas: number | null | undefined): string {
+	if (maxReplicas === undefined) return '-';
+	return maxReplicas === null
+		? `${formatNumber(MIN_REPLICAS)} (bawaan)`
+		: formatNumber(maxReplicas);
 }
 
 /** `42%`. Null when there is nothing to divide by, which the page says in words. */
