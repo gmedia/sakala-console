@@ -8,5 +8,8 @@ export const LEGAL_LINKS = {
 	privacy: 'https://sakala.dev/privasi'
 } as const;
 
+/** Published by sakala-landing: the guide to a first deploy, linked from the sidebar and onboarding. */
+export const DEPLOY_GUIDE_URL = 'https://sakala.dev/docs/deploy-pertama';
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = 'abuse@sakala.dev';

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import AuthFlowSample from './AuthFlowSample.svelte';
+	import AuthProductShot from './AuthProductShot.svelte';
 
 	type Props = {
 		mode: 'login' | 'register';
@@ -30,7 +31,14 @@
 				pertamamu.
 			</p>
 		{/if}
-		<AuthFlowSample />
+		<!-- The real screen at the top right, the sample flow over its lower left corner. Only when the
+		     panel is tall enough for both (56rem, 896 px); otherwise the flow stands alone, as before. -->
+		<div>
+			<AuthProductShot class="ml-auto hidden w-[82%] [@media(min-height:56rem)]:block" />
+			<div class="relative [@media(min-height:56rem)]:-mt-32 [@media(min-height:56rem)]:w-[80%]">
+				<AuthFlowSample />
+			</div>
+		</div>
 	</div>
 
 	<p class="text-sm text-white">&copy; 2026 Sakala Contributors, Apache-2.0</p>

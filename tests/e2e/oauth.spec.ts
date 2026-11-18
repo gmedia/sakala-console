@@ -155,27 +155,23 @@ test('shows re-login button for unauthenticated 401 response', async ({ page }) 
 	await expect(page.getByRole('link', { name: 'Kembali ke halaman masuk' })).toBeVisible();
 });
 
-test('shows "Terakhir dipakai" badge when last_login_provider exists in localStorage', async ({
-	page
-}) => {
+test('shows every method at once, with the one used last first and marked', async ({ page }) => {
 	await page.addInitScript(() => {
 		localStorage.setItem('last_login_provider', 'google');
 	});
 
 	await page.goto('/login');
 
-	const lastUsedBadge = page.getByText(/Terakhir dipakai/);
-	await expect(lastUsedBadge).toBeVisible();
-
 	const googleButton = page.getByRole('button', { name: /Masuk dengan Google/ });
 	await expect(googleButton).toBeVisible();
-
-	const otherProfileButton = page.getByRole('button', { name: 'Pilih cara masuk lain' });
-	await expect(otherProfileButton).toBeVisible();
-
-	await otherProfileButton.click();
+	await expect(googleButton).toContainText('Terakhir dipakai');
 	await expect(page.getByRole('button', { name: /Masuk dengan GitHub/ })).toBeVisible();
-	await expect(page.getByRole('button', { name: /Masuk dengan email/ })).toBeVisible();
+	await expect(page.getByLabel('Email')).toBeVisible();
+	await expect(page.getByLabel('Kata sandi', { exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Pilih cara masuk lain' })).toHaveCount(0);
+
+	const providers = await page.getByRole('button', { name: /^Masuk dengan/ }).allTextContents();
+	expect(providers[0]).toMatch(/Google/);
 });
 
 test('renders register page with Nama lengkap field in email registration mode', async ({
@@ -183,7 +179,7 @@ test('renders register page with Nama lengkap field in email registration mode',
 }) => {
 	await page.goto('/register?method=email');
 
-	await expect(page.getByRole('heading', { name: 'Daftar Dengan Email' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Daftar' })).toBeVisible();
 	await expect(page.getByLabel('Nama lengkap')).toBeVisible();
 	await expect(page.getByLabel('Email')).toBeVisible();
 	await expect(page.getByLabel('Kata sandi', { exact: true })).toBeVisible();

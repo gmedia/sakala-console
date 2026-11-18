@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-	loginProviders,
+	loginMethodLayout,
 	loginUnavailableMessage,
+	oauthProviders,
 	passwordResetUnavailableMessage,
-	registerProviders,
+	registerOffersEmail,
 	registrationUnavailableMessage,
 	resolveAuthAvailability
 } from './availability';
@@ -36,8 +37,8 @@ describe('resolveAuthAvailability', () => {
 
 		expect(availability.emailActionsAvailable).toBe(true);
 		expect(availability.emailDeliveryOff).toBe(false);
-		expect(ids(registerProviders(availability))).toEqual(['github', 'google', 'email']);
-		expect(ids(loginProviders(availability))).toEqual(['github', 'google', 'email']);
+		expect(ids(oauthProviders(availability))).toEqual(['github', 'google']);
+		expect(registerOffersEmail(availability)).toBe(true);
 	});
 
 	it('hides email registration but keeps password login when delivery is off', () => {
@@ -45,15 +46,51 @@ describe('resolveAuthAvailability', () => {
 
 		expect(availability.emailActionsAvailable).toBe(false);
 		expect(availability.emailDeliveryOff).toBe(true);
-		expect(ids(registerProviders(availability))).toEqual(['github']);
-		expect(ids(loginProviders(availability))).toEqual(['github', 'email']);
+		expect(ids(oauthProviders(availability))).toEqual(['github']);
+		expect(registerOffersEmail(availability)).toBe(false);
 	});
 
 	it('offers email and only the configured providers when delivery is on', () => {
 		const availability = resolveAuthAvailability(options(true));
 
 		expect(availability.emailActionsAvailable).toBe(true);
-		expect(ids(registerProviders(availability))).toEqual(['github', 'email']);
+		expect(ids(oauthProviders(availability))).toEqual(['github']);
+		expect(registerOffersEmail(availability)).toBe(true);
+	});
+});
+
+describe('loginMethodLayout', () => {
+	const both = resolveAuthAvailability(options(true, true, true));
+
+	it('lists the configured providers in their usual order when nothing is remembered', () => {
+		const layout = loginMethodLayout(both, null);
+
+		expect(ids(layout.providers)).toEqual(['github', 'google']);
+		expect(layout.lastUsed).toBeNull();
+		expect(layout.emailFirst).toBe(false);
+	});
+
+	it('puts the provider used last first and marks it', () => {
+		const layout = loginMethodLayout(both, 'google');
+
+		expect(ids(layout.providers)).toEqual(['google', 'github']);
+		expect(layout.lastUsed).toBe('google');
+		expect(layout.emailFirst).toBe(false);
+	});
+
+	it('leads with the email form when email was used last', () => {
+		const layout = loginMethodLayout(both, 'email');
+
+		expect(ids(layout.providers)).toEqual(['github', 'google']);
+		expect(layout.lastUsed).toBe('email');
+		expect(layout.emailFirst).toBe(true);
+	});
+
+	it('ignores a remembered provider that is no longer configured', () => {
+		const layout = loginMethodLayout(resolveAuthAvailability(options(true)), 'google');
+
+		expect(ids(layout.providers)).toEqual(['github']);
+		expect(layout.lastUsed).toBeNull();
 	});
 });
 

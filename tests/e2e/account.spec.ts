@@ -945,8 +945,6 @@ test.describe('a session that ends mid-way', () => {
 		await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings%3Ftab%3Daccount$/);
 		await expect(page.getByRole('status')).toHaveText('Sesi kamu berakhir, silakan masuk lagi.');
 
-		await page.getByRole('button', { name: /dengan email/ }).click();
-		await expect(page.getByRole('status')).toHaveText('Sesi kamu berakhir, silakan masuk lagi.');
 		await page.getByLabel('Email').fill('rani@sakala.local');
 		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi-benar');
 		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
@@ -1004,7 +1002,6 @@ test.describe('a session that ends mid-way', () => {
 		await page.route('**/api/v1/auth/login', (route) => reply(route, 200, { data: other }));
 		await page.route('**/api/v1/app/notifications?*', (route) => reply(route, 200, emptyPage()));
 
-		await page.getByRole('button', { name: 'Masuk dengan email' }).click();
 		await page.getByLabel('Email').fill('lain@sakala.local');
 		await page.getByLabel('Kata sandi', { exact: true }).fill('kata-sandi');
 		await page.getByRole('button', { name: 'Masuk', exact: true }).click();
@@ -1085,76 +1082,50 @@ test.describe('onboarding', () => {
 		await page.goto('/projects');
 
 		await expect(page).toHaveURL('/onboarding');
-		await expect(page.getByText('Langkah 1 dari 3')).toBeVisible();
+		await expect(
+			page.getByRole('heading', { level: 1, name: 'Selamat datang di Sakala' })
+		).toBeVisible();
 		expect(
 			await page.evaluate(() => (window as unknown as { __shellSeen: boolean }).__shellSeen)
 		).toBe(false);
 	});
 
-	test('shows the steps to someone who has not', async ({ page }) => {
+	test('welcomes someone who has not', async ({ page }) => {
 		await mockSession(page, { onboarding_completed_at: null });
 
 		await page.goto('/onboarding');
 
 		await expect(page).toHaveURL('/onboarding');
-		await expect(page.getByText('Langkah 1 dari 3')).toBeVisible();
+		await expect(
+			page.getByRole('heading', { level: 1, name: 'Selamat datang di Sakala' })
+		).toBeVisible();
 	});
 
-	test('asks for the profile first, the source can be skipped, and it ends on a new project', async ({
-		page
-	}) => {
+	test('is one welcome screen that asks nothing and opens the wizard', async ({ page }) => {
 		await mockSession(page, { onboarding_completed_at: null });
-		await page.route('**/api/v1/onboarding/profile', (route) =>
-			reply(route, 200, { data: { ...user, onboarding_completed_at: null } })
-		);
-		await page.route('**/api/v1/onboarding/source', (route) =>
-			reply(route, 200, { data: { ...user, onboarding_completed_at: null } })
-		);
+		const asked: string[] = [];
+		for (const step of ['profile', 'source']) {
+			await page.route(`**/api/v1/onboarding/${step}`, (route) => {
+				asked.push(step);
+				return reply(route, 200, { data: { ...user, onboarding_completed_at: null } });
+			});
+		}
 		await page.route('**/api/v1/onboarding/complete', async (route) => {
 			await mockSession(page);
 			await reply(route, 200, { data: user });
 		});
 
 		await page.goto('/onboarding');
-		await expect(page.getByRole('heading', { level: 1, name: 'Profil kamu' })).toBeVisible();
-		await page.getByRole('button', { name: 'Lewati' }).click();
-
-		const source = page.getByRole('heading', { level: 1, name: 'Dari mana kamu tahu Sakala?' });
-		await expect(source).toBeVisible();
-		await expect(source).toBeFocused();
-		await expect(page.getByRole('radio', { name: 'GMEDIA' })).toHaveCount(1);
-		await page.getByRole('button', { name: 'Lewati' }).click();
+		await expect(
+			page.getByRole('heading', { level: 1, name: 'Selamat datang di Sakala' })
+		).toBeVisible();
+		await expect(page.getByRole('textbox')).toHaveCount(0);
+		await expect(page.getByRole('radio')).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Buat proyek pertama' }).click();
 		await expect(page).toHaveURL('/projects/new');
+		expect(asked).toEqual([]);
 	});
-
-	for (const [label, role] of [
-		['Mahasiswa', 'student'],
-		['Mentor', 'mentor']
-	]) {
-		test(`${label} is offered and saved as ${role}`, async ({ page }) => {
-			await mockSession(page, { onboarding_completed_at: null });
-			const bodies: unknown[] = [];
-			await page.route('**/api/v1/onboarding/source', (route) =>
-				reply(route, 200, { data: { ...user, onboarding_completed_at: null } })
-			);
-			await page.route('**/api/v1/onboarding/profile', (route) => {
-				bodies.push(route.request().postDataJSON());
-				return reply(route, 200, {
-					data: { ...user, onboarding_completed_at: null, onboarding_role: role }
-				});
-			});
-
-			await page.goto('/onboarding');
-			await page.getByLabel('Nama lengkap').fill('Rani');
-			await page.getByRole('radio', { name: label, exact: true }).check({ force: true });
-			await page.getByRole('button', { name: 'Lanjutkan' }).click();
-
-			await expect(page.getByText('Langkah 2 dari 3')).toBeVisible();
-			expect(bodies).toEqual([{ name: 'Rani', role }]);
-		});
-	}
 });
 
 test.describe('honest copy', () => {

@@ -1,19 +1,10 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import {
-	useSubmitOnboardingSource,
-	useSubmitOnboardingProfile,
-	useCompleteOnboarding
-} from './mutations';
-import {
-	submitOnboardingSource,
-	submitOnboardingProfile,
-	submitOnboardingCompleted
-} from '$lib/api/resources/onboarding';
+import { useSubmitOnboardingSource, useCompleteOnboarding } from './mutations';
+import { submitOnboardingSource, submitOnboardingCompleted } from '$lib/api/resources/onboarding';
 import { queryKeys } from '$lib/api/query-keys';
 
 vi.mock('$lib/api/resources/onboarding', () => ({
 	submitOnboardingSource: vi.fn(),
-	submitOnboardingProfile: vi.fn(),
 	submitOnboardingCompleted: vi.fn()
 }));
 
@@ -37,12 +28,10 @@ vi.mock('@tanstack/svelte-query', () => ({
 }));
 
 const mockedSubmitSource = vi.mocked(submitOnboardingSource);
-const mockedSubmitProfile = vi.mocked(submitOnboardingProfile);
 const mockedSubmitCompleted = vi.mocked(submitOnboardingCompleted);
 
 beforeEach(() => {
 	mockedSubmitSource.mockReset();
-	mockedSubmitProfile.mockReset();
 	mockedSubmitCompleted.mockReset();
 	invalidateQueries.mockReset();
 	setQueryData.mockReset();
@@ -69,37 +58,6 @@ describe('useSubmitOnboarding', () => {
 	it('calls invalidateQueries for current-user after success', () => {
 		useSubmitOnboardingSource();
 		capturedConfig!.onSuccess();
-		expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
-	});
-});
-
-describe('useSubmitOnboardingProfile', () => {
-	it('foward the selection { name, role } to submitOnboardingProfile', async () => {
-		mockedSubmitProfile.mockResolvedValue({} as never);
-		useSubmitOnboardingProfile();
-
-		await capturedConfig!.mutationFn({ name: 'sakala_programmer', role: 'developer' });
-
-		expect(mockedSubmitProfile).toHaveBeenCalledWith({
-			name: 'sakala_programmer',
-			role: 'developer'
-		});
-	});
-
-	it('foward the selection { skip: true } as-is, without re-mapping', async () => {
-		mockedSubmitProfile.mockResolvedValue({} as never);
-		useSubmitOnboardingProfile();
-
-		await capturedConfig!.mutationFn({ skip: true });
-
-		expect(mockedSubmitProfile).toHaveBeenCalledWith({ skip: true });
-	});
-
-	it('calls invalidateQueries for current-user after success', () => {
-		useSubmitOnboardingProfile();
-
-		capturedConfig!.onSuccess();
-
 		expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.auth.currentUser });
 	});
 });

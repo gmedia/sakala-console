@@ -15,14 +15,17 @@
 	import { resolve } from '$app/paths';
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import AuthSplitLayout from '$lib/features/auth/components/AuthSplitLayout.svelte';
-	import SocialLogo from '$lib/features/auth/components/SocialLogo.svelte';
+	import AuthProviderButtons from '$lib/features/auth/components/AuthProviderButtons.svelte';
+	import AuthDivider from '$lib/features/auth/components/AuthDivider.svelte';
+	import LastUsedBadge from '$lib/features/auth/components/LastUsedBadge.svelte';
 	import ResendVerification from '$lib/features/auth/components/ResendVerification.svelte';
 	import AuthOptionsSkeleton from '$lib/features/auth/components/AuthOptionsSkeleton.svelte';
 	import EmailDeliveryNotice from '$lib/features/auth/components/EmailDeliveryNotice.svelte';
 	import {
-		loginProviders,
+		loginMethodLayout,
 		loginUnavailableMessage,
-		resolveAuthAvailability
+		resolveAuthAvailability,
+		type OAuthProviderId
 	} from '$lib/features/auth/availability';
 	import { useAuthOptions } from '$lib/features/auth/queries';
 	import { useLogin } from '$lib/features/auth/mutations';
@@ -32,12 +35,12 @@
 	} from '$lib/features/auth/session-notice';
 	import { ApiError, NetworkError } from '$lib/api/errors';
 
-	let authMethod = $derived(page.url.searchParams.get('method') === 'email' ? 'email' : 'choice');
+	/** Older links ask for the email form with `?method=email`; it is always here now, so it gets focus. */
+	const EMAIL_METHOD_PARAM = 'email';
 
 	let email = $state('');
 	let password = $state('');
 	let lastProvider = $state<AuthProviderId | null>(null);
-	let showAllProviders = $state(false);
 	let errors = $state({
 		email: '',
 		password: '',
@@ -54,25 +57,13 @@
 
 	const authOptions = useAuthOptions();
 	const availability = $derived(resolveAuthAvailability(authOptions));
-	const authProviders = $derived(loginProviders(availability));
-	/** A provider remembered on this browser may no longer be configured. */
-	const offeredLastProvider = $derived(
-		authProviders.some((provider) => provider.id === lastProvider) ? lastProvider : null
-	);
-
-	function providerName(id: AuthProviderId): string {
-		switch (id) {
-			case 'github':
-				return 'GitHub';
-			case 'google':
-				return 'Google';
-			case 'email':
-				return 'email';
-		}
-	}
+	const methods = $derived(loginMethodLayout(availability, lastProvider));
 
 	onMount(() => {
 		lastProvider = getLastLoginProvider();
+		if (page.url.searchParams.get('method') === EMAIL_METHOD_PARAM) {
+			document.getElementById('email')?.focus();
+		}
 	});
 
 	$effect(() => {
@@ -117,20 +108,11 @@
 		}
 	});
 
-	function handleProviderClick(id: AuthProviderId) {
+	function handleProviderClick(id: OAuthProviderId) {
 		const returnTo = page.url.searchParams.get('returnTo');
 
-		if (id === 'email') {
-			const query = returnTo
-				? `?method=email&returnTo=${encodeURIComponent(returnTo)}`
-				: '?method=email';
-
-			goto(resolve(`/login${query}` as '/login'), { keepFocus: true });
-		} else if (id === 'github') {
-			redirectToGithubAuth(returnTo);
-		} else if (id === 'google') {
-			redirectToGoogleAuth(returnTo);
-		}
+		if (id === 'github') redirectToGithubAuth(returnTo);
+		else redirectToGoogleAuth(returnTo);
 	}
 
 	function handleEmailInput() {
@@ -226,6 +208,75 @@
 	<title>{pageTitle('Masuk')}</title>
 </svelte:head>
 
+{#snippet providerButtons()}
+	{#if availability.isLoading}
+		<AuthOptionsSkeleton />
+	{:else}
+		<AuthProviderButtons
+			providers={methods.providers}
+			verb="Masuk"
+			lastUsed={methods.lastUsed}
+			onSelect={handleProviderClick}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet emailForm()}
+	<form class="space-y-4" onsubmit={handleSubmit} novalidate>
+		{#if methods.emailFirst}
+			<div class="flex flex-wrap items-center justify-between gap-2">
+				<p class="text-sm font-medium text-foreground">Masuk dengan email</p>
+				<LastUsedBadge />
+			</div>
+		{/if}
+		{#if unverifiedEmail}
+			<ResendVerification email={unverifiedEmail} />
+		{/if}
+		<FormField
+			id="email"
+			label="Email"
+			type="email"
+			autocomplete="email"
+			placeholder="nama@contoh.com"
+			required
+			bind:value={email}
+			oninput={handleEmailInput}
+			error={errors.email}
+		/>
+
+		<FormField
+			id="password"
+			label="Kata sandi"
+			type="password"
+			autocomplete="current-password"
+			placeholder="Kata sandi"
+			required
+			bind:value={password}
+			oninput={handlePasswordInput}
+			error={errors.password}
+		/>
+
+		{#if availability.emailActionsAvailable}
+			<a
+				href={resolve('/forgot-password')}
+				class="inline-flex min-h-6 items-center text-sm font-semibold text-primary-dark hover:underline"
+			>
+				Lupa kata sandi?
+			</a>
+		{/if}
+
+		<Button type="submit" size="lg" disabled={loginMutation.isPending} class="w-full">
+			{#if loginMutation.isPending}
+				<span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+				></span>
+				<span>Memproses...</span>
+			{:else}
+				<span>Masuk</span>
+			{/if}
+		</Button>
+	</form>
+{/snippet}
+
 <AuthSplitLayout title="Selamat datang" description="Masuk ke dashboard kamu untuk melanjutkan.">
 	<div class="space-y-6">
 		{#if accountDeleted}
@@ -250,126 +301,29 @@
 			<EmailDeliveryNotice message={loginUnavailableMessage(availability)} />
 		{/if}
 
-		{#if authMethod === 'choice'}
-			{#if errors.general}
-				<div
-					class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error"
-					role="alert"
-				>
-					{errors.general}
-				</div>
-			{/if}
+		{#if errors.general}
+			<div
+				bind:this={generalErrorRef}
+				class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error focus:outline-none"
+				role="alert"
+				tabindex="-1"
+			>
+				{errors.general}
+			</div>
+		{/if}
 
-			{#if availability.isLoading}
-				<AuthOptionsSkeleton />
-			{:else if offeredLastProvider && !showAllProviders}
-				<div class="space-y-4">
-					<Button
-						variant="secondary"
-						size="lg"
-						class="w-full justify-between"
-						onclick={() => handleProviderClick(offeredLastProvider)}
-					>
-						<span class="flex items-center gap-2.5">
-							<SocialLogo name={offeredLastProvider} />
-							<span>Masuk dengan {providerName(offeredLastProvider)}</span>
-						</span>
-						<span
-							class="rounded-full border border-primary/30 bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-dark"
-						>
-							Terakhir dipakai
-						</span>
-					</Button>
-
-					<div class="flex items-center gap-3 text-xs text-muted">
-						<span class="h-px flex-1 bg-border"></span>
-						atau
-						<span class="h-px flex-1 bg-border"></span>
-					</div>
-
-					<Button
-						variant="ghost"
-						size="lg"
-						class="w-full"
-						onclick={() => (showAllProviders = true)}
-					>
-						Pilih cara masuk lain
-					</Button>
-				</div>
-			{:else}
-				<div class="space-y-3">
-					{#each authProviders as provider (provider.id)}
-						<Button
-							variant="secondary"
-							size="lg"
-							class="w-full"
-							onclick={() => handleProviderClick(provider.id)}
-						>
-							<SocialLogo name={provider.id} />
-							<span>Masuk dengan {provider.name}</span>
-						</Button>
-					{/each}
-				</div>
-			{/if}
+		<!-- Every method at once, the one used last on this browser first, so switching costs no click.
+		     The password form does not wait for the API; only the provider list does. -->
+		{#if !availability.isLoading && methods.providers.length === 0}
+			{@render emailForm()}
+		{:else if methods.emailFirst}
+			{@render emailForm()}
+			<AuthDivider label="atau masuk dengan" />
+			{@render providerButtons()}
 		{:else}
-			<form class="space-y-4" onsubmit={handleSubmit} novalidate>
-				{#if errors.general}
-					<div
-						bind:this={generalErrorRef}
-						class="rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error focus:outline-none"
-						role="alert"
-						tabindex="-1"
-					>
-						{errors.general}
-					</div>
-				{/if}
-				{#if unverifiedEmail}
-					<ResendVerification email={unverifiedEmail} />
-				{/if}
-				<FormField
-					id="email"
-					label="Email"
-					type="email"
-					autocomplete="email"
-					placeholder="nama@contoh.com"
-					required
-					bind:value={email}
-					oninput={handleEmailInput}
-					error={errors.email}
-				/>
-
-				<FormField
-					id="password"
-					label="Kata sandi"
-					type="password"
-					autocomplete="current-password"
-					placeholder="Kata sandi"
-					required
-					bind:value={password}
-					oninput={handlePasswordInput}
-					error={errors.password}
-				/>
-
-				{#if availability.emailActionsAvailable}
-					<a
-						href={resolve('/forgot-password')}
-						class="inline-flex min-h-6 items-center text-sm font-semibold text-primary-dark hover:underline"
-					>
-						Lupa kata sandi?
-					</a>
-				{/if}
-
-				<Button type="submit" size="lg" disabled={loginMutation.isPending} class="w-full">
-					{#if loginMutation.isPending}
-						<span
-							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-						></span>
-						<span>Memproses...</span>
-					{:else}
-						<span>Masuk</span>
-					{/if}
-				</Button>
-			</form>
+			{@render providerButtons()}
+			<AuthDivider label="atau masuk dengan email" />
+			{@render emailForm()}
 		{/if}
 
 		<p class="text-center text-sm text-muted">
