@@ -2298,14 +2298,80 @@
                     "503": {
                         "$ref": "#/components/responses/GithubUnavailable"
                     },
+                    "422": {
+                        "description": "The workspace reached its build rate limit\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian, with when to try again."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The workspace created as many deployments in the rolling hour as its limit allows. Every deployment builds, whatever its status.",
+                                                    "enum": [
+                                                        "BUILD_RATE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer",
+                                                    "description": "Deployments the workspace may create per rolling hour."
+                                                },
+                                                "current": {
+                                                    "type": "integer",
+                                                    "description": "Deployments of the workspace counted in the rolling hour, deleted projects included. Can exceed `limit` after an admin lowered it."
+                                                },
+                                                "retry_after_seconds": {
+                                                    "type": "integer",
+                                                    "description": "Seconds until the window frees a slot; at least 1."
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current",
+                                                "retry_after_seconds"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -3479,6 +3545,45 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/edges": {
+            "get": {
+                "operationId": "edge.index",
+                "description": "Revoked tokens are listed with `healthy: null`. Health follows the rules of `edge:check-health`\n(docs/EDGE_API.md#pemantauan).",
+                "summary": "Sakala Edge instances, ordered by name, with what each last reported and its health now",
+                "tags": [
+                    "Edge"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `AdminEdgeResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AdminEdgeResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -7055,6 +7160,76 @@
                 }
             }
         },
+        "/v1/app/projects/{project}/metrics": {
+            "get": {
+                "operationId": "v1.app.projects.metrics",
+                "description": "1h, 6h, and 24h come from per-minute rows, 7d and 30d from hourly roll-ups. Empty series mean the project's\nnode has not reported metrics for the range.",
+                "summary": "CPU, memory, replica, and restart series of a project, summed across its replicas",
+                "tags": [
+                    "ProjectMetrics"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "range",
+                        "in": "query",
+                        "description": "Defaults to 1h.",
+                        "schema": {
+                            "$ref": "#/components/schemas/ProjectMetricsRange"
+                        }
+                    },
+                    {
+                        "name": "per_replica",
+                        "in": "query",
+                        "description": "`1` adds `series.per_replica`.",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProjectMetricsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectMetricsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/v1/public/projects/{slug}/wake": {
             "post": {
                 "operationId": "v1.public.projects.wake",
@@ -10101,6 +10276,84 @@
                 ],
                 "title": "AdminDeploymentResource"
             },
+            "AdminEdgeResource": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The Edge instance, as given to `edge:token`."
+                    },
+                    "last_seen_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The last authenticated request, recorded at most once a minute while nothing changes; null when never seen."
+                    },
+                    "last_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The sakala-edge version from `User-Agent`; null when unknown."
+                    },
+                    "applied_revision": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The revision the Edge serves (64 lowercase hex), `none` before its first apply, or null when unknown."
+                    },
+                    "current_revision": {
+                        "type": "string",
+                        "description": "The revision of the route table now; the same on every item."
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`ok`, or the code sakala-edge failed to apply the table with; null when unknown."
+                    },
+                    "healthy": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "Null for a revoked token or one never seen: not evaluated, never alerted."
+                    },
+                    "unhealthy_reasons": {
+                        "type": "array",
+                        "description": "The conditions that held longer than `SAKALA_EDGE_STALE_AFTER_SECONDS`: `stale`, `status`,\n`revision_behind`. Empty when healthy or unknown.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "unhealthy_since": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The earliest moment one of `unhealthy_reasons` crossed the threshold; null unless unhealthy."
+                    },
+                    "revoked": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name",
+                    "last_seen_at",
+                    "last_version",
+                    "applied_revision",
+                    "current_revision",
+                    "status",
+                    "healthy",
+                    "unhealthy_reasons",
+                    "unhealthy_since",
+                    "revoked"
+                ],
+                "title": "AdminEdgeResource"
+            },
             "AdminFeedbackResource": {
                 "type": "object",
                 "properties": {
@@ -11360,6 +11613,11 @@
                                         "type": "integer",
                                         "description": "Additive within protocol revision 4, sent with `replicas`.",
                                         "minimum": 0
+                                    },
+                                    "metrics": {
+                                        "type": "integer",
+                                        "description": "Additive within protocol revision 4, sent with `metrics`.",
+                                        "minimum": 0
                                     }
                                 }
                             },
@@ -11578,6 +11836,66 @@
                                                 "deployment_id",
                                                 "desired",
                                                 "ready"
+                                            ]
+                                        },
+                                        "maxItems": 500
+                                    },
+                                    "metrics": {
+                                        "type": "array",
+                                        "description": "Optional, from nodes with the `workload-metrics` capability: one\nresource sample per replica. Bounded and strict like traffic; an\nitem for a project or deployment the node does not serve is\nwell-formed and only ignored (RecordWorkloadMetricsAction).",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "project_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "deployment_id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "replica": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 999
+                                                },
+                                                "sampled_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "cpu_percent": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 102400
+                                                },
+                                                "memory_bytes": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 1125899906842624
+                                                },
+                                                "memory_limit_bytes": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 0,
+                                                    "maximum": 1125899906842624
+                                                },
+                                                "restart_count": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 2147483647
+                                                }
+                                            },
+                                            "required": [
+                                                "project_id",
+                                                "deployment_id",
+                                                "replica",
+                                                "sampled_at",
+                                                "cpu_percent",
+                                                "memory_bytes",
+                                                "memory_limit_bytes",
+                                                "restart_count"
                                             ]
                                         },
                                         "maxItems": 500
@@ -14070,7 +14388,7 @@
                             "integer",
                             "null"
                         ],
-                        "description": "Reserved for the build rate limit; not enforced yet."
+                        "description": "Deployments the workspace may create per rolling hour; every deployment builds. `null` follows the\nglobal `SAKALA_PROJECT_MAX_BUILDS_PER_HOUR`."
                     },
                     "idle_sleep_minutes": {
                         "type": [
@@ -14342,6 +14660,13 @@
                             "max_replicas": {
                                 "type": "integer",
                                 "description": "Most replicas per project, from the workspace's limit profile; 1 without one."
+                            },
+                            "max_builds_per_hour": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ],
+                                "description": "Deployments the workspace may create per rolling hour, from its limit profile or the global\nsetting; every deployment builds. `null` means no limit."
                             }
                         },
                         "required": [
@@ -14352,7 +14677,8 @@
                             "current_active_deployments_count",
                             "max_active_containers",
                             "current_active_containers_count",
-                            "max_replicas"
+                            "max_replicas",
+                            "max_builds_per_hour"
                         ]
                     },
                     "runtime_defaults": {
@@ -14576,6 +14902,228 @@
                     "wake"
                 ],
                 "title": "ProjectControlResource"
+            },
+            "ProjectMetricsRange": {
+                "type": "string",
+                "description": "Ranges of GET app/projects/{project}/metrics, each with its step and source table. The step keeps every range under about 200 points.\n",
+                "enum": [
+                    "1h",
+                    "6h",
+                    "24h",
+                    "7d",
+                    "30d"
+                ],
+                "title": "ProjectMetricsRange"
+            },
+            "ProjectMetricsResource": {
+                "type": "object",
+                "properties": {
+                    "range": {
+                        "type": "string",
+                        "description": "The range asked for: `1h`, `6h`, `24h`, `7d`, or `30d`.",
+                        "enum": [
+                            "1h",
+                            "6h",
+                            "24h",
+                            "7d",
+                            "30d"
+                        ]
+                    },
+                    "step_seconds": {
+                        "type": "integer",
+                        "description": "Width of one point: 60 for 1h, 300 for 6h, 900 for 24h, 3600 for 7d, 14400 for 30d."
+                    },
+                    "series": {
+                        "type": "object",
+                        "description": "Summed across replicas. Each series has a point for every step with data, oldest first; a step without\ndata has no point, so consecutive `t` more than `step_seconds` apart are a gap. `t` is the start of the\nstep (ISO 8601, UTC). All series share the same `t` values.",
+                        "properties": {
+                            "cpu_percent": {
+                                "type": "array",
+                                "description": "Percent of one CPU core, summed across replicas, so it can exceed 100. `avg` is the mean over the\nstep, `max` the highest per-minute (7d, 30d: per-hour) peak sum.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "t": {
+                                            "type": "string"
+                                        },
+                                        "avg": {
+                                            "type": "number"
+                                        },
+                                        "max": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "required": [
+                                        "t",
+                                        "avg",
+                                        "max"
+                                    ]
+                                }
+                            },
+                            "memory_bytes": {
+                                "type": "array",
+                                "description": "Memory in bytes, summed across replicas, `avg` and `max` like `cpu_percent`.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "t": {
+                                            "type": "string"
+                                        },
+                                        "avg": {
+                                            "type": "integer"
+                                        },
+                                        "max": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "t",
+                                        "avg",
+                                        "max"
+                                    ]
+                                }
+                            },
+                            "memory_limit_bytes": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ],
+                                "description": "Summed memory limit of the replicas in the latest data of the range, in bytes. Null when there is\nno data or a replica runs without a limit."
+                            },
+                            "replicas": {
+                                "type": "array",
+                                "description": "Replicas that reported in the step (the most in any minute, or hour for 7d and 30d).",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "t": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "t",
+                                        "count"
+                                    ]
+                                }
+                            },
+                            "restarts": {
+                                "type": "array",
+                                "description": "Container restarts in the step, summed across replicas.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "t": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "t",
+                                        "count"
+                                    ]
+                                }
+                            },
+                            "per_replica": {
+                                "type": "array",
+                                "description": "Only with `per_replica=1`: the same series for each replica index, lowest first. Replicas of a\ndeployment that replaced another in the range share an index with the replica they replaced.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "replica": {
+                                            "type": "integer"
+                                        },
+                                        "cpu_percent": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "t": {
+                                                        "type": "string"
+                                                    },
+                                                    "avg": {
+                                                        "type": "number"
+                                                    },
+                                                    "max": {
+                                                        "type": "number"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "t",
+                                                    "avg",
+                                                    "max"
+                                                ]
+                                            }
+                                        },
+                                        "memory_bytes": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "t": {
+                                                        "type": "string"
+                                                    },
+                                                    "avg": {
+                                                        "type": "integer"
+                                                    },
+                                                    "max": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "t",
+                                                    "avg",
+                                                    "max"
+                                                ]
+                                            }
+                                        },
+                                        "restarts": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "t": {
+                                                        "type": "string"
+                                                    },
+                                                    "count": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "t",
+                                                    "count"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "replica",
+                                        "cpu_percent",
+                                        "memory_bytes",
+                                        "restarts"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "cpu_percent",
+                            "memory_bytes",
+                            "memory_limit_bytes",
+                            "replicas",
+                            "restarts"
+                        ]
+                    }
+                },
+                "required": [
+                    "range",
+                    "step_seconds",
+                    "series"
+                ],
+                "title": "ProjectMetricsResource"
             },
             "ProjectResource": {
                 "type": "object",
@@ -16501,7 +17049,7 @@
                                     "integer",
                                     "null"
                                 ],
-                                "description": "Reserved for the build rate limit; not enforced yet."
+                                "description": "Effective deployments per rolling hour, from the profile or the global setting. `null` means no\nlimit. Admins acting are not limited."
                             },
                             "idle_sleep_minutes": {
                                 "type": "integer",

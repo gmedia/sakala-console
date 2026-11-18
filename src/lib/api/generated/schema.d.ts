@@ -693,6 +693,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/edges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sakala Edge instances, ordered by name, with what each last reported and its health now
+         * @description Revoked tokens are listed with `healthy: null`. Health follows the rules of `edge:check-health`
+         *     (docs/EDGE_API.md#pemantauan).
+         */
+        get: operations["edge.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/edge/v1/routes": {
         parameters: {
             query?: never;
@@ -1474,6 +1495,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * CPU, memory, replica, and restart series of a project, summed across its replicas
+         * @description 1h, 6h, and 24h come from per-minute rows, 7d and 30d from hourly roll-ups. Empty series mean the project's
+         *     node has not reported metrics for the range.
+         */
+        get: operations["v1.app.projects.metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/projects/{slug}/wake": {
         parameters: {
             query?: never;
@@ -2208,6 +2250,31 @@ export interface components {
             } | null;
             duration_seconds: number | null;
         };
+        /** AdminEdgeResource */
+        AdminEdgeResource: {
+            /** @description The Edge instance, as given to `edge:token`. */
+            name: string;
+            /** @description The last authenticated request, recorded at most once a minute while nothing changes; null when never seen. */
+            last_seen_at: string | null;
+            /** @description The sakala-edge version from `User-Agent`; null when unknown. */
+            last_version: string | null;
+            /** @description The revision the Edge serves (64 lowercase hex), `none` before its first apply, or null when unknown. */
+            applied_revision: string | null;
+            /** @description The revision of the route table now; the same on every item. */
+            current_revision: string;
+            /** @description `ok`, or the code sakala-edge failed to apply the table with; null when unknown. */
+            status: string | null;
+            /** @description Null for a revoked token or one never seen: not evaluated, never alerted. */
+            healthy: boolean | null;
+            /**
+             * @description The conditions that held longer than `SAKALA_EDGE_STALE_AFTER_SECONDS`: `stale`, `status`,
+             *     `revision_behind`. Empty when healthy or unknown.
+             */
+            unhealthy_reasons: string[];
+            /** @description The earliest moment one of `unhealthy_reasons` crossed the threshold; null unless unhealthy. */
+            unhealthy_since: string | null;
+            revoked: boolean;
+        };
         /** AdminFeedbackResource */
         AdminFeedbackResource: {
             id: string;
@@ -2555,6 +2622,8 @@ export interface components {
                     traffic?: number;
                     /** @description Additive within protocol revision 4, sent with `replicas`. */
                     replicas?: number;
+                    /** @description Additive within protocol revision 4, sent with `metrics`. */
+                    metrics?: number;
                 };
                 resources: {
                     cpu_total: number | null;
@@ -2621,6 +2690,25 @@ export interface components {
                         deployment_id: string;
                         desired: number;
                         ready: number;
+                    }[];
+                    /**
+                     * @description Optional, from nodes with the `workload-metrics` capability: one
+                     *     resource sample per replica. Bounded and strict like traffic; an
+                     *     item for a project or deployment the node does not serve is
+                     *     well-formed and only ignored (RecordWorkloadMetricsAction).
+                     */
+                    metrics?: {
+                        /** Format: uuid */
+                        project_id: string;
+                        /** Format: uuid */
+                        deployment_id: string;
+                        replica: number;
+                        /** Format: date-time */
+                        sampled_at: string;
+                        cpu_percent: number;
+                        memory_bytes: number;
+                        memory_limit_bytes: number | null;
+                        restart_count: number;
                     }[];
                 };
                 /**
@@ -3229,7 +3317,10 @@ export interface components {
             max_memory_mb: number;
             /** @description Per project. */
             max_cpu_millis: number;
-            /** @description Reserved for the build rate limit; not enforced yet. */
+            /**
+             * @description Deployments the workspace may create per rolling hour; every deployment builds. `null` follows the
+             *     global `SAKALA_PROJECT_MAX_BUILDS_PER_HOUR`.
+             */
             max_builds_per_hour: number | null;
             /**
              * @description Minutes without a request before a project sleeps. `0` never sleeps; `null` follows the global
@@ -3313,6 +3404,11 @@ export interface components {
                 current_active_containers_count: number;
                 /** @description Most replicas per project, from the workspace's limit profile; 1 without one. */
                 max_replicas: number;
+                /**
+                 * @description Deployments the workspace may create per rolling hour, from its limit profile or the global
+                 *     setting; every deployment builds. `null` means no limit.
+                 */
+                max_builds_per_hour: number | null;
             };
             runtime_defaults: {
                 memory_mb: number;
@@ -3368,6 +3464,80 @@ export interface components {
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             } | null;
             wake: components["schemas"]["UnsuspendWakeOutcome"] | null;
+        };
+        /**
+         * ProjectMetricsRange
+         * @description Ranges of GET app/projects/{project}/metrics, each with its step and source table. The step keeps every range under about 200 points.
+         * @enum {string}
+         */
+        ProjectMetricsRange: "1h" | "6h" | "24h" | "7d" | "30d";
+        /** ProjectMetricsResource */
+        ProjectMetricsResource: {
+            /**
+             * @description The range asked for: `1h`, `6h`, `24h`, `7d`, or `30d`.
+             * @enum {string}
+             */
+            range: "1h" | "6h" | "24h" | "7d" | "30d";
+            /** @description Width of one point: 60 for 1h, 300 for 6h, 900 for 24h, 3600 for 7d, 14400 for 30d. */
+            step_seconds: number;
+            /**
+             * @description Summed across replicas. Each series has a point for every step with data, oldest first; a step without
+             *     data has no point, so consecutive `t` more than `step_seconds` apart are a gap. `t` is the start of the
+             *     step (ISO 8601, UTC). All series share the same `t` values.
+             */
+            series: {
+                /**
+                 * @description Percent of one CPU core, summed across replicas, so it can exceed 100. `avg` is the mean over the
+                 *     step, `max` the highest per-minute (7d, 30d: per-hour) peak sum.
+                 */
+                cpu_percent: {
+                    t: string;
+                    avg: number;
+                    max: number;
+                }[];
+                /** @description Memory in bytes, summed across replicas, `avg` and `max` like `cpu_percent`. */
+                memory_bytes: {
+                    t: string;
+                    avg: number;
+                    max: number;
+                }[];
+                /**
+                 * @description Summed memory limit of the replicas in the latest data of the range, in bytes. Null when there is
+                 *     no data or a replica runs without a limit.
+                 */
+                memory_limit_bytes: number | null;
+                /** @description Replicas that reported in the step (the most in any minute, or hour for 7d and 30d). */
+                replicas: {
+                    t: string;
+                    count: number;
+                }[];
+                /** @description Container restarts in the step, summed across replicas. */
+                restarts: {
+                    t: string;
+                    count: number;
+                }[];
+                /**
+                 * @description Only with `per_replica=1`: the same series for each replica index, lowest first. Replicas of a
+                 *     deployment that replaced another in the range share an index with the replica they replaced.
+                 */
+                per_replica?: {
+                    replica: number;
+                    cpu_percent: {
+                        t: string;
+                        avg: number;
+                        max: number;
+                    }[];
+                    memory_bytes: {
+                        t: string;
+                        avg: number;
+                        max: number;
+                    }[];
+                    restarts: {
+                        t: string;
+                        count: number;
+                    }[];
+                }[];
+            };
         };
         /** ProjectResource */
         ProjectResource: {
@@ -3962,7 +4132,10 @@ export interface components {
                 max_memory_mb: number;
                 /** @description Per project. */
                 max_cpu_millis: number;
-                /** @description Reserved for the build rate limit; not enforced yet. */
+                /**
+                 * @description Effective deployments per rolling hour, from the profile or the global setting. `null` means no
+                 *     limit. Admins acting are not limited.
+                 */
                 max_builds_per_hour: number | null;
                 /** @description Effective minutes without a request before a project sleeps, from the profile or the global setting. `0` never sleeps. */
                 idle_sleep_minutes: number;
@@ -5161,7 +5334,40 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
-            422: components["responses"]["ValidationException"];
+            /**
+             * @description The workspace reached its build rate limit
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian, with when to try again. */
+                        message: string;
+                        /**
+                         * @description The workspace created as many deployments in the rolling hour as its limit allows. Every deployment builds, whatever its status.
+                         * @enum {string}
+                         */
+                        code: "BUILD_RATE_LIMIT_EXCEEDED";
+                        /** @description Deployments the workspace may create per rolling hour. */
+                        limit: number;
+                        /** @description Deployments of the workspace counted in the rolling hour, deleted projects included. Can exceed `limit` after an admin lowered it. */
+                        current: number;
+                        /** @description Seconds until the window frees a slot; at least 1. */
+                        retry_after_seconds: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
             503: components["responses"]["GithubUnavailable"];
         };
     };
@@ -5578,6 +5784,30 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "edge.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AdminEdgeResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminEdgeResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
         };
     };
     "edge.v1.routes.index": {
@@ -7325,6 +7555,40 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["ProjectControlResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.app.projects.metrics": {
+        parameters: {
+            query?: {
+                /** @description Defaults to 1h. */
+                range?: components["schemas"]["ProjectMetricsRange"];
+                /** @description `1` adds `series.per_replica`. */
+                per_replica?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProjectMetricsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectMetricsResource"];
                     };
                 };
             };

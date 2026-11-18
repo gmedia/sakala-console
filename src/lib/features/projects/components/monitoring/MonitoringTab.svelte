@@ -1,0 +1,268 @@
+<script lang="ts">
+	import { RadioGroup } from 'bits-ui';
+	import ChartLine from 'phosphor-svelte/lib/ChartLine';
+	import Moon from 'phosphor-svelte/lib/Moon';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import {
+		PROJECT_METRICS_RANGES,
+		type ProjectMetricsRange
+	} from '$lib/api/resources/project-metrics';
+	import { createProjectQuery } from '../../queries';
+	import { createProjectMetricsQuery } from '../../monitoring/queries';
+	import {
+		DEFAULT_METRICS_RANGE,
+		METRICS_RANGE_OPTIONS,
+		metricsRangeOption,
+		resolveMetricsPollInterval
+	} from '../../monitoring/ranges';
+	import {
+		cpuChart,
+		hasNoMetrics,
+		hasPoints,
+		memoryChart,
+		replicasChart,
+		restartsChart
+	} from '../../monitoring/chart-data';
+	import {
+		BYTE_AXIS_STEPS,
+		COUNT_AXIS_STEPS,
+		MONITORING_COPY,
+		cpuSummary,
+		emptyTitle,
+		formatAxisTime,
+		freshnessNote,
+		widenRangeLabel,
+		formatBytes,
+		formatCount,
+		formatPercent,
+		formatPointTime,
+		memoryLimitNote,
+		memorySummary,
+		replicasSummary,
+		restartsSummary
+	} from '../../monitoring/format';
+	import MetricCard from './MetricCard.svelte';
+	import TimeSeriesChart, { type ChartSeries } from './TimeSeriesChart.svelte';
+
+	type Props = {
+		projectId: string;
+		/** Bound by the route to the query string, so a range can be shared and walked back. */
+		range?: ProjectMetricsRange;
+	};
+
+	let { projectId, range = $bindable(DEFAULT_METRICS_RANGE) }: Props = $props();
+
+	const SLEEPING_STATUS = 'sleeping';
+	const LONGEST_RANGE = METRICS_RANGE_OPTIONS[METRICS_RANGE_OPTIONS.length - 1];
+
+	const projectQuery = createProjectQuery(() => projectId);
+	const runtimeStatus = $derived(projectQuery.data?.runtime_status);
+	const metricsQuery = createProjectMetricsQuery(
+		() => projectId,
+		() => range,
+		() => runtimeStatus
+	);
+
+	const rangeOption = $derived(metricsRangeOption(range));
+	const sleeping = $derived(runtimeStatus === SLEEPING_STATUS);
+	const metrics = $derived(metricsQuery.data);
+
+	const cpu = $derived(metrics ? cpuChart(metrics) : null);
+	const memory = $derived(metrics ? memoryChart(metrics) : null);
+	const replicas = $derived(metrics ? replicasChart(metrics) : null);
+	const restarts = $derived(metrics ? restartsChart(metrics) : null);
+
+	/** The window ends when the answer arrived, so the newest bucket sits at the right edge. */
+	const xRange = $derived.by((): [number, number] => {
+		const end = Math.floor(metricsQuery.dataUpdatedAt / 1_000);
+		return [end - rangeOption.seconds, end];
+	});
+	const axisTime = (seconds: number) => formatAxisTime(seconds, rangeOption);
+	const polls = $derived(resolveMetricsPollInterval(range, runtimeStatus) !== false);
+	const freshness = $derived(
+		metricsQuery.dataUpdatedAt > 0 ? freshnessNote(metricsQuery.dataUpdatedAt, polls) : null
+	);
+
+	const { average, peak, limit } = MONITORING_COPY.series;
+	const CPU_SERIES: ChartSeries[] = [
+		{ label: average, tone: 'primary' },
+		{ label: peak, tone: 'soft' }
+	];
+	const MEMORY_SERIES: ChartSeries[] = [
+		...CPU_SERIES,
+		{ label: limit, tone: 'reference', dashed: true }
+	];
+	const REPLICAS_SERIES: ChartSeries[] = [
+		{ label: MONITORING_COPY.series.replicas, tone: 'primary', kind: 'step' }
+	];
+	const RESTARTS_SERIES: ChartSeries[] = [
+		{ label: MONITORING_COPY.series.restarts, tone: 'primary', kind: 'bars' }
+	];
+	const STAT_BAND: [number, number] = [1, 0];
+
+	function selectRange(next: string) {
+		if ((PROJECT_METRICS_RANGES as readonly string[]).includes(next)) {
+			range = next as ProjectMetricsRange;
+		}
+	}
+</script>
+
+<div class="flex w-full min-w-0 flex-col gap-4">
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<div class="flex min-w-0 flex-col gap-0.5">
+			<p class="text-sm text-foreground">{MONITORING_COPY.intro}</p>
+			{#if freshness}
+				<p class="text-xs text-muted" data-testid="metrics-freshness">{freshness}</p>
+			{/if}
+		</div>
+		<RadioGroup.Root
+			value={range}
+			onValueChange={selectRange}
+			orientation="horizontal"
+			aria-label={MONITORING_COPY.rangeLabel}
+			class="grid w-full grid-cols-5 rounded-control border border-border-strong bg-surface p-0.5 sm:inline-flex sm:w-auto"
+		>
+			{#each METRICS_RANGE_OPTIONS as option (option.value)}
+				<RadioGroup.Item
+					value={option.value}
+					class="min-h-control-lg rounded-control px-1 text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-foreground data-[state=checked]:bg-primary data-[state=checked]:text-white sm:min-h-control-sm sm:px-3"
+				>
+					{option.label}
+				</RadioGroup.Item>
+			{/each}
+		</RadioGroup.Root>
+	</div>
+
+	{#if sleeping}
+		<p
+			class="flex items-start gap-2 rounded-control border border-border bg-surface px-4 py-3 text-sm text-foreground"
+		>
+			<Moon size={20} class="mt-px shrink-0 text-muted" aria-hidden="true" />
+			{MONITORING_COPY.sleeping}
+		</p>
+	{/if}
+
+	{#if metricsQuery.isPending}
+		<div class="grid gap-4 md:grid-cols-2" role="status">
+			<span class="sr-only">{MONITORING_COPY.loading}</span>
+			{#each [1, 2, 3, 4] as item (item)}
+				<div class="surface-card flex flex-col gap-3 p-4" aria-hidden="true">
+					<div class="skeleton h-5 w-24"></div>
+					<div class="skeleton h-4 w-3/4"></div>
+					<div class="skeleton h-40 w-full"></div>
+				</div>
+			{/each}
+		</div>
+	{:else if metricsQuery.isError}
+		<div
+			role="alert"
+			class="flex flex-wrap items-center gap-3 rounded-card border border-error/20 bg-error/5 p-4 text-error"
+		>
+			<WarningCircle size={24} weight="fill" aria-hidden="true" />
+			<p class="min-w-0 flex-1 text-sm font-medium">{MONITORING_COPY.error}</p>
+			<Button
+				variant="secondary"
+				onclick={() => metricsQuery.refetch()}
+				disabled={metricsQuery.isFetching}
+			>
+				{metricsQuery.isFetching ? MONITORING_COPY.retrying : MONITORING_COPY.retry}
+			</Button>
+		</div>
+	{:else if metrics && hasNoMetrics(metrics)}
+		<EmptyState
+			icon={ChartLine}
+			tone="muted"
+			title={emptyTitle(rangeOption)}
+			description={MONITORING_COPY.empty.description}
+		>
+			{#snippet action()}
+				{#if range !== LONGEST_RANGE.value}
+					<Button variant="secondary" onclick={() => (range = LONGEST_RANGE.value)}>
+						{widenRangeLabel(LONGEST_RANGE)}
+					</Button>
+				{/if}
+			{/snippet}
+		</EmptyState>
+	{:else if cpu && memory && replicas && restarts}
+		<div class="grid gap-4 md:grid-cols-2">
+			<MetricCard
+				id="memory"
+				title={MONITORING_COPY.titles.memory}
+				summary={memorySummary(memory, rangeOption)}
+				note={memoryLimitNote(memory)}
+				hasData={hasPoints(memory.columns)}
+			>
+				{#snippet chart()}
+					<TimeSeriesChart
+						columns={memory.columns}
+						series={MEMORY_SERIES}
+						band={STAT_BAND}
+						{xRange}
+						formatValue={formatBytes}
+						increments={BYTE_AXIS_STEPS}
+						formatAxisTime={axisTime}
+						{formatPointTime}
+					/>
+				{/snippet}
+			</MetricCard>
+			<MetricCard
+				id="cpu"
+				title={MONITORING_COPY.titles.cpu}
+				summary={cpuSummary(cpu, rangeOption)}
+				note={MONITORING_COPY.cpuNote}
+				hasData={hasPoints(cpu.columns)}
+			>
+				{#snippet chart()}
+					<TimeSeriesChart
+						columns={cpu.columns}
+						series={CPU_SERIES}
+						band={STAT_BAND}
+						{xRange}
+						formatValue={formatPercent}
+						formatAxisTime={axisTime}
+						{formatPointTime}
+					/>
+				{/snippet}
+			</MetricCard>
+			<MetricCard
+				id="restarts"
+				title={MONITORING_COPY.titles.restarts}
+				summary={restartsSummary(restarts, rangeOption)}
+				note={MONITORING_COPY.restartsNote}
+				hasData={hasPoints(restarts.columns)}
+			>
+				{#snippet chart()}
+					<TimeSeriesChart
+						columns={restarts.columns}
+						series={RESTARTS_SERIES}
+						increments={COUNT_AXIS_STEPS}
+						{xRange}
+						formatValue={formatCount}
+						formatAxisTime={axisTime}
+						{formatPointTime}
+					/>
+				{/snippet}
+			</MetricCard>
+			<MetricCard
+				id="replicas"
+				title={MONITORING_COPY.titles.replicas}
+				summary={replicasSummary(replicas, rangeOption)}
+				hasData={hasPoints(replicas.columns)}
+			>
+				{#snippet chart()}
+					<TimeSeriesChart
+						columns={replicas.columns}
+						series={REPLICAS_SERIES}
+						increments={COUNT_AXIS_STEPS}
+						{xRange}
+						formatValue={formatCount}
+						formatAxisTime={axisTime}
+						{formatPointTime}
+					/>
+				{/snippet}
+			</MetricCard>
+		</div>
+	{/if}
+</div>

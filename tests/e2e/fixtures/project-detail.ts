@@ -231,6 +231,49 @@ export const events = [
 
 export type JsonReply = { status?: number; body?: unknown; headers?: Record<string, string> };
 
+const METRICS_STEP_SECONDS = 900;
+const METRICS_BUCKETS = 96;
+const MIB = 1024 * 1024;
+
+/**
+ * A day of 15-minute steps as `GET .../metrics` answers: a second replica from the middle of the
+ * day, three hours without samples (the project slept), and a few restarts.
+ */
+export function sampleMetrics() {
+	const now = Math.floor(Date.now() / 1_000 / METRICS_STEP_SECONDS) * METRICS_STEP_SECONDS;
+	const asleep = (bucket: number) => bucket >= 30 && bucket < 42;
+	const buckets = Array.from({ length: METRICS_BUCKETS }, (_, index) => index).filter(
+		(bucket) => !asleep(bucket)
+	);
+	const t = (bucket: number) =>
+		new Date((now - (METRICS_BUCKETS - 1 - bucket) * METRICS_STEP_SECONDS) * 1_000).toISOString();
+	const replicas = (bucket: number) => (bucket >= 48 ? 2 : 1);
+	const wave = (bucket: number) => (Math.sin(bucket / 3) + 1) / 2;
+	return {
+		data: {
+			range: '24h',
+			step_seconds: METRICS_STEP_SECONDS,
+			series: {
+				cpu_percent: buckets.map((bucket) => {
+					const avg = (8 + 30 * wave(bucket)) * replicas(bucket);
+					return { t: t(bucket), avg, max: avg * 1.8 };
+				}),
+				memory_bytes: buckets.map((bucket) => {
+					const avg = (180 + 90 * wave(bucket)) * MIB * replicas(bucket);
+					return { t: t(bucket), avg, max: avg + 40 * MIB };
+				}),
+				// Both replicas' limits together, as in the newest step.
+				memory_limit_bytes: 2 * 512 * MIB,
+				replicas: buckets.map((bucket) => ({ t: t(bucket), count: replicas(bucket) })),
+				restarts: buckets.map((bucket) => ({
+					t: t(bucket),
+					count: [12, 13, 80].includes(bucket) ? 1 : 0
+				}))
+			}
+		}
+	};
+}
+
 export type ApiHandlers = {
 	project?: () => unknown;
 	deployment?: () => unknown;
@@ -247,6 +290,7 @@ export type ApiHandlers = {
 	addEnv?: (body: Record<string, unknown>) => JsonReply;
 	deleteEnv?: () => JsonReply;
 	revealEnv?: () => JsonReply;
+	metrics?: (url: URL) => JsonReply;
 };
 
 function fulfill(route: Route, { status = 200, body, headers }: JsonReply) {
@@ -341,6 +385,9 @@ export async function mockProjectApi(page: Page, handlers: ApiHandlers = {}) {
 					body: { data: { ...baseProject, runtime_status: 'sleeping' } }
 				}
 			);
+		}
+		if (/\/metrics\/?$/.test(path)) {
+			return fulfill(route, handlers.metrics?.(url) ?? { body: sampleMetrics() });
 		}
 		if (/\/environment-variables\/[^/]+\/value\/?$/.test(path)) {
 			return fulfill(route, handlers.revealEnv?.() ?? { body: { data: { value: 'rahasia' } } });

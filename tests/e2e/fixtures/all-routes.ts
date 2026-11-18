@@ -255,6 +255,7 @@ export const SIGNED_IN_ROUTES = [
 	['projects', '/projects'],
 	['project-new', '/projects/new'],
 	['project-deployments', `/projects/${PROJECT_ID}/deployments`],
+	['project-monitoring', `/projects/${PROJECT_ID}/monitoring`],
 	['project-environments', `/projects/${PROJECT_ID}/environments`],
 	['project-settings', `/projects/${PROJECT_ID}/settings`],
 	['deployment-detail', `/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`],
