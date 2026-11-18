@@ -9,6 +9,7 @@
 	import { useNotificationsLive } from '$lib/features/notifications/use-notifications-live.svelte';
 	import NotificationPopover from '$lib/features/notifications/components/NotificationPopover.svelte';
 	import { createProjectQuery } from '$lib/features/projects/queries';
+	import ProjectAvatar from '$lib/features/projects/components/project/ProjectAvatar.svelte';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -60,11 +61,27 @@
 						Proyek
 					</a>
 					<span class="font-medium text-muted" aria-hidden="true">/</span>
-					<a
-						href={resolve(`/projects/${page.params.id}`)}
-						class="line-clamp-2 min-w-0 wrap-anywhere text-foreground"
-						title={projectName}>{projectName || '...'}</a
-					>
+					<span class="flex min-w-0 items-center gap-2">
+						{#if currentProject}
+							<!-- Below 640 px the name needs the room more than the tile does; the card still shows it. -->
+							<ProjectAvatar
+								size="sm"
+								class="max-sm:hidden"
+								project={{
+									id: currentProject.id,
+									name: projectName,
+									slug: currentProject.slug,
+									public_url: currentProject.public_url,
+									thumbnail_url: currentProject.thumbnail_url
+								}}
+							/>
+						{/if}
+						<a
+							href={resolve(`/projects/${page.params.id}`)}
+							class="line-clamp-2 min-w-0 wrap-anywhere text-foreground"
+							title={projectName}>{projectName || '...'}</a
+						>
+					</span>
 				{:else}
 					<span class="text-foreground">{pageTitle}</span>
 				{/if}

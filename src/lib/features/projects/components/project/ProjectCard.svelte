@@ -13,6 +13,7 @@
 		isListedProjectUrlReachable
 	} from '../../presentation';
 	import { workspaceLabel } from '$lib/features/workspaces/presentation';
+	import ProjectAvatar from './ProjectAvatar.svelte';
 	import RuntimeStatusBadge from './RuntimeStatusBadge.svelte';
 
 	/** `showWorkspace` is on once the user belongs to a team; someone working alone sees no change. */
@@ -33,31 +34,34 @@
 <article
 	class="surface-card relative flex min-w-0 flex-col gap-3 p-5 transition-colors hover:border-primary"
 >
-	<div class="min-w-0">
-		<h2 class="min-w-0 font-sans text-base font-semibold text-foreground">
-			<a
-				href={resolve(`/projects/${project.id}`)}
-				title={project.name}
-				class="line-clamp-2 wrap-anywhere after:absolute after:inset-0 after:content-['']"
-			>
-				{project.name}
-			</a>
-		</h2>
-		{#if showUrl && publicUrl}
-			<a
-				href={publicUrl}
-				target="_blank"
-				rel="external noopener noreferrer"
-				data-testid="project-card-url"
-				class="relative z-10 mt-1 inline-block min-h-6 max-w-full font-mono text-sm leading-6 wrap-anywhere text-primary-dark underline underline-offset-2"
-			>
-				<BreakableUrl text={getPublicUrlLabel(publicUrl)} />
-			</a>
-		{:else if project.repository_full_name}
-			<p class="mt-1 truncate font-mono text-sm text-muted" title={project.repository_full_name}>
-				{project.repository_full_name}
-			</p>
-		{/if}
+	<div class="flex min-w-0 items-start gap-3">
+		<ProjectAvatar {project} />
+		<div class="min-w-0 flex-1">
+			<h2 class="min-w-0 font-sans text-base font-semibold text-foreground">
+				<a
+					href={resolve(`/projects/${project.id}`)}
+					title={project.name}
+					class="line-clamp-2 wrap-anywhere after:absolute after:inset-0 after:content-['']"
+				>
+					{project.name}
+				</a>
+			</h2>
+			{#if showUrl && publicUrl}
+				<a
+					href={publicUrl}
+					target="_blank"
+					rel="external noopener noreferrer"
+					data-testid="project-card-url"
+					class="relative z-10 mt-1 inline-block min-h-6 max-w-full font-mono text-sm leading-6 wrap-anywhere text-primary-dark underline underline-offset-2"
+				>
+					<BreakableUrl text={getPublicUrlLabel(publicUrl)} />
+				</a>
+			{:else if project.repository_full_name}
+				<p class="mt-1 truncate font-mono text-sm text-muted" title={project.repository_full_name}>
+					{project.repository_full_name}
+				</p>
+			{/if}
+		</div>
 	</div>
 
 	{#if latest?.commit_message}
