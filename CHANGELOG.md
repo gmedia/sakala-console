@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-18
+
 ### Added
 
 - Release command (requires sakala-api with `release_command`, gmedia/sakala-api#168). The project settings tab and the create wizard's advanced settings have a "Release command" field (placeholder `php artisan migrate --force`) with help text: it runs once per deployment, after build and before the new version takes traffic, suits database migrations, a failure cancels the deployment while the previous version keeps serving, the old version still serves while it runs so migrations must stay compatible with it, and seeders do not belong there. It follows the same rules as the other commands (one line, up to 1000 characters), is part of the settings draft so Save and Redeploy send it only when it changed, clearing it sends `null`, and saving shows the redeploy notice. Viewers see it in the read-only settings. A deploy refused with `PROJECT_RELEASE_COMMAND_UNSUPPORTED` says the server cannot run release commands yet and that emptying the field deploys without it. The failure codes `release_command_failed` and `release_command_timeout` get their own headline; the summary and hint stay the API's, and the Console fills in its own (pointing at the release section of the log, the setting, and that only an admin changes the time limit) when an older API classifies them as unknown. The new `release` failure category has a headline and an admin label. API types are regenerated from the sakala-api `feat/release-command` branch, which also brings already merged API changes such as regions and the Sakala Edge route table.
@@ -138,7 +140,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/gmedia/sakala-console/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/gmedia/sakala-console/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/gmedia/sakala-console/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/gmedia/sakala-console/compare/v0.5.1...v0.5.2
