@@ -14,17 +14,19 @@ export const projectMetricsKey = (projectId: string, range: ProjectMetricsRange)
 export function createProjectMetricsQuery(
 	projectId: () => string,
 	range: () => ProjectMetricsRange,
-	runtimeStatus: () => string | undefined
+	runtimeStatus: () => string | undefined,
+	options: () => { enabled?: boolean } = () => ({})
 ) {
 	return createQuery(() => {
 		const id = projectId();
+		const { enabled = true } = options();
 		const currentRange = range();
 		// Read here, not in the callback, so a project waking up re-arms the interval.
 		const status = runtimeStatus();
 		return {
 			queryKey: projectMetricsKey(id, currentRange),
 			queryFn: () => getProjectMetrics(id, currentRange),
-			enabled: !!id,
+			enabled: !!id && enabled,
 			refetchInterval: (query: { state: { error: unknown } }) =>
 				resolveMetricsPollInterval(currentRange, status, query.state.error)
 		};

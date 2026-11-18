@@ -1672,7 +1672,11 @@ test.describe('project settings', () => {
 });
 
 test.describe('project detail shell (#75)', () => {
-	test('the four tabs fit a narrow screen with short names', async ({ page }) => {
+	// Five tabs need more than 320 px, so the strip scrolls inside itself: never the page, the current
+	// tab always in view, and a fade at the edge while tabs hide past it.
+	test('the tabs scroll inside their strip on a narrow screen, the current one in view', async ({
+		page
+	}) => {
 		await mockProjectApi(page, {
 			project: () => ({ ...baseProject, name: `nama-${'panjang'.repeat(20)}` })
 		});
@@ -1681,7 +1685,16 @@ test.describe('project detail shell (#75)', () => {
 
 		const tabs = page.getByRole('navigation', { name: 'Bagian proyek' });
 		const settingsTab = tabs.getByRole('link', { name: 'Pengaturan', exact: true });
-		expect(await tabs.evaluate((nav) => nav.scrollWidth > nav.clientWidth)).toBe(false);
+		await expect(settingsTab).toHaveAttribute('aria-current', 'page');
+		await expect(settingsTab).toBeInViewport({ ratio: 1 });
+		expect(await pageOverflowsHorizontally(page)).toBe(false);
+
+		// From the overview, the last tab is past the edge, and Tab brings it into view.
+		await page.goto(`/projects/${PROJECT_ID}`);
+		const overviewTab = tabs.getByRole('link', { name: 'Ringkasan', exact: true });
+		await expect(overviewTab).toBeInViewport({ ratio: 1 });
+		expect(await tabs.evaluate((nav) => nav.scrollWidth > nav.clientWidth)).toBe(true);
+		await settingsTab.focus();
 		await expect(settingsTab).toBeInViewport({ ratio: 1 });
 		expect(await pageOverflowsHorizontally(page)).toBe(false);
 	});

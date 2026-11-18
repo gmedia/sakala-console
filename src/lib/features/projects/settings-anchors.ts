@@ -1,0 +1,9 @@
+/**
+ * Ids of settings tab fields that other pages link to (`/projects/{id}/settings#releaseCommand`).
+ * The project overview's next steps land on them, so they stay stable.
+ */
+export const SETTINGS_ANCHORS = {
+	releaseCommand: 'releaseCommand',
+	autoDeploy: 'auto-deploy',
+	replicas: 'replicas'
+} as const;

@@ -714,7 +714,8 @@ test.describe('Projects list page', () => {
 
 		await page.getByRole('link', { name: validProject.name }).click();
 
-		await expect(page).toHaveURL(`/projects/${validProject.id}/deployments`);
+		// The project's own address is its overview (Ringkasan), the first tab.
+		await expect(page).toHaveURL(`/projects/${validProject.id}`);
 	});
 
 	test('logout dialog handles accessibility focus trap and escape key', async ({ page }) => {

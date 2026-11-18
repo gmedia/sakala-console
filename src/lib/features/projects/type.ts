@@ -33,6 +33,9 @@ type ProjectReleaseFields = Partial<
 	Pick<components['schemas']['ProjectResource'], 'release_command'>
 >;
 
+/** Added by the API with regions, so an older one leaves it out. `null` means placement picks one. */
+type ProjectPlacementFields = Partial<Pick<components['schemas']['ProjectResource'], 'region'>>;
+
 type DeploymentContractFields = Pick<
 	components['schemas']['DeploymentResource'],
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
@@ -86,7 +89,12 @@ export interface ProjectBase {
 }
 
 export interface Project
-	extends ProjectBase, ProjectContractFields, ProjectReplicaFields, ProjectReleaseFields {}
+	extends
+		ProjectBase,
+		ProjectContractFields,
+		ProjectReplicaFields,
+		ProjectReleaseFields,
+		ProjectPlacementFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */
 export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];
