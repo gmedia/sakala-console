@@ -273,6 +273,7 @@ test.describe('keyboard', () => {
 
 	for (const [name, path] of [
 		['projects', '/projects'],
+		['overview', `/projects/${PROJECT_ID}`],
 		['deployments', `/projects/${PROJECT_ID}/deployments`],
 		['environments', `/projects/${PROJECT_ID}/environments`],
 		['monitoring', `/projects/${PROJECT_ID}/monitoring`],
@@ -288,13 +289,12 @@ test.describe('keyboard', () => {
 				const stop = await page.evaluate(() => {
 					const el = document.activeElement as HTMLElement | null;
 					if (!el || el === document.body) return null;
-					const hasRing = (node: Element) => {
-						const style = getComputedStyle(node);
-						return (
-							(style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) ||
-							style.boxShadow !== 'none'
-						);
-					};
+					// A link stretched over a whole row draws its ring on `::after`, the area it covers.
+					const ringed = (style: CSSStyleDeclaration) =>
+						(style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) ||
+						style.boxShadow !== 'none';
+					const hasRing = (node: Element) =>
+						ringed(getComputedStyle(node)) || ringed(getComputedStyle(node, '::after'));
 					return {
 						name: el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30) || el.id,
 						visible: hasRing(el) || (el.parentElement ? hasRing(el.parentElement) : false)

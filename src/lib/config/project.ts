@@ -10,3 +10,10 @@ export const LEGAL_LINKS = {
 
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = 'abuse@sakala.dev';
+
+/**
+ * The hosted service runs Sakala Edge in front of every node (ADR-019), so the project overview
+ * draws it between the address and the node. A self-hosted install without Edge would show a hop
+ * it does not have; making this a runtime setting is a follow-up.
+ */
+export const SAKALA_EDGE_IN_FRONT = true;

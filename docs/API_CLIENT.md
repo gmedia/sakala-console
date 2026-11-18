@@ -199,6 +199,16 @@ Tab Metrik (`/projects/{id}/monitoring`) membaca `GET app/projects/{project}/met
 - Hemat request: tab ini membaca ulang tiap 60 detik hanya untuk rentang sampai 24 jam dan hanya selama `runtime_status` `running`. Rentang 7 dan 30 hari, proyek yang tidur atau berhenti, dan tab di background tidak polling (`resolveMetricsPollInterval()`, `refetchIntervalInBackground` mati). `429` menunggu `Retry-After`. Waktu baca terakhir tampil di atas grafik.
 - Proyek yang tidur tidak mengirim sampel, dan tab ini menyebutnya. Kalau semua seri kosong, tab menampilkan "Belum ada data metrik dalam {rentang}" dengan tombol untuk melihat 30 hari terakhir.
 
+## Ringkasan Proyek
+
+`/projects/{id}` adalah tab Ringkasan, tab pertama halaman proyek. Dulu alamat ini dialihkan ke `/projects/{id}/deployments`; sekarang Riwayat tetap di alamatnya sendiri, dan link lama ke `/deployments` tetap jalan. Tab ini tidak menambah endpoint dan hanya memakai data yang sudah dikirim API:
+
+- Diagram alur pengunjung (`overview/topology.ts`): alamat dari `public_url` (atau `default_domain`), Sakala Edge, node dengan `region` (`null` ditulis "Region otomatis"), lalu aplikasi dengan status yang sama seperti header (`deriveProjectHeaderState()`), replika sehat dari `serving_replicas` dan `replicas_ready`, dan port dari `getPortDisplay()`. "Terpasang ke aplikasi" berisi jumlah environment variable dan `release_command`. Belum ada kotak database; slot-nya disebut di komentar `Topology.attached` dan baru diisi setelah API melaporkannya. Kotak Sakala Edge mengikuti `SAKALA_EDGE_IN_FRONT` di `src/lib/config/project.ts`, yang benar untuk layanan hosted.
+- Metrik 24 jam memakai `createProjectMetricsQuery()` dengan rentang `24h`, query yang sama dengan default tab Metrik, jadi pindah tab tidak membaca ulang. Proyek yang belum pernah di-deploy tidak meminta metrik sama sekali. Angkanya dihitung dengan helper yang sama seperti grafik (`overview/metrics-summary.ts`).
+- Deployment terbaru memakai `createRecentDeploymentsQuery()`, query yang sudah dibaca header, lalu menampilkan lima yang terbaru.
+- Langkah berikutnya (`overview/next-steps.ts`) paling banyak tiga, dari keadaan nyata: `.env.example` ada (`inspection.env_example_found`) tetapi environment variable kosong, Laravel (`stack.framework`) tanpa `release_command`, auto-deploy mati untuk proyek GitHub App, dan satu replika padahal `max_replicas` lebih dari satu. Viewer dan proyek yang ditangguhkan tidak mendapat saran. Saran yang disembunyikan disimpan per proyek di `localStorage` (`sakala.overview-dismissed-steps.{projectId}`).
+- Biaya request saat tab dibuka: project dan deployment terbaru dipakai bersama header, ditambah satu baca environment variable (tanpa polling) dan satu baca metrik, yang polling tiap 60 detik hanya selama proyek `running` dan tab terlihat, sama seperti tab Metrik.
+
 ## Alasan Penangguhan
 
 Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.

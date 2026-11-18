@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MIN_REPLICAS, REPLICAS_COPY, replicasAvailable, replicasHint } from '../../replicas';
+	import { SETTINGS_ANCHORS } from '../../settings-anchors';
 
 	type Props = {
 		/** The draft as text, so an emptied field stays empty until it is checked. */
@@ -11,7 +12,7 @@
 
 	let { value, maxReplicas, error, onValueChange }: Props = $props();
 
-	const id = 'replicas';
+	const id = SETTINGS_ANCHORS.replicas;
 	const available = $derived(replicasAvailable(maxReplicas));
 	const describedBy = $derived(error ? `${id}-error` : `${id}-hint`);
 </script>

@@ -41,6 +41,7 @@
 	import ProjectReplicasField from './ProjectReplicasField.svelte';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
+	import { SETTINGS_ANCHORS } from '../../settings-anchors';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -359,7 +360,7 @@
 				{ mono: true }
 			)}
 			{@render configField(
-				'releaseCommand',
+				SETTINGS_ANCHORS.releaseCommand,
 				RELEASE_COMMAND_LABEL,
 				'release_command',
 				'php artisan migrate --force',
@@ -376,7 +377,8 @@
 				/>
 			{/if}
 
-			<div class="border-t border-border">
+			<!-- The overview's next steps link here, so the anchor id stays as it is. -->
+			<div id={SETTINGS_ANCHORS.autoDeploy} class="scroll-mt-4 border-t border-border">
 				<ToggleField
 					title="Auto-deploy"
 					description={isGithubInstallation ? AUTO_DEPLOY_HELP : AUTO_DEPLOY_UNAVAILABLE_HELP}

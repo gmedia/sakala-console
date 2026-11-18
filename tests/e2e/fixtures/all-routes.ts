@@ -254,6 +254,7 @@ export async function mockSignedOutRoutes(page: Page) {
 export const SIGNED_IN_ROUTES = [
 	['projects', '/projects'],
 	['project-new', '/projects/new'],
+	['project-overview', `/projects/${PROJECT_ID}`],
 	['project-deployments', `/projects/${PROJECT_ID}/deployments`],
 	['project-monitoring', `/projects/${PROJECT_ID}/monitoring`],
 	['project-environments', `/projects/${PROJECT_ID}/environments`],
