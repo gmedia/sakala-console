@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-19
+
 ### Added
 
 - "Ringkasan" tab, the new first tab and default page of a project at `/projects/{id}`. That address used to redirect to `/projects/{id}/deployments`; Riwayat keeps that address, so existing links still work. It uses only data the API already returns.
@@ -164,7 +166,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/gmedia/sakala-console/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/gmedia/sakala-console/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/gmedia/sakala-console/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/gmedia/sakala-console/compare/v0.5.2...v0.6.0
