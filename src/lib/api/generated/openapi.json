@@ -2029,6 +2029,961 @@
                 }
             }
         },
+        "/v1/app/workspaces/{workspace}/databases": {
+            "get": {
+                "operationId": "v1.app.workspaces.databases.index",
+                "summary": "The workspace's databases, newest first. Dropped ones are gone; quotas and usage are in `GET app/pilot-limits`",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DatabaseResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.workspaces.databases.store",
+                "summary": "Create a database. It is `provisioning` until the database node of its region creates it",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreDatabaseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The workspace holds as many databases as its limit allows. `limit` 0 means the workspace may not create databases at all.\n\nThe workspace's databases already take all of its storage quota, so a new database would be locked at once.\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The workspace holds as many databases as its limit allows. `limit` 0 means the workspace may not create databases at all.",
+                                                    "enum": [
+                                                        "DATABASE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer"
+                                                },
+                                                "current": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The workspace's databases already take all of its storage quota, so a new database would be locked at once.",
+                                                    "enum": [
+                                                        "DATABASE_STORAGE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "current_bytes": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit_mb",
+                                                "current_bytes"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/DatabaseRegionUnavailableException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/databases/{database}": {
+            "get": {
+                "operationId": "v1.app.workspaces.databases.show",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.app.workspaces.databases.update",
+                "summary": "Rename the database. The names on the database node never change",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateDatabaseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.workspaces.databases.destroy",
+                "summary": "Delete the database and its data. Answers `202` with `status: deleting`; it is gone once the database node drops\nit. Only a database without attached projects can be deleted",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "`DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The database is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.\n\nThe database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.",
+                                                    "enum": [
+                                                        "DATABASE_IN_USE"
+                                                    ]
+                                                },
+                                                "projects": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "projects"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "DATABASE_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/databases/{database}/credentials": {
+            "get": {
+                "operationId": "v1.app.workspaces.databases.credentials",
+                "summary": "Connection details with the password. Owners and admins only, recorded in the audit trail, never cached",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`DatabaseCredentialsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseCredentialsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/DatabaseNotReadyException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/databases/{database}/rotate-password": {
+            "post": {
+                "operationId": "v1.app.workspaces.databases.rotate-password",
+                "summary": "Ask the database node for a new password. Answers `202`; the old password works until the node reports success,\nthen attached projects show `redeploy_required`",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "`DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "DATABASE_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "DATABASE_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/databases/{database}/extensions": {
+            "post": {
+                "operationId": "v1.app.workspaces.databases.extensions.store",
+                "summary": "Ask the database node to install an extension from the allow-list. Answers `202`; the result is in the audit\ntrail and, for a failure, in `last_failure`. `vector` may be unavailable on a node that does not ship pgvector",
+                "tags": [
+                    "Database"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InstallDatabaseExtensionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "`DatabaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/DatabaseNotReadyException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/databases/{database}/attachments/{project}": {
+            "post": {
+                "operationId": "v1.app.workspaces.databases.attachments.store",
+                "summary": "Attach the database to the project. `201`, or `200` when it already was. The project's next deployment receives\n`DATABASE_URL`, `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`, except\nthose the project sets itself",
+                "tags": [
+                    "DatabaseAttachment"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The database already was attached.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseAttachmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The database is locked because its workspace reached its storage quota; it unlocks once usage is under the quota again.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.\n\nThe project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database is locked because its workspace reached its storage quota; it unlocks once usage is under the quota again.",
+                                                    "enum": [
+                                                        "DATABASE_LOCKED"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "DATABASE_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.",
+                                                    "enum": [
+                                                        "PROJECT_DATABASE_ALREADY_ATTACHED"
+                                                    ]
+                                                },
+                                                "database": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "database"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.",
+                                                    "enum": [
+                                                        "DATABASE_CROSS_REGION_UNSUPPORTED"
+                                                    ]
+                                                },
+                                                "database_region": {
+                                                    "type": "string"
+                                                },
+                                                "project_region": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "database_region",
+                                                "project_region"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "201": {
+                        "description": "The database is attached.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DatabaseAttachmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.workspaces.databases.attachments.destroy",
+                "summary": "Detach the database from the project. The data stays; the project's next deployment no longer receives the\nconnection variables",
+                "tags": [
+                    "DatabaseAttachment"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "database",
+                        "in": "path",
+                        "required": true,
+                        "description": "The database ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/app/projects/{project}/deployments": {
             "get": {
                 "operationId": "projects.deployments.index",
@@ -2366,6 +3321,9 @@
                                 }
                             }
                         }
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/DatabaseEndpointUnavailableException"
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
@@ -9915,7 +10873,13 @@
                             "ReconcileWorkload",
                             "CleanupRuntime",
                             "DrainNode",
-                            "ResumeNode"
+                            "ResumeNode",
+                            "CreateDatabase",
+                            "DropDatabase",
+                            "RotateDatabasePassword",
+                            "LockDatabase",
+                            "UnlockDatabase",
+                            "InstallDatabaseExtension"
                         ]
                     },
                     "status": {
@@ -11573,7 +12537,13 @@
                             "ReconcileWorkload",
                             "CleanupRuntime",
                             "DrainNode",
-                            "ResumeNode"
+                            "ResumeNode",
+                            "CreateDatabase",
+                            "DropDatabase",
+                            "RotateDatabasePassword",
+                            "LockDatabase",
+                            "UnlockDatabase",
+                            "InstallDatabaseExtension"
                         ]
                     },
                     "status": {
@@ -11650,7 +12620,13 @@
                     "ReconcileWorkload",
                     "CleanupRuntime",
                     "DrainNode",
-                    "ResumeNode"
+                    "ResumeNode",
+                    "CreateDatabase",
+                    "DropDatabase",
+                    "RotateDatabasePassword",
+                    "LockDatabase",
+                    "UnlockDatabase",
+                    "InstallDatabaseExtension"
                 ],
                 "title": "AgentCommandType"
             },
@@ -11757,6 +12733,11 @@
                                     "metrics": {
                                         "type": "integer",
                                         "description": "Additive within protocol revision 4, sent with `metrics`.",
+                                        "minimum": 0
+                                    },
+                                    "databases": {
+                                        "type": "integer",
+                                        "description": "Additive within protocol revision 4, sent with `databases`.",
                                         "minimum": 0
                                     }
                                 }
@@ -12068,6 +13049,56 @@
                                         "maxLength": 255
                                     }
                                 }
+                            },
+                            "database": {
+                                "type": "object",
+                                "description": "Optional and additive within protocol revision 4, from nodes with\nthe `managed-postgres` capability (ADR-020): where attached\nprojects reach the PostgreSQL instance, and the size of every\ndatabase it hosts. Strict like the lists above.",
+                                "properties": {
+                                    "endpoint": {
+                                        "type": [
+                                            "object",
+                                            "null"
+                                        ],
+                                        "properties": {
+                                            "host": {
+                                                "type": "string",
+                                                "maxLength": 253
+                                            },
+                                            "port": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 65535
+                                            }
+                                        }
+                                    },
+                                    "available": {
+                                        "type": "boolean",
+                                        "description": "False while the agent cannot read the instance; the node then\nreports `degraded` and gets no new database."
+                                    }
+                                }
+                            },
+                            "databases": {
+                                "type": "array",
+                                "description": "Only on a heartbeat right after a fresh size reading (at most\nonce a minute): absence means no new reading, never zero.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+                                        },
+                                        "size_bytes": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 1125899906842624
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "size_bytes"
+                                    ]
+                                },
+                                "maxItems": 1000
                             },
                             "disk_pressure": {
                                 "type": "object",
@@ -12477,7 +13508,13 @@
                                     "ReconcileWorkload",
                                     "CleanupRuntime",
                                     "DrainNode",
-                                    "ResumeNode"
+                                    "ResumeNode",
+                                    "CreateDatabase",
+                                    "DropDatabase",
+                                    "RotateDatabasePassword",
+                                    "LockDatabase",
+                                    "UnlockDatabase",
+                                    "InstallDatabaseExtension"
                                 ]
                             },
                             "status": {
@@ -13042,13 +14079,70 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "monorepo": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "manager": {
+                                        "type": "string",
+                                        "enum": [
+                                            "npm",
+                                            "pnpm",
+                                            "yarn",
+                                            "bun"
+                                        ]
+                                    },
+                                    "root_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_name": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "build_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "start_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "static_output_directory": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "manager",
+                                    "root_directory",
+                                    "package_directory",
+                                    "package_name",
+                                    "build_command",
+                                    "start_command",
+                                    "static_output_directory"
+                                ]
                             }
                         },
                         "required": [
                             "builder",
                             "provider",
                             "framework",
-                            "package_manager"
+                            "package_manager",
+                            "monorepo"
                         ]
                     },
                     "configured_port": {
@@ -13153,6 +14247,255 @@
                     "created_at"
                 ],
                 "title": "CreateProjectResource"
+            },
+            "DatabaseAttachmentResource": {
+                "type": "object",
+                "properties": {
+                    "database_id": {
+                        "type": "string"
+                    },
+                    "project": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "redeploy_required": {
+                        "type": "boolean",
+                        "description": "True while the project's serving deployment lacks the connection variables. Deploy again to apply them."
+                    },
+                    "attached_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "database_id",
+                    "project",
+                    "redeploy_required",
+                    "attached_at"
+                ],
+                "title": "DatabaseAttachmentResource"
+            },
+            "DatabaseCredentialsResource": {
+                "type": "object",
+                "properties": {
+                    "host": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Host of the database node as runtime nodes reach it, on its private network; `null` until the node reports it."
+                    },
+                    "port": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "`null` until the node reports it."
+                    },
+                    "database": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`postgresql://username:password@host:port/database?sslmode=require`; `null` until the node reports its address."
+                    },
+                    "sslmode": {
+                        "type": "string",
+                        "description": "Always `require`: the instance only accepts TLS."
+                    }
+                },
+                "required": [
+                    "host",
+                    "port",
+                    "database",
+                    "username",
+                    "password",
+                    "url",
+                    "sslmode"
+                ],
+                "title": "DatabaseCredentialsResource"
+            },
+            "DatabaseEngine": {
+                "type": "string",
+                "description": "Engines a managed database can run. ADR-020 starts, and for now ends, with PostgreSQL.\n",
+                "enum": [
+                    "postgresql"
+                ],
+                "title": "DatabaseEngine"
+            },
+            "DatabaseExtension": {
+                "type": "string",
+                "description": "Extensions a tenant may ask the database node to install (ADR-020). The first five are trusted by PostgreSQL; `vector` (pgvector) is not, so only the node's superuser installs it. The values are the wire names the agent accepts in InstallDatabaseExtension.\n",
+                "enum": [
+                    "pgcrypto",
+                    "citext",
+                    "pg_trgm",
+                    "unaccent",
+                    "hstore",
+                    "vector"
+                ],
+                "title": "DatabaseExtension"
+            },
+            "DatabaseResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "engine": {
+                        "$ref": "#/components/schemas/DatabaseEngine"
+                    },
+                    "status": {
+                        "description": "`provisioning` until the database node creates it, then `ready`. `locked` while the workspace is at its\nstorage quota: applications cannot connect until usage is under it again. `failed` when creation failed;\n`deleting` while the node drops it. A dropped database is gone from the API.\n| |\n|---|\n| `provisioning` <br/> CreateDatabase is waiting for or running on the database node. |\n| `ready` <br/> Created on the node and accepting connections. |\n| `failed` <br/> CreateDatabase failed or expired. Nothing to connect to; delete it and create another. |\n| `deleting` <br/> DropDatabase is waiting for or running on the database node. |\n| `deleted` <br/> Dropped on the node. The row is soft deleted at the same moment. |\n| `locked` <br/> The workspace reached its storage quota: the node turned the database's role to NOLOGIN and ended its sessions. Superuser sessions, such as the nightly backup, still connect. |",
+                        "$ref": "#/components/schemas/DatabaseStatus"
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Region of the database node; `null` when that node has none. Projects attach only within one region."
+                    },
+                    "size_bytes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Size from the database node's last report, in bytes; `null` until it reports one."
+                    },
+                    "size_checked_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When that size was reported."
+                    },
+                    "projects": {
+                        "type": "array",
+                        "description": "Projects the database is attached to. Each receives the connection variables from its next deployment.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "slug": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "slug"
+                            ]
+                        }
+                    },
+                    "last_failure": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Set while the newest request to the database node for this database failed or expired: `command` (the agent\ncommand type), `code` (from the agent, such as `database_extension_unavailable` or\n`database_admin_unavailable`), `user_fixable` (`true` only when the user can fix it), `summary` in\nIndonesian, and `failed_at`. `null` otherwise, including once a later request succeeds or is on its way.",
+                        "properties": {
+                            "command": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "user_fixable": {
+                                "type": "boolean"
+                            },
+                            "summary": {
+                                "type": "string"
+                            },
+                            "failed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "command",
+                            "code",
+                            "user_fixable",
+                            "summary",
+                            "failed_at"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "engine",
+                    "status",
+                    "region",
+                    "size_bytes",
+                    "size_checked_at",
+                    "projects",
+                    "last_failure",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "DatabaseResource"
+            },
+            "DatabaseStatus": {
+                "type": "string",
+                "description": "Lifecycle of a managed database (ADR-020). Agent command results move it; the API never assumes a node did something it did not report.\n| |\n|---|\n| `provisioning` <br/> CreateDatabase is waiting for or running on the database node. |\n| `ready` <br/> Created on the node and accepting connections. |\n| `failed` <br/> CreateDatabase failed or expired. Nothing to connect to; delete it and create another. |\n| `deleting` <br/> DropDatabase is waiting for or running on the database node. |\n| `deleted` <br/> Dropped on the node. The row is soft deleted at the same moment. |\n| `locked` <br/> The workspace reached its storage quota: the node turned the database's role to NOLOGIN and ended its sessions. Superuser sessions, such as the nightly backup, still connect. |",
+                "enum": [
+                    "provisioning",
+                    "ready",
+                    "failed",
+                    "deleting",
+                    "deleted",
+                    "locked"
+                ],
+                "title": "DatabaseStatus"
             },
             "DeploymentEventLevel": {
                 "type": "string",
@@ -14266,13 +15609,70 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "monorepo": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "manager": {
+                                        "type": "string",
+                                        "enum": [
+                                            "npm",
+                                            "pnpm",
+                                            "yarn",
+                                            "bun"
+                                        ]
+                                    },
+                                    "root_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_name": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "build_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "start_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "static_output_directory": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "manager",
+                                    "root_directory",
+                                    "package_directory",
+                                    "package_name",
+                                    "build_command",
+                                    "start_command",
+                                    "static_output_directory"
+                                ]
                             }
                         },
                         "required": [
                             "builder",
                             "provider",
                             "framework",
-                            "package_manager"
+                            "package_manager",
+                            "monorepo"
                         ]
                     },
                     "last_deployed_at": {
@@ -14426,6 +15826,19 @@
                 ],
                 "title": "GithubResource"
             },
+            "InstallDatabaseExtensionRequest": {
+                "type": "object",
+                "properties": {
+                    "extension": {
+                        "description": "One of `pgcrypto`, `citext`, `pg_trgm`, `unaccent`, `hstore`, `vector` (pgvector).",
+                        "$ref": "#/components/schemas/DatabaseExtension"
+                    }
+                },
+                "required": [
+                    "extension"
+                ],
+                "title": "InstallDatabaseExtensionRequest"
+            },
             "LatestDeploymentResource": {
                 "type": "object",
                 "properties": {
@@ -14551,6 +15964,20 @@
                         ],
                         "description": "Region the workspace's projects run in unless a project sets its own; `null` for any region."
                     },
+                    "max_databases": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Managed databases the workspace may hold. `null` follows the global `SAKALA_DATABASE_DEFAULT_MAX_COUNT`;\n`0` allows none."
+                    },
+                    "max_database_storage_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Total size of the workspace's managed databases, in MB. `null` follows the global\n`SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none."
+                    },
                     "workspaces_count": {
                         "type": [
                             "integer",
@@ -14583,6 +16010,8 @@
                     "idle_sleep_minutes",
                     "max_replicas",
                     "default_region",
+                    "max_databases",
+                    "max_database_storage_mb",
                     "created_at",
                     "updated_at"
                 ],
@@ -14853,6 +16282,22 @@
                                     "null"
                                 ],
                                 "description": "Deployments the workspace may create per rolling hour, from its limit profile or the global\nsetting; every deployment builds. `null` means no limit."
+                            },
+                            "max_databases": {
+                                "type": "integer",
+                                "description": "Managed databases the workspace may hold, from its limit profile or the global setting; `0` allows none."
+                            },
+                            "current_databases_count": {
+                                "type": "integer",
+                                "description": "Managed databases that count towards `max_databases`: every live one except those whose creation failed."
+                            },
+                            "max_database_storage_mb": {
+                                "type": "integer",
+                                "description": "Total size the workspace's managed databases may reach, in MB. At 80 % its owners and members are\nnotified; at 100 % every database of the workspace is locked. `0` allows none."
+                            },
+                            "current_database_storage_bytes": {
+                                "type": "integer",
+                                "description": "Size of the workspace's managed databases from the database node's last report, in bytes."
                             }
                         },
                         "required": [
@@ -14864,7 +16309,11 @@
                             "max_active_containers",
                             "current_active_containers_count",
                             "max_replicas",
-                            "max_builds_per_hour"
+                            "max_builds_per_hour",
+                            "max_databases",
+                            "current_databases_count",
+                            "max_database_storage_mb",
+                            "current_database_storage_bytes"
                         ]
                     },
                     "runtime_defaults": {
@@ -15046,7 +16495,13 @@
                                     "ReconcileWorkload",
                                     "CleanupRuntime",
                                     "DrainNode",
-                                    "ResumeNode"
+                                    "ResumeNode",
+                                    "CreateDatabase",
+                                    "DropDatabase",
+                                    "RotateDatabasePassword",
+                                    "LockDatabase",
+                                    "UnlockDatabase",
+                                    "InstallDatabaseExtension"
                                 ]
                             },
                             "status": {
@@ -15480,7 +16935,7 @@
                     },
                     "redeploy_required": {
                         "type": "boolean",
-                        "description": "True while the serving deployment was created with another deploy-relevant configuration: branch, port,\nbuild configuration, replicas, or environment variables. Changing a value back makes it false again."
+                        "description": "True while the serving deployment was created with another deploy-relevant configuration: branch, port,\nbuild configuration, replicas, environment variables, or the attached database (attaching, detaching, and a\nrotated password). Changing a value back makes it false again."
                     },
                     "active_deployment_id": {
                         "type": [
@@ -15588,13 +17043,70 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "monorepo": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "manager": {
+                                        "type": "string",
+                                        "enum": [
+                                            "npm",
+                                            "pnpm",
+                                            "yarn",
+                                            "bun"
+                                        ]
+                                    },
+                                    "root_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_name": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "build_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "start_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "static_output_directory": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "manager",
+                                    "root_directory",
+                                    "package_directory",
+                                    "package_name",
+                                    "build_command",
+                                    "start_command",
+                                    "static_output_directory"
+                                ]
                             }
                         },
                         "required": [
                             "builder",
                             "provider",
                             "framework",
-                            "package_manager"
+                            "package_manager",
+                            "monorepo"
                         ]
                     },
                     "inspection_error_code": {
@@ -15608,6 +17120,50 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "databases": {
+                        "type": "array",
+                        "description": "The managed database attached to the project, as a list of at most one: a project uses one database at a\ntime. Its connection variables reach the next deployment; see each item's `variables`.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "region": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "variables": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "overridden_variables": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "status",
+                                "region",
+                                "variables",
+                                "overridden_variables"
+                            ]
+                        }
                     },
                     "workspace": {
                         "type": [
@@ -15692,6 +17248,7 @@
                     "stack",
                     "inspection_error_code",
                     "last_deployed_at",
+                    "databases",
                     "workspace",
                     "created_at",
                     "updated_at"
@@ -16141,6 +17698,28 @@
                 ],
                 "title": "StoreAgentRequest"
             },
+            "StoreDatabaseRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name people see, unique among the workspace's databases. The names on the database node are random.",
+                        "maxLength": 100
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Region of the database node, for example `jkt`. `null` (the default) uses the workspace's default region,\nor any region without one. Projects attach only to databases of their own region.",
+                        "maxLength": 32
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "StoreDatabaseRequest"
+            },
             "StoreDeploymentRequest": {
                 "type": "object",
                 "properties": {
@@ -16293,6 +17872,24 @@
                         ],
                         "description": "Region the workspace's projects run in unless a project sets its own, for example `jkt`. `null` (the\ndefault) places them in any region. Lowercase letters, digits, and single inner hyphens, up to 32 characters.",
                         "maxLength": 32
+                    },
+                    "max_databases": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Managed databases the workspace may hold. `null` (the default) follows `SAKALA_DATABASE_DEFAULT_MAX_COUNT`;\n`0` allows none.",
+                        "minimum": 0,
+                        "maximum": 1000
+                    },
+                    "max_database_storage_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Total size of the workspace's managed databases, in MB. `null` (the default) follows\n`SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none, so every database of the workspace is locked.",
+                        "minimum": 0,
+                        "maximum": 1048576
                     }
                 },
                 "required": [
@@ -16591,6 +18188,20 @@
                     "nothing_to_wake"
                 ],
                 "title": "UnsuspendWakeOutcome"
+            },
+            "UpdateDatabaseRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "New name people see, unique among the workspace's databases.",
+                        "maxLength": 100
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "UpdateDatabaseRequest"
             },
             "UpdateEnvironmentVariableRequest": {
                 "type": "object",
@@ -17282,6 +18893,14 @@
                                 "type": "integer",
                                 "description": "Effective most replicas per project, from the profile; 1 without one."
                             },
+                            "max_databases": {
+                                "type": "integer",
+                                "description": "Effective managed databases, from the profile or the global setting. `0` allows none."
+                            },
+                            "max_database_storage_mb": {
+                                "type": "integer",
+                                "description": "Effective total managed database storage in MB, from the profile or the global setting. `0` allows none."
+                            },
                             "max_active_deployments_per_project": {
                                 "type": "integer",
                                 "description": "Global, the same for every workspace."
@@ -17296,6 +18915,8 @@
                             "max_builds_per_hour",
                             "idle_sleep_minutes",
                             "max_replicas",
+                            "max_databases",
+                            "max_database_storage_mb",
                             "max_active_deployments_per_project"
                         ]
                     },
@@ -17311,12 +18932,22 @@
                             },
                             "active_deployments": {
                                 "type": "integer"
+                            },
+                            "databases": {
+                                "type": "integer",
+                                "description": "Managed databases that count towards `max_databases`."
+                            },
+                            "database_storage_bytes": {
+                                "type": "integer",
+                                "description": "Reported size of the workspace's managed databases, in bytes."
                             }
                         },
                         "required": [
                             "projects",
                             "active_containers",
-                            "active_deployments"
+                            "active_deployments",
+                            "databases",
+                            "database_storage_bytes"
                         ]
                     }
                 },
@@ -17586,6 +19217,105 @@
                             "required": [
                                 "message",
                                 "code"
+                            ]
+                        }
+                    }
+                }
+            },
+            "DatabaseEndpointUnavailableException": {
+                "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.",
+                                    "enum": [
+                                        "DATABASE_ENDPOINT_UNAVAILABLE"
+                                    ]
+                                },
+                                "database": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code",
+                                "database"
+                            ]
+                        }
+                    }
+                }
+            },
+            "DatabaseRegionUnavailableException": {
+                "description": "No database node is allowed work in the region (`region`), or anywhere when `region` is null.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "No database node is allowed work in the region (`region`), or anywhere when `region` is null.",
+                                    "enum": [
+                                        "DATABASE_REGION_UNAVAILABLE"
+                                    ]
+                                },
+                                "region": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code",
+                                "region"
+                            ]
+                        }
+                    }
+                }
+            },
+            "DatabaseNotReadyException": {
+                "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                    "enum": [
+                                        "DATABASE_NOT_READY"
+                                    ]
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code",
+                                "status"
                             ]
                         }
                     }

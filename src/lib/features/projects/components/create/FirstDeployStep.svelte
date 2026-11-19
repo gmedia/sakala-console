@@ -29,6 +29,7 @@
 	import { createProjectInspectionQuery } from '../../queries';
 	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
 	import WizardStepFooter from './WizardStepFooter.svelte';
+	import MonorepoSummary from '../monorepo/MonorepoSummary.svelte';
 
 	type Props = {
 		projectId: string;
@@ -254,6 +255,12 @@
 			{@const files = getInspectedFiles(project)}
 			{#if files.length > 0}
 				<p class="text-sm wrap-anywhere">Berkas yang terbaca: {files.join(', ')}</p>
+			{/if}
+			{#if project.stack?.monorepo}
+				<MonorepoSummary
+					monorepo={project.stack.monorepo}
+					note="Perintah ini diturunkan dari package.json. Build atau start command yang kamu isi di Pengaturan menggantikannya."
+				/>
 			{/if}
 			{#each getInspectionNotes(project) as note (note)}
 				<p class="text-sm">{note}</p>

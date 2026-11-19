@@ -13,12 +13,20 @@ type ProjectContractFields = Pick<
 	| 'root_directory'
 	| 'auto_deploy'
 	| 'redeploy_required'
-	| 'stack'
 	| 'preview_status'
 	| 'inspection'
 	| 'inspection_error_code'
 	| 'suspension'
 >;
+
+type GeneratedStack = NonNullable<components['schemas']['ProjectResource']['stack']>;
+/** The JavaScript workspace a project's root directory belongs to (sakala-api #179). */
+export type ProjectMonorepo = NonNullable<GeneratedStack['monorepo']>;
+
+/** `monorepo` came with sakala-api #179, so an older API leaves it out. */
+type ProjectStackFields = {
+	stack: (Omit<GeneratedStack, 'monorepo'> & { monorepo?: ProjectMonorepo | null }) | null;
+};
 
 /** Added by the API with replicas, so an older one leaves them out. */
 type ProjectReplicaFields = Partial<
@@ -97,6 +105,7 @@ export interface Project
 	extends
 		ProjectBase,
 		ProjectContractFields,
+		ProjectStackFields,
 		ProjectReplicaFields,
 		ProjectReleaseFields,
 		ProjectPlacementFields,

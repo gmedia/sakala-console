@@ -490,6 +490,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/workspaces/{workspace}/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's databases, newest first. Dropped ones are gone; quotas and usage are in `GET app/pilot-limits` */
+        get: operations["v1.app.workspaces.databases.index"];
+        put?: never;
+        /** Create a database. It is `provisioning` until the database node of its region creates it */
+        post: operations["v1.app.workspaces.databases.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/databases/{database}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1.app.workspaces.databases.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete the database and its data. Answers `202` with `status: deleting`; it is gone once the database node drops
+         *     it. Only a database without attached projects can be deleted
+         */
+        delete: operations["v1.app.workspaces.databases.destroy"];
+        options?: never;
+        head?: never;
+        /** Rename the database. The names on the database node never change */
+        patch: operations["v1.app.workspaces.databases.update"];
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/databases/{database}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connection details with the password. Owners and admins only, recorded in the audit trail, never cached */
+        get: operations["v1.app.workspaces.databases.credentials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/databases/{database}/rotate-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the database node for a new password. Answers `202`; the old password works until the node reports success,
+         *     then attached projects show `redeploy_required`
+         */
+        post: operations["v1.app.workspaces.databases.rotate-password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/databases/{database}/extensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the database node to install an extension from the allow-list. Answers `202`; the result is in the audit
+         *     trail and, for a failure, in `last_failure`. `vector` may be unavailable on a node that does not ship pgvector
+         */
+        post: operations["v1.app.workspaces.databases.extensions.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/databases/{database}/attachments/{project}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach the database to the project. `201`, or `200` when it already was. The project's next deployment receives
+         *     `DATABASE_URL`, `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`, except
+         *     those the project sets itself
+         */
+        post: operations["v1.app.workspaces.databases.attachments.store"];
+        /**
+         * Detach the database from the project. The data stays; the project's next deployment no longer receives the
+         *     connection variables
+         */
+        delete: operations["v1.app.workspaces.databases.attachments.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/app/projects/{project}/deployments": {
         parameters: {
             query?: never;
@@ -2152,7 +2273,7 @@ export interface components {
              * @description An `AgentCommandType`, for example `DeployProject`, `StopProject`, `CleanupRuntime`.
              * @enum {string}
              */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
             /**
              * @description `Pending`, `Claimed`, `Running`, `Succeeded`, `Failed`, `Cancelled`, or `Expired`.
              * @enum {string}
@@ -2596,7 +2717,7 @@ export interface components {
         AgentCommandResource: {
             id: string;
             /** @enum {string} */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
             /** @enum {string} */
             status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             project_id: string | null;
@@ -2615,7 +2736,7 @@ export interface components {
          * @description Command types shared with sakala-agent protocol revision 4. Case order and values must match `sakala-agent-protocol::CommandType` exactly.
          * @enum {string}
          */
-        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode";
+        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
         /** AgentHeartbeatRequest */
         AgentHeartbeatRequest: {
             /** @enum {string} */
@@ -2652,6 +2773,8 @@ export interface components {
                     replicas?: number;
                     /** @description Additive within protocol revision 4, sent with `metrics`. */
                     metrics?: number;
+                    /** @description Additive within protocol revision 4, sent with `databases`. */
+                    databases?: number;
                 };
                 resources: {
                     cpu_total: number | null;
@@ -2749,6 +2872,31 @@ export interface components {
                     region?: string | null;
                     edge_address?: string | null;
                 };
+                /**
+                 * @description Optional and additive within protocol revision 4, from nodes with
+                 *     the `managed-postgres` capability (ADR-020): where attached
+                 *     projects reach the PostgreSQL instance, and the size of every
+                 *     database it hosts. Strict like the lists above.
+                 */
+                database?: {
+                    endpoint?: {
+                        host?: string;
+                        port?: number;
+                    } | null;
+                    /**
+                     * @description False while the agent cannot read the instance; the node then
+                     *     reports `degraded` and gets no new database.
+                     */
+                    available?: boolean;
+                };
+                /**
+                 * @description Only on a heartbeat right after a fresh size reading (at most
+                 *     once a minute): absence means no new reading, never zero.
+                 */
+                databases?: {
+                    name: string;
+                    size_bytes: number;
+                }[];
                 disk_pressure: {
                     state: string;
                     minimum_workspace_free_bytes: number;
@@ -2837,7 +2985,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             };
@@ -2980,6 +3128,16 @@ export interface components {
                 provider: string | null;
                 framework: string | null;
                 package_manager: string | null;
+                monorepo: {
+                    /** @enum {string} */
+                    manager: "npm" | "pnpm" | "yarn" | "bun";
+                    root_directory: string;
+                    package_directory: string;
+                    package_name: string | null;
+                    build_command: string | null;
+                    start_command: string | null;
+                    static_output_directory: string | null;
+                } | null;
             } | null;
             configured_port: number | null;
             effective_port: number;
@@ -3000,6 +3158,105 @@ export interface components {
             } | null;
             created_at: string;
         };
+        /** DatabaseAttachmentResource */
+        DatabaseAttachmentResource: {
+            database_id: string;
+            project: {
+                id: string;
+                name: string;
+                slug: string;
+            };
+            /** @description True while the project's serving deployment lacks the connection variables. Deploy again to apply them. */
+            redeploy_required: boolean;
+            attached_at: string | null;
+        };
+        /** DatabaseCredentialsResource */
+        DatabaseCredentialsResource: {
+            /** @description Host of the database node as runtime nodes reach it, on its private network; `null` until the node reports it. */
+            host: string | null;
+            /** @description `null` until the node reports it. */
+            port: number | null;
+            database: string;
+            username: string;
+            password: string;
+            /** @description `postgresql://username:password@host:port/database?sslmode=require`; `null` until the node reports its address. */
+            url: string | null;
+            /** @description Always `require`: the instance only accepts TLS. */
+            sslmode: string;
+        };
+        /**
+         * DatabaseEngine
+         * @description Engines a managed database can run. ADR-020 starts, and for now ends, with PostgreSQL.
+         * @enum {string}
+         */
+        DatabaseEngine: "postgresql";
+        /**
+         * DatabaseExtension
+         * @description Extensions a tenant may ask the database node to install (ADR-020). The first five are trusted by PostgreSQL; `vector` (pgvector) is not, so only the node's superuser installs it. The values are the wire names the agent accepts in InstallDatabaseExtension.
+         * @enum {string}
+         */
+        DatabaseExtension: "pgcrypto" | "citext" | "pg_trgm" | "unaccent" | "hstore" | "vector";
+        /** DatabaseResource */
+        DatabaseResource: {
+            id: string;
+            name: string;
+            engine: components["schemas"]["DatabaseEngine"];
+            /**
+             * @description `provisioning` until the database node creates it, then `ready`. `locked` while the workspace is at its
+             *     storage quota: applications cannot connect until usage is under it again. `failed` when creation failed;
+             *     `deleting` while the node drops it. A dropped database is gone from the API.
+             *     | |
+             *     |---|
+             *     | `provisioning` <br/> CreateDatabase is waiting for or running on the database node. |
+             *     | `ready` <br/> Created on the node and accepting connections. |
+             *     | `failed` <br/> CreateDatabase failed or expired. Nothing to connect to; delete it and create another. |
+             *     | `deleting` <br/> DropDatabase is waiting for or running on the database node. |
+             *     | `deleted` <br/> Dropped on the node. The row is soft deleted at the same moment. |
+             *     | `locked` <br/> The workspace reached its storage quota: the node turned the database's role to NOLOGIN and ended its sessions. Superuser sessions, such as the nightly backup, still connect. |
+             */
+            status: components["schemas"]["DatabaseStatus"];
+            /** @description Region of the database node; `null` when that node has none. Projects attach only within one region. */
+            region: string | null;
+            /** @description Size from the database node's last report, in bytes; `null` until it reports one. */
+            size_bytes: number | null;
+            /** @description When that size was reported. */
+            size_checked_at: string | null;
+            /** @description Projects the database is attached to. Each receives the connection variables from its next deployment. */
+            projects: {
+                id: string;
+                name: string;
+                slug: string;
+            }[];
+            /**
+             * @description Set while the newest request to the database node for this database failed or expired: `command` (the agent
+             *     command type), `code` (from the agent, such as `database_extension_unavailable` or
+             *     `database_admin_unavailable`), `user_fixable` (`true` only when the user can fix it), `summary` in
+             *     Indonesian, and `failed_at`. `null` otherwise, including once a later request succeeds or is on its way.
+             */
+            last_failure: {
+                command: string;
+                code: string;
+                user_fixable: boolean;
+                summary: string;
+                failed_at: string | null;
+            } | null;
+            created_at: string | null;
+            updated_at: string | null;
+        };
+        /**
+         * DatabaseStatus
+         * @description Lifecycle of a managed database (ADR-020). Agent command results move it; the API never assumes a node did something it did not report.
+         *     | |
+         *     |---|
+         *     | `provisioning` <br/> CreateDatabase is waiting for or running on the database node. |
+         *     | `ready` <br/> Created on the node and accepting connections. |
+         *     | `failed` <br/> CreateDatabase failed or expired. Nothing to connect to; delete it and create another. |
+         *     | `deleting` <br/> DropDatabase is waiting for or running on the database node. |
+         *     | `deleted` <br/> Dropped on the node. The row is soft deleted at the same moment. |
+         *     | `locked` <br/> The workspace reached its storage quota: the node turned the database's role to NOLOGIN and ended its sessions. Superuser sessions, such as the nightly backup, still connect. |
+         * @enum {string}
+         */
+        DatabaseStatus: "provisioning" | "ready" | "failed" | "deleting" | "deleted" | "locked";
         /**
          * DeploymentEventLevel
          * @enum {string}
@@ -3278,6 +3535,16 @@ export interface components {
                 provider: string | null;
                 framework: string | null;
                 package_manager: string | null;
+                monorepo: {
+                    /** @enum {string} */
+                    manager: "npm" | "pnpm" | "yarn" | "bun";
+                    root_directory: string;
+                    package_directory: string;
+                    package_name: string | null;
+                    build_command: string | null;
+                    start_command: string | null;
+                    static_output_directory: string | null;
+                } | null;
             } | null;
             last_deployed_at: string | null;
             /** @description The workspace that owns the project. Null only for a project that is being purged. */
@@ -3313,6 +3580,11 @@ export interface components {
             default_branch: string;
             pushed_at: string;
             private: boolean;
+        };
+        /** InstallDatabaseExtensionRequest */
+        InstallDatabaseExtensionRequest: {
+            /** @description One of `pgcrypto`, `citext`, `pg_trgm`, `unaccent`, `hstore`, `vector` (pgvector). */
+            extension: components["schemas"]["DatabaseExtension"];
         };
         /** LatestDeploymentResource */
         LatestDeploymentResource: {
@@ -3359,6 +3631,16 @@ export interface components {
             max_replicas: number | null;
             /** @description Region the workspace's projects run in unless a project sets its own; `null` for any region. */
             default_region: string | null;
+            /**
+             * @description Managed databases the workspace may hold. `null` follows the global `SAKALA_DATABASE_DEFAULT_MAX_COUNT`;
+             *     `0` allows none.
+             */
+            max_databases: number | null;
+            /**
+             * @description Total size of the workspace's managed databases, in MB. `null` follows the global
+             *     `SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none.
+             */
+            max_database_storage_mb: number | null;
             /** @description Workspaces running under this profile. A profile is deleted only at zero. */
             workspaces_count?: number | null;
             created_at: string | null;
@@ -3456,6 +3738,17 @@ export interface components {
                  *     setting; every deployment builds. `null` means no limit.
                  */
                 max_builds_per_hour: number | null;
+                /** @description Managed databases the workspace may hold, from its limit profile or the global setting; `0` allows none. */
+                max_databases: number;
+                /** @description Managed databases that count towards `max_databases`: every live one except those whose creation failed. */
+                current_databases_count: number;
+                /**
+                 * @description Total size the workspace's managed databases may reach, in MB. At 80 % its owners and members are
+                 *     notified; at 100 % every database of the workspace is locked. `0` allows none.
+                 */
+                max_database_storage_mb: number;
+                /** @description Size of the workspace's managed databases from the database node's last report, in bytes. */
+                current_database_storage_bytes: number;
             };
             runtime_defaults: {
                 memory_mb: number;
@@ -3506,7 +3799,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             } | null;
@@ -3643,7 +3936,8 @@ export interface components {
             auto_deploy: boolean;
             /**
              * @description True while the serving deployment was created with another deploy-relevant configuration: branch, port,
-             *     build configuration, replicas, or environment variables. Changing a value back makes it false again.
+             *     build configuration, replicas, environment variables, or the attached database (attaching, detaching, and a
+             *     rotated password). Changing a value back makes it false again.
              */
             redeploy_required: boolean;
             active_deployment_id: string | null;
@@ -3665,9 +3959,31 @@ export interface components {
                 provider: string | null;
                 framework: string | null;
                 package_manager: string | null;
+                monorepo: {
+                    /** @enum {string} */
+                    manager: "npm" | "pnpm" | "yarn" | "bun";
+                    root_directory: string;
+                    package_directory: string;
+                    package_name: string | null;
+                    build_command: string | null;
+                    start_command: string | null;
+                    static_output_directory: string | null;
+                } | null;
             } | null;
             inspection_error_code: string | null;
             last_deployed_at: string | null;
+            /**
+             * @description The managed database attached to the project, as a list of at most one: a project uses one database at a
+             *     time. Its connection variables reach the next deployment; see each item's `variables`.
+             */
+            databases: {
+                id: string;
+                name: string;
+                status: string;
+                region: string | null;
+                variables: string[];
+                overridden_variables: string[];
+            }[];
             /** @description The workspace that owns the project. Null only for a project that is being purged. */
             workspace: {
                 id: string;
@@ -3835,6 +4151,16 @@ export interface components {
             name: string;
             description?: string | null;
         };
+        /** StoreDatabaseRequest */
+        StoreDatabaseRequest: {
+            /** @description Name people see, unique among the workspace's databases. The names on the database node are random. */
+            name: string;
+            /**
+             * @description Region of the database node, for example `jkt`. `null` (the default) uses the workspace's default region,
+             *     or any region without one. Projects attach only to databases of their own region.
+             */
+            region?: string | null;
+        };
         /** StoreDeploymentRequest */
         StoreDeploymentRequest: {
             branch: string;
@@ -3884,6 +4210,16 @@ export interface components {
              *     default) places them in any region. Lowercase letters, digits, and single inner hyphens, up to 32 characters.
              */
             default_region?: string | null;
+            /**
+             * @description Managed databases the workspace may hold. `null` (the default) follows `SAKALA_DATABASE_DEFAULT_MAX_COUNT`;
+             *     `0` allows none.
+             */
+            max_databases?: number | null;
+            /**
+             * @description Total size of the workspace's managed databases, in MB. `null` (the default) follows
+             *     `SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none, so every database of the workspace is locked.
+             */
+            max_database_storage_mb?: number | null;
         };
         /** StoreOnboardingProfileRequest */
         StoreOnboardingProfileRequest: {
@@ -3990,6 +4326,11 @@ export interface components {
          * @enum {string}
          */
         UnsuspendWakeOutcome: "requested" | "container_limit_reached" | "node_cannot_wake" | "nothing_to_wake";
+        /** UpdateDatabaseRequest */
+        UpdateDatabaseRequest: {
+            /** @description New name people see, unique among the workspace's databases. */
+            name: string;
+        };
         /** UpdateEnvironmentVariableRequest */
         UpdateEnvironmentVariableRequest: {
             value?: string;
@@ -4203,6 +4544,10 @@ export interface components {
                 idle_sleep_minutes: number;
                 /** @description Effective most replicas per project, from the profile; 1 without one. */
                 max_replicas: number;
+                /** @description Effective managed databases, from the profile or the global setting. `0` allows none. */
+                max_databases: number;
+                /** @description Effective total managed database storage in MB, from the profile or the global setting. `0` allows none. */
+                max_database_storage_mb: number;
                 /** @description Global, the same for every workspace. */
                 max_active_deployments_per_project: number;
             };
@@ -4211,6 +4556,10 @@ export interface components {
                 /** @description Replicas of the projects that serve or are being deployed; sleeping projects do not count. */
                 active_containers: number;
                 active_deployments: number;
+                /** @description Managed databases that count towards `max_databases`. */
+                databases: number;
+                /** @description Reported size of the workspace's managed databases, in bytes. */
+                database_storage_bytes: number;
             };
         };
         /** WorkspaceResource */
@@ -4354,6 +4703,60 @@ export interface components {
                     code: "GITHUB_UNAVAILABLE" | "GITHUB_RATE_LIMITED";
                     /** @description Seconds to wait, also in the `Retry-After` header. Only with `GITHUB_RATE_LIMITED`. */
                     retry_after?: number;
+                };
+            };
+        };
+        /** @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built. */
+        DatabaseEndpointUnavailableException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
+                     * @enum {string}
+                     */
+                    code: "DATABASE_ENDPOINT_UNAVAILABLE";
+                    database: string[];
+                };
+            };
+        };
+        /** @description No database node is allowed work in the region (`region`), or anywhere when `region` is null. */
+        DatabaseRegionUnavailableException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description No database node is allowed work in the region (`region`), or anywhere when `region` is null.
+                     * @enum {string}
+                     */
+                    code: "DATABASE_REGION_UNAVAILABLE";
+                    region: string | null;
+                };
+            };
+        };
+        /** @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which. */
+        DatabaseNotReadyException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                     * @enum {string}
+                     */
+                    code: "DATABASE_NOT_READY";
+                    status: string;
                 };
             };
         };
@@ -5301,6 +5704,485 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
         };
     };
+    "v1.app.workspaces.databases.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `DatabaseResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.app.workspaces.databases.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreDatabaseRequest"];
+            };
+        };
+        responses: {
+            /** @description `DatabaseResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["DatabaseRegionUnavailableException"];
+            /**
+             * @description The workspace holds as many databases as its limit allows. `limit` 0 means the workspace may not create databases at all.
+             *
+             *     The workspace's databases already take all of its storage quota, so a new database would be locked at once.
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The workspace holds as many databases as its limit allows. `limit` 0 means the workspace may not create databases at all.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_LIMIT_EXCEEDED";
+                        limit: number;
+                        current: number;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The workspace's databases already take all of its storage quota, so a new database would be locked at once.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_STORAGE_LIMIT_EXCEEDED";
+                        limit_mb: number;
+                        current_bytes: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.databases.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DatabaseResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "v1.app.workspaces.databases.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DatabaseResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The database is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.
+             *
+             *     The database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_IN_USE";
+                        projects: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_BUSY";
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.databases.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDatabaseRequest"];
+            };
+        };
+        responses: {
+            /** @description `DatabaseResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.app.workspaces.databases.credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DatabaseCredentialsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseCredentialsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["DatabaseNotReadyException"];
+        };
+    };
+    "v1.app.workspaces.databases.rotate-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DatabaseResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_BUSY";
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.databases.extensions.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallDatabaseExtensionRequest"];
+            };
+        };
+        responses: {
+            /** @description `DatabaseResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["DatabaseNotReadyException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.app.workspaces.databases.attachments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The database already was attached. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseAttachmentResource"];
+                    };
+                };
+            };
+            /** @description The database is attached. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DatabaseAttachmentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The database is locked because its workspace reached its storage quota; it unlocks once usage is under the quota again.
+             *
+             *     The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.
+             *
+             *     The project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database is locked because its workspace reached its storage quota; it unlocks once usage is under the quota again.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_LOCKED";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_DATABASE_ALREADY_ATTACHED";
+                        database: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_CROSS_REGION_UNSUPPORTED";
+                        database_region: string;
+                        project_region: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.databases.attachments.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The database ID */
+                database: string;
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
     "projects.deployments.index": {
         parameters: {
             query?: {
@@ -5396,6 +6278,7 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["DatabaseEndpointUnavailableException"];
             /**
              * @description The workspace reached its build rate limit
              *
