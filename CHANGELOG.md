@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-19
+
 ### Added
 
 - Skipped monorepo pushes in Riwayat (requires gmedia/sakala-api#181). A push that only changed files in other projects' folders no longer deploys the project, and the history shows it as a quiet row right above the deployment it followed: "Dilewati — tidak ada perubahan di apps/web", with the commit message, short SHA, branch, and time, a dashed outline instead of a status dot, no number, no link, and no error colour. An info button opens a short explanation of the rule (changes inside the project's folder deploy it, changes in another project's folder deploy only that one, shared files outside every project folder deploy all, and anything uncertain such as a force push deploys all) and up to 5 of the changed files with a count of the rest. One request per history page (`since` the oldest deployment shown); a search shows deployments only; an API without the endpoint leaves the history unchanged.
@@ -215,7 +217,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/gmedia/sakala-console/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/gmedia/sakala-console/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/gmedia/sakala-console/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/gmedia/sakala-console/compare/v0.6.0...v0.7.0
