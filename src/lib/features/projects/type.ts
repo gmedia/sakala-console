@@ -174,6 +174,20 @@ export interface PaginatedDeployments {
 	meta: PaginationMeta;
 }
 
+/** A push auto-deploy skipped because it only changed files of other projects in the monorepo (sakala-api #181). */
+export type SkippedPush = components['schemas']['SkippedPushResource'];
+
+export interface GetSkippedPushesParams {
+	/** ISO 8601; only pushes skipped at or after it. */
+	since?: string;
+	per_page?: number;
+}
+
+export interface PaginatedSkippedPushes {
+	data: SkippedPush[];
+	meta: PaginationMeta;
+}
+
 export interface TriggerRedeployPayload {
 	branch: string;
 	idempotencyKey?: string;

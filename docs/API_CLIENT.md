@@ -207,6 +207,15 @@ Tab Metrik (`/projects/{id}/monitoring`) membaca `GET app/projects/{project}/met
 - Hemat request: tab ini membaca ulang tiap 60 detik hanya untuk rentang sampai 24 jam dan hanya selama `runtime_status` `running`. Rentang 7 dan 30 hari, proyek yang tidur atau berhenti, dan tab di background tidak polling (`resolveMetricsPollInterval()`, `refetchIntervalInBackground` mati). `429` menunggu `Retry-After`. Waktu baca terakhir tampil di atas grafik.
 - Proyek yang tidur tidak mengirim sampel, dan tab ini menyebutnya. Kalau semua seri kosong, tab menampilkan "Belum ada data metrik dalam {rentang}" dengan tombol untuk melihat 30 hari terakhir.
 
+## Push yang Dilewati di Riwayat
+
+Di monorepo, push hanya men-deploy proyek yang terkena perubahan (gmedia/sakala-api#181): file yang berubah di folder `root_directory` proyek itu, atau file bersama di luar folder proyek mana pun. Push yang hanya mengubah folder proyek lain tidak menjadi deployment, dan tab Riwayat (`/projects/{id}/deployments`) menampilkannya dari `GET app/projects/{project}/skipped-pushes`. Tipenya di-generate dari branch `feat/selective-push-deploys` sakala-api; yang diambil dari export OpenAPI branch itu hanya path dan schema `SkippedPushResource`, supaya perubahan API lain yang belum dipakai Console tidak ikut.
+
+- Satu request per halaman riwayat: `since` berisi `created_at` deployment tertua di halaman itu dan `per_page=100` (`skippedPushesSince()` di `features/projects/skipped-pushes.ts`). Setiap catatan membawa `after_deployment_id`, yaitu deployment terbaru saat push datang, dan `groupSkippedPushes()` menaruhnya tepat di atas deployment itu. Catatan yang mengikuti deployment di halaman lain ditampilkan di halaman tersebut.
+- Pencarian mencari nomor deployment, jadi selama ada pencarian push yang dilewati tidak diminta dan tidak tampil.
+- Request ini tidak dicoba ulang dan galatnya diabaikan: API sebelum fitur ini menjawab `404`, dan riwayat deployment tetap utuh tanpa catatan tersebut.
+- `SkippedPushRow` memakai grid yang sama dengan `DeploymentRow`, tetapi tenang: lingkaran putus-putus dengan ikon, teks `muted`, tanpa nomor, tanpa link, dan tanpa warna error. Judulnya "Dilewati — tidak ada perubahan di apps/web" dan membungkus di layar sempit supaya nama folder tetap terbaca. Tombol info (popover bits-ui) menjelaskan aturannya dan menampilkan sampai 5 file contoh beserta jumlah sisanya.
+
 ## Ringkasan Proyek
 
 `/projects/{id}` adalah tab Ringkasan, tab pertama halaman proyek. Dulu alamat ini dialihkan ke `/projects/{id}/deployments`; sekarang Riwayat tetap di alamatnya sendiri, dan link lama ke `/deployments` tetap jalan. Tab ini tidak menambah endpoint dan hanya memakai data yang sudah dikirim API:

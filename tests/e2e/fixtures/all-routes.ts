@@ -139,6 +139,27 @@ export async function mockEveryRoute(page: Page, { long = false }: { long?: bool
 			? json(route, { data: deployments, meta: listMeta(deployments.length) })
 			: route.fallback()
 	);
+	await page.route(`**/api/v1/app/projects/${PROJECT_ID}/skipped-pushes?*`, (route) =>
+		json(route, {
+			data: [
+				{
+					delivery_id: '6f1c2a3e-58cc-4372-a567-0e02b2c3d479',
+					reason: 'no_changes_in_root_directory',
+					commit_sha: '1234567890abcdef1234567890abcdef12345678',
+					commit_message: commit,
+					branch: deployment.branch,
+					root_directory: long ? `apps/${LONG}` : 'apps/web',
+					changed_path_count: 2,
+					example_paths: long
+						? [`apps/${LONG}api/routes.php`, `packages-${LONG}/x`]
+						: ['apps/api/routes.php', 'apps/api/app.php'],
+					after_deployment_id: DEPLOYMENT_ID,
+					created_at: '2026-09-20T09:00:00Z'
+				}
+			],
+			meta: { current_page: 1, from: 1, last_page: 1, per_page: 100, to: 1, total: 1 }
+		})
+	);
 	await page.route(`**/api/v1/app/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}`, (route) =>
 		json(route, { data: deployment })
 	);
