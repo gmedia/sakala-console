@@ -43,8 +43,8 @@ test.describe('GitHub rate limit (GITHUB_RATE_LIMITED)', () => {
 		await mockWizardApi(page, { validate: () => limited });
 		await page.goto('/projects/new');
 
-		await page.getByRole('button', { name: 'Public Git URL', exact: true }).click();
-		await page.getByLabel('URL repository publik').fill('https://github.com/publik/situs');
+		await page.getByRole('button', { name: 'URL GitHub publik', exact: true }).click();
+		await page.getByLabel('URL repository GitHub publik').fill('https://github.com/publik/situs');
 		await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
 
 		await expect(page.getByText(SHOWN)).toBeVisible();

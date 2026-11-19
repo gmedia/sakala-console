@@ -1,8 +1,14 @@
 import type { CreateProjectResource } from '$lib/api/resources/projects';
+import type { StarterExample } from '$lib/config/starter-examples';
+import type { EnvImportPlan } from '../env-import/plan-env-import';
 import type { Repository } from '../type';
+import { normalizeGithubRepositoryUrl } from '../validation/repositoryUrl';
 import { parseGitUrl } from './parseGitUrl';
+import { resolveStarterEnvValue } from './starter-example-env';
 
 export type WizardStep = 1 | 2 | 3;
+/** What happens once the project exists: its first deployment starts, or it waits. */
+export type CreateIntent = 'deploy' | 'create';
 export type RepositorySource = 'github' | 'git-url';
 export type WizardEnvVar = { id: number; key: string; value: string; isSecret: boolean };
 export type EnvSaveFailure = {
@@ -44,6 +50,11 @@ export function createProjectWizardState() {
 
 	let createdProjectId = $state<string | null>(null);
 	let createdProjectName = $state<string | null>(null);
+	/** "Buat dan deploy" was chosen, so the last step starts the first deployment by itself. */
+	let deployAfterCreate = $state(false);
+	let starterExample = $state<StarterExample | null>(null);
+	/** Drafts an example added, so picking another example does not leave them behind. */
+	let exampleEnvIds: number[] = [];
 
 	const selectedRepository = $derived(
 		repositorySource === 'github' ? githubRepository : validatedGitRepository
@@ -55,7 +66,8 @@ export function createProjectWizardState() {
 		lastAppliedRepoKey = key;
 
 		selectedBranch = repo.default_branch;
-		if (!projectNameTouched) {
+		// An example suggests its own name: every example shares one repository.
+		if (!projectNameTouched && !starterExample) {
 			projectName = repo.full_name.split('/')[1] ?? '';
 		}
 	}
@@ -74,6 +86,7 @@ export function createProjectWizardState() {
 		},
 		set repositorySource(source: RepositorySource) {
 			repositorySource = source;
+			starterExample = null;
 			if (source === 'github') {
 				validatedGitRepository = null;
 				gitUrl = '';
@@ -104,6 +117,10 @@ export function createProjectWizardState() {
 		},
 		set gitUrl(url: string) {
 			gitUrl = url;
+			const example = starterExample;
+			if (example && parseGitUrl(url)?.fullName !== parseGitUrl(example.repository)?.fullName) {
+				starterExample = null;
+			}
 			if (validatedGitRepository) {
 				const parsed = parseGitUrl(url);
 				if (
@@ -113,6 +130,11 @@ export function createProjectWizardState() {
 					validatedGitRepository = null;
 				}
 			}
+		},
+		/** The typed URL in the one form the API stores, or empty while it names no repository. */
+		get gitRepositoryUrl() {
+			const result = normalizeGithubRepositoryUrl(gitUrl);
+			return result.ok ? result.url : '';
 		},
 		confirmGitUrl(repo: Repository) {
 			validatedGitRepository = repo;
@@ -181,6 +203,49 @@ export function createProjectWizardState() {
 		removeEnvVar(id: number) {
 			envVars = envVars.filter((env) => env.id !== id);
 		},
+		/** A pasted .env: new keys are added, existing drafts change only when the plan says so. */
+		importEnvVars(plan: EnvImportPlan) {
+			for (const env of plan.toOverwrite) {
+				const draft = envVars.find((item) => item.key === env.key);
+				if (draft) {
+					draft.value = env.value;
+					draft.isSecret = env.isSecret;
+				}
+			}
+			for (const env of plan.toAdd) {
+				envVars.push({ id: nextEnvId++, key: env.key, value: env.value, isSecret: env.isSecret });
+			}
+		},
+
+		get starterExample() {
+			return starterExample;
+		},
+		/**
+		 * Fills the wizard from an example app: its public URL, folder, release command and the
+		 * variables it needs. A name the user already typed stays.
+		 */
+		applyStarterExample(example: StarterExample) {
+			repositorySource = 'git-url';
+			clearGithubSelection();
+			validatedGitRepository = null;
+			gitUrl = example.repository;
+			starterExample = example;
+			rootDirectory = example.rootDirectory;
+			releaseCommand = example.releaseCommand ?? '';
+			if (!projectNameTouched) projectName = example.projectName;
+			envVars = envVars.filter((item) => !exampleEnvIds.includes(item.id));
+			exampleEnvIds = [];
+			for (const env of example.env) {
+				if (envVars.some((item) => item.key === env.key)) continue;
+				exampleEnvIds.push(nextEnvId);
+				envVars.push({
+					id: nextEnvId++,
+					key: env.key,
+					value: resolveStarterEnvValue(env.value),
+					isSecret: true
+				});
+			}
+		},
 
 		get envSaveStatus() {
 			return envSaveStatus;
@@ -217,14 +282,22 @@ export function createProjectWizardState() {
 		get createdProjectName() {
 			return createdProjectName;
 		},
-		markProjectCreated(project: Pick<CreateProjectResource, 'id' | 'name'>) {
+		get deployAfterCreate() {
+			return deployAfterCreate;
+		},
+		markProjectCreated(
+			project: Pick<CreateProjectResource, 'id' | 'name'>,
+			{ deploy }: { deploy: boolean } = { deploy: false }
+		) {
 			createdProjectId = project.id;
 			createdProjectName = project.name;
+			deployAfterCreate = deploy;
 			currentStep = 3;
 		},
 		/** A reload lost the form, but the URL still says which project this wizard created. */
-		resumeCreatedProject(projectId: string) {
+		resumeCreatedProject(projectId: string, { deploy }: { deploy: boolean } = { deploy: false }) {
 			createdProjectId = projectId;
+			deployAfterCreate = deploy;
 			currentStep = 3;
 		},
 

@@ -3,7 +3,7 @@ export type GithubInstallationResult =
 
 const FAILURE_MESSAGES: Record<string, string> = {
 	github_app_not_configured:
-		'GitHub App belum dikonfigurasi di server Sakala ini, jadi pemasangan tidak bisa dimulai. Hubungi admin Sakala, atau pakai Public Git URL untuk repository publik.',
+		'GitHub App belum dikonfigurasi di server Sakala ini, jadi pemasangan tidak bisa dimulai. Hubungi admin Sakala, atau pakai URL GitHub publik untuk repository publik.',
 	github_invalid_state:
 		'Sesi pemasangan GitHub sudah tidak berlaku. Klik Hubungkan GitHub untuk mengulanginya.',
 	github_invalid_installation:

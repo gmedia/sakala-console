@@ -380,10 +380,12 @@ Ini contoh paling kecil dari arsitektur console: page menyusun tampilan, feature
 ```text
 /projects/new page
   -> CreateProjectWizard
-  -> RepositoryStep: installation, repository per halaman, search di server
-  -> ConfigureProjectStep: branch, domain preview, konfigurasi build, env
+  -> RepositoryStep: installation, repository per halaman, search di server, URL GitHub publik
+     yang dinormalkan, repo contoh dari STARTER_EXAMPLES
+  -> ConfigureProjectStep: branch, domain preview, konfigurasi build, env (termasuk tempel .env)
   -> POST /api/v1/app/projects, lalu POST environment-variables satu per satu
-  -> AutoDetectStep: baca preview_status sampai selesai
+  -> "Buat tanpa deploy": buka /projects/{id}
+  -> "Buat dan deploy": FirstDeployStep menunggu port pasti (Port diisi atau inspeksi berhasil)
   -> POST deployments, lalu buka /projects/{id}/deployments/{deploymentId}
 ```
 

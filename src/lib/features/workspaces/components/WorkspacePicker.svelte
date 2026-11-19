@@ -10,16 +10,23 @@
 		value: string | null;
 		limits: PilotLimits | undefined;
 		onChange: (workspaceId: string) => void;
+		/** After the first step the choice is made: it is stated, not asked again. */
+		readOnly?: boolean;
 	};
 
-	let { workspaces, value, limits, onChange }: Props = $props();
+	let { workspaces, value, limits, onChange, readOnly = false }: Props = $props();
 
 	const selected = $derived(workspaces.find((workspace) => workspace.id === value) ?? null);
 	const teamName = $derived(selected?.type === 'team' ? selected.name : undefined);
 </script>
 
 <!-- One workspace means no choice: someone working alone sees the quota line as before. -->
-{#if workspaces.length > 1}
+{#if workspaces.length > 1 && readOnly}
+	<p class="text-sm" data-testid="workspace-summary">
+		Workspace:
+		<span class="font-semibold wrap-anywhere">{teamName ?? 'Pribadi'}</span>
+	</p>
+{:else if workspaces.length > 1}
 	<div class="flex flex-col gap-1" data-testid="workspace-picker">
 		<label for="project-workspace" class="text-sm font-semibold">Workspace</label>
 		<select

@@ -45,7 +45,7 @@
 	}
 </script>
 
-<Button variant="secondary" size="sm" class="mb-4" onclick={handleClick}>
+<Button variant="ghost" onclick={handleClick}>
 	{label}
 </Button>
 

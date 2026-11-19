@@ -39,5 +39,8 @@ export const ONBOARDING_DESTINATIONS = {
 	projects: '/projects'
 } as const;
 
+/** The section of the wizard that lists the example repositories (`StarterExamples`). */
+export const ONBOARDING_EXAMPLES_HASH = '#contoh';
+
 export type OnboardingDestination =
 	(typeof ONBOARDING_DESTINATIONS)[keyof typeof ONBOARDING_DESTINATIONS];

@@ -114,13 +114,13 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		await expect.element(repoName).toBeVisible();
 	});
 
-	it('pada tab Public Git URL, tombol Lanjut disabled saat input kosong atau URL tidak valid', async () => {
+	it('pada tab URL GitHub publik, tombol Lanjut disabled saat input kosong atau URL tidak valid', async () => {
 		await render(RepositoryStepTestHost, {
 			repositories: [],
 			githubConnected: true
 		});
 
-		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		const publicTab = page.getByRole('button', { name: 'URL GitHub publik' });
 		await publicTab.click();
 
 		const nextBtn = page.getByRole('button', { name: /lanjut/i });
@@ -131,14 +131,14 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		input.element().dispatchEvent(new Event('blur'));
 
 		await expect.element(nextBtn).toBeDisabled();
-		const errorText = page.getByText(/URL harus berupa repository GitHub publik/i);
+		const errorText = page.getByText(/Sakala baru bisa membaca repository dari GitHub/i);
 		await expect.element(errorText).toBeVisible();
 
 		await input.fill('https://github.com/my-org/my-project');
 		await expect.element(nextBtn).toBeEnabled();
 	});
 
-	it('pada tab Public Git URL, menampilkan error API jika validasi backend gagal dan tidak memanggil onNext', async () => {
+	it('pada tab URL GitHub publik, menampilkan error API jika validasi backend gagal dan tidak memanggil onNext', async () => {
 		const onNext = vi.fn();
 		const onValidateGitUrl = vi.fn().mockRejectedValue(
 			new ApiError('Data tidak valid', 422, {
@@ -153,7 +153,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			onValidateGitUrl
 		});
 
-		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		const publicTab = page.getByRole('button', { name: 'URL GitHub publik' });
 		await publicTab.click();
 
 		const input = page.getByPlaceholder(/github\.com/i);
@@ -169,7 +169,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		expect(onNext).not.toHaveBeenCalled();
 	});
 
-	it('pada tab Public Git URL, berhasil validasi memanggil onNext', async () => {
+	it('pada tab URL GitHub publik, berhasil validasi memanggil onNext', async () => {
 		const onNext = vi.fn();
 		const onValidateGitUrl = vi.fn().mockResolvedValue({
 			id: '999',
@@ -188,7 +188,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			onValidateGitUrl
 		});
 
-		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		const publicTab = page.getByRole('button', { name: 'URL GitHub publik' });
 		await publicTab.click();
 
 		const input = page.getByPlaceholder(/github\.com/i);
@@ -201,7 +201,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		expect(onNext).toHaveBeenCalledOnce();
 	});
 
-	it('pada tab Public Git URL, menerapkan default_branch selain main dari backend meskipun input sempat blur sebelum validasi', async () => {
+	it('pada tab URL GitHub publik, menerapkan default_branch selain main dari backend meskipun input sempat blur sebelum validasi', async () => {
 		const onNext = vi.fn();
 		let wizardInstance: ProjectWizardState | undefined;
 		const onValidateGitUrl = vi.fn().mockResolvedValue({
@@ -224,7 +224,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			}
 		});
 
-		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		const publicTab = page.getByRole('button', { name: 'URL GitHub publik' });
 		await publicTab.click();
 
 		const input = page.getByPlaceholder(/github\.com/i);
@@ -249,7 +249,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 		expect(wizardInstance?.selectedRepository?.id).toBe('888');
 	});
 
-	it('pada tab Public Git URL, mengunci input saat validasi dan mengabaikan response jika URL berubah saat request pending', async () => {
+	it('pada tab URL GitHub publik, mengunci input saat validasi dan mengabaikan response jika URL berubah saat request pending', async () => {
 		const onNext = vi.fn();
 		let wizardInstance: ProjectWizardState | undefined;
 		let resolveValidation: (value: unknown) => void;
@@ -268,7 +268,7 @@ describe('RepositoryStep — Empty & Error states regression coverage', () => {
 			}
 		});
 
-		const publicTab = page.getByRole('button', { name: 'Public Git URL' });
+		const publicTab = page.getByRole('button', { name: 'URL GitHub publik' });
 		await publicTab.click();
 
 		const input = page.getByPlaceholder(/github\.com/i);
@@ -424,12 +424,74 @@ describe('RepositoryStep: repository list from the API', () => {
 		await expect.element(page.getByLabelText('Akun GitHub')).toBeVisible();
 	});
 
-	it('"Gunakan Public Git URL" is a real control that switches the source', async () => {
+	it('points to the URL tab with a sentence, so there is one way to the public URL', async () => {
 		await render(RepositoryStepTestHost, { repositories: [], githubConnected: false });
 
-		await page.getByRole('button', { name: 'Gunakan Public Git URL' }).click();
+		await expect.element(page.getByText(/Pilih tab URL GitHub publik di atas/)).toBeVisible();
+		await expect
+			.element(page.getByRole('button', { name: 'Gunakan Public Git URL' }))
+			.not.toBeInTheDocument();
+	});
 
-		await expect.element(page.getByLabelText('URL repository publik')).toBeVisible();
+	it('accepts the address of a branch page and checks the repository it names', async () => {
+		const onValidateGitUrl = vi.fn().mockResolvedValue({ ...mockRepo1, full_name: 'org/situs' });
+		const onNext = vi.fn();
+		await render(RepositoryStepTestHost, { repositories: [], onValidateGitUrl, onNext });
+
+		await page.getByRole('button', { name: 'URL GitHub publik' }).click();
+		await page
+			.getByLabelText('URL repository GitHub publik')
+			.fill('github.com/org/situs/tree/main/');
+
+		await expect
+			.element(page.getByTestId('git-url-normalized'))
+			.toHaveTextContent('Akan memakai https://github.com/org/situs.');
+		await page.getByRole('button', { name: /lanjut/i }).click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/org/situs');
+		await vi.waitFor(() => expect(onNext).toHaveBeenCalled());
+	});
+
+	it('an example fills the wizard and moves on once the repository is readable', async () => {
+		let wizard: ProjectWizardState | undefined;
+		const onValidateGitUrl = vi.fn().mockResolvedValue({
+			...mockRepo1,
+			name: 'sakala-examples',
+			full_name: 'gmedia/sakala-examples'
+		});
+		const onNext = vi.fn();
+		await render(RepositoryStepTestHost, {
+			repositories: [mockRepo1],
+			onValidateGitUrl,
+			onNext,
+			onReady: (instance: ProjectWizardState) => (wizard = instance)
+		});
+
+		await page.getByRole('button', { name: /Laravel/ }).click();
+
+		expect(onValidateGitUrl).toHaveBeenCalledWith('https://github.com/gmedia/sakala-examples');
+		await vi.waitFor(() => expect(onNext).toHaveBeenCalled());
+		expect(wizard?.rootDirectory).toBe('laravel');
+		expect(wizard?.projectName).toBe('contoh-laravel');
+		expect(wizard?.envVars.map((env) => env.key)).toEqual(['APP_KEY']);
+		expect(wizard?.envVars[0].value).toMatch(/^base64:/);
+	});
+
+	it('says so beside the examples when the example repository cannot be read', async () => {
+		const onValidateGitUrl = vi.fn().mockRejectedValue(
+			new ApiError('Repository tidak ditemukan.', 422, {
+				repository_url: ['Repository tidak ditemukan atau tidak publik.']
+			})
+		);
+		const onNext = vi.fn();
+		await render(RepositoryStepTestHost, { repositories: [], onValidateGitUrl, onNext });
+
+		await page.getByRole('button', { name: /Situs HTML statis/ }).click();
+
+		await expect
+			.element(page.getByText(/Repo contoh belum bisa dibaca\. Repository tidak ditemukan/))
+			.toBeVisible();
+		expect(onNext).not.toHaveBeenCalled();
 	});
 
 	it('does not move on when the pilot quota is used up', async () => {

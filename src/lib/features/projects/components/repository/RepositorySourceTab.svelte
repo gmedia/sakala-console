@@ -11,7 +11,7 @@
 
 	const tabs: { value: Source; label: string }[] = [
 		{ value: 'github', label: 'Dari GitHub' },
-		{ value: 'git-url', label: 'Public Git URL' }
+		{ value: 'git-url', label: 'URL GitHub publik' }
 	];
 </script>
 

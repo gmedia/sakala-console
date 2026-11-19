@@ -8,6 +8,7 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import X from 'phosphor-svelte/lib/X';
 	import Plus from 'phosphor-svelte/lib/Plus';
+	import ClipboardText from 'phosphor-svelte/lib/ClipboardText';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { toast } from 'svelte-sonner';
@@ -25,6 +26,10 @@
 	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
 	import EnvKey from './EnvKey.svelte';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
+	import EnvImportPanel from '../../env-import/EnvImportPanel.svelte';
+	import { applyEnvImport } from '../../env-import/apply-env-import';
+	import { looksLikeEnvFile } from '../../env-import/parse-env-text';
+	import type { EnvImportPlan } from '../../env-import/plan-env-import';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 
 	let { projectId }: { projectId: string } = $props();
@@ -315,6 +320,74 @@
 		);
 	}
 
+	let importOpen = $state(false);
+	let importText = $state('');
+	let importing = $state(false);
+	let importError = $state('');
+	let importButton = $state<HTMLElement | null>();
+
+	function openImport(text = '') {
+		importText = text;
+		importError = '';
+		isAdding = false;
+		importOpen = true;
+	}
+
+	async function closeImport() {
+		importOpen = false;
+		await tick();
+		importButton?.focus();
+	}
+
+	/** A whole .env pasted into the name field opens the import instead of becoming one name. */
+	function handleKeyPaste(event: ClipboardEvent) {
+		const text = event.clipboardData?.getData('text') ?? '';
+		if (!looksLikeEnvFile(text)) return;
+		event.preventDefault();
+		newKey = '';
+		openImport(text);
+	}
+
+	async function handleImport(plan: EnvImportPlan) {
+		if (importing) return;
+		importing = true;
+		importError = '';
+		const ids = new Map(query.data?.map((env) => [env.key, env.id]) ?? []);
+		try {
+			const { saved, failures } = await applyEnvImport(plan, {
+				add: (env) =>
+					addMutation.mutateAsync({
+						projectId,
+						data: { key: env.key, value: env.value, is_secret: env.isSecret }
+					}),
+				overwrite: (env) =>
+					updateMutation.mutateAsync({
+						projectId,
+						id: ids.get(env.key) as number,
+						data: { value: env.value, is_secret: env.isSecret }
+					})
+			});
+			for (const env of plan.toOverwrite) {
+				const id = ids.get(env.key);
+				if (id === undefined) continue;
+				delete revealedValues[id];
+				visibleIds.delete(id);
+			}
+			if (failures.length > 0) {
+				importError = `${saved} variabel tersimpan. Belum tersimpan: ${failures
+					.map((failure) => `${failure.key} (${failure.message})`)
+					.join('; ')}`;
+				return;
+			}
+			toast.success(`${saved} variabel disimpan. Redeploy supaya aplikasimu membacanya.`);
+			void closeImport();
+		} catch (error) {
+			importError = getErrorMessage(error, 'Variabel belum bisa disimpan. Silakan coba lagi.');
+		} finally {
+			importing = false;
+		}
+	}
+
 	const inputClass = 'control-input min-w-0';
 </script>
 
@@ -345,7 +418,7 @@
 				<EmptyState
 					icon={Key}
 					title="Belum ada variabel"
-					description="Belum ada environment variable untuk proyek ini."
+					description="Isi kalau aplikasimu membaca nilai dari environment, misalnya DATABASE_URL. Isi file .env bisa ditempel sekaligus."
 					class="border-none py-8 sm:py-8"
 				/>
 			{:else}
@@ -521,6 +594,7 @@
 							placeholder="NAMA_VARIABEL"
 							value={newKey}
 							oninput={handleKeyInput}
+							onpaste={handleKeyPaste}
 							autocomplete="off"
 							spellcheck="false"
 							aria-invalid={keyError ? 'true' : undefined}
@@ -606,17 +680,43 @@
 		</p>
 	{/if}
 
-	{#if !isAdding && !access.readOnly}
-		<Button
-			variant="secondary"
-			size="lg"
-			class="mt-4 w-full"
-			bind:ref={addButton}
-			onclick={handleOpenAdd}
-		>
-			<Plus size={24} weight="regular" />
-			<span>Tambah variabel</span>
-		</Button>
+	{#if importOpen && !access.readOnly}
+		<div class="mt-4">
+			<EnvImportPanel
+				existingKeys={query.data?.map((env) => env.key) ?? []}
+				initialText={importText}
+				portNote={() => 'Ubah Port di tab Pengaturan kalau aplikasimu butuh port tertentu.'}
+				confirmLabel={(count) => `Simpan ${count} variabel`}
+				headingLevel={2}
+				busy={importing}
+				error={importError}
+				onApply={handleImport}
+				onCancel={closeImport}
+			/>
+		</div>
+	{:else if !isAdding && !access.readOnly}
+		<div class="mt-4 flex flex-col gap-2 sm:flex-row">
+			<Button
+				variant="secondary"
+				size="lg"
+				class="w-full sm:flex-1"
+				bind:ref={addButton}
+				onclick={handleOpenAdd}
+			>
+				<Plus size={24} weight="regular" />
+				<span>Tambah variabel</span>
+			</Button>
+			<Button
+				variant="secondary"
+				size="lg"
+				class="w-full sm:flex-1"
+				bind:ref={importButton}
+				onclick={() => openImport()}
+			>
+				<ClipboardText size={24} weight="regular" aria-hidden="true" />
+				<span>Tempel dari .env</span>
+			</Button>
+		</div>
 	{/if}
 
 	<DeleteEnvConfirmModal

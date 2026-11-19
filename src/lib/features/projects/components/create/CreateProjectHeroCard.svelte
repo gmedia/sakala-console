@@ -2,6 +2,7 @@
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
+	import { STARTER_EXAMPLES } from '$lib/config/starter-examples';
 
 	/** Set for a team workspace, so the heading says where the project will go. */
 	let { workspaceName }: { workspaceName?: string } = $props();
@@ -36,4 +37,15 @@
 		<Plus size={16} weight="bold" aria-hidden="true" />
 		Buat proyek
 	</Button>
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
+	<p class="mt-4 text-sm text-muted">
+		Belum punya repo? Coba dengan contoh:
+		{#each STARTER_EXAMPLES as example, index (example.id)}
+			<a
+				href={`${resolve('/projects/new')}?example=${example.id}`}
+				class="text-primary-dark underline underline-offset-2">{example.label}</a
+			>{index < STARTER_EXAMPLES.length - 1 ? ', ' : '.'}
+		{/each}
+	</p>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 </section>
