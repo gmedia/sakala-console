@@ -1,26 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError, NetworkError } from '$lib/api/errors';
-import { parseDatabaseList } from '$lib/api/resources/databases';
+import { parseDatabase, parseDatabaseList } from '$lib/api/resources/databases';
 import { errorFromDatabaseFixture, getDatabaseFixture } from '$lib/testing/database-fixtures';
 import { databaseAccess } from './access';
 import {
 	BYTES_PER_MB,
 	DATABASE_TRANSITION_POLL_MS,
 	QUOTA_COPY,
+	ROTATION_POLL_MS,
 	addRedeployNotices,
 	databaseErrorMessage,
 	databaseQuota,
 	databaseRowNote,
 	databaseStatusView,
+	databasesUnavailable,
 	extensionFailure,
 	formatDatabaseSize,
 	isOnNode,
 	provisioningSteps,
 	regionAutoHint,
 	regionAutoLabel,
+	regionText,
 	redeployNoticeText,
 	resolveDatabasePollInterval,
+	rotationCompletedText,
 	rotationFailure,
+	rotationProjectState,
+	rotationView,
 	separateFailure,
 	storageMeter
 } from './presentation';
@@ -76,6 +82,25 @@ describe('polling and progress', () => {
 		);
 		expect(resolveDatabasePollInterval([{ status: 'deleting' }])).toBe(DATABASE_TRANSITION_POLL_MS);
 		expect(resolveDatabasePollInterval(undefined)).toBe(false);
+	});
+
+	it('polls faster while a rotation settles, and stops once the redeploys are known', () => {
+		const pending = parseDatabase(getDatabaseFixture('rotate-password-redeploy').body);
+		const completed = parseDatabase(getDatabaseFixture('database-show-rotation-completed').body);
+		const failed = parseDatabase(getDatabaseFixture('database-show-rotation-failed').body);
+		const queueing = {
+			...completed,
+			password_rotation: { ...completed.password_rotation!, redeploys: null }
+		};
+		const withoutRedeploys = {
+			...queueing,
+			password_rotation: { ...queueing.password_rotation, redeploy_attached: false }
+		};
+		expect(resolveDatabasePollInterval([pending])).toBe(ROTATION_POLL_MS);
+		expect(resolveDatabasePollInterval([queueing])).toBe(ROTATION_POLL_MS);
+		expect(resolveDatabasePollInterval([completed])).toBe(false);
+		expect(resolveDatabasePollInterval([withoutRedeploys])).toBe(false);
+		expect(resolveDatabasePollInterval([failed])).toBe(false);
 	});
 
 	it('shows the step the node is on, without a made-up percentage', () => {
@@ -310,16 +335,110 @@ describe('redeploy notices', () => {
 		expect(redeployNoticeText({ projectId: 'p', projectName: 'web', kind: 'detached' })).toMatch(
 			/Datanya tetap ada/
 		);
-		expect(redeployNoticeText({ projectId: 'p', projectName: 'web', kind: 'rotated' })).toMatch(
-			/password baru/
-		);
 	});
 
 	it('keeps one notice per project, the newest', () => {
 		const notices = addRedeployNotices(
 			[{ projectId: 'p', projectName: 'web', kind: 'attached' }],
-			[{ projectId: 'p', projectName: 'web', kind: 'rotated' }]
+			[{ projectId: 'p', projectName: 'web', kind: 'detached' }]
 		);
-		expect(notices).toEqual([{ projectId: 'p', projectName: 'web', kind: 'rotated' }]);
+		expect(notices).toEqual([{ projectId: 'p', projectName: 'web', kind: 'detached' }]);
+	});
+});
+
+describe('databasesUnavailable', () => {
+	it('is true only when the API says no database server is connected', () => {
+		expect(databasesUnavailable({ databases: { available: false } })).toBe(true);
+		expect(databasesUnavailable({ databases: { available: true } })).toBe(false);
+		// Still loading, or an API from before the flag: keep the actions.
+		expect(databasesUnavailable(undefined)).toBe(false);
+		expect(databasesUnavailable({})).toBe(false);
+	});
+});
+
+describe('regionText', () => {
+	it('names the region, or says Sakala picked the server', () => {
+		expect(regionText('jkt')).toBe('jkt');
+		expect(regionText(null)).toBe('Otomatis');
+	});
+});
+
+describe('password rotation', () => {
+	const completed = parseDatabase(getDatabaseFixture('database-show-rotation-completed').body);
+
+	it('says when the password was changed, with the date on another day', () => {
+		const at = '2026-11-19T09:02:00Z';
+		const sameDay = new Date('2026-11-19T10:00:00Z');
+		const clock = new Intl.DateTimeFormat('id-ID', {
+			hour: '2-digit',
+			minute: '2-digit',
+			hourCycle: 'h23'
+		}).format(new Date(at));
+		expect(rotationCompletedText(at, sameDay)).toBe(`Password sudah diganti pukul ${clock}.`);
+		expect(rotationCompletedText(at, new Date('2026-11-22T10:00:00Z'))).toMatch(
+			new RegExp(`^Password terakhir diganti 19 Nov 2026 pukul ${clock}\\.$`)
+		);
+	});
+
+	it('reads pending, failed with the reason, and completed with the redeploys by project', () => {
+		expect(
+			rotationView(parseDatabase(getDatabaseFixture('rotate-password-redeploy').body))
+		).toEqual({ state: 'pending' });
+		const failed = rotationView(
+			parseDatabase(getDatabaseFixture('database-show-rotation-failed').body)
+		);
+		expect(failed).toMatchObject({ state: 'failed', summary: expect.stringContaining('Server') });
+
+		const view = rotationView(completed);
+		expect(view?.state).toBe('completed');
+		if (view?.state !== 'completed') return;
+		expect(view.queueing).toBe(false);
+		expect(view.redeploys.size).toBe(2);
+		expect(rotationView({ ...completed, password_rotation: null })).toBeNull();
+	});
+
+	it('marks the redeploys as being queued until the API lists them', () => {
+		const view = rotationView({
+			...completed,
+			password_rotation: { ...completed.password_rotation!, redeploys: null }
+		});
+		expect(view).toMatchObject({ state: 'completed', queueing: true });
+	});
+
+	it('tells each project what it needs', () => {
+		const queued = { project_id: 'p', deployment_id: 'd-1', skipped_reason: null };
+		const live = { active_deployment_id: 'd-0', redeploy_required: true };
+		expect(rotationProjectState(queued, live)).toEqual({ kind: 'queued', deploymentId: 'd-1' });
+		expect(rotationProjectState(queued, undefined)).toEqual({
+			kind: 'queued',
+			deploymentId: 'd-1'
+		});
+		// The queued redeploy now serves.
+		expect(
+			rotationProjectState(queued, { active_deployment_id: 'd-1', redeploy_required: false })
+		).toEqual({ kind: 'done' });
+		expect(
+			rotationProjectState(
+				{ project_id: 'p', deployment_id: null, skipped_reason: 'no_active_deployment' },
+				undefined
+			)
+		).toEqual({ kind: 'first_deploy' });
+		expect(rotationProjectState(undefined, undefined)).toEqual({ kind: 'loading' });
+		expect(rotationProjectState(undefined, live)).toEqual({ kind: 'needs_redeploy', reason: null });
+		expect(
+			rotationProjectState(undefined, { active_deployment_id: 'd-0', redeploy_required: false })
+		).toEqual({ kind: 'done' });
+		expect(
+			rotationProjectState(
+				{ project_id: 'p', deployment_id: null, skipped_reason: 'build_rate_limit' },
+				live
+			)
+		).toEqual({ kind: 'needs_redeploy', reason: expect.stringContaining('batas build') });
+		expect(
+			rotationProjectState(
+				{ project_id: 'p', deployment_id: null, skipped_reason: 'brand_new' },
+				live
+			)
+		).toEqual({ kind: 'needs_redeploy', reason: expect.stringContaining('belum bisa dijalankan') });
 	});
 });

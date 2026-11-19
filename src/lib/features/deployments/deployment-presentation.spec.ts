@@ -32,7 +32,8 @@ describe('getDeploymentTriggerLabel', () => {
 		['manual', 'Manual'],
 		['redeploy', 'Manual redeploy'],
 		['webhook', 'Auto-deploy dari push'],
-		['system', 'System']
+		['system', 'System'],
+		['database_password_rotated', 'Redeploy setelah ganti password database']
 	])('maps %s to %s', (trigger, expected) => {
 		expect(getDeploymentTriggerLabel(trigger)).toBe(expected);
 	});

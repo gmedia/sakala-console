@@ -2545,7 +2545,7 @@
         "/v1/app/workspaces/{workspace}/databases/{database}/rotate-password": {
             "post": {
                 "operationId": "v1.app.workspaces.databases.rotate-password",
-                "summary": "Ask the database node for a new password. Answers `202`; the old password works until the node reports success,\nthen attached projects show `redeploy_required`",
+                "summary": "Ask the database node for a new password. Answers `202` with `password_rotation.status: pending`. The node\nswitches at once: the old password stops connecting right away, so running applications cannot open new\nconnections until they are redeployed. Once the node reports, `password_rotation.status` is `completed`,\nattached projects show `redeploy_required`, and with `redeploy_attached` the API redeploys the attached projects\nthat have a live deployment (`password_rotation.redeploys`)",
                 "tags": [
                     "Database"
                 ],
@@ -2571,6 +2571,15 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RotateDatabasePasswordRequest"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "202": {
                         "description": "`DatabaseResource`",
@@ -2589,9 +2598,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "409": {
                         "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe database node is still working on an earlier request for this database (creating it, or rotating its password). Safe to retry once it finishes.",
@@ -2653,6 +2659,12 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -6992,7 +7004,7 @@
         "/v1/app/pilot-limits": {
             "get": {
                 "operationId": "v1.app.pilot-limits.show",
-                "summary": "Quotas, usage, and runtime maximums of one workspace: the one named by\n`workspace_id`, or the caller's personal workspace",
+                "summary": "Quotas, usage, and runtime maximums of one workspace: the one named by\n`workspace_id`, or the caller's personal workspace, plus whether this\ninstallation offers managed databases right now (`databases.available`)",
                 "tags": [
                     "PilotLimits"
                 ],
@@ -10840,7 +10852,8 @@
                                         "manual",
                                         "redeploy",
                                         "webhook",
-                                        "system"
+                                        "system",
+                                        "database_password_rotated"
                                     ]
                                 },
                                 "branch": {
@@ -14564,6 +14577,16 @@
                 ],
                 "title": "DatabaseExtension"
             },
+            "DatabasePasswordRotationStatus": {
+                "type": "string",
+                "description": "Where the newest password rotation of a managed database stands, read from its RotateDatabasePassword command.\n| |\n|---|\n| `pending` <br/> Waiting for or running on the database node. The stored password is still the old one. |\n| `completed` <br/> The node switched to the new password: the old one no longer connects. |\n| `failed` <br/> The node failed it or did not finish in time. The old password still works. |",
+                "enum": [
+                    "pending",
+                    "completed",
+                    "failed"
+                ],
+                "title": "DatabasePasswordRotationStatus"
+            },
             "DatabaseResource": {
                 "type": "object",
                 "properties": {
@@ -14685,6 +14708,80 @@
                             "failed_at"
                         ]
                     },
+                    "password_rotation": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "The newest password rotation; `null` when the password was never rotated. `status` is `pending` while\nthe database node has not reported, `completed` once the new password is the only one that connects,\nand `failed` when the node failed it or did not finish in time (the old password still works; see\n`last_failure`). The node switches as soon as it runs the request, so a `pending` rotation can\nalready have cut off the old password. `requested_at` is when it was asked for, `completed_at` and\n`failed_at` are set only in their status. `redeploy_attached` is what the request asked for.\n`redeploys` is `null` until the API has queued the redeploys after completion (and always without\n`redeploy_attached`), then one item per project attached at that moment: `deployment_id` of the queued\ndeployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:\n`no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,\n`active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `release_command_unsupported`, or `failed`.",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "completed",
+                                    "failed"
+                                ]
+                            },
+                            "requested_at": {
+                                "type": "string"
+                            },
+                            "completed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "failed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "redeploy_attached": {
+                                "type": "boolean"
+                            },
+                            "redeploys": {
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "project_id": {
+                                            "type": "string"
+                                        },
+                                        "deployment_id": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "skipped_reason": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "project_id",
+                                        "deployment_id",
+                                        "skipped_reason"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "status",
+                            "requested_at",
+                            "completed_at",
+                            "failed_at",
+                            "redeploy_attached",
+                            "redeploys"
+                        ]
+                    },
                     "created_at": {
                         "type": [
                             "string",
@@ -14709,6 +14806,7 @@
                     "connection",
                     "projects",
                     "last_failure",
+                    "password_rotation",
                     "created_at",
                     "updated_at"
                 ],
@@ -14857,7 +14955,8 @@
                             "manual",
                             "redeploy",
                             "webhook",
-                            "system"
+                            "system",
+                            "database_password_rotated"
                         ]
                     },
                     "commit_sha": {
@@ -15431,7 +15530,8 @@
                             "manual",
                             "redeploy",
                             "webhook",
-                            "system"
+                            "system",
+                            "database_password_rotated"
                         ]
                     },
                     "agent_node_id": {
@@ -16656,6 +16756,18 @@
                     "project_idle_sleep_minutes": {
                         "type": "integer",
                         "description": "Minutes without a request before a running project of this workspace is put to sleep, from its\nlimit profile or the global setting. `0` means its projects never sleep."
+                    },
+                    "databases": {
+                        "type": "object",
+                        "description": "Managed databases on this installation. `available` is true while at least one online database node\nmay receive new databases and its PostgreSQL instance last reported that it answers. False on an\ninstallation without a database server, and while every database node is offline or its instance\nis down: creating one would wait or fail. Existing databases stay listed either way.",
+                        "properties": {
+                            "available": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "available"
+                        ]
                     }
                 },
                 "required": [
@@ -16667,7 +16779,8 @@
                     "timeouts",
                     "log_bounds",
                     "deleted_project_retention_days",
-                    "project_idle_sleep_minutes"
+                    "project_idle_sleep_minutes",
+                    "databases"
                 ],
                 "title": "PilotLimitsResource"
             },
@@ -17848,6 +17961,16 @@
                     "reason"
                 ],
                 "title": "ResumeAgentNodeRequest"
+            },
+            "RotateDatabasePasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "redeploy_attached": {
+                        "type": "boolean",
+                        "description": "Redeploy every attached project that has a live deployment as soon as the node reports the new\npassword, as whoever asked for the rotation. Defaults to `false`."
+                    }
+                },
+                "title": "RotateDatabasePasswordRequest"
             },
             "RuntimeCleanupTarget": {
                 "type": "string",

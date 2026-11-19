@@ -1,46 +1,35 @@
 <script lang="ts">
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import Eye from 'phosphor-svelte/lib/Eye';
 	import EyeSlash from 'phosphor-svelte/lib/EyeSlash';
 	import LockSimple from 'phosphor-svelte/lib/LockSimple';
-	import { toast } from 'svelte-sonner';
 	import type { Database, DatabaseCredentials } from '$lib/api/resources/databases';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import type { DatabaseAccess } from '../access';
-	import { createRevealCredentialsMutation, createRotatePasswordMutation } from '../mutations';
+	import { createRevealCredentialsMutation } from '../mutations';
 	import {
 		DATABASE_COPY,
 		DATABASE_VARIABLES,
 		databaseErrorMessage,
-		isOnNode,
-		rotationFailure
+		isOnNode
 	} from '../presentation';
 	import CredentialRow from './CredentialRow.svelte';
+	import PasswordRotationSection from './PasswordRotationSection.svelte';
 
 	type Props = {
 		database: Database;
 		workspaceId: string;
 		access: DatabaseAccess;
-		/** Called after a rotation is requested, so the projects card can ask for a redeploy. */
-		onRotated?: () => void;
 	};
 
-	let { database, workspaceId, access, onRotated }: Props = $props();
+	let { database, workspaceId, access }: Props = $props();
 
 	const revealMutation = createRevealCredentialsMutation();
-	const rotateMutation = createRotatePasswordMutation();
 
 	// Held here only, never in the query cache, and dropped on Sembunyikan or a rotation.
 	let credentials = $state<DatabaseCredentials | null>(null);
 	let revealError = $state<string | null>(null);
-	let rotateOpen = $state(false);
-	let rotateError = $state<string | null>(null);
-	let rotationRequested = $state(false);
-	let rotateTrigger = $state<HTMLElement | null>(null);
 
 	const onNode = $derived(isOnNode(database));
-	const failedRotation = $derived(rotationFailure(database));
 
 	async function reveal() {
 		revealError = null;
@@ -57,24 +46,6 @@
 
 	function hide() {
 		credentials = null;
-	}
-
-	async function rotate() {
-		rotateError = null;
-		try {
-			await rotateMutation.mutateAsync({ workspaceId, databaseId: database.id });
-			credentials = null;
-			rotationRequested = true;
-			rotateOpen = false;
-			toast.success('Penggantian password diminta.');
-			onRotated?.();
-		} catch (error) {
-			rotateError = databaseErrorMessage(
-				error,
-				'rotate',
-				'Password belum bisa diganti. Silakan coba lagi.'
-			);
-		}
 	}
 
 	// Not secret, and every member reads it; `null` until the node reports its address.
@@ -181,74 +152,5 @@
 		</ul>
 	</div>
 
-	{#if access.canManage}
-		<div class="flex flex-col gap-3 border-t border-border pt-4">
-			<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
-				<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
-					<h3 class="text-sm font-semibold text-foreground">Ganti password</h3>
-					<p class="text-sm text-muted">
-						Buat password baru kalau yang lama mungkin bocor. Setelah itu, redeploy setiap proyek
-						yang terpasang.
-					</p>
-				</div>
-				<Button
-					variant="secondary"
-					size="sm"
-					bind:ref={rotateTrigger}
-					disabled={!onNode}
-					onclick={() => {
-						rotateError = null;
-						rotateOpen = true;
-					}}
-					data-testid="rotate-password"
-				>
-					<ArrowsClockwise size={16} aria-hidden="true" />
-					Ganti password
-				</Button>
-			</div>
-			{#if rotationRequested && !failedRotation}
-				<p role="status" class="text-sm text-foreground" data-testid="rotation-requested">
-					Penggantian password diminta. Password lama tetap berlaku sampai server database selesai
-					menggantinya. Setelah itu, redeploy proyek yang terpasang.
-				</p>
-			{/if}
-			{#if failedRotation}
-				<p class="text-sm text-foreground" data-testid="rotation-failed">
-					Penggantian password terakhir gagal, jadi password lama masih berlaku. {failedRotation.summary}
-				</p>
-			{/if}
-		</div>
-	{/if}
+	<PasswordRotationSection {database} {workspaceId} {access} onRequested={hide} />
 </section>
-
-<Dialog
-	bind:open={rotateOpen}
-	title="Ganti password database?"
-	confirmLabel={rotateMutation.isPending ? 'Meminta...' : 'Ganti password'}
-	loading={rotateMutation.isPending}
-	returnFocus={() => rotateTrigger}
-	onConfirm={rotate}
-	class="max-w-lg"
->
-	<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="rotate-dialog">
-		<p>
-			Server database membuat password baru untuk <span class="font-mono font-medium wrap-anywhere"
-				>{database.name}</span
-			>. Aplikasi yang sedang berjalan masih memakai password lama, dan koneksi barunya akan ditolak
-			begitu penggantian selesai.
-		</p>
-		{#if database.projects.length > 0}
-			<p>
-				Redeploy proyek ini sesudahnya supaya memakai password baru:
-				<span class="font-medium wrap-anywhere"
-					>{database.projects.map((project) => project.name).join(', ')}</span
-				>.
-			</p>
-		{:else}
-			<p>Database ini belum dipasang ke proyek, jadi tidak ada aplikasi yang perlu di-redeploy.</p>
-		{/if}
-		{#if rotateError}
-			<p role="alert" class="text-error-dark">{rotateError}</p>
-		{/if}
-	</div>
-</Dialog>

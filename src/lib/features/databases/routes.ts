@@ -34,3 +34,11 @@ export function projectVariablesHref(projectId: string): string {
 export function projectHref(projectId: string): string {
 	return resolveRoute('/(app)/projects/[id]', { id: projectId });
 }
+
+/** A deployment's page, where a queued redeploy shows its progress. */
+export function projectDeploymentHref(projectId: string, deploymentId: string): string {
+	return resolveRoute('/(app)/projects/[id]/deployments/[deploymentId]', {
+		id: projectId,
+		deploymentId
+	});
+}

@@ -77,7 +77,7 @@ export const STARTER_EXAMPLES: readonly StarterExample[] = [
 		optionalEnv: [
 			{
 				key: 'DATABASE_URL',
-				hint: 'Tanpa database, aplikasinya tetap jalan dan menampilkan cara menghubungkan database.'
+				hint: 'Tidak perlu diisi sendiri: buat database di halaman Database, pasang ke proyek ini, lalu redeploy. DATABASE_URL dan DB_* terisi otomatis. Tanpa database, aplikasinya tetap jalan dan menampilkan caranya.'
 			}
 		]
 	}

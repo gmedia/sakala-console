@@ -3,6 +3,7 @@
 	// which the rule cannot follow.
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { Popover } from 'bits-ui';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Cube from 'phosphor-svelte/lib/Cube';
 	import Database from 'phosphor-svelte/lib/Database';
 	import Globe from 'phosphor-svelte/lib/Globe';
@@ -82,6 +83,7 @@
 			{#if block.badge}
 				<Badge tone={block.badge.tone}>{block.badge.label}</Badge>
 			{/if}
+
 			<span
 				class={cn(
 					'min-w-0 text-sm font-medium wrap-anywhere text-foreground',
@@ -91,6 +93,20 @@
 				{#if block.mono}<BreakableUrl text={block.fact} />{:else}{block.fact}{/if}
 			</span>
 		</span>
+		{#if block.activity}
+			<!-- A line, not a badge: the block is narrow, and the text has to wrap. -->
+			<span
+				class="flex min-w-0 items-start gap-1.5 text-xs font-medium text-foreground"
+				data-testid="topology-activity"
+			>
+				<CircleNotch
+					size={14}
+					class="mt-0.5 shrink-0 animate-spin text-primary-dark motion-reduce:animate-none"
+					aria-hidden="true"
+				/>
+				<span class="min-w-0 wrap-anywhere">{block.activity.label}</span>
+			</span>
+		{/if}
 		{#if block.replicas}
 			<span
 				class="flex flex-wrap items-center gap-1"

@@ -4,6 +4,7 @@ import {
 	DATABASE_COMMANDS,
 	type Database,
 	type DatabaseExtension,
+	type DatabaseRotationRedeploy,
 	type KnownDatabaseStatus
 } from '$lib/api/resources/databases';
 import type { PilotLimits } from '$lib/api/resources/pilot-limits';
@@ -22,6 +23,12 @@ export const STORAGE_FULL_RATIO = 1;
 
 /** While a database is created or dropped the node reports back within seconds, so poll briefly. */
 export const DATABASE_TRANSITION_POLL_MS = 5_000;
+
+/**
+ * A rotation usually completes in about two seconds, and the redeploys are queued right after, so
+ * the page asks more often until both are known.
+ */
+export const ROTATION_POLL_MS = 2_000;
 
 /** Longest display name the API accepts (ManagedDatabase::MAX_NAME_LENGTH). */
 export const DATABASE_NAME_MAX_LENGTH = 100;
@@ -93,8 +100,22 @@ export const DATABASE_COPY = {
 	releaseDocs: 'Baca panduan release command',
 	extensionsNote:
 		'Daftar extension yang sudah terpasang belum ditampilkan di sini. Memasang ulang extension yang sudah ada aman dan tidak mengubah apa pun.',
-	viewerNote: 'Kamu pengamat di workspace ini, jadi hanya bisa melihat database-nya.'
+	viewerNote: 'Kamu pengamat di workspace ini, jadi hanya bisa melihat database-nya.',
+	unavailableTitle: 'Database terkelola belum tersedia di server ini',
+	unavailableBody:
+		'Belum ada server database yang terhubung ke Sakala ini, jadi database baru belum bisa dibuat.'
 } as const;
+
+/**
+ * Whether this installation offers no managed databases now (`databases.available` on pilot-limits).
+ * Unknown, while the limits load or from an older API, is not "unavailable": the page keeps its
+ * actions rather than hiding them on a guess.
+ */
+export function databasesUnavailable(
+	limits: { databases?: { available: boolean } } | undefined
+): boolean {
+	return limits?.databases?.available === false;
+}
 
 /* ---------- Status ---------- */
 
@@ -163,9 +184,13 @@ export function databaseRowNote(database: Pick<Database, 'status'>): string | nu
 	return isKnownStatus(database.status) ? (ROW_NOTES[database.status] ?? null) : null;
 }
 
-/** `jkt`, or what a database without one means. */
+/**
+ * `jkt`, or `Otomatis` for a database on a node without a region: Sakala picked the server. The
+ * workspace's default region is not shown in its place, because a database with a region-less node
+ * does not run there.
+ */
 export function regionText(region: string | null): string {
-	return region ?? 'tanpa region';
+	return region ?? DATABASE_COPY.regionAuto;
 }
 
 export function isTransitional(database: Pick<Database, 'status'>): boolean {
@@ -177,10 +202,27 @@ export function isOnNode(database: Pick<Database, 'status'>): boolean {
 	return database.status === 'ready' || database.status === 'locked';
 }
 
-/** Poll while the node creates or drops one of them, and not at all otherwise. */
+/**
+ * A rotation whose result is not known yet: the node has not reported, or it has and the API is
+ * still queueing the redeploys that were asked for.
+ */
+export function isRotationSettling(
+	database: Partial<Pick<Database, 'password_rotation'>>
+): boolean {
+	const rotation = database.password_rotation;
+	if (!rotation) return false;
+	if (rotation.status === 'pending') return true;
+	return (
+		rotation.status === 'completed' && rotation.redeploy_attached && rotation.redeploys === null
+	);
+}
+
+/** Poll while a rotation settles or the node creates or drops a database, and not at all otherwise. */
 export function resolveDatabasePollInterval(
-	databases: readonly Pick<Database, 'status'>[] | undefined
+	databases:
+		readonly (Pick<Database, 'status'> & Partial<Pick<Database, 'password_rotation'>>)[] | undefined
 ): number | false {
+	if (databases?.some(isRotationSettling)) return ROTATION_POLL_MS;
 	return databases?.some(isTransitional) ? DATABASE_TRANSITION_POLL_MS : false;
 }
 
@@ -367,6 +409,148 @@ export function rotationFailure(database: Pick<Database, 'last_failure'>) {
 		: null;
 }
 
+/* ---------- Password rotation ---------- */
+
+export const ROTATION_COPY = {
+	title: 'Ganti password',
+	lead: 'Buat password baru kalau yang lama mungkin bocor.',
+	action: 'Ganti password',
+	dialogTitle: 'Ganti password database?',
+	dialogConfirm: 'Ganti password',
+	dialogBusy: 'Meminta...',
+	dialogEffect:
+		'Password lama langsung tidak berlaku begitu server database menggantinya, biasanya dalam beberapa detik.',
+	dialogApps:
+		'Sampai di-redeploy dengan password baru, aplikasi yang terpasang tidak bisa membuka koneksi baru ke database:',
+	dialogNoProjects: 'Database ini belum dipasang ke proyek, jadi tidak ada aplikasi yang terputus.',
+	autoRedeploy: 'Redeploy otomatis proyek yang terpasang',
+	autoRedeployHint:
+		'Begitu password baru aktif, Sakala men-deploy ulang versi yang sedang live di setiap proyek.',
+	manualRedeploy:
+		'Tanpa redeploy otomatis, kamu perlu redeploy setiap proyek sendiri. Sampai itu, aplikasinya tidak bisa terhubung ke database.',
+	requested: 'Penggantian password diminta.',
+	pending:
+		'Server database sedang mengganti password. Password lama berhenti berlaku saat itu juga.',
+	queueing: 'Menyiapkan redeploy proyek yang terpasang...',
+	failedPrefix: 'Penggantian password terakhir gagal, jadi password lama masih berlaku.',
+	rowQueued: 'Redeploy otomatis berjalan',
+	rowDone: 'Sudah memakai password baru',
+	rowFirstDeploy: 'Belum di-deploy. Deploy pertamanya memakai password baru.',
+	rowNeedsRedeploy: 'Masih memakai password lama, jadi belum bisa terhubung',
+	viewDeployment: 'Lihat deployment',
+	redeploy: 'Redeploy',
+	redeploying: 'Menjalankan...',
+	redeployFailed: 'Redeploy belum bisa dijalankan. Silakan coba lagi.'
+} as const;
+
+/** Why the API queued no redeploy for a project, in words; `no_active_deployment` has its own row. */
+const SKIPPED_REASONS: Record<string, string> = {
+	requester_cannot_deploy:
+		'Redeploy otomatis dilewati karena akun yang mengganti password tidak lagi bisa men-deploy proyek ini.',
+	legal_acceptance_required:
+		'Redeploy otomatis dilewati karena syarat layanan terbaru belum disetujui.',
+	project_suspended: 'Redeploy otomatis dilewati karena proyek ini ditangguhkan.',
+	active_deployment_limit:
+		'Redeploy otomatis dilewati karena masih ada deployment yang berjalan. Redeploy lagi setelah selesai.',
+	active_container_limit:
+		'Redeploy otomatis dilewati karena batas aplikasi aktif workspace sudah penuh.',
+	build_rate_limit: 'Redeploy otomatis dilewati karena batas build per jam sudah tercapai.',
+	repository_access_revoked:
+		'Redeploy otomatis dilewati karena akses ke repository GitHub-nya sudah dicabut.',
+	database_endpoint_unavailable:
+		'Redeploy otomatis dilewati karena server database belum melaporkan alamatnya.',
+	release_command_unsupported:
+		'Redeploy otomatis dilewati karena servernya belum bisa menjalankan release command.'
+};
+
+const SKIPPED_FALLBACK = 'Redeploy otomatis belum bisa dijalankan untuk proyek ini.';
+
+export const NO_ACTIVE_DEPLOYMENT = 'no_active_deployment';
+
+const clockFormat = new Intl.DateTimeFormat('id-ID', {
+	hour: '2-digit',
+	minute: '2-digit',
+	hourCycle: 'h23'
+});
+const dayFormat = new Intl.DateTimeFormat('id-ID', {
+	day: 'numeric',
+	month: 'short',
+	year: 'numeric'
+});
+
+/** `Password sudah diganti pukul 16.02`, with the date for another day. */
+export function rotationCompletedText(completedAt: string, now: Date = new Date()): string {
+	const time = new Date(completedAt);
+	const clock = clockFormat.format(time);
+	return time.toDateString() === now.toDateString()
+		? `Password sudah diganti pukul ${clock}.`
+		: `Password terakhir diganti ${dayFormat.format(time)} pukul ${clock}.`;
+}
+
+export type RotationView =
+	| { state: 'pending' }
+	| { state: 'failed'; summary: string | null }
+	| {
+			state: 'completed';
+			completedText: string;
+			/** The redeploys were asked for and are being queued. */
+			queueing: boolean;
+			/** Per attached project, the API's outcome; empty when no redeploys were asked for. */
+			redeploys: Map<string, DatabaseRotationRedeploy>;
+			redeployAttached: boolean;
+	  }
+	| null;
+
+/** What the "Ganti password" section says about the newest rotation. */
+export function rotationView(
+	database: Pick<Database, 'password_rotation' | 'last_failure'>,
+	now: Date = new Date()
+): RotationView {
+	const rotation = database.password_rotation;
+	if (!rotation) return null;
+	if (rotation.status === 'pending') return { state: 'pending' };
+	if (rotation.status === 'failed') {
+		return { state: 'failed', summary: rotationFailure(database)?.summary ?? null };
+	}
+	if (rotation.status !== 'completed' || !rotation.completed_at) return null;
+	return {
+		state: 'completed',
+		completedText: rotationCompletedText(rotation.completed_at, now),
+		queueing: rotation.redeploy_attached && rotation.redeploys === null,
+		redeploys: new Map((rotation.redeploys ?? []).map((item) => [item.project_id, item])),
+		redeployAttached: rotation.redeploy_attached
+	};
+}
+
+/** What the project needs after the rotation, from the API's outcome and the project as it is now. */
+export type RotationProjectState =
+	| { kind: 'queued'; deploymentId: string }
+	| { kind: 'done' }
+	| { kind: 'first_deploy' }
+	| { kind: 'needs_redeploy'; reason: string | null }
+	| { kind: 'loading' };
+
+export function rotationProjectState(
+	redeploy: DatabaseRotationRedeploy | undefined,
+	project: { active_deployment_id: string | null; redeploy_required: boolean } | undefined
+): RotationProjectState {
+	if (redeploy?.deployment_id) {
+		// Once the queued deployment serves, the project runs with the new password.
+		return project?.active_deployment_id === redeploy.deployment_id
+			? { kind: 'done' }
+			: { kind: 'queued', deploymentId: redeploy.deployment_id };
+	}
+	if (redeploy?.skipped_reason === NO_ACTIVE_DEPLOYMENT) return { kind: 'first_deploy' };
+	if (!project) return { kind: 'loading' };
+	if (!project.active_deployment_id) return { kind: 'first_deploy' };
+	if (!project.redeploy_required) return { kind: 'done' };
+	const skipped = redeploy?.skipped_reason;
+	return {
+		kind: 'needs_redeploy',
+		reason: skipped ? (SKIPPED_REASONS[skipped] ?? SKIPPED_FALLBACK) : null
+	};
+}
+
 /* ---------- Errors ---------- */
 
 export type DatabaseAction =
@@ -442,13 +626,14 @@ export function databaseErrorMessage(
 /* ---------- Redeploy after a change ---------- */
 
 /**
- * Attaching, detaching, and a new password reach an app only on its next deployment, because the
- * API builds the connection variables when the deployment is created.
+ * Attaching and detaching reach an app only on its next deployment, because the API builds the
+ * connection variables when the deployment is created. A new password has its own section, driven
+ * by `password_rotation`.
  */
 export type RedeployNotice = {
 	projectId: string;
 	projectName: string;
-	kind: 'attached' | 'detached' | 'rotated';
+	kind: 'attached' | 'detached';
 	/** From the attach answer; unknown for the others. */
 	redeployRequired?: boolean;
 };
@@ -461,8 +646,6 @@ export function redeployNoticeText(notice: RedeployNotice): string {
 				: `Redeploy ${notice.projectName} supaya aplikasinya menerima variabel koneksi database ini.`;
 		case 'detached':
 			return `Redeploy ${notice.projectName} supaya aplikasinya berhenti memakai database ini. Datanya tetap ada.`;
-		case 'rotated':
-			return `Redeploy ${notice.projectName} setelah penggantian password selesai, supaya aplikasinya memakai password baru.`;
 	}
 }
 

@@ -91,8 +91,12 @@ export function createDetachDatabaseMutation() {
 export function createRotatePasswordMutation() {
 	const client = useQueryClient();
 	return createMutation(() => ({
-		mutationFn: ({ workspaceId, databaseId }: Target) =>
-			rotateDatabasePassword(workspaceId, databaseId),
+		mutationFn: ({
+			workspaceId,
+			databaseId,
+			redeployAttached
+		}: Target & { redeployAttached: boolean }) =>
+			rotateDatabasePassword(workspaceId, databaseId, { redeploy_attached: redeployAttached }),
 		onSuccess: (database, { workspaceId }) => storeDatabase(client, workspaceId, database)
 	}));
 }

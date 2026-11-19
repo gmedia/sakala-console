@@ -35,6 +35,9 @@ const SUCCESS_PARSERS: Record<string, (body: unknown) => unknown> = {
 	'database-rename': parseDatabase,
 	'database-delete': parseDatabase,
 	'rotate-password': parseDatabase,
+	'rotate-password-redeploy': parseDatabase,
+	'database-show-rotation-completed': parseDatabase,
+	'database-show-rotation-failed': parseDatabase,
 	'extension-install': parseDatabase,
 	attach: parseAttachment,
 	'attach-again': parseAttachment,
@@ -103,6 +106,41 @@ describe('database resources, against responses captured from sakala-api', () =>
 		expect(projects.find((project) => project.name === 'api-kasir')?.databases).toEqual([]);
 		const workspaces = parseWorkspaceList(getDatabaseFixture('workspaces').body);
 		expect(workspaces.map((workspace) => workspace.default_region)).toEqual([null, 'jkt']);
+	});
+
+	it('reads the rotation state: pending, completed with the redeploys queued, and failed', () => {
+		const pending = parseDatabase(getDatabaseFixture('rotate-password-redeploy').body);
+		expect(pending.password_rotation).toMatchObject({
+			status: 'pending',
+			completed_at: null,
+			redeploy_attached: true,
+			redeploys: null
+		});
+
+		const completed = parseDatabase(getDatabaseFixture('database-show-rotation-completed').body);
+		const web = completed.projects.find((project) => project.name === 'toko-kopi-web')!;
+		const admin = completed.projects.find((project) => project.name === 'toko-kopi-admin')!;
+		expect(completed.password_rotation?.status).toBe('completed');
+		expect(completed.password_rotation?.completed_at).toEqual(expect.any(String));
+		expect(completed.password_rotation?.redeploys).toEqual(
+			expect.arrayContaining([
+				{ project_id: web.id, deployment_id: expect.any(String), skipped_reason: null },
+				{ project_id: admin.id, deployment_id: null, skipped_reason: 'no_active_deployment' }
+			])
+		);
+
+		const failed = parseDatabase(getDatabaseFixture('database-show-rotation-failed').body);
+		expect(failed.password_rotation).toMatchObject({
+			status: 'failed',
+			failed_at: expect.any(String),
+			redeploy_attached: false,
+			redeploys: null
+		});
+		expect(failed.last_failure?.command).toBe('RotateDatabasePassword');
+	});
+
+	it('reads a database from an API without rotation state as never rotated', () => {
+		expect(parseDatabase(getDatabaseFixture('database-show').body).password_rotation).toBeNull();
 	});
 
 	it('reads a new database as provisioning and a deleted one as deleting', () => {
@@ -190,10 +228,10 @@ describe('database requests', () => {
 			method: 'DELETE'
 		});
 
-		await rotateDatabasePassword('ws', 'db-1');
+		await rotateDatabasePassword('ws', 'db-1', { redeploy_attached: true });
 		expect(mocked).toHaveBeenLastCalledWith(
 			'/api/v1/app/workspaces/ws/databases/db-1/rotate-password',
-			{ method: 'POST' }
+			{ method: 'POST', json: { redeploy_attached: true } }
 		);
 
 		await installDatabaseExtension('ws', 'db-1', 'vector');

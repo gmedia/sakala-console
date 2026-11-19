@@ -165,12 +165,12 @@ describe('DatabaseProjectsCard', () => {
 
 	it('lists the redeploy each change needs, with a link to the project', async () => {
 		renderCard(attached, {
-			notices: [{ projectId: 'p-kasir', projectName: 'api-kasir', kind: 'rotated' }]
+			notices: [{ projectId: 'p-kasir', projectName: 'api-kasir', kind: 'detached' }]
 		});
 		const notices = page.getByTestId('redeploy-notices');
 		await expect
 			.element(notices)
-			.toHaveTextContent(/Redeploy api-kasir setelah penggantian password/);
+			.toHaveTextContent(/Redeploy api-kasir supaya aplikasinya berhenti memakai database ini/);
 		await expect
 			.element(notices.getByRole('link'))
 			.toHaveAttribute('href', '/projects/p-kasir/environments');

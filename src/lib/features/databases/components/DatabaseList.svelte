@@ -3,6 +3,7 @@
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import type { Database } from '$lib/api/resources/databases';
+	import { cn } from '$lib/utils/cn';
 	import { formatRelativeTime } from '$lib/utils/date';
 	import {
 		databaseRowNote,
@@ -93,7 +94,7 @@
 				</div>
 				<div class="flex min-w-0 flex-col gap-1">
 					<dt class="text-xs text-muted">Region</dt>
-					<dd class="font-mono text-sm wrap-anywhere text-foreground">
+					<dd class={cn('text-sm wrap-anywhere text-foreground', database.region && 'font-mono')}>
 						{regionText(database.region)}
 					</dd>
 				</div>

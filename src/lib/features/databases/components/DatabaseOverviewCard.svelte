@@ -10,7 +10,6 @@
 		engineLabel,
 		formatDatabaseSize,
 		provisioningSteps,
-		regionText,
 		separateFailure,
 		storageMeter
 	} from '../presentation';
@@ -45,9 +44,11 @@
 			<p class="flex flex-wrap gap-x-1.5 text-sm text-muted">
 				<span>{engineLabel(database.engine)}</span>
 				<span aria-hidden="true">·</span>
-				<span
-					>region <span class="font-mono text-foreground">{regionText(database.region)}</span></span
-				>
+				{#if database.region}
+					<span>region <span class="font-mono text-foreground">{database.region}</span></span>
+				{:else}
+					<span data-testid="database-region-auto">region dipilih otomatis</span>
+				{/if}
 				{#if database.created_at}
 					<span aria-hidden="true">·</span>
 					<span>dibuat {formatDate(database.created_at)}</span>

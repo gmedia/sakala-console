@@ -245,6 +245,18 @@ describe('deriveProjectHeaderState', () => {
 		);
 	});
 
+	it('deploying on top of a live version stays Live, with the new version as a second badge', () => {
+		const state = deriveProjectHeaderState(
+			{ status: 'active', runtime_status: 'running', active_deployment_id: 'dep_1' },
+			[attempt('queued')]
+		);
+
+		expect(state.kind).toBe('deploying');
+		expect(state.badge).toEqual({ label: 'Live', variant: 'success' });
+		expect(state.activity).toEqual({ label: 'Men-deploy versi baru', variant: 'running' });
+		expect(state.redeployBusy).toBe(true);
+	});
+
 	it('deploying the first version shows no URL', () => {
 		const state = deriveProjectHeaderState(
 			{ status: 'draft', runtime_status: 'deploying', active_deployment_id: null },
@@ -253,6 +265,8 @@ describe('deriveProjectHeaderState', () => {
 
 		expect(state.serving).toBe(false);
 		expect(state.notice?.message).not.toContain('Versi sebelumnya');
+		expect(state.badge.label).toBe('Men-deploy');
+		expect(state.activity).toBeNull();
 	});
 
 	it('a failed attempt over a live version says the previous one still serves', () => {
