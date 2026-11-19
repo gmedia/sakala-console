@@ -291,6 +291,7 @@ export type ApiHandlers = {
 	deleteEnv?: () => JsonReply;
 	revealEnv?: () => JsonReply;
 	metrics?: (url: URL) => JsonReply;
+	skippedPushes?: (url: URL) => JsonReply;
 };
 
 function fulfill(route: Route, { status = 200, body, headers }: JsonReply) {
@@ -383,6 +384,17 @@ export async function mockProjectApi(page: Page, handlers: ApiHandlers = {}) {
 				handlers.wake?.() ?? {
 					status: 202,
 					body: { data: { ...baseProject, runtime_status: 'sleeping' } }
+				}
+			);
+		}
+		if (/\/skipped-pushes\/?$/.test(path)) {
+			return fulfill(
+				route,
+				handlers.skippedPushes?.(url) ?? {
+					body: {
+						data: [],
+						meta: { current_page: 1, from: null, last_page: 1, per_page: 100, to: null, total: 0 }
+					}
 				}
 			);
 		}

@@ -13,11 +13,12 @@ import type {
 } from '$lib/api/resources/projects';
 import { resolveRefetchInterval, rateLimitWait } from '$lib/features/deployments/queries';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
-import { getProject, getDeployments, getEnvironmentVariables } from './api';
+import { getProject, getDeployments, getEnvironmentVariables, getSkippedPushes } from './api';
 import {
 	ACTIVE_DEPLOYMENT_STATUSES,
 	type Deployment,
 	type GetDeploymentsParams,
+	type GetSkippedPushesParams,
 	type PaginatedDeployments,
 	type Project
 } from './type';
@@ -29,7 +30,10 @@ export const projectKeys = {
 		params
 			? ([...projectKeys.detail(id), 'deployments', params] as const)
 			: ([...projectKeys.detail(id), 'deployments'] as const),
-	environmentVariables: (id: string) => [...projectKeys.detail(id), 'environmentVariables'] as const
+	environmentVariables: (id: string) =>
+		[...projectKeys.detail(id), 'environmentVariables'] as const,
+	skippedPushes: (id: string, params: GetSkippedPushesParams) =>
+		[...projectKeys.detail(id), 'skippedPushes', params] as const
 };
 
 export function createEnvironmentVariablesQuery(projectId: () => string) {
@@ -227,6 +231,26 @@ export function createDeploymentsQuery(
 					? resolveRefetchInterval(false, query.state.error)
 					: false;
 			}
+		};
+	});
+}
+
+/**
+ * Pushes skipped for the deployments on one history page. Runs only while `params` returns a value.
+ * Not retried: an API from before skipped pushes answers 404, and the history reads fine without them.
+ */
+export function createSkippedPushesQuery(
+	projectId: () => string,
+	params: () => GetSkippedPushesParams | undefined
+) {
+	return createQuery(() => {
+		const id = projectId();
+		const p = params();
+		return {
+			queryKey: projectKeys.skippedPushes(id, p ?? {}),
+			queryFn: () => getSkippedPushes(id, p),
+			enabled: !!id && p !== undefined,
+			retry: false
 		};
 	});
 }

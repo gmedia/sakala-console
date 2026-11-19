@@ -9,7 +9,9 @@ import type {
 	EnvVarValueResponse,
 	TriggerRedeployPayload,
 	GetDeploymentsParams,
-	PaginatedDeployments
+	GetSkippedPushesParams,
+	PaginatedDeployments,
+	PaginatedSkippedPushes
 } from './type';
 
 /**
@@ -78,6 +80,23 @@ export async function getDeployments(
 	const endpoint = `/api/v1/app/projects/${projectId}/deployments${query ? `?${query}` : ''}`;
 
 	return apiRequest<PaginatedDeployments>(endpoint);
+}
+
+/**
+ * Pushes auto-deploy skipped because they only changed other projects of the monorepo, newest first.
+ */
+export async function getSkippedPushes(
+	projectId: string,
+	params?: GetSkippedPushesParams
+): Promise<PaginatedSkippedPushes> {
+	const searchParams = new URLSearchParams();
+	if (params?.since) searchParams.set('since', params.since);
+	if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+
+	const query = searchParams.toString();
+	const endpoint = `/api/v1/app/projects/${projectId}/skipped-pushes${query ? `?${query}` : ''}`;
+
+	return apiRequest<PaginatedSkippedPushes>(endpoint);
 }
 
 /**
