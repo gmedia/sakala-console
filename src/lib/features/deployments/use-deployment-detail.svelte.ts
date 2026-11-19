@@ -190,6 +190,10 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		get steps() {
 			return steps;
 		},
+		/** The agent's stage events, which the log uses to tell the failed stage's lines apart. */
+		get events() {
+			return events;
+		},
 		get bannerInput() {
 			return bannerInput;
 		},

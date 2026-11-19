@@ -1,12 +1,16 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 	import Check from 'phosphor-svelte/lib/Check';
 	import Copy from 'phosphor-svelte/lib/Copy';
+	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
+	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import Pause from 'phosphor-svelte/lib/Pause';
 	import Play from 'phosphor-svelte/lib/Play';
-	import type { Deployment } from '$lib/api/resources/deployment';
+	import type { Deployment, DeploymentEvent } from '$lib/api/resources/deployment';
 	import { revealElement } from '../focus-failure';
 	import { formatDate } from '$lib/utils/date';
 	import {
@@ -16,15 +20,26 @@
 		LOG_RETENTION_DAYS
 	} from '../deployment-logs';
 	import { formatLogTime, TERMINAL_STATUSES } from '../deployment-presentation';
+	import { classifyLogLines, getFailureWindow, type LogLevel } from '../log-classification';
+	import {
+		filterLogLines,
+		logDownloadFileName,
+		parseLinePermalink,
+		linePermalinkHash
+	} from '../log-tools';
 	import { useDeploymentLogs } from '../use-deployment-logs.svelte';
 	import DeploymentLogConsole from './DeploymentLogConsole.svelte';
 
 	type Props = {
 		projectId: string;
 		deployment: Deployment;
+		/** The agent's stage events, which place the failed stage in time. */
+		events?: readonly DeploymentEvent[];
+		/** For the downloaded file's name. */
+		projectName?: string;
 	};
 
-	let { projectId, deployment }: Props = $props();
+	let { projectId, deployment, events = [], projectName = 'proyek' }: Props = $props();
 
 	const isTerminal = $derived(TERMINAL_STATUSES.has(deployment.status));
 
@@ -40,6 +55,35 @@
 		return start ? formatDate(start) : null;
 	});
 
+	const failureWindow = $derived(getFailureWindow(deployment, events));
+	const levels = $derived.by(() => {
+		const byLine = new SvelteMap<number, LogLevel>();
+		const classified = classifyLogLines(logs.lines, failureWindow);
+		logs.lines.forEach((line, index) => byLine.set(line.sequence, classified[index]));
+		return byLine;
+	});
+	const errorCount = $derived([...levels.values()].filter((level) => level === 'error').length);
+
+	let query = $state('');
+	let errorsOnly = $state(false);
+	const filtering = $derived(errorsOnly || query.trim() !== '');
+	const visibleLines = $derived(
+		filterLogLines(logs.lines, { query, errorsOnly, levelOf: (line) => levels.get(line.sequence) })
+	);
+	const hiddenSequences = $derived.by(() => {
+		if (!filtering) return undefined;
+		const shown = new Set(visibleLines.map((line) => line.sequence));
+		return new Set(
+			logs.lines.filter((line) => !shown.has(line.sequence)).map((line) => line.sequence)
+		);
+	});
+	let searchInput = $state<HTMLInputElement>();
+
+	// A permalink names a line by its number in the log, which stays the same across pages.
+	let highlighted = $state<number | null>(parseLinePermalink(page.url.hash));
+	let permalinkNote = $state('');
+	let permalinkDone = false;
+
 	let section = $state<HTMLElement>();
 	let terminal = $state<DeploymentLogConsole>();
 	let copyStatus = $state('');
@@ -48,13 +92,80 @@
 
 	onMount(() => {
 		if (page.url.hash === '#deployment-logs' && section) revealElement(section);
-		return () => clearTimeout(copyTimer);
+
+		// `/` puts the cursor in the search, as on Render and Railway, unless the user is typing.
+		function handleSlash(event: KeyboardEvent) {
+			if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+			const target = event.target as HTMLElement | null;
+			if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+			if (!searchInput) return;
+			event.preventDefault();
+			searchInput.focus();
+		}
+		window.addEventListener('keydown', handleSlash);
+		return () => {
+			window.removeEventListener('keydown', handleSlash);
+			clearTimeout(copyTimer);
+		};
 	});
+
+	// Opening `#L120`: load older pages until line 120 is there, then show it.
+	$effect(() => {
+		const target = highlighted;
+		if (permalinkDone || target === null || logs.isLoading || logs.isLoadingOlder) return;
+		const lines = logs.lines;
+		if (lines.some((line) => line.sequence === target)) {
+			permalinkDone = true;
+			void tick().then(() => {
+				if (section) revealElement(section);
+				terminal?.revealLine(target);
+			});
+		} else if (lines.length > 0 && target < lines[0].sequence && logs.hasOlderPages) {
+			logs.loadOlder();
+		} else if (lines.length > 0) {
+			permalinkDone = true;
+			permalinkNote = `Baris ${target} tidak ada di log yang tersimpan.`;
+		}
+	});
+
+	function selectLine(sequence: number) {
+		highlighted = sequence;
+		permalinkDone = true;
+		permalinkNote = '';
+		const url = `${page.url.pathname}${page.url.search}${linePermalinkHash(sequence)}`;
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- this page, with a new hash
+		replaceState(url, page.state);
+	}
 
 	/** To the first error when one is loaded, otherwise to the log as a whole. */
 	export function revealError(): void {
+		query = '';
+		errorsOnly = false;
 		if (section) revealElement(section);
-		terminal?.revealFirstError();
+		void tick().then(() => terminal?.revealFirstError());
+	}
+
+	/** The loaded lines of the stage that failed, oldest first, for the failure summary. */
+	export function failureStageLines() {
+		const window = failureWindow;
+		if (!window) return [];
+		return logs.lines.filter((line) => {
+			const time = Date.parse(line.recorded_at);
+			return time >= window.start && time <= window.end;
+		});
+	}
+
+	function handleDownload() {
+		const text = formatLogsForClipboard(logs.lines, formatLogTime);
+		const url = URL.createObjectURL(new Blob([`${text}\n`], { type: 'text/plain;charset=utf-8' }));
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = logDownloadFileName(projectName, deployment.sequence);
+		link.click();
+		URL.revokeObjectURL(url);
+		copyStatus = `${logs.lines.length} baris diunduh`;
+		clearTimeout(copyTimer);
+		copyTimer = setTimeout(() => (copyStatus = ''), 4000);
 	}
 
 	async function handleCopy() {
@@ -77,14 +188,49 @@
 </script>
 
 {#snippet toolbar()}
+	<!-- One row where the terminal is wide, wrapping on narrow screens, so the log keeps its height. -->
 	<div
-		class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/10 py-1.5 pr-1.5 pl-3 font-sans sm:pl-4"
+		class="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-white/10 py-1.5 pr-1.5 pl-3 font-sans sm:pl-4"
 	>
 		<h2 id="deployment-logs-title" class="font-sans text-sm text-terminal-text">Log</h2>
-		<span role="status" class="min-w-0 flex-1 text-xs text-terminal-muted">{copyStatus}</span>
+		<span role="status" class="min-w-0 flex-1 basis-0 truncate text-xs text-terminal-muted">
+			{copyStatus ||
+				permalinkNote ||
+				(filtering ? `${visibleLines.length} dari ${logs.lines.length} baris` : '')}
+		</span>
 
 		{#if logs.lines.length > 0}
-			<div class="flex items-center gap-1.5">
+			<div class="relative min-w-0 flex-1 basis-40 sm:max-w-56">
+				<MagnifyingGlass
+					size={14}
+					class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-terminal-muted"
+					aria-hidden="true"
+				/>
+				<label for="log-search" class="sr-only">Cari di log</label>
+				<input
+					id="log-search"
+					bind:this={searchInput}
+					bind:value={query}
+					type="search"
+					autocomplete="off"
+					spellcheck="false"
+					placeholder="Cari (tekan /)"
+					class="min-h-control-sm w-full rounded-control border border-white/25 bg-transparent py-1 pr-2 pl-8 font-mono text-xs text-terminal-text placeholder:text-terminal-muted focus:border-white focus:outline-white max-lg:min-h-control-lg"
+				/>
+			</div>
+			<div class="flex flex-wrap items-center gap-1.5">
+				<Button
+					variant="terminal"
+					size="sm"
+					aria-pressed={errorsOnly}
+					onclick={() => (errorsOnly = !errorsOnly)}
+					class={errorsOnly ? 'bg-white/15' : ''}
+				>
+					{#if errorsOnly}
+						<Check size={14} weight="bold" aria-hidden="true" />
+					{/if}
+					Hanya error{errorCount > 0 ? ` (${errorCount})` : ''}
+				</Button>
 				{#if !isTerminal}
 					<Button
 						variant="terminal"
@@ -105,13 +251,26 @@
 					size="sm"
 					onclick={handleCopy}
 					title="Menyalin baris yang sudah dimuat"
+					aria-label="Salin log"
 				>
 					{#if copied}
 						<Check size={14} weight="bold" aria-hidden="true" />
 					{:else}
 						<Copy size={14} aria-hidden="true" />
 					{/if}
-					Salin log
+					<span class="max-2xl:sr-only">Salin log</span>
+				</Button>
+				<Button
+					variant="terminal"
+					size="sm"
+					onclick={handleDownload}
+					aria-label="Unduh .txt"
+					title={logs.hasOlderPages
+						? 'Mengunduh baris yang sudah dimuat. Muat log sebelumnya dulu untuk menyertakan semuanya.'
+						: 'Mengunduh seluruh log sebagai .txt'}
+				>
+					<DownloadSimple size={14} aria-hidden="true" />
+					<span class="max-2xl:sr-only">Unduh .txt</span>
 				</Button>
 			</div>
 		{/if}
@@ -128,7 +287,11 @@
 	<div class="min-h-0 flex-1">
 		<DeploymentLogConsole
 			bind:this={terminal}
-			lines={logs.lines}
+			lines={filtering && visibleLines.length === 0 ? [] : logs.lines}
+			{hiddenSequences}
+			{levels}
+			{highlighted}
+			onSelectLine={selectLine}
 			labelledBy="deployment-logs-title"
 			bind:following={() => logs.following, (value) => (logs.following = value)}
 			paused={logs.paused}
@@ -142,7 +305,20 @@
 			{toolbar}
 		>
 			<div class="font-sans text-sm text-terminal-text">
-				{#if logs.isLoading}
+				{#if logs.lines.length > 0 && filtering}
+					<p class="font-semibold">
+						{errorsOnly && !query.trim()
+							? 'Tidak ada baris error di log ini'
+							: 'Tidak ada baris yang cocok'}
+					</p>
+					<p class="mt-1 text-terminal-muted">
+						{errorsOnly && !query.trim()
+							? failureWindow
+								? 'Sakala tidak menemukan baris error di tahap yang gagal. Lihat semua baris, terutama bagian akhirnya.'
+								: 'Deployment ini tidak gagal. Baris stderr biasanya hanya laporan proses, bukan error.'
+							: 'Ubah kata pencarian, atau matikan Hanya error.'}
+					</p>
+				{:else if logs.isLoading}
 					<p role="status">Memuat log...</p>
 				{:else if logs.error}
 					<p class="font-semibold">Log belum bisa dimuat</p>

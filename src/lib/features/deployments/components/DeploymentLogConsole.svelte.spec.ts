@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { tick } from 'svelte';
 import DeploymentLogConsoleTestHost from './DeploymentLogConsoleTestHost.svelte';
+import type { LogLevel } from '../log-classification';
 import type { DeploymentLogLine } from '../deployment-logs';
 
 function makeLines(count: number, start = 1): DeploymentLogLine[] {
@@ -49,22 +50,59 @@ describe('DeploymentLogConsole', () => {
 		expect((window as unknown as { __xss?: number }).__xss).toBeUndefined();
 	});
 
-	it('labels stderr and system with text, and tints stderr apart from stdout', async () => {
+	it('labels stderr and system with text, and keeps stderr the colour of stdout', async () => {
 		await render(DeploymentLogConsoleTestHost, {
 			initialLines: [
-				{ ...makeLines(1)[0], stream: 'stderr', message: 'npm warn' },
+				{ ...makeLines(1)[0], stream: 'stderr', message: '#5 [build 2/5] RUN npm ci' },
 				{ ...makeLines(1, 2)[0], stream: 'system', message: 'container mulai' },
 				{ ...makeLines(1, 3)[0], stream: 'stdout', message: 'keluaran biasa' }
 			]
 		});
 
-		await expect.element(page.getByText('stderr', { exact: true })).toBeVisible();
-		await expect.element(page.getByText('system', { exact: true })).toBeVisible();
+		await expect.element(page.getByText('stderr', { exact: true })).toBeInTheDocument();
+		await expect.element(page.getByText('system', { exact: true })).toBeInTheDocument();
 		await expect.element(page.getByText('stdout', { exact: true })).not.toBeInTheDocument();
 
-		const stderrMessage = page.getByText('npm warn').element();
+		// Tools write normal progress to stderr; only an error level changes the colour.
+		const stderrMessage = page.getByText('#5 [build 2/5] RUN npm ci').element();
 		const stdoutMessage = page.getByText('keluaran biasa').element();
-		expect(getComputedStyle(stderrMessage).color).not.toBe(getComputedStyle(stdoutMessage).color);
+		expect(getComputedStyle(stderrMessage).color).toBe(getComputedStyle(stdoutMessage).color);
+		expect(logElement().querySelector('[data-level="error"]')).toBeNull();
+	});
+
+	it('marks an error line with an icon and the word error, a warning with warn', async () => {
+		const [error, warning, normal] = [1, 2, 3].map((n) => ({
+			...makeLines(1, n)[0],
+			stream: 'stderr' as const,
+			message: `baris ${n}`
+		}));
+		await render(DeploymentLogConsoleTestHost, {
+			initialLines: [error, warning, normal],
+			levels: new Map<number, LogLevel>([
+				[error.sequence, 'error'],
+				[warning.sequence, 'warning']
+			])
+		});
+
+		const row = (sequence: number) =>
+			logElement().querySelector<HTMLElement>(`[data-sequence="${sequence}"]`)!;
+		expect(row(error.sequence).dataset.level).toBe('error');
+		expect(row(error.sequence).textContent).toContain('error');
+		expect(row(error.sequence).querySelector('svg')).not.toBeNull();
+		expect(row(warning.sequence).textContent).toContain('warn');
+		const colour = (sequence: number) =>
+			getComputedStyle(row(sequence).lastElementChild as Element).color;
+		expect(colour(error.sequence)).not.toBe(colour(normal.sequence));
+		expect(colour(warning.sequence)).not.toBe(colour(normal.sequence));
+		expect(colour(warning.sequence)).not.toBe(colour(error.sequence));
+	});
+
+	it('links each line number to its permalink', async () => {
+		await render(DeploymentLogConsoleTestHost, { initialLines: makeLines(3) });
+
+		await expect
+			.element(page.getByRole('link', { name: 'Tautan ke baris 2' }))
+			.toHaveAttribute('href', '#L2');
 	});
 
 	it('wraps a long unbroken line instead of scrolling sideways', async () => {

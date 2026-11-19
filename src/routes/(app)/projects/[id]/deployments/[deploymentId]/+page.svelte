@@ -31,6 +31,8 @@
 	import DeploymentLiveAnnouncement from '$lib/components/feedback/DeploymentLiveAnnouncement.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import OnboardingSourcePrompt from '$lib/features/onboarding/components/OnboardingSourcePrompt.svelte';
+	import { buildFailureSummary } from '$lib/features/deployments/failure-summary';
+	import { copyWithToast } from '$lib/utils/clipboard';
 
 	const detail = useDeploymentDetail(
 		() => page.params.id ?? '',
@@ -86,6 +88,21 @@
 	);
 
 	let logPanel = $state<DeploymentLogPanel>();
+
+	const FAILURE_SUMMARY_COPY_MESSAGES = {
+		success: 'Ringkasan error disalin. Periksa dulu sebelum dibagikan.',
+		failure: 'Browser menolak akses clipboard. Coba lagi, atau salin dari log secara manual.'
+	};
+
+	function copyFailureSummary() {
+		if (!detail.deployment) return;
+		const text = buildFailureSummary({
+			projectName: detail.project?.name ?? 'proyek',
+			deployment: detail.deployment,
+			stageLines: logPanel?.failureStageLines() ?? []
+		});
+		void copyWithToast(text, FAILURE_SUMMARY_COPY_MESSAGES);
+	}
 	// Below 1024 px the log comes first, and the rest folds away until asked for.
 	let detailsOpen = $state(false);
 
@@ -191,6 +208,7 @@
 			{firstLiveProjectName}
 			{projectHref}
 			onViewError={() => logPanel?.revealError()}
+			onCopySummary={copyFailureSummary}
 			onRedeploy={projectState?.showRedeploy === false || access.readOnly
 				? undefined
 				: redeploy.trigger}
@@ -306,6 +324,8 @@
 						bind:this={logPanel}
 						projectId={page.params.id ?? ''}
 						deployment={detail.deployment}
+						events={detail.events}
+						projectName={detail.project?.name}
 					/>
 				{/key}
 			</div>

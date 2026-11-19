@@ -4,6 +4,23 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- "Salin ringkasan error" on a failed deployment, next to "Lihat error di log". It copies plain Indonesian text that reads on its own in a chat: project, deployment number, branch and commit, the stage, failure code, summary, the fix hint, the detail, and up to the last 30 stderr lines of the failing stage (no stdout), each line with its time. Everything passes through a redaction step that masks URLs with a password, `NAME=value` with a secret-sounding name, bearer tokens, private keys, and GitHub, Stripe, Slack, AWS, Google, JWT, and Laravel keys, and the text ends with "Periksa dulu sebelum dibagikan", which the toast repeats.
+- Log tools in the deployment log: a search field (`/` focuses it, case-insensitive) with "x dari y baris", "Hanya error" with the number of error lines, line numbers in the gutter that link to `#L<n>` (clicking puts the permalink in the address; opening one loads older pages until that line is there, then scrolls to it and highlights it), and "Unduh .txt", which saves the loaded log as `<proyek>-deployment-<nomor>.txt`. The toolbar stays one row on a 1280 px screen (copy and download are icon buttons with names below 1536 px) and wraps on narrow screens.
+- Email column in notification settings (requires sakala-api with `email` in `notification-preferences`, gmedia/sakala-api#177): every category has a "Lonceng" switch, and Deployment berhasil, Deployment gagal, and Masalah proyek also have an "Email" switch; Tim and Keamanan akun say "Email penting selalu dikirim". An API without `email` reads as its defaults (success off, failure and problems on).
+- `/notifications/unsubscribe`, the public page behind the unsubscribe link in Sakala emails. It names the category in Indonesian and changes nothing until "Ya, matikan email ini" is pressed, because mail scanners open every link. It then posts the query string exactly as received to `api/v1/public/notifications/unsubscribe`, without cookies or CSRF (`apiRequest` gains `anonymous`), and explains each answer: done (with a link to the settings when signed in), invalid link (403, also for a link missing its signature, without asking the API), deleted account (404), a category without email (422), and too many requests (429, with the wait when the API sends it).
+
+### Changed
+
+- Log lines are no longer red because they are on stderr. git, BuildKit, Railpack, npm, and composer write normal progress to stderr, so a successful deploy looked failed. Now a line is red only in a failed deployment, inside the stage that failed (from `failure.stage` and the stage events), when it says error in words, plus that stage's last stderr line; it also gets an icon and the word "error" and a thin rule at its edge, never a coloured block. Lines that say "warn" or "warning" get a muted amber (`--color-terminal-warning`, 8.49:1 on the terminal) and the label "warn". stderr otherwise reads like stdout, with "stderr" as a quiet label. "Lihat error di log" goes to the first error line by the same rule, and "Hanya error" keeps exactly the red lines.
+- Notification switches save as soon as they move, with "Tersimpan" or the reason beside the row, and move back if the API refuses; "Simpan perubahan" is gone. "Aktifkan semua notifikasi" is now "Semua notifikasi lonceng" and leaves email alone. The switch markup is one `Switch` component, which `ToggleField` now uses.
+- The Metrik readout under each chart names its point: "Titik: terbaru, 19 Nov, 11.00" off the chart, or the hovered time, and calls that point's maximum "Puncak". "Tertinggi" was the same word as the summary's highest value over the whole range, so the two seemed to disagree.
+
+### Fixed
+
+- The large charts on the Metrik tab drew no time or value labels and no gridlines. Their axes passed `space: undefined` and `incrs: undefined` to uPlot, and an explicit `undefined` replaces uPlot's default, so no ticks were computed. The compact charts on Ringkasan passed numbers, which is why they were fine.
+
 ### Security
 
 - The image build now finds the inline scripts it hashes for the Content-Security-Policy with parse5, a spec-compliant HTML parser, instead of a regular expression. A closing tag such as `</script >` or a `<script>` inside a comment can no longer make the hashed scripts differ from the ones the browser runs (code scanning alert #1, `js/bad-tag-filter`). The policy for today's build output is unchanged.

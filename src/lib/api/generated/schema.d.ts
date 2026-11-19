@@ -1128,6 +1128,31 @@ export interface paths {
         patch: operations["v1.app.notification-preferences.update"];
         trace?: never;
     };
+    "/v1/public/notifications/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Opening the link changes nothing: link scanners in school and office
+         *     mailboxes open every link, and must not switch off failure emails. It
+         *     sends the reader to the console page that asks before it POSTs
+         */
+        get: operations["v1.public.notifications.unsubscribe.show"];
+        put?: never;
+        /**
+         * Turns off this category's email for the user the signed link names, without a session. Mail clients call it
+         *     as the RFC 8058 one-click unsubscribe, and the console confirmation page calls it with the same query
+         */
+        post: operations["v1.public.notifications.unsubscribe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/onboarding/source": {
         parameters: {
             query?: never;
@@ -2013,6 +2038,9 @@ export interface components {
                 onboarding_role: "developer" | "devops" | "architect" | "student" | "mentor" | "other" | null;
                 onboarding_completed_at: string | null;
                 notification_preferences: {
+                    [key: string]: boolean;
+                };
+                notification_email_preferences: {
                     [key: string]: boolean;
                 };
                 last_login_at: string | null;
@@ -3358,6 +3386,18 @@ export interface components {
              *     sent regardless, since they are the invitation itself.
              */
             workspace: boolean;
+            /**
+             * @description Email, independent of the in-app switch above. Only categories that can be emailed are listed:
+             *     `account_security` and `workspace` have no email preference.
+             */
+            email: {
+                /** @description Default false: a success is only worth a glance at the bell. */
+                deployment_success: boolean;
+                /** @description Default true. */
+                deployment_failure: boolean;
+                /** @description Default true. A crash of the running app, or a push that auto-deploy skipped. */
+                project_issue: boolean;
+            };
         };
         /** NotificationResource */
         NotificationResource: {
@@ -3373,6 +3413,13 @@ export interface components {
             workspace_id: string | null;
             read_at: string | null;
             created_at: string | null;
+        };
+        /** NotificationUnsubscribeResource */
+        NotificationUnsubscribeResource: {
+            /** @enum {string} */
+            category: "deployment_success" | "deployment_failure" | "project_issue";
+            /** @description Always false: email for this category is now off. */
+            email: boolean;
         };
         /**
          * OnboardingProfile
@@ -3917,6 +3964,16 @@ export interface components {
         UnreadNotificationCountResource: {
             count: number;
         };
+        /**
+         * UnsubscribeNotificationEmailRequest
+         * @description The query of a signed unsubscribe link. The `signed` middleware has already
+         *     proved it came from an email Sakala sent; there is no session to check.
+         */
+        UnsubscribeNotificationEmailRequest: {
+            user: number;
+            /** @enum {string} */
+            category: "deployment_success" | "deployment_failure" | "project_issue";
+        };
         /** UnsuspendProjectRequest */
         UnsuspendProjectRequest: {
             reason: string;
@@ -3951,6 +4008,11 @@ export interface components {
             project_issue?: boolean;
             account_security?: boolean;
             workspace?: boolean;
+            email?: {
+                deployment_success?: boolean;
+                deployment_failure?: boolean;
+                project_issue?: boolean;
+            };
         };
         /** UpdateProfileRequest */
         UpdateProfileRequest: {
@@ -6788,6 +6850,80 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "v1.public.notifications.unsubscribe.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "v1.public.notifications.unsubscribe": {
+        parameters: {
+            query: {
+                /** @description The category whose email to turn off. */
+                category: "deployment_success" | "deployment_failure" | "project_issue";
+                /** @description The account the link was sent to. */
+                user: number;
+                /** @description HMAC of the link. Forward the query string unchanged: order and encoding are signed. */
+                signature: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnsubscribeNotificationEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description `NotificationUnsubscribeResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["NotificationUnsubscribeResource"];
+                    };
+                };
+            };
+            /** @description The signature does not match the link. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description The account no longer exists. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
             422: components["responses"]["ValidationException"];
         };
     };
