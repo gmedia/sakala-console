@@ -26,8 +26,17 @@ const SECRET_VALUE_PATTERNS: RegExp[] = [
 	/^base64:[A-Za-z0-9+/=]{32,}$/ // Laravel APP_KEY
 ];
 
-export function looksLikeSecret(key: string, value: string): boolean {
-	if (SECRET_KEY_PARTS.test(key) || KEY_WORD.test(key)) return true;
+/** A name frameworks give to credentials: `DB_PASSWORD`, `JWT_SECRET`, `APP_KEY`. */
+export function keyLooksLikeSecret(key: string): boolean {
+	return SECRET_KEY_PARTS.test(key) || KEY_WORD.test(key);
+}
+
+/** A value shaped like a published token format or a URL that carries a password. */
+export function valueLooksLikeSecret(value: string): boolean {
 	const trimmed = value.trim();
 	return SECRET_VALUE_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+export function looksLikeSecret(key: string, value: string): boolean {
+	return keyLooksLikeSecret(key) || valueLooksLikeSecret(value);
 }

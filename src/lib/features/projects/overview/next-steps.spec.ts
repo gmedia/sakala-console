@@ -56,6 +56,28 @@ describe('next steps', () => {
 		expect(ids(quiet({ inspection }), { ...context, variablesCount: null })).toEqual([]);
 	});
 
+	it('points at "Isi dari .env.example" once the file’s entries are known', () => {
+		const withEntries = {
+			...inspection,
+			env_example: {
+				file: '.env.example' as const,
+				entries: [{ key: 'APP_NAME', example_value: 'Kopi' }],
+				truncated: false
+			}
+		};
+		const [step] = deriveNextSteps(quiet({ inspection: withEntries }), {
+			...context,
+			variablesCount: 0
+		});
+		expect(step.action).toEqual({
+			label: 'Isi dari .env.example',
+			target: 'variables',
+			anchor: 'isi-dari-env-example'
+		});
+		const [older] = deriveNextSteps(quiet({ inspection }), { ...context, variablesCount: 0 });
+		expect(older.action).toEqual({ label: 'Buka Variabel', target: 'variables' });
+	});
+
 	it('suggests a release command for Laravel without one, with the command and the guide', () => {
 		const [step] = deriveNextSteps(quiet({ stack: laravel }), context);
 		expect(step.id).toBe('release-command');

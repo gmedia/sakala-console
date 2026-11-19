@@ -9,6 +9,8 @@
 	import X from 'phosphor-svelte/lib/X';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import ClipboardText from 'phosphor-svelte/lib/ClipboardText';
+	import FileText from 'phosphor-svelte/lib/FileText';
+	import { page } from '$app/state';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { toast } from 'svelte-sonner';
@@ -27,7 +29,9 @@
 	import EnvKey from './EnvKey.svelte';
 	import VariableBuildHint from './VariableBuildHint.svelte';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
-	import EnvImportPanel from '../../env-import/EnvImportPanel.svelte';
+	import EnvImportPanel, { type EnvExampleSource } from '../../env-import/EnvImportPanel.svelte';
+	import { SUGGESTION_COPY } from '../../env-suggestions/presentation';
+	import { VARIABLES_ANCHORS } from '../../settings-anchors';
 	import { applyEnvImport } from '../../env-import/apply-env-import';
 	import { looksLikeEnvFile } from '../../env-import/parse-env-text';
 	import type { EnvImportPlan } from '../../env-import/plan-env-import';
@@ -331,19 +335,55 @@
 	let importing = $state(false);
 	let importError = $state('');
 	let importButton = $state<HTMLElement | null>();
+	let envExampleButton = $state<HTMLElement | null>();
+	/** The panel reads the repository's .env.example instead of pasted text. */
+	let importFromExample = $state(false);
+
+	// Only an inspection that read the file has entries; an older API or agent sends none.
+	const envExampleSource = $derived.by<EnvExampleSource | null>(() => {
+		const project = projectQuery.data;
+		const example = project?.inspection?.env_example;
+		if (!project || !example?.entries.length) return null;
+		return {
+			file: example.file,
+			entries: example.entries,
+			truncated: example.truncated,
+			publicUrl: project.public_url ?? null,
+			databaseProvided: (project.databases?.length ?? 0) > 0
+		};
+	});
 
 	function openImport(text = '') {
 		importText = text;
 		importError = '';
 		isAdding = false;
+		importFromExample = false;
+		importOpen = true;
+	}
+
+	function openEnvExample() {
+		importError = '';
+		isAdding = false;
+		importFromExample = true;
 		importOpen = true;
 	}
 
 	async function closeImport() {
+		const fromExample = importFromExample;
 		importOpen = false;
+		importFromExample = false;
 		await tick();
-		importButton?.focus();
+		(fromExample ? envExampleButton : importButton)?.focus();
 	}
+
+	// A link from the overview's next step (`#isi-dari-env-example`) opens the suggestions once.
+	let openedFromLink = false;
+	$effect(() => {
+		if (openedFromLink || access.readOnly || !envExampleSource) return;
+		if (page.url.hash !== `#${VARIABLES_ANCHORS.envExample}`) return;
+		openedFromLink = true;
+		openEnvExample();
+	});
 
 	/** A whole .env pasted into the name field opens the import instead of becoming one name. */
 	function handleKeyPaste(event: ClipboardEvent) {
@@ -711,9 +751,10 @@
 	{/if}
 
 	{#if importOpen && !access.readOnly}
-		<div class="mt-4">
+		<div class="mt-4" id={VARIABLES_ANCHORS.envExample}>
 			<EnvImportPanel
 				existingKeys={query.data?.map((env) => env.key) ?? []}
+				envExample={importFromExample && envExampleSource ? envExampleSource : undefined}
 				initialText={importText}
 				portNote={() => 'Ubah Port di tab Pengaturan kalau aplikasimu butuh port tertentu.'}
 				confirmLabel={(count) => `Simpan ${count} variabel`}
@@ -747,6 +788,18 @@
 				<ClipboardText size={24} weight="regular" aria-hidden="true" />
 				<span>Tempel dari .env</span>
 			</Button>
+			{#if envExampleSource}
+				<Button
+					variant="secondary"
+					size="lg"
+					class="w-full sm:flex-1"
+					bind:ref={envExampleButton}
+					onclick={openEnvExample}
+				>
+					<FileText size={24} weight="regular" aria-hidden="true" />
+					<span>{SUGGESTION_COPY.tabAction}</span>
+				</Button>
+			{/if}
 		</div>
 	{/if}
 

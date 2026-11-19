@@ -10,6 +10,7 @@ import {
 	renameDatabase,
 	rotateDatabasePassword,
 	type CreateDatabasePayload,
+	type CreateProjectDatabasePayload,
 	type Database,
 	type DatabaseExtension
 } from '$lib/api/resources/databases';
@@ -37,7 +38,7 @@ export function createCreateDatabaseMutation() {
 			payload
 		}: {
 			workspaceId: string;
-			payload: CreateDatabasePayload;
+			payload: CreateDatabasePayload | CreateProjectDatabasePayload;
 		}) => createDatabase(workspaceId, payload),
 		onSuccess: (database, { workspaceId }) => {
 			client.setQueryData(queryKeys.workspaces.database(workspaceId, database.id), database);

@@ -33,19 +33,7 @@ export const ROTATION_POLL_MS = 2_000;
 /** Longest display name the API accepts (ManagedDatabase::MAX_NAME_LENGTH). */
 export const DATABASE_NAME_MAX_LENGTH = 100;
 
-/**
- * What every attached project receives on its next deployment (DatabaseConnectionEnvironment in
- * sakala-api), in the order the API documents them.
- */
-export const DATABASE_VARIABLES = [
-	'DATABASE_URL',
-	'DB_CONNECTION',
-	'DB_HOST',
-	'DB_PORT',
-	'DB_DATABASE',
-	'DB_USERNAME',
-	'DB_PASSWORD'
-] as const;
+export { DATABASE_VARIABLES } from './variables';
 
 export const ENGINE_LABELS: Record<string, string> = { postgresql: 'PostgreSQL' };
 

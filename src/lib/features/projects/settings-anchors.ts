@@ -7,3 +7,9 @@ export const SETTINGS_ANCHORS = {
 	autoDeploy: 'auto-deploy',
 	replicas: 'replicas'
 } as const;
+
+/** Ids on the Variabel tab that other pages link to (`/projects/{id}/environments#isi-dari-env-example`). */
+export const VARIABLES_ANCHORS = {
+	/** Opens the suggestions from the repository's `.env.example`. */
+	envExample: 'isi-dari-env-example'
+} as const;
