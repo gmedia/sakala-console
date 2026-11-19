@@ -1,69 +1,195 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
 	import Bell from 'phosphor-svelte/lib/Bell';
+	import Check from 'phosphor-svelte/lib/Check';
 	import ShieldCheck from 'phosphor-svelte/lib/ShieldCheck';
 	import UsersThree from 'phosphor-svelte/lib/UsersThree';
-	import { getErrorMessage } from '$lib/api/errors';
-	import type { NotificationPreferences } from '$lib/api/resources/notifications';
+	import { SvelteMap } from 'svelte/reactivity';
+	import { getErrorMessage, getFieldError } from '$lib/api/errors';
+	import type {
+		EmailNotificationCategory,
+		NotificationCategory,
+		NotificationPreferencesChange
+	} from '$lib/api/resources/notifications';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Switch from '$lib/components/ui/Switch.svelte';
 	import { useUpdateNotificationPreferences } from '$lib/features/notifications/mutations';
 	import { createNotificationPreferencesQuery } from '$lib/features/notifications/queries';
-	import { cn } from '$lib/utils/cn';
 	import NotificationSectionCard from './NotificationSectionCard.svelte';
-	import NotificationToggleItem from './NotificationToggleItem.svelte';
 
-	type Category = keyof NotificationPreferences;
+	type Row = {
+		category: NotificationCategory;
+		title: string;
+		description: string;
+		/** Only these three can be emailed; the API sends what matters for the rest regardless. */
+		email: boolean;
+	};
 
-	const CATEGORIES: Category[] = [
-		'deployment_success',
-		'deployment_failure',
-		'project_issue',
-		'account_security',
-		'workspace'
+	const PROJECT_ROWS: Row[] = [
+		{
+			category: 'deployment_success',
+			title: 'Deployment berhasil',
+			description: 'Deployment selesai dan aplikasimu berjalan.',
+			email: true
+		},
+		{
+			category: 'deployment_failure',
+			title: 'Deployment gagal',
+			description: 'Deployment gagal sebelum aplikasimu berjalan.',
+			email: true
+		},
+		{
+			category: 'project_issue',
+			title: 'Masalah proyek',
+			description: 'Aplikasi berhenti sendiri, atau auto-deploy dilewati.',
+			email: true
+		}
 	];
+	const TEAM_ROW: Row = {
+		category: 'workspace',
+		title: 'Undangan dan keanggotaan tim',
+		description:
+			'Undangan ke emailmu, undangan yang kamu kirim diterima, serta peranmu diubah atau kamu dikeluarkan dari tim.',
+		email: false
+	};
+	const SECURITY_ROW: Row = {
+		category: 'account_security',
+		title: 'Perubahan kata sandi dan email',
+		description: 'Kabari kalau kata sandi atau email akunmu berubah.',
+		email: false
+	};
+	const BELL_CATEGORIES: NotificationCategory[] = [
+		...PROJECT_ROWS.map((row) => row.category),
+		TEAM_ROW.category,
+		SECURITY_ROW.category
+	];
+	const SAVED_NOTE_MS = 3_000;
+	const ALL_ROW = 'all';
 
 	const uid = $props.id();
-	const masterDescriptionId = `${uid}-master-description`;
 	const preferencesQuery = createNotificationPreferencesQuery();
 	const updatePreferences = useUpdateNotificationPreferences();
+	const current = $derived(preferencesQuery.data);
+	const allBellEnabled = $derived(
+		current ? BELL_CATEGORIES.every((category) => current[category]) : false
+	);
 
-	/** Unsaved edits on top of what the API returned. */
-	let edits = $state<Partial<NotificationPreferences>>({});
-	let justSaved = $state(false);
+	type Feedback = { kind: 'saving' | 'saved' } | { kind: 'error'; message: string };
+	/** Keyed by row and channel, so the note sits next to the switch that moved. */
+	const feedback = new SvelteMap<string, Feedback>();
+	/** Not state: only clears the note it set. */
+	const timers: Record<string, ReturnType<typeof setTimeout>> = {};
 
-	const saved = $derived(preferencesQuery.data);
-	const current = $derived(saved ? { ...saved, ...edits } : null);
-	const changes = $derived.by(() => {
-		const result: Partial<NotificationPreferences> = {};
-		if (!saved || !current) return result;
-		for (const category of CATEGORIES) {
-			if (current[category] !== saved[category]) result[category] = current[category];
+	function errorFor(error: unknown, fields: string[]): string {
+		for (const field of fields) {
+			const message = getFieldError(error, field);
+			if (message) return message;
 		}
-		return result;
-	});
-	const isDirty = $derived(Object.keys(changes).length > 0);
-	const allEnabled = $derived(current ? CATEGORIES.every((category) => current[category]) : false);
-
-	function setCategory(category: Category, value: boolean) {
-		justSaved = false;
-		edits = { ...edits, [category]: value };
+		return getErrorMessage(error, 'Belum tersimpan, jadi pengaturannya dikembalikan. Coba lagi.');
 	}
 
-	function toggleAll() {
-		justSaved = false;
-		const next = !allEnabled;
-		edits = Object.fromEntries(CATEGORIES.map((category) => [category, next]));
+	async function save(noteKey: string, change: NotificationPreferencesChange, fields: string[]) {
+		clearTimeout(timers[noteKey]);
+		feedback.set(noteKey, { kind: 'saving' });
+		try {
+			await updatePreferences.mutateAsync(change);
+			feedback.set(noteKey, { kind: 'saved' });
+			timers[noteKey] = setTimeout(() => feedback.delete(noteKey), SAVED_NOTE_MS);
+		} catch (error) {
+			feedback.set(noteKey, { kind: 'error', message: errorFor(error, fields) });
+		}
 	}
 
-	function handleSave() {
-		if (!isDirty) return;
-		updatePreferences.mutate(changes, {
-			onSuccess: () => {
-				edits = {};
-				justSaved = true;
-			}
-		});
+	function toggleBell(category: NotificationCategory) {
+		if (!current) return;
+		void save(category, { [category]: !current[category] }, [category]);
+	}
+
+	function toggleEmail(category: EmailNotificationCategory) {
+		if (!current) return;
+		void save(category, { email: { [category]: !current.email[category] } }, [
+			`email.${category}`,
+			'email'
+		]);
+	}
+
+	function toggleAllBell() {
+		const next = !allBellEnabled;
+		void save(
+			ALL_ROW,
+			Object.fromEntries(BELL_CATEGORIES.map((category) => [category, next])),
+			BELL_CATEGORIES
+		);
 	}
 </script>
+
+{#snippet note(noteKey: string)}
+	{@const state = feedback.get(noteKey)}
+	<p class="mt-1 min-h-4 text-xs" aria-live="polite">
+		{#if state?.kind === 'saved'}
+			<span class="inline-flex items-center gap-1 text-primary-dark">
+				<Check size={12} weight="bold" aria-hidden="true" />
+				Tersimpan
+			</span>
+		{:else if state?.kind === 'saving'}
+			<span class="text-muted">Menyimpan...</span>
+		{:else if state?.kind === 'error'}
+			<span class="text-error-dark" role="alert">{state.message}</span>
+		{/if}
+	</p>
+{/snippet}
+
+{#snippet row(item: Row)}
+	{@const descriptionId = `${uid}-${item.category}-description`}
+	<div
+		class="grid gap-x-4 gap-y-2 py-3 sm:grid-cols-[minmax(0,1fr)_5rem_7.5rem] sm:items-start"
+		data-testid="notification-row-{item.category}"
+	>
+		<div class="min-w-0">
+			<p class="text-sm font-semibold text-foreground">{item.title}</p>
+			<p id={descriptionId} class="mt-0.5 text-xs text-muted">{item.description}</p>
+			{@render note(item.category)}
+		</div>
+		{#if current}
+			<div class="flex items-center gap-2 sm:justify-center sm:pt-0.5">
+				<span class="w-16 shrink-0 text-xs text-muted sm:hidden" aria-hidden="true">Lonceng</span>
+				<Switch
+					label={`Lonceng: ${item.title}`}
+					describedBy={descriptionId}
+					checked={current[item.category]}
+					busy={feedback.get(item.category)?.kind === 'saving'}
+					onToggle={() => toggleBell(item.category)}
+				/>
+			</div>
+			<div class="flex items-center gap-2 sm:justify-center sm:pt-0.5">
+				<span class="w-16 shrink-0 text-xs text-muted sm:hidden" aria-hidden="true">Email</span>
+				{#if item.email}
+					{@const category = item.category as EmailNotificationCategory}
+					<Switch
+						label={`Email: ${item.title}`}
+						describedBy={descriptionId}
+						checked={current.email[category]}
+						busy={feedback.get(category)?.kind === 'saving'}
+						onToggle={() => toggleEmail(category)}
+					/>
+				{:else}
+					<p class="text-xs text-muted sm:text-center">Email penting selalu dikirim</p>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet columns()}
+	<!-- The switches name their channel themselves; these headings are for the eye. -->
+	<div
+		class="hidden gap-x-4 pb-1 text-xs font-semibold text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_5rem_7.5rem]"
+		aria-hidden="true"
+	>
+		<span></span>
+		<span class="text-center">Lonceng</span>
+		<span class="text-center">Email</span>
+	</div>
+{/snippet}
 
 {#if preferencesQuery.isPending}
 	<p class="py-12 text-center text-sm text-muted" role="status">Memuat pengaturan notifikasi...</p>
@@ -76,90 +202,43 @@
 	</div>
 {:else}
 	<div class="space-y-6">
-		<div class="surface-card flex items-center justify-between gap-4 p-6">
-			<div>
-				<h2 class="font-sans text-base font-semibold text-foreground">Aktifkan semua notifikasi</h2>
-				<p id={masterDescriptionId} class="mt-0.5 text-xs text-muted">
-					Mengatur notifikasi di lonceng Sakala, bukan email. Kategori yang dimatikan tidak membuat
-					notifikasi sama sekali.
-				</p>
-			</div>
+		<p class="text-sm text-foreground">
+			Lonceng adalah notifikasi di Console. Email dikirim ke alamat akunmu, supaya kamu tetap tahu
+			saat Console tidak dibuka. Setiap perubahan langsung tersimpan.
+		</p>
 
-			<button
-				type="button"
-				role="switch"
-				aria-label="Aktifkan semua notifikasi"
-				aria-checked={allEnabled}
-				aria-describedby={masterDescriptionId}
-				onclick={toggleAll}
-				class={cn(
-					'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2 focus-visible:outline-none',
-					allEnabled ? 'bg-primary-dark' : 'bg-muted'
-				)}
-			>
-				<span
-					class={cn(
-						'pointer-events-none inline-block size-5 transform rounded-full bg-surface ring-0 transition duration-200 ease-in-out',
-						allEnabled ? 'translate-x-5' : 'translate-x-0'
-					)}
-				></span>
-			</button>
+		<div class="surface-card flex items-start justify-between gap-4 p-6">
+			<div>
+				<h2 class="font-sans text-base font-semibold text-foreground">Semua notifikasi lonceng</h2>
+				<p id="{uid}-master-description" class="mt-0.5 text-xs text-muted">
+					Menyalakan atau mematikan semua kategori di lonceng sekaligus. Email diatur per kategori.
+				</p>
+				{@render note(ALL_ROW)}
+			</div>
+			<Switch
+				label="Semua notifikasi lonceng"
+				describedBy="{uid}-master-description"
+				checked={allBellEnabled}
+				busy={feedback.get(ALL_ROW)?.kind === 'saving'}
+				onToggle={toggleAllBell}
+			/>
 		</div>
 
 		<NotificationSectionCard title="Aktivitas proyek" icon={Bell}>
-			<NotificationToggleItem
-				title="Deployment berhasil"
-				description="Deployment selesai dan aplikasimu berjalan."
-				checked={current.deployment_success}
-				onToggle={() => setCategory('deployment_success', !current.deployment_success)}
-			/>
-			<NotificationToggleItem
-				title="Deployment gagal"
-				description="Deployment gagal sebelum aplikasimu berjalan."
-				checked={current.deployment_failure}
-				onToggle={() => setCategory('deployment_failure', !current.deployment_failure)}
-			/>
-			<NotificationToggleItem
-				title="Masalah proyek"
-				description="Aplikasi berhenti sendiri, atau auto-deploy dilewati."
-				checked={current.project_issue}
-				onToggle={() => setCategory('project_issue', !current.project_issue)}
-			/>
+			{@render columns()}
+			{#each PROJECT_ROWS as item (item.category)}
+				{@render row(item)}
+			{/each}
 		</NotificationSectionCard>
 
 		<NotificationSectionCard title="Tim" icon={UsersThree}>
-			<NotificationToggleItem
-				title="Undangan dan keanggotaan tim"
-				description="Undangan ke emailmu, undangan yang kamu kirim diterima, serta peranmu diubah atau kamu dikeluarkan dari tim. Email undangan tetap dikirim."
-				checked={current.workspace}
-				onToggle={() => setCategory('workspace', !current.workspace)}
-			/>
+			{@render columns()}
+			{@render row(TEAM_ROW)}
 		</NotificationSectionCard>
 
 		<NotificationSectionCard title="Keamanan akun" icon={ShieldCheck}>
-			<NotificationToggleItem
-				title="Perubahan kata sandi dan email"
-				description="Kabari kalau kata sandi atau email akunmu berubah."
-				checked={current.account_security}
-				onToggle={() => setCategory('account_security', !current.account_security)}
-			/>
+			{@render columns()}
+			{@render row(SECURITY_ROW)}
 		</NotificationSectionCard>
-
-		<div class="flex flex-col items-end gap-2 pt-2">
-			{#if updatePreferences.isError}
-				<p class="text-xs text-error-base" role="alert">
-					{getErrorMessage(updatePreferences.error, 'Gagal menyimpan. Coba lagi.')}
-				</p>
-			{:else if justSaved}
-				<p class="text-xs text-primary-dark" role="status">Pengaturan notifikasi tersimpan.</p>
-			{/if}
-			<Button
-				class="w-full md:w-auto"
-				onclick={handleSave}
-				disabled={!isDirty || updatePreferences.isPending}
-			>
-				{updatePreferences.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
-			</Button>
-		</div>
 	</div>
 {/if}

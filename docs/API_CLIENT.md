@@ -101,6 +101,10 @@ Alur lengkap referensi berada di:
 
 `GET /deployments/{id}/logs?order=desc&per_page=200` mengembalikan baris terbaru lebih dulu, dan `next_cursor` berjalan mundur ke baris yang lebih lama. `features/deployments/use-deployment-logs.svelte.ts` memakai bentuk ini, jadi baris terakhir log yang gagal tampil dari satu request, sepanjang apa pun lognya. Baris lama dimuat kalau user memintanya. Cache menyimpan paling banyak 10 halaman (2.000 baris).
 
+Satu baris dari API hanya punya `sequence`, `stream` (`stdout`, `stderr`, `system`), `message`, dan `recorded_at`, tanpa level. `stderr` bukan error: git, BuildKit, Railpack, npm, dan composer menulis progres biasa ke sana, sehingga log deployment yang berhasil sebagian besar `stderr`. Karena itu level baris ditentukan di `features/deployments/log-classification.ts` dari deployment-nya: baris hanya `error` kalau deployment gagal, waktunya ada di jendela tahap yang gagal (dari `failure.stage` dan event tahap agent, lalu `finished_at` ditambah 30 detik toleransi jam), dan isinya menyebut error (`error`, `ERR!`, `fatal`, `failed`, `failure`, `exception`, `traceback`, `panic` sebagai kata), ditambah baris `stderr` terakhir di jendela itu. `warning` hanya untuk baris yang menyebut `warn` atau `warning` sebagai kata. Baris `system` dari agent tidak pernah error. Warna, label (ikon dan kata `error`, atau `warn`), filter "Hanya error", "Lihat error di log", dan "Salin ringkasan error" memakai klasifikasi yang sama. Daftar kata itu heuristik, dan sebaiknya diganti level per baris kalau agent nanti mengirimnya.
+
+Alat log bekerja pada baris yang sudah dimuat: pencarian tanpa membedakan huruf besar (`/` memfokuskan field-nya), "Hanya error", tautan baris `#L<sequence>` (nomor di gutter adalah `sequence` log, jadi tetap sama antarhalaman; membuka tautan memuat halaman lama sampai barisnya ada), dan "Unduh .txt" (`<proyek>-deployment-<nomor>.txt`). Log dibatasi 2.000 baris di browser, jadi daftar tidak divirtualisasi.
+
 Event `deployment.log.created` membawa isi barisnya. `log_sequence` sama dengan `sequence` di GET, jadi itu kunci dedupe terhadap history, sedangkan `sequence` di payload adalah penghitung realtime milik deployment dan tidak dipakai untuk baris. Baris masuk ke cache tanpa request. Tail baru dibaca ulang kalau `log_sequence` melompat, saat deployment selesai, atau selama realtime tidak terhubung (tiap 5 detik). Semua request ini ikut `throttle:api`, 60 request per menit per user.
 
 ## Notifikasi
@@ -109,7 +113,9 @@ Notifikasi hanya berasal dari `sakala-api`, tanpa data contoh. Lonceng membaca `
 
 `useNotificationsLive()` mengikuti event `notification.created` pada channel `users.{id}`, dan event itu membuat query notifikasi dibaca ulang, begitu juga saat realtime tersambung kembali. Polling menjadi cadangannya: 60 detik tanpa realtime dan 5 menit dengan realtime.
 
-Preferensi di `app/notification-preferences` punya empat kategori, sehingga pengaturan di console juga hanya empat.
+Preferensi di `app/notification-preferences` punya lima kategori lonceng (boolean datar) dan objek `email` untuk tiga kategori yang bisa diemail (`deployment_success`, `deployment_failure`, `project_issue`; gmedia/sakala-api#177). API sebelum email tidak mengirim `email`, dan schema mengisinya dengan default API (`false`, `true`, `true`). Halaman Notifikasi menampilkan dua kolom, Lonceng dan Email; `account_security` dan `workspace` menulis "Email penting selalu dikirim". Setiap switch langsung disimpan dengan `PATCH` sebagian (misalnya `{ "email": { "deployment_success": true } }`): switch bergerak dulu, kembali kalau API menolak, dan error `422` di `email.<kategori>` tampil di baris itu.
+
+`/notifications/unsubscribe` adalah halaman publik untuk tautan berhenti berlangganan di email (GET API mengarah ke sini). Halaman itu tidak mengubah apa pun sampai dikonfirmasi, lalu mengirim `POST api/v1/public/notifications/unsubscribe` dengan query string persis seperti yang diterima, tanpa cookie, cookie CSRF, maupun `X-XSRF-TOKEN` (`apiRequest` dengan `anonymous: true`). `403`, `404`, `422`, dan `429` punya pesan masing-masing.
 
 ## Wizard Create Project
 

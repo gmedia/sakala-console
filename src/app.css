@@ -47,8 +47,11 @@
 	--color-terminal: #1e1e1d;
 	--color-terminal-text: #e2e8f0;
 	--color-terminal-muted: #a2a2a2;
-	/* stderr. Pale, so a long error stays readable, and never the only sign: the line is labelled too. */
+	/* Error lines only, never stderr as such. Pale, so a long error stays readable, and never the only
+	   sign: the line also gets an icon and the word "error". */
 	--color-terminal-error: #fca5a5;
+	/* Lines that say "warning". Muted amber, quieter than an error, and labelled "warn" too. */
+	--color-terminal-warning: #d9b46a;
 	--color-white: #ffffff;
 	--color-scrim: #17211b;
 	/*

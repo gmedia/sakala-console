@@ -77,7 +77,9 @@ test.describe('log panel (#10)', () => {
 		await expect(log).toBeVisible();
 		await expect(log.getByText('Cloning repository')).toBeVisible();
 		await expect(log).not.toContainText('\u001B');
-		await expect(log.getByText('stderr', { exact: true })).toBeVisible();
+		// "npm warn" is stderr, but labelled as the warning it is: stderr alone is not an error.
+		await expect(log.getByText('warn', { exact: true })).toBeVisible();
+		await expect(log.locator('[data-level="error"]')).toHaveCount(0);
 		await expect(log.getByText('<img src=x onerror="window.__xss=1">')).toBeVisible();
 		await expect(log.locator('img')).toHaveCount(0);
 		await expect(page.getByText('Log deployment akan tersedia')).toHaveCount(0);
@@ -354,7 +356,9 @@ test.describe('failure banner (#13)', () => {
 		await expect(page.getByText(/lihat log untuk/i)).toBeVisible();
 	});
 
-	test('"Lihat error di log" jumps to the first line written to stderr', async ({ page }) => {
+	test('"Lihat error di log" jumps to the first error line of the failed stage', async ({
+		page
+	}) => {
 		const lines = Array.from({ length: 80 }, (_, index) =>
 			logLine(index + 1, `baris ${index + 1}`)
 		);

@@ -69,10 +69,26 @@ export async function markAllNotificationsRead(): Promise<void> {
 	await apiRequest<void>('api/v1/app/notifications/read-all', { method: 'POST' });
 }
 
+/** The categories sakala-api can email (`email` in NotificationPreferenceResource, gmedia/sakala-api#177). */
+export const EMAIL_NOTIFICATION_CATEGORIES = [
+	'deployment_success',
+	'deployment_failure',
+	'project_issue'
+] as const;
+
+export type EmailNotificationCategory = (typeof EMAIL_NOTIFICATION_CATEGORIES)[number];
+
 /**
- * Written from NotificationPreferenceResource in sakala-api: the generated OpenAPI types predate
- * the `workspace` category.
+ * The API's defaults: email for failures and app problems, the bell only for a success. An API
+ * from before email notifications sends no `email`, and these are what it would have stored.
  */
+const EMAIL_DEFAULTS: Record<EmailNotificationCategory, boolean> = {
+	deployment_success: false,
+	deployment_failure: true,
+	project_issue: true
+};
+
+/** Written from NotificationPreferenceResource in sakala-api, which stays the final check. */
 const notificationPreferencesSchema = z.object({
 	deployment_success: z.boolean(),
 	deployment_failure: z.boolean(),
@@ -82,10 +98,24 @@ const notificationPreferencesSchema = z.object({
 	 * Team invitations and membership changes. Invitation emails are sent regardless. On by
 	 * default in the API, which is also what an API that does not return it yet has stored.
 	 */
-	workspace: z.boolean().default(true)
+	workspace: z.boolean().default(true),
+	email: z
+		.object({
+			deployment_success: z.boolean(),
+			deployment_failure: z.boolean(),
+			project_issue: z.boolean()
+		})
+		.default(EMAIL_DEFAULTS)
 });
 
 export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
+/** The bell categories: every flat boolean. */
+export type NotificationCategory = Exclude<keyof NotificationPreferences, 'email'>;
+
+/** `PATCH` takes any part of either channel. */
+export type NotificationPreferencesChange = Partial<Omit<NotificationPreferences, 'email'>> & {
+	email?: Partial<NotificationPreferences['email']>;
+};
 
 const preferencesResponseSchema = z.object({ data: notificationPreferencesSchema });
 
@@ -95,11 +125,28 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 }
 
 export async function updateNotificationPreferences(
-	changes: Partial<NotificationPreferences>
+	changes: NotificationPreferencesChange
 ): Promise<NotificationPreferences> {
 	const response = await apiRequest<unknown>('api/v1/app/notification-preferences', {
 		method: 'PATCH',
 		json: changes
 	});
 	return preferencesResponseSchema.parse(response).data;
+}
+
+const unsubscribeResponseSchema = z.object({
+	data: z.object({ category: z.string(), email: z.literal(false) })
+});
+
+/**
+ * Turns off one email category from a signed link, without a session. `search` is the link's
+ * query string exactly as the page received it, `?` included: the signature covers it byte for
+ * byte, so nothing here parses or rebuilds it. Sent without cookies or CSRF, as the route expects.
+ */
+export async function unsubscribeFromNotificationEmail(search: string): Promise<string> {
+	const response = await apiRequest<unknown>(`api/v1/public/notifications/unsubscribe${search}`, {
+		method: 'POST',
+		anonymous: true
+	});
+	return unsubscribeResponseSchema.parse(response).data.category;
 }
