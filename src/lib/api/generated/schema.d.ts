@@ -4141,6 +4141,19 @@ export interface components {
                 } | null;
             } | null;
             inspection_error_code: string | null;
+            /**
+             * @description What a change to the project's own variables does to the next deployment. `requires_build` is true when any
+             *     change builds (`reason` says why); false for a plain server, where only keys starting with one of
+             *     `build_time_prefixes` (case-sensitive) or equal to one of `build_time_keys` build, and the Console shows
+             *     `build_time_prefix` for such a key. An attached database's connection variables never build. See
+             *     docs/API_CONVENTIONS.md#variabel-yang-memengaruhi-build.
+             */
+            variable_changes: {
+                requires_build: boolean;
+                reason: components["schemas"]["VariableBuildReason"] | null;
+                build_time_prefixes: string[];
+                build_time_keys: string[];
+            };
             last_deployed_at: string | null;
             /**
              * @description The managed database attached to the project, as a list of at most one: a project uses one database at a
@@ -4680,6 +4693,18 @@ export interface components {
             /** Format: uri */
             repository_url: string;
         };
+        /**
+         * VariableBuildReason
+         * @description Why a change to a project variable makes the next deployment build instead of reusing the live image (VariableBuildPolicy). The first three are project-level: every variable counts. `BuildTimePrefix` is never a project-level reason; it names the per-variable reason of a plain server (BuildTimeVariable), so this enum lists every reason the Console can show.
+         *     | |
+         *     |---|
+         *     | `static_site` <br/> Served as files, without a server process: every variable is read at build. |
+         *     | `prerender_framework` <br/> A framework that can render pages at build. |
+         *     | `unknown_stack` <br/> No usable inspection, or a stack Sakala cannot classify: every variable counts, to be safe. |
+         *     | `build_time_prefix` <br/> The key is a build-time prefix or key of BuildTimeVariable. Per variable only. |
+         * @enum {string}
+         */
+        VariableBuildReason: "static_site" | "prerender_framework" | "unknown_stack" | "build_time_prefix";
         /** VerificationNotificationResource */
         VerificationNotificationResource: {
             request_accepted: boolean;

@@ -4,6 +4,20 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- The Variabel tab says what the next redeploy will do before a variable change is saved (requires gmedia/sakala-api#186, `variable_changes`). Next to the save button of adding, editing, pasting a `.env`, and deleting a variable, one calm line reads either "Cukup restart dengan image yang sama (tanpa build)." or "Perubahan ini butuh build ulang karena …" with the reason:
+  - a static site, whose output keeps the values;
+  - the framework, named when known, such as Next.js, Nuxt, Astro, or SvelteKit, which can render pages at build;
+  - the matched build-time prefix, such as `VITE_`, or `NODE_ENV`;
+  - an app Sakala cannot classify yet.
+
+  The line is the save button's accessible description. Several keys at once build if any one does. Variables from an attached database always say "tanpa build". A project without a live image gets no restart promise. An API without the field only names the old build-time prefixes.
+
+### Changed
+
+- The Redeploy menu now explains reuse without listing prefixes: it reuses the live image when the commit, build settings, and the variables read at build are unchanged. "Build ulang dari awal" is unchanged.
+
 ## [0.10.0] - 2026-11-19
 
 ### Added

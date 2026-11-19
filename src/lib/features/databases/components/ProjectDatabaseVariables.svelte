@@ -13,13 +13,24 @@
 	} from '$lib/features/projects/build-help';
 	import { settingsHref } from '$lib/features/projects/overview/links';
 	import { SETTINGS_ANCHORS } from '$lib/features/projects/settings-anchors';
+	import { VARIABLE_BUILD_COPY } from '$lib/features/projects/presentation';
 	import type { Project } from '$lib/features/projects/type';
+	import { decideVariableBuild, VARIABLE_SOURCES } from '$lib/features/projects/variable-build';
 	import { DATABASE_VARIABLES, databaseStatusView } from '../presentation';
 	import { databaseVariableRows } from '../project-variables';
 	import { databaseHref, databasesHref } from '../routes';
 
 	type Props = {
-		project: Pick<Project, 'id' | 'databases' | 'workspace' | 'stack' | 'release_command'>;
+		project: Pick<
+			Project,
+			| 'id'
+			| 'databases'
+			| 'workspace'
+			| 'stack'
+			| 'release_command'
+			| 'active_deployment_id'
+			| 'variable_changes'
+		>;
 		readOnly: boolean;
 	};
 
@@ -27,6 +38,13 @@
 
 	const database = $derived(project.databases?.[0] ?? null);
 	const rows = $derived(database ? databaseVariableRows(database) : []);
+	// Never a build: builds cannot reach the database, so its variables are read at runtime only.
+	const reusesImage = $derived(
+		decideVariableBuild(
+			project,
+			rows.map((row) => ({ key: row.name, source: VARIABLE_SOURCES.database }))
+		)?.needsBuild === false
+	);
 	const view = $derived(
 		database ? databaseStatusView({ status: database.status, last_failure: null }) : null
 	);
@@ -65,6 +83,9 @@
 		<p class="text-sm text-muted">
 			Disuntik Sakala saat deploy, jadi tidak bisa diubah di sini dan nilainya tidak ditampilkan.
 			Variabel proyek dengan nama yang sama menang.
+			{#if reusesImage}
+				<span data-testid="database-variables-build">{VARIABLE_BUILD_COPY.database}</span>
+			{/if}
 		</p>
 		{#if database.status !== 'ready'}
 			<p class="text-sm text-foreground">{view.description}</p>

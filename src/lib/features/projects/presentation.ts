@@ -20,6 +20,7 @@ import { getDeploymentStatusLabel } from '$lib/features/deployments/status-confi
 import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
+import { VARIABLE_BUILD_REASONS, type VariableBuildDecision } from './variable-build';
 
 export type RuntimeStatusPresentation = {
 	label: string;
@@ -340,7 +341,7 @@ export const REDEPLOY_COPY = {
 	reuse: {
 		label: 'Redeploy',
 		description:
-			'Memakai ulang image yang sedang dipakai kalau commit dan pengaturan build-nya sama, jadi jauh lebih cepat. Perubahan variabel build seperti VITE_* atau NEXT_PUBLIC_* tetap memicu build.'
+			'Memakai ulang image yang sedang dipakai kalau commit, pengaturan build, dan variabel yang dibaca saat build tidak berubah, jadi jauh lebih cepat.'
 	},
 	forceBuild: {
 		label: 'Build ulang dari awal',
@@ -357,6 +358,49 @@ export const REDEPLOY_REQUIRED_COPY = {
 	action: 'Redeploy sekarang',
 	busy: 'Menjalankan...'
 } as const;
+
+/**
+ * What the next redeploy does after a variable change, said next to the save action before the
+ * user saves (`decideVariableBuild`). Each build reason is a whole sentence, so no sentence is glued
+ * together from parts.
+ */
+export const VARIABLE_BUILD_COPY = {
+	reuse: 'Cukup restart dengan image yang sama (tanpa build).',
+	staticSite:
+		'Perubahan ini butuh build ulang karena situs ini disajikan sebagai file statis, jadi nilai variabel ikut tersimpan di hasil build.',
+	prerenderFramework: (framework: string | null) =>
+		`Perubahan ini butuh build ulang karena ${framework ?? 'framework aplikasi ini'} bisa membuat halaman saat build, jadi nilai variabel ikut tersimpan di hasil build.`,
+	buildTimePrefix: (prefix: string) =>
+		`Perubahan ini butuh build ulang karena variabel berawalan ${prefix} dibaca saat build.`,
+	buildTimeKey: (key: string) => `Perubahan ini butuh build ulang karena ${key} dibaca saat build.`,
+	unknownStack:
+		'Perubahan ini butuh build ulang karena Sakala belum bisa memastikan cara aplikasi ini membaca variabel.',
+	/** Under the variables from the attached database, which never build (rule 4 of the API). */
+	database:
+		'Perubahan variabel ini, misalnya setelah Ganti password, cukup restart dengan image yang sama (tanpa build).'
+} as const;
+
+/** The sentence for a decision. `framework` is the project's `stack.framework`, when it is known. */
+export function getVariableBuildHint(
+	decision: VariableBuildDecision,
+	framework: string | null | undefined
+): string {
+	if (!decision.needsBuild) return VARIABLE_BUILD_COPY.reuse;
+	switch (decision.reason) {
+		case VARIABLE_BUILD_REASONS.staticSite:
+			return VARIABLE_BUILD_COPY.staticSite;
+		case VARIABLE_BUILD_REASONS.prerenderFramework:
+			return VARIABLE_BUILD_COPY.prerenderFramework(
+				framework ? getFrameworkLabel(framework) : null
+			);
+		case VARIABLE_BUILD_REASONS.buildTimePrefix:
+			return decision.prefix === null
+				? VARIABLE_BUILD_COPY.buildTimeKey(decision.key)
+				: VARIABLE_BUILD_COPY.buildTimePrefix(decision.prefix);
+		case VARIABLE_BUILD_REASONS.unknownStack:
+			return VARIABLE_BUILD_COPY.unknownStack;
+	}
+}
 
 /**
  * One truthful reading of a project, from what the API reports. `status` only says draft, active,

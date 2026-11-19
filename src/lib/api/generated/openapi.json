@@ -17930,6 +17930,43 @@
                             "null"
                         ]
                     },
+                    "variable_changes": {
+                        "type": "object",
+                        "description": "What a change to the project's own variables does to the next deployment. `requires_build` is true when any\nchange builds (`reason` says why); false for a plain server, where only keys starting with one of\n`build_time_prefixes` (case-sensitive) or equal to one of `build_time_keys` build, and the Console shows\n`build_time_prefix` for such a key. An attached database's connection variables never build. See\ndocs/API_CONVENTIONS.md#variabel-yang-memengaruhi-build.",
+                        "properties": {
+                            "requires_build": {
+                                "type": "boolean"
+                            },
+                            "reason": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/VariableBuildReason"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "build_time_prefixes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "build_time_keys": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "required": [
+                            "requires_build",
+                            "reason",
+                            "build_time_prefixes",
+                            "build_time_keys"
+                        ]
+                    },
                     "last_deployed_at": {
                         "type": [
                             "string",
@@ -18100,6 +18137,7 @@
                     "inspection",
                     "stack",
                     "inspection_error_code",
+                    "variable_changes",
                     "last_deployed_at",
                     "databases",
                     "workspace",
@@ -19525,6 +19563,17 @@
                     "repository_url"
                 ],
                 "title": "ValidateUrlRequest"
+            },
+            "VariableBuildReason": {
+                "type": "string",
+                "description": "Why a change to a project variable makes the next deployment build instead of reusing the live image (VariableBuildPolicy). The first three are project-level: every variable counts. `BuildTimePrefix` is never a project-level reason; it names the per-variable reason of a plain server (BuildTimeVariable), so this enum lists every reason the Console can show.\n| |\n|---|\n| `static_site` <br/> Served as files, without a server process: every variable is read at build. |\n| `prerender_framework` <br/> A framework that can render pages at build. |\n| `unknown_stack` <br/> No usable inspection, or a stack Sakala cannot classify: every variable counts, to be safe. |\n| `build_time_prefix` <br/> The key is a build-time prefix or key of BuildTimeVariable. Per variable only. |",
+                "enum": [
+                    "static_site",
+                    "prerender_framework",
+                    "unknown_stack",
+                    "build_time_prefix"
+                ],
+                "title": "VariableBuildReason"
             },
             "VerificationNotificationResource": {
                 "type": "object",

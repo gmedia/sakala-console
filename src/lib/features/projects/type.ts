@@ -93,6 +93,15 @@ type ProjectLatestDeploymentFields = Partial<
 	Pick<components['schemas']['ProjectResource'], 'latest_deployment'>
 >;
 
+/**
+ * Whether a variable change makes the next redeploy build (sakala-api, image reuse follow-up). An
+ * older API leaves it out.
+ */
+type ProjectVariableChangesFields = Partial<
+	Pick<components['schemas']['ProjectResource'], 'variable_changes'>
+>;
+export type VariableChanges = components['schemas']['ProjectResource']['variable_changes'];
+
 type DeploymentContractFields = Pick<
 	components['schemas']['DeploymentResource'],
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
@@ -158,7 +167,8 @@ export interface Project
 		ProjectReleaseFields,
 		ProjectPlacementFields,
 		ProjectDatabaseFields,
-		ProjectLatestDeploymentFields {}
+		ProjectLatestDeploymentFields,
+		ProjectVariableChangesFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */
 export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];
