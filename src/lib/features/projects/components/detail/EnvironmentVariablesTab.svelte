@@ -25,6 +25,7 @@
 	import { ENV_KEY_REGEX, normalizeEnvKey } from '../../validation/environmentVariable';
 	import DeleteEnvConfirmModal from './DeleteEnvConfirmModal.svelte';
 	import EnvKey from './EnvKey.svelte';
+	import VariableBuildHint from './VariableBuildHint.svelte';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import EnvImportPanel from '../../env-import/EnvImportPanel.svelte';
 	import { applyEnvImport } from '../../env-import/apply-env-import';
@@ -569,9 +570,20 @@
 										</p>
 									{/if}
 
+									<VariableBuildHint
+										id="env-edit-build-hint"
+										class="mt-3"
+										project={projectQuery.data}
+										keys={[env.key]}
+									/>
+
 									<div class="mt-3 flex justify-end gap-2">
 										<Button variant="ghost" onclick={handleCancelEdit}>Batal</Button>
-										<Button type="submit" disabled={updateMutation.isPending}>
+										<Button
+											type="submit"
+											disabled={updateMutation.isPending}
+											aria-describedby="env-edit-build-hint"
+										>
 											{updateMutation.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
 										</Button>
 									</div>
@@ -651,6 +663,7 @@
 							type="submit"
 							disabled={addMutation.isPending}
 							aria-label="Simpan"
+							aria-describedby="env-new-build-hint"
 							title="Simpan"
 						>
 							{#if addMutation.isPending}
@@ -676,6 +689,12 @@
 					<input type="checkbox" bind:checked={newIsSecret} class="size-4" />
 					Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
 				</label>
+				<VariableBuildHint
+					id="env-new-build-hint"
+					class="mt-2"
+					project={projectQuery.data}
+					keys={[newKey.trim()]}
+				/>
 
 				{#if formError}
 					<p role="alert" class="mt-2 text-xs text-error-dark">{formError}</p>
@@ -701,6 +720,7 @@
 				headingLevel={2}
 				busy={importing}
 				error={importError}
+				confirmHint={importBuildHint}
 				onApply={handleImport}
 				onCancel={closeImport}
 			/>
@@ -734,9 +754,19 @@
 		<ProjectDatabaseVariables project={projectQuery.data} readOnly={access.readOnly} />
 	{/if}
 
+	<!-- Said beside the import's save button, for the keys it is about to save. -->
+	{#snippet importBuildHint(plan: EnvImportPlan, id: string)}
+		<VariableBuildHint
+			{id}
+			project={projectQuery.data}
+			keys={[...plan.toAdd, ...plan.toOverwrite].map((env) => env.key)}
+		/>
+	{/snippet}
+
 	<DeleteEnvConfirmModal
 		open={deletingEnv !== null}
 		envKey={deletingEnv?.key ?? ''}
+		project={projectQuery.data}
 		isLoading={deleteMutation.isPending}
 		error={deleteError}
 		onConfirm={handleConfirmDelete}

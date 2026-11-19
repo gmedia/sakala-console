@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { parseEnvText, type SkippedEnvEntry } from './parse-env-text';
 	import { planEnvImport, type EnvImportPlan, type ExistingKeyStrategy } from './plan-env-import';
@@ -13,6 +13,8 @@
 		confirmLabel: (count: number) => string;
 		busy?: boolean;
 		error?: string;
+		/** Said beside the save button, which it describes; gets the plan and the id to render with. */
+		confirmHint?: Snippet<[plan: EnvImportPlan, id: string]>;
 		/** `port` is the pasted PORT, which is never part of the plan. */
 		onApply: (plan: EnvImportPlan, port: string | null) => void;
 		onCancel: () => void;
@@ -27,6 +29,7 @@
 		confirmLabel,
 		busy = false,
 		error = '',
+		confirmHint,
 		onApply,
 		onCancel,
 		headingLevel = 3
@@ -200,12 +203,17 @@
 		<p role="alert" class="text-sm text-error-dark">{error}</p>
 	{/if}
 
+	{#if confirmHint && changeCount > 0}
+		{@render confirmHint(plan, `${id}-confirm-hint`)}
+	{/if}
+
 	<div class="flex flex-wrap justify-end gap-2">
 		<Button variant="ghost" onclick={onCancel} disabled={busy}>Batal</Button>
 		<Button
 			onclick={() => onApply(plan, parsed.port)}
 			disabled={busy || changeCount === 0}
 			aria-busy={busy}
+			aria-describedby={confirmHint && changeCount > 0 ? `${id}-confirm-hint` : undefined}
 		>
 			{confirmLabel(changeCount)}
 		</Button>

@@ -152,7 +152,9 @@ test.describe('Redeploy and "Build ulang dari awal"', () => {
 		await page.goto(PROJECT_URL);
 		await page.getByRole('button', { name: 'Pilihan cara build' }).click();
 		const menu = page.getByRole('menu');
-		await expect(menu).toContainText('Memakai ulang image yang sedang dipakai');
+		await expect(menu).toContainText(
+			'Memakai ulang image yang sedang dipakai kalau commit, pengaturan build, dan variabel yang dibaca saat build tidak berubah'
+		);
 		await menu.getByRole('menuitem', { name: 'Build ulang dari awal' }).click();
 		await expect(page).toHaveURL(/\/deployments\/[^/]+$/);
 		expect(bodies).toEqual([{ branch: 'main' }, { branch: 'main', force_build: true }]);
@@ -214,4 +216,78 @@ test.describe('Riwayat', () => {
 			expect(overflow).toBeLessThanOrEqual(0);
 		});
 	}
+});
+
+test.describe('Variabel tab: what the next redeploy does, before saving', () => {
+	const VARIABLES_URL = `/projects/${PROJECT_ID}/environments`;
+	const variableChanges = {
+		requires_build: false,
+		reason: null,
+		build_time_prefixes: ['NEXT_PUBLIC_', 'VITE_', 'PUBLIC_'],
+		build_time_keys: ['NODE_ENV']
+	};
+	const stack = (framework: string) => ({
+		builder: 'railpack',
+		provider: 'node',
+		framework,
+		package_manager: 'npm',
+		monorepo: null
+	});
+
+	for (const width of [1440, 320]) {
+		test(`a static site says the change builds, beside Simpan, at ${width} px`, async ({
+			page
+		}) => {
+			await mockProjectApi(page, {
+				project: () => ({
+					...baseProject,
+					stack: stack('vite'),
+					variable_changes: { ...variableChanges, requires_build: true, reason: 'static_site' }
+				})
+			});
+			await page.setViewportSize({ width, height: 800 });
+
+			await page.goto(VARIABLES_URL);
+			await page.getByRole('button', { name: 'Tambah variabel' }).click();
+			await page.getByLabel('Nama variabel').fill('API_URL');
+
+			const hint = page.getByTestId('variable-build-hint');
+			const expected =
+				'Perubahan ini butuh build ulang karena situs ini disajikan sebagai file statis, jadi nilai variabel ikut tersimpan di hasil build.';
+			await expect(hint).toHaveText(expected);
+			await expect(hint).toBeInViewport();
+			await expect(
+				page.getByRole('button', { name: 'Simpan', exact: true })
+			).toHaveAccessibleDescription(expected);
+			const overflow = await page.evaluate(
+				() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+			);
+			expect(overflow).toBeLessThanOrEqual(0);
+		});
+	}
+
+	test('a plain server reuses the image for a runtime key and builds for a prefix', async ({
+		page
+	}) => {
+		await mockProjectApi(page, {
+			project: () => ({
+				...baseProject,
+				stack: stack('express'),
+				variable_changes: variableChanges
+			})
+		});
+		await page.setViewportSize({ width: 1440, height: 900 });
+
+		await page.goto(VARIABLES_URL);
+		await page.getByRole('button', { name: 'Tambah variabel' }).click();
+		await page.getByLabel('Nama variabel').fill('API_URL');
+
+		const hint = page.getByTestId('variable-build-hint');
+		await expect(hint).toHaveText('Cukup restart dengan image yang sama (tanpa build).');
+
+		await page.getByLabel('Nama variabel').fill('VITE_API_URL');
+		await expect(hint).toHaveText(
+			'Perubahan ini butuh build ulang karena variabel berawalan VITE_ dibaca saat build.'
+		);
+	});
 });
