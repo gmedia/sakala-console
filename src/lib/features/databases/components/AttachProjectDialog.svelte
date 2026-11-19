@@ -49,6 +49,11 @@
 	const preselectedQuery = createProjectQuery(() => (open ? (preselectedProjectId ?? '') : ''));
 
 	const attachedIds = $derived(new Set(database.projects.map((project) => project.id)));
+
+	/** The other database a listed project already uses: one per project, so it cannot take this one. */
+	function otherDatabaseOf(project: { databases?: { id: string; name: string }[] }): string | null {
+		return project.databases?.find((item) => item.id !== database.id)?.name ?? null;
+	}
 	const projects = $derived(projectsQuery.data?.projects ?? []);
 	const selectedName = $derived(
 		projects.find((project) => project.id === selectedId)?.name ??
@@ -140,9 +145,11 @@
 				<ul class="flex flex-col gap-1.5">
 					{#each projects as project (project.id)}
 						{@const attached = attachedIds.has(project.id)}
+						{@const other = otherDatabaseOf(project)}
+						{@const unavailable = attached || other !== null}
 						<li>
 							<label
-								class="flex min-h-11 cursor-pointer items-center gap-3 rounded-control border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary-50 has-disabled:cursor-not-allowed has-disabled:bg-background-soft {attached
+								class="flex min-h-11 cursor-pointer items-center gap-3 rounded-control border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary-50 has-disabled:cursor-not-allowed has-disabled:bg-background-soft {unavailable
 									? 'border-border'
 									: 'border-border-strong'}"
 							>
@@ -151,7 +158,7 @@
 									name="attach-project"
 									value={project.id}
 									bind:group={selectedId}
-									disabled={attached}
+									disabled={unavailable}
 									class="size-4 shrink-0"
 								/>
 								<span class="min-w-0 flex-1 font-medium wrap-anywhere text-foreground"
@@ -159,6 +166,10 @@
 								>
 								{#if attached}
 									<span class="shrink-0 text-xs text-muted">sudah terpasang</span>
+								{:else if other}
+									<span class="min-w-0 text-right text-xs wrap-anywhere text-muted"
+										>memakai {other}</span
+									>
 								{/if}
 							</label>
 						</li>

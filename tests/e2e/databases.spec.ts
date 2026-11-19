@@ -100,7 +100,7 @@ test.describe('creating a database', () => {
 		await page.getByTestId('create-database').click();
 		const dialog = page.getByRole('dialog', { name: 'Buat database' });
 		await expect(dialog.getByLabel('Region')).toHaveValue('');
-		await expect(dialog.getByText(/Memakai region bawaan workspace/)).toBeVisible();
+		await expect(dialog.getByText(/tidak punya region bawaan/)).toBeVisible();
 
 		await dialog.getByRole('button', { name: 'Buat database' }).click();
 		await expect(dialog.getByText('Isi nama database')).toBeVisible();
@@ -121,6 +121,17 @@ test.describe('creating a database', () => {
 		// The page polls while the node works, then shows the database as ready.
 		await expect(explanation).toContainText('Menerima koneksi', { timeout: 15_000 });
 		await expect(explanation.getByRole('list', { name: 'Tahap pembuatan' })).toHaveCount(0);
+	});
+
+	test('names the team default region behind Otomatis', async ({ page }) => {
+		await mockDatabaseApi(page, { role: 'owner' });
+		await page.goto(LIST_URL);
+		await page.getByTestId('create-database').click();
+		const dialog = page.getByRole('dialog', { name: 'Buat database' });
+		await expect(dialog.getByLabel('Region').locator('option').first()).toHaveText(
+			'Otomatis (jkt)'
+		);
+		await expect(dialog.getByText('Memakai region bawaan workspace, jkt.')).toBeVisible();
 	});
 
 	test('explains a refusal from the quota in the dialog', async ({ page }) => {
@@ -154,7 +165,14 @@ test.describe('creating a database', () => {
 	test('from a project, preselects its region and opens attaching on the database page', async ({
 		page
 	}) => {
-		await mockDatabaseApi(page, { project: { region: 'sby' } });
+		// The project has no database yet, which is when its Variabel tab links here.
+		await mockDatabaseApi(page, {
+			databases: sampleDatabases().map((database) => ({
+				...database,
+				projects: database.projects.filter((project) => project.id !== PROJECT_ID)
+			})),
+			project: { region: 'sby', databases: [] }
+		});
 		await page.goto(`${LIST_URL}?project=${PROJECT_ID}`);
 
 		await expect(page.getByTestId('database-project-context')).toContainText(attachedProject.name);
@@ -178,6 +196,8 @@ test.describe('database detail', () => {
 		const dialog = page.getByRole('dialog', { name: 'Pasang ke proyek' });
 		await expect(dialog.getByRole('radio', { name: /toko-kopi-web/ })).toBeDisabled();
 		await expect(dialog.getByText('sudah terpasang')).toBeVisible();
+		await expect(dialog.getByRole('radio', { name: /laporan-web/ })).toBeDisabled();
+		await expect(dialog.getByText('memakai analitik')).toBeVisible();
 
 		await dialog.getByRole('button', { name: 'Pasang database' }).click();
 		await expect(dialog.getByTestId('attach-error')).toHaveText(
@@ -250,13 +270,13 @@ test.describe('database detail', () => {
 		await page.goto(detailUrl());
 
 		const connection = page.getByTestId('database-connection');
-		await expect(connection.getByText('Setiap kali kredensial ditampilkan')).toBeVisible();
+		await expect(connection.getByText('Setiap kali password ditampilkan')).toBeVisible();
+		await expect(connection).toContainText('10.0.47.30');
 		expect(calls.some((call) => call.path.endsWith('/credentials'))).toBe(false);
-		await expect(connection.getByRole('img', { name: 'Disembunyikan' })).toHaveCount(6);
+		await expect(connection.getByRole('img', { name: 'Disembunyikan' })).toHaveCount(2);
 
 		await page.getByTestId('reveal-credentials').click();
 		const credentials = capturedDatabase<{ data: Record<string, string> }>('credentials').body.data;
-		await expect(connection).toContainText(credentials.host);
 		await expect(connection).toContainText(credentials.password);
 		await expect(connection.getByRole('button', { name: 'Salin DATABASE_URL' })).toBeVisible();
 
@@ -271,8 +291,9 @@ test.describe('database detail', () => {
 		await page.goto(detailUrl());
 
 		await expect(page.getByTestId('credentials-owner-only')).toContainText(
-			'Kredensial hanya bisa dilihat pemilik workspace'
+			'Password dan DATABASE_URL hanya bisa dilihat pemilik workspace'
 		);
+		await expect(page.getByTestId('database-connection')).toContainText('10.0.47.30');
 		await expect(page.getByTestId('reveal-credentials')).toHaveCount(0);
 
 		await page.getByTestId('rotate-password').click();

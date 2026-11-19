@@ -64,29 +64,33 @@ describe('DatabaseConnectionCard', () => {
 		await expect.element(card()).not.toHaveTextContent(credentials.password);
 	});
 
-	it('says where the address is missing when the node has not reported it', async () => {
-		vi.mocked(getDatabaseCredentials).mockResolvedValue({
-			...credentials,
-			host: null,
-			port: null,
-			url: null
-		});
+	it('shows host, port, database, and user to an owner before anything is revealed', async () => {
 		renderCard('owner');
-		await page.getByTestId('reveal-credentials').click();
+		const connection = ready.connection!;
+		await expect.element(card()).toHaveTextContent(connection.host);
+		await expect.element(card()).toHaveTextContent(connection.username);
 		await expect
-			.element(
-				card()
-					.getByText(/belum melaporkan alamatnya/)
-					.first()
-			)
-			.toBeVisible();
+			.poll(() => card().getByRole('img', { name: 'Disembunyikan' }).elements().length)
+			.toBe(2);
+		expect(getDatabaseCredentials).not.toHaveBeenCalled();
 	});
 
-	it('tells a member and a viewer why the credentials stay hidden, without asking the API', async () => {
+	it('says the address is missing while the node has not reported it', async () => {
+		renderCard('owner', { ...ready, connection: null });
+		await expect
+			.element(page.getByTestId('connection-pending'))
+			.toHaveTextContent(/belum melaporkan alamatnya/);
+		await expect.element(card().getByText('Belum dilaporkan').first()).toBeVisible();
+	});
+
+	it('shows a member the connection without the password, and why, without asking the API', async () => {
 		renderCard('member');
+		await expect.element(card()).toHaveTextContent(ready.connection!.host);
+		await expect.element(card()).toHaveTextContent(ready.connection!.database);
 		await expect
 			.element(page.getByTestId('credentials-owner-only'))
-			.toHaveTextContent(/hanya bisa dilihat pemilik workspace/);
+			.toHaveTextContent(/Password dan DATABASE_URL hanya bisa dilihat pemilik workspace/);
+		await expect.element(card().getByText('Password', { exact: true })).not.toBeInTheDocument();
 		await expect.element(page.getByTestId('reveal-credentials')).not.toBeInTheDocument();
 		expect(getDatabaseCredentials).not.toHaveBeenCalled();
 	});
@@ -99,7 +103,7 @@ describe('DatabaseConnectionCard', () => {
 		await page.getByTestId('reveal-credentials').click();
 		await expect
 			.element(card().getByRole('alert'))
-			.toHaveTextContent('Kredensial hanya bisa dilihat pemilik workspace.');
+			.toHaveTextContent('Password dan DATABASE_URL hanya bisa dilihat pemilik workspace.');
 	});
 
 	it('waits for the database to be ready before credentials exist', async () => {

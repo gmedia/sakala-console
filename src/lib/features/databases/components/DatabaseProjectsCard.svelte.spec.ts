@@ -71,7 +71,11 @@ beforeEach(() => {
 		.mockResolvedValue({
 			data: [
 				projectRow(attached.projects[0].id, attached.projects[0].name),
-				projectRow('p-kasir', 'api-kasir')
+				projectRow('p-kasir', 'api-kasir'),
+				{
+					...projectRow('p-admin', 'panel-admin'),
+					databases: [{ id: 'db-other', name: 'analitik', status: 'ready' }]
+				}
 			],
 			links: { first: null, last: null, prev: null, next: null },
 			meta: {
@@ -99,6 +103,9 @@ describe('DatabaseProjectsCard', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Pasang ke proyek' });
 		await expect.element(dialog.getByRole('radio', { name: /toko-kopi-web/ })).toBeDisabled();
+		// A project uses one database, so one that already has another cannot be chosen.
+		await expect.element(dialog.getByRole('radio', { name: /panel-admin/ })).toBeDisabled();
+		await expect.element(dialog.getByText('memakai analitik')).toBeVisible();
 		expect(getListProjects).toHaveBeenCalledWith(expect.objectContaining({ workspace_id: 'ws-1' }));
 		await dialog.getByRole('radio', { name: 'api-kasir' }).click();
 		await dialog.getByRole('button', { name: 'Pasang database' }).click();

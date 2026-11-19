@@ -21,6 +21,8 @@ import {
 	rotateDatabasePassword
 } from './databases';
 import { parsePilotLimitsResponse } from './pilot-limits';
+import { parseListProjectsResponse } from './projects';
+import { parseWorkspaceList } from './workspaces';
 import { parseRegionList } from './regions';
 
 vi.mock('../client', () => ({ apiRequest: vi.fn() }));
@@ -38,7 +40,9 @@ const SUCCESS_PARSERS: Record<string, (body: unknown) => unknown> = {
 	'attach-again': parseAttachment,
 	credentials: parseCredentials,
 	regions: parseRegionList,
-	'pilot-limits-databases': parsePilotLimitsResponse
+	'pilot-limits-databases': parsePilotLimitsResponse,
+	'projects-list': parseListProjectsResponse,
+	workspaces: parseWorkspaceList
 };
 
 describe('database resources, against responses captured from sakala-api', () => {
@@ -67,6 +71,38 @@ describe('database resources, against responses captured from sakala-api', () =>
 		expect(attached?.size_bytes).toBe(12 * 1024 * 1024);
 		expect(databases[0].last_failure?.command).toBe('CreateDatabase');
 		expect(databases[0].size_bytes).toBeNull();
+	});
+
+	it('gives every member the connection without the password once the node reported it', () => {
+		const databases = parseDatabaseList(getDatabaseFixture('databases').body);
+		const ready = databases.find((database) => database.status === 'ready')!;
+		expect(ready.connection).toEqual({
+			host: '10.0.47.30',
+			port: 5432,
+			database: expect.stringMatching(/^p_/),
+			username: expect.stringMatching(/^p_/)
+		});
+		expect(ready.connection).not.toHaveProperty('password');
+		expect(databases.find((database) => database.status === 'failed')?.connection).toBeNull();
+		expect(parseDatabase(getDatabaseFixture('database-create').body).connection).toBeNull();
+	});
+
+	it('reads a database from the first database API, without connection, as null', () => {
+		const { connection, ...older } = (
+			getDatabaseFixture('database-show').body as { data: Record<string, unknown> }
+		).data;
+		expect(connection).not.toBeUndefined();
+		expect(parseDatabase({ data: older }).connection).toBeNull();
+	});
+
+	it('reads the attached database on the project list, and the workspace default region', () => {
+		const projects = parseListProjectsResponse(getDatabaseFixture('projects-list').body).data;
+		expect(projects.find((project) => project.name === 'toko-kopi-web')?.databases).toEqual([
+			{ id: expect.any(String), name: 'toko-kopi-db', status: 'ready' }
+		]);
+		expect(projects.find((project) => project.name === 'api-kasir')?.databases).toEqual([]);
+		const workspaces = parseWorkspaceList(getDatabaseFixture('workspaces').body);
+		expect(workspaces.map((workspace) => workspace.default_region)).toEqual([null, 'jkt']);
 	});
 
 	it('reads a new database as provisioning and a deleted one as deleting', () => {

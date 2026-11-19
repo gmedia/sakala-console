@@ -2,10 +2,10 @@
 	"status": 200,
 	"body": {
 		"data": {
-			"workspace_id": "01a1f215-ac40-739a-84db-579e773259fe",
+			"workspace_id": "01a1f27c-14bc-7146-8d7e-4ee803fd2eea",
 			"limit_profile": {
-				"id": "01a1f215-ac3e-737a-b050-c2186dee89b6",
-				"name": "Profil 8768"
+				"id": "01a1f27c-14bc-7146-8d7e-4ee803719e4f",
+				"name": "Profil 7208"
 			},
 			"quotas": {
 				"max_projects_per_user": 5,

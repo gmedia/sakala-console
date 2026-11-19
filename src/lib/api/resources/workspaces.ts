@@ -24,6 +24,11 @@ export const workspaceSchema = z.object({
 	role: workspaceRoleSchema,
 	/** Null when the workspace runs under the default limits of its type. */
 	limit_profile: limitProfileRefSchema.nullable(),
+	/**
+	 * The region the workspace's projects and databases use when they do not name one, from its limit
+	 * profile; `null` for any region. Missing from an API before sakala-api #180.
+	 */
+	default_region: z.string().nullable().optional(),
 	/** Projects in the workspace, not counting deleted ones waiting for purge. */
 	projects_count: z.number().int().nonnegative(),
 	/** Deployments queued or running there now, the number its concurrent deployment limit counts. */

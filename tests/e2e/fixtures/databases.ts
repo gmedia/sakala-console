@@ -52,7 +52,12 @@ export function sampleDatabases(): MockDatabase[] {
 			size_checked_at: minutesAgo(3),
 			created_at: minutesAgo(60 * 24 * 3)
 		},
-		{ ...capturedExtension, size_checked_at: minutesAgo(3), created_at: minutesAgo(60 * 24 * 2) },
+		{
+			...capturedExtension,
+			projects: [reportProject],
+			size_checked_at: minutesAgo(3),
+			created_at: minutesAgo(60 * 24 * 2)
+		},
 		{ ...capturedFailed, created_at: minutesAgo(60) }
 	];
 }
@@ -79,10 +84,14 @@ export function provisioningDatabase(): MockDatabase {
 }
 
 /** Projects of the workspace the attach dialog lists, at most six a page like the API. */
+/** A project that already uses the other database, analitik. */
+export const reportProject = { id: 'p-laporan', name: 'laporan-web', slug: 'laporan-web' };
+
 export const workspaceProjects = [
 	attachedProject,
 	{ id: 'p-kasir', name: 'api-kasir', slug: 'api-kasir' },
-	{ id: 'p-admin', name: 'panel-admin', slug: 'panel-admin' }
+	{ id: 'p-admin', name: 'panel-admin', slug: 'panel-admin' },
+	reportProject
 ];
 
 type JsonReply = { status?: number; body?: unknown };
@@ -115,6 +124,7 @@ export const TEAM_WORKSPACE = {
 	slug: 'tim-facility',
 	type: 'team',
 	limit_profile: { id: 'lp-1', name: 'Magang GMEDIA' },
+	default_region: 'jkt',
 	projects_count: 3,
 	active_deployments_count: 0,
 	created_at: '2026-01-01T00:00:00+00:00'
@@ -218,6 +228,10 @@ export async function mockDatabaseApi(
 				slug: project.slug,
 				public_url: `https://${project.slug}.sakala.app`,
 				latest_deployment: null,
+				// The light version the list carries, from the store so attaching shows at once.
+				databases: store
+					.filter((database) => database.projects.some((item) => item.id === project.id))
+					.map(({ id, name, status }) => ({ id, name, status })),
 				workspace: {
 					id: workspace.id,
 					name: workspace.name,

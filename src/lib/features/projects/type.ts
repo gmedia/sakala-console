@@ -13,12 +13,21 @@ type ProjectContractFields = Pick<
 	| 'root_directory'
 	| 'auto_deploy'
 	| 'redeploy_required'
-	| 'stack'
 	| 'preview_status'
 	| 'inspection'
 	| 'inspection_error_code'
 	| 'suspension'
 >;
+
+type GeneratedStack = NonNullable<components['schemas']['ProjectResource']['stack']>;
+
+/**
+ * `monorepo` came with JavaScript workspaces (sakala-api #179), so an inspection by an older agent
+ * or API leaves it out.
+ */
+type ProjectStackFields = {
+	stack: (Omit<GeneratedStack, 'monorepo'> & Partial<Pick<GeneratedStack, 'monorepo'>>) | null;
+};
 
 /** Added by the API with replicas, so an older one leaves them out. */
 type ProjectReplicaFields = Partial<
@@ -104,6 +113,7 @@ export interface Project
 	extends
 		ProjectBase,
 		ProjectContractFields,
+		ProjectStackFields,
 		ProjectReplicaFields,
 		ProjectReleaseFields,
 		ProjectPlacementFields,

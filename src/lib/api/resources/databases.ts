@@ -53,6 +53,19 @@ const lastFailureSchema = z.object({
 });
 export type DatabaseFailure = z.output<typeof lastFailureSchema>;
 
+/**
+ * Where applications connect, without the password: what attached projects receive as `DB_HOST`,
+ * `DB_PORT`, `DB_DATABASE`, and `DB_USERNAME`. Every member reads it; the host is on the database
+ * node's private network.
+ */
+const connectionSchema = z.object({
+	host: z.string(),
+	port: z.number(),
+	database: z.string(),
+	username: z.string()
+});
+export type DatabaseConnection = z.output<typeof connectionSchema>;
+
 /*
  * `status` and `engine` stay plain strings, as the API client docs ask for enums that are shown: a
  * value added by a newer API still renders, and the label has a fallback.
@@ -66,10 +79,15 @@ const databaseSchema = z.object({
 	size_bytes: z.number().nullable(),
 	size_checked_at: z.string().nullable(),
 	projects: z.array(projectRefSchema),
+	/**
+	 * `null` unless the database is `ready` or `locked` and its node reported its address. Read as
+	 * `null` from the first database API (sakala-api #178), which did not send it.
+	 */
+	connection: connectionSchema.nullable().default(null),
 	last_failure: lastFailureSchema.nullable(),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
-}) satisfies z.ZodType<Omit<GeneratedDatabase, 'status' | 'engine'> & { status: string }>;
+}) satisfies z.ZodType<Omit<GeneratedDatabase, 'status' | 'engine'> & { status: string }, unknown>;
 
 export type Database = z.output<typeof databaseSchema>;
 

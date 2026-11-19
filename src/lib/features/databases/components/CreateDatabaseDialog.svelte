@@ -10,7 +10,9 @@
 		DATABASE_COPY,
 		DATABASE_NAME_MAX_LENGTH,
 		DATABASE_VARIABLES,
-		databaseErrorMessage
+		databaseErrorMessage,
+		regionAutoHint,
+		regionAutoLabel
 	} from '../presentation';
 	import { databaseHref } from '../routes';
 
@@ -22,6 +24,8 @@
 		blockedReason?: string | null;
 		/** A project's region when the user came from a project, otherwise the API's default. */
 		defaultRegion?: string | null;
+		/** The workspace's own default region, which "Otomatis" resolves to; `null` for any region. */
+		workspaceDefaultRegion?: string | null;
 		/** Carried to the database page, which preselects it when attaching. */
 		projectId?: string | null;
 		projectName?: string | null;
@@ -33,6 +37,7 @@
 		workspaceName,
 		blockedReason = null,
 		defaultRegion = null,
+		workspaceDefaultRegion = null,
 		projectId = null,
 		projectName = null
 	}: Props = $props();
@@ -168,14 +173,14 @@
 						class="control-input"
 						aria-describedby="database-region-hint"
 					>
-						<option value={AUTO}>{DATABASE_COPY.regionAuto}</option>
+						<option value={AUTO}>{regionAutoLabel(workspaceDefaultRegion)}</option>
 						{#each regions as slug (slug)}
 							<option value={slug}>{slug}</option>
 						{/each}
 					</select>
 					<p id="database-region-hint" class="text-xs text-foreground/70">
 						{#if region === AUTO}
-							{DATABASE_COPY.regionAutoHint}
+							{regionAutoHint(workspaceDefaultRegion)}
 						{:else if projectName && region === defaultRegion}
 							Region yang sama dengan proyek {projectName}.
 						{/if}
@@ -183,7 +188,7 @@
 					</p>
 				</div>
 			{:else if regionsQuery.isSuccess}
-				<p class="text-xs text-foreground/70">{DATABASE_COPY.regionAutoHint}</p>
+				<p class="text-xs text-foreground/70">{regionAutoHint(workspaceDefaultRegion)}</p>
 			{/if}
 
 			{#if formError}

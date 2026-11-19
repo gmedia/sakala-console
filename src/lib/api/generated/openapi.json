@@ -14079,13 +14079,70 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "monorepo": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "manager": {
+                                        "type": "string",
+                                        "enum": [
+                                            "npm",
+                                            "pnpm",
+                                            "yarn",
+                                            "bun"
+                                        ]
+                                    },
+                                    "root_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_name": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "build_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "start_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "static_output_directory": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "manager",
+                                    "root_directory",
+                                    "package_directory",
+                                    "package_name",
+                                    "build_command",
+                                    "start_command",
+                                    "static_output_directory"
+                                ]
                             }
                         },
                         "required": [
                             "builder",
                             "provider",
                             "framework",
-                            "package_manager"
+                            "package_manager",
+                            "monorepo"
                         ]
                     },
                     "configured_port": {
@@ -14342,6 +14399,33 @@
                         ],
                         "description": "When that size was reported."
                     },
+                    "connection": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Where applications connect, without the password: the same host, port, database, and username attached\nprojects receive as `DB_HOST`, `DB_PORT`, `DB_DATABASE`, and `DB_USERNAME`. The host is on the database\nnode's private network, reachable only from Sakala workloads. `null` unless the status is `ready` or\n`locked` and the node has reported its address. The password and `DATABASE_URL` are only in the\ncredentials endpoint.",
+                        "properties": {
+                            "host": {
+                                "type": "string"
+                            },
+                            "port": {
+                                "type": "integer"
+                            },
+                            "database": {
+                                "type": "string"
+                            },
+                            "username": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "host",
+                            "port",
+                            "database",
+                            "username"
+                        ]
+                    },
                     "projects": {
                         "type": "array",
                         "description": "Projects the database is attached to. Each receives the connection variables from its next deployment.",
@@ -14420,6 +14504,7 @@
                     "region",
                     "size_bytes",
                     "size_checked_at",
+                    "connection",
                     "projects",
                     "last_failure",
                     "created_at",
@@ -15552,13 +15637,70 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "monorepo": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "manager": {
+                                        "type": "string",
+                                        "enum": [
+                                            "npm",
+                                            "pnpm",
+                                            "yarn",
+                                            "bun"
+                                        ]
+                                    },
+                                    "root_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_name": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "build_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "start_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "static_output_directory": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "manager",
+                                    "root_directory",
+                                    "package_directory",
+                                    "package_name",
+                                    "build_command",
+                                    "start_command",
+                                    "static_output_directory"
+                                ]
                             }
                         },
                         "required": [
                             "builder",
                             "provider",
                             "framework",
-                            "package_manager"
+                            "package_manager",
+                            "monorepo"
                         ]
                     },
                     "last_deployed_at": {
@@ -15566,6 +15708,29 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "databases": {
+                        "type": "array",
+                        "description": "The managed database attached to the project, as a list of at most one: a project uses one database at a\ntime. Only `id`, `name`, and `status`; the project detail has the connection variables.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "$ref": "#/components/schemas/DatabaseStatus"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "status"
+                            ]
+                        }
                     },
                     "workspace": {
                         "type": [
@@ -15617,6 +15782,7 @@
                     "latest_deployment",
                     "stack",
                     "last_deployed_at",
+                    "databases",
                     "workspace",
                     "created_at"
                 ],
@@ -16929,13 +17095,70 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "monorepo": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "manager": {
+                                        "type": "string",
+                                        "enum": [
+                                            "npm",
+                                            "pnpm",
+                                            "yarn",
+                                            "bun"
+                                        ]
+                                    },
+                                    "root_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_directory": {
+                                        "type": "string"
+                                    },
+                                    "package_name": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "build_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "start_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "static_output_directory": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "manager",
+                                    "root_directory",
+                                    "package_directory",
+                                    "package_name",
+                                    "build_command",
+                                    "start_command",
+                                    "static_output_directory"
+                                ]
                             }
                         },
                         "required": [
                             "builder",
                             "provider",
                             "framework",
-                            "package_manager"
+                            "package_manager",
+                            "monorepo"
                         ]
                     },
                     "inspection_error_code": {
@@ -18838,6 +19061,13 @@
                             "name"
                         ]
                     },
+                    "default_region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The region projects and managed databases of this workspace use when they do not name one, from the limit\nprofile, for example `jkt`. Null for any region. One of `GET /api/v1/app/regions` when a node there is\navailable."
+                    },
                     "projects_count": {
                         "type": "integer",
                         "description": "Projects in the workspace, not counting deleted ones waiting for purge."
@@ -18860,6 +19090,7 @@
                     "type",
                     "role",
                     "limit_profile",
+                    "default_region",
                     "projects_count",
                     "active_deployments_count",
                     "created_at"

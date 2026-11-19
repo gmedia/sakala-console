@@ -16,6 +16,8 @@ import {
 	formatDatabaseSize,
 	isOnNode,
 	provisioningSteps,
+	regionAutoHint,
+	regionAutoLabel,
 	redeployNoticeText,
 	resolveDatabasePollInterval,
 	rotationFailure,
@@ -207,7 +209,7 @@ describe('databaseErrorMessage', () => {
 	it('names who may do it on a 403, per action', () => {
 		expect(
 			databaseErrorMessage(errorFromDatabaseFixture('credentials-member'), 'credentials', 'x')
-		).toBe('Kredensial hanya bisa dilihat pemilik workspace.');
+		).toBe('Password dan DATABASE_URL hanya bisa dilihat pemilik workspace.');
 		expect(
 			databaseErrorMessage(errorFromDatabaseFixture('database-create-viewer'), 'create', 'x')
 		).toMatch(/pemilik dan anggota workspace/);
@@ -224,6 +226,19 @@ describe('databaseErrorMessage', () => {
 		expect(databaseErrorMessage(new NetworkError(), 'create', 'fallback')).toMatch(
 			/tidak dapat dijangkau/
 		);
+	});
+});
+
+describe('the automatic region', () => {
+	it('names the workspace region the API will use', () => {
+		expect(regionAutoLabel('jkt')).toBe('Otomatis (jkt)');
+		expect(regionAutoHint('jkt')).toBe('Memakai region bawaan workspace, jkt.');
+	});
+
+	it('says Sakala picks one when the workspace has none, or the API does not say', () => {
+		expect(regionAutoLabel(null)).toBe('Otomatis');
+		expect(regionAutoLabel(undefined)).toBe('Otomatis');
+		expect(regionAutoHint(null)).toMatch(/Sakala memilih server database yang tersedia/);
 	});
 });
 

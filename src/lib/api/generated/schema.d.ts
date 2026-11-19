@@ -3128,6 +3128,16 @@ export interface components {
                 provider: string | null;
                 framework: string | null;
                 package_manager: string | null;
+                monorepo: {
+                    /** @enum {string} */
+                    manager: "npm" | "pnpm" | "yarn" | "bun";
+                    root_directory: string;
+                    package_directory: string;
+                    package_name: string | null;
+                    build_command: string | null;
+                    start_command: string | null;
+                    static_output_directory: string | null;
+                } | null;
             } | null;
             configured_port: number | null;
             effective_port: number;
@@ -3211,6 +3221,19 @@ export interface components {
             size_bytes: number | null;
             /** @description When that size was reported. */
             size_checked_at: string | null;
+            /**
+             * @description Where applications connect, without the password: the same host, port, database, and username attached
+             *     projects receive as `DB_HOST`, `DB_PORT`, `DB_DATABASE`, and `DB_USERNAME`. The host is on the database
+             *     node's private network, reachable only from Sakala workloads. `null` unless the status is `ready` or
+             *     `locked` and the node has reported its address. The password and `DATABASE_URL` are only in the
+             *     credentials endpoint.
+             */
+            connection: {
+                host: string;
+                port: number;
+                database: string;
+                username: string;
+            } | null;
             /** @description Projects the database is attached to. Each receives the connection variables from its next deployment. */
             projects: {
                 id: string;
@@ -3525,8 +3548,27 @@ export interface components {
                 provider: string | null;
                 framework: string | null;
                 package_manager: string | null;
+                monorepo: {
+                    /** @enum {string} */
+                    manager: "npm" | "pnpm" | "yarn" | "bun";
+                    root_directory: string;
+                    package_directory: string;
+                    package_name: string | null;
+                    build_command: string | null;
+                    start_command: string | null;
+                    static_output_directory: string | null;
+                } | null;
             } | null;
             last_deployed_at: string | null;
+            /**
+             * @description The managed database attached to the project, as a list of at most one: a project uses one database at a
+             *     time. Only `id`, `name`, and `status`; the project detail has the connection variables.
+             */
+            databases: {
+                id: string;
+                name: string;
+                status: components["schemas"]["DatabaseStatus"];
+            }[];
             /** @description The workspace that owns the project. Null only for a project that is being purged. */
             workspace: {
                 id: string;
@@ -3939,6 +3981,16 @@ export interface components {
                 provider: string | null;
                 framework: string | null;
                 package_manager: string | null;
+                monorepo: {
+                    /** @enum {string} */
+                    manager: "npm" | "pnpm" | "yarn" | "bun";
+                    root_directory: string;
+                    package_directory: string;
+                    package_name: string | null;
+                    build_command: string | null;
+                    start_command: string | null;
+                    static_output_directory: string | null;
+                } | null;
             } | null;
             inspection_error_code: string | null;
             last_deployed_at: string | null;
@@ -4550,6 +4602,12 @@ export interface components {
                 id: string;
                 name: string;
             } | null;
+            /**
+             * @description The region projects and managed databases of this workspace use when they do not name one, from the limit
+             *     profile, for example `jkt`. Null for any region. One of `GET /api/v1/app/regions` when a node there is
+             *     available.
+             */
+            default_region: string | null;
             /** @description Projects in the workspace, not counting deleted ones waiting for purge. */
             projects_count: number;
             /**

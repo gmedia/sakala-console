@@ -147,6 +147,7 @@
 		{workspaceName}
 		{blockedReason}
 		defaultRegion={project?.region ?? null}
+		workspaceDefaultRegion={active.default_region ?? null}
 		projectId={project?.id ?? null}
 		projectName={project?.name ?? null}
 	/>

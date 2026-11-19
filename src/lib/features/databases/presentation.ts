@@ -42,6 +42,19 @@ export const DATABASE_VARIABLES = [
 
 export const ENGINE_LABELS: Record<string, string> = { postgresql: 'PostgreSQL' };
 
+/** "Otomatis (jkt)" when the workspace has a default region, which is what the API then uses. */
+export function regionAutoLabel(defaultRegion: string | null | undefined): string {
+	return defaultRegion
+		? `${DATABASE_COPY.regionAuto} (${defaultRegion})`
+		: DATABASE_COPY.regionAuto;
+}
+
+export function regionAutoHint(defaultRegion: string | null | undefined): string {
+	return defaultRegion
+		? `Memakai region bawaan workspace, ${defaultRegion}.`
+		: DATABASE_COPY.regionAutoHint;
+}
+
 /** How a sentence names the workspace: a team by its name, the personal one by what it is. */
 export function workspacePhrase(workspace: { name: string; type: string } | null): string {
 	if (!workspace) return 'workspace ini';
@@ -58,7 +71,7 @@ export const DATABASE_COPY = {
 	creating: 'Membuat...',
 	regionAuto: 'Otomatis',
 	regionAutoHint:
-		'Memakai region bawaan workspace. Kalau workspace tidak punya, Sakala memilih server database yang tersedia.',
+		'Workspace ini tidak punya region bawaan, jadi Sakala memilih server database yang tersedia.',
 	regionRule: 'Proyek hanya bisa memakai database di region yang sama.',
 	nameHint: 'Hanya untuk ditampilkan di Sakala. Nama database dan user di server dibuat acak.',
 	notMeasured: 'Belum diukur',
@@ -66,13 +79,14 @@ export const DATABASE_COPY = {
 	redeployLink: 'Buka proyek untuk redeploy',
 	privateNetwork:
 		'Alamat ini hanya bisa dijangkau aplikasi yang berjalan di Sakala, bukan dari laptop atau layanan luar.',
-	credentialsAudit:
-		'Setiap kali kredensial ditampilkan, Sakala mencatatnya di log audit workspace.',
+	credentialsAudit: 'Setiap kali password ditampilkan, Sakala mencatatnya di log audit workspace.',
 	credentialsOwnerOnly:
-		'Kredensial hanya bisa dilihat pemilik workspace. Proyek yang terpasang tetap menerima variabel koneksinya otomatis saat deploy.',
-	credentialsNotReady: 'Kredensial bisa ditampilkan setelah database siap.',
+		'Password dan DATABASE_URL hanya bisa dilihat pemilik workspace. Proyek yang terpasang tetap menerima keduanya otomatis saat deploy.',
+	credentialsNotReady: 'Detail koneksi tersedia setelah database siap.',
+	endpointMissing: 'Belum dilaporkan',
 	endpointPending:
-		'Server database belum melaporkan alamatnya. Coba tampilkan lagi beberapa saat lagi.',
+		'Server database belum melaporkan alamatnya. Muat ulang halaman ini beberapa saat lagi.',
+	reveal: 'Tampilkan password',
 	releaseTitle: 'Migration lewat release command',
 	releaseBody:
 		'Sakala tidak menjalankan migration sendiri. Isi release command di pengaturan proyek: perintah itu jalan sekali setiap deploy, setelah build dan sebelum versi baru menerima trafik.',
@@ -372,7 +386,7 @@ const FORBIDDEN: Record<DatabaseAction, string> = {
 	delete: 'Hanya pemilik dan anggota workspace yang bisa menghapus database.',
 	attach: 'Hanya pemilik dan anggota workspace yang bisa memasang database ke proyek.',
 	detach: 'Hanya pemilik dan anggota workspace yang bisa melepas database dari proyek.',
-	credentials: 'Kredensial hanya bisa dilihat pemilik workspace.',
+	credentials: 'Password dan DATABASE_URL hanya bisa dilihat pemilik workspace.',
 	rotate: 'Hanya pemilik dan anggota workspace yang bisa mengganti password database.',
 	extension: 'Hanya pemilik dan anggota workspace yang bisa memasang extension.',
 	load: 'Kamu tidak punya akses ke database di workspace ini.'

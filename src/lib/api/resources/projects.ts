@@ -4,12 +4,20 @@ import type { components, operations } from '../generated/schema';
 import { workspaceSummarySchema, type WorkspaceSummary } from './workspaces';
 
 export type GeneratedProject = components['schemas']['GetCollectionProjectResource'];
+type GeneratedStack = NonNullable<GeneratedProject['stack']>;
 type GeneratedLatestDeployment = components['schemas']['LatestDeploymentResource'];
 /** Statuses stay plain strings, as parsed, so a value added by a newer API still renders. */
 export type Project = Omit<
 	GeneratedProject,
-	'runtime_status' | 'latest_deployment' | 'workspace'
+	'runtime_status' | 'latest_deployment' | 'workspace' | 'databases' | 'stack'
 > & {
+	/** `monorepo` came with JavaScript workspaces (sakala-api #179) and is not read from the list. */
+	stack: (Omit<GeneratedStack, 'monorepo'> & Partial<Pick<GeneratedStack, 'monorepo'>>) | null;
+	/**
+	 * The attached managed database, at most one, with `id`, `name`, and `status` only. Optional
+	 * because an API from before managed databases does not send it.
+	 */
+	databases?: { id: string; name: string; status: string }[];
 	runtime_status: string;
 	latest_deployment: (Omit<GeneratedLatestDeployment, 'status'> & { status: string }) | null;
 	/** The owning workspace. Optional because an API from before workspaces does not send it. */
@@ -68,6 +76,7 @@ const projectSchema: z.ZodType<Project> = z.object({
 		.nullable(),
 	last_deployed_at: z.string().nullable(),
 	created_at: z.string(),
+	databases: z.array(z.object({ id: z.string(), name: z.string(), status: z.string() })).optional(),
 	workspace: workspaceSummarySchema.nullable().optional()
 });
 

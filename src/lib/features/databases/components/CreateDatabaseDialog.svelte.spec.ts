@@ -47,10 +47,21 @@ describe('CreateDatabaseDialog', () => {
 		expect(createDatabase).not.toHaveBeenCalled();
 	});
 
-	it('defaults to the automatic region and explains it', async () => {
-		await open();
+	it('defaults to the automatic region and names the workspace region it resolves to', async () => {
+		await open({ workspaceDefaultRegion: 'jkt' });
 		await expect.element(dialog().getByLabelText('Region')).toHaveValue('');
-		await expect.element(dialog().getByText(/Memakai region bawaan workspace/)).toBeVisible();
+		await expect
+			.element(dialog().getByRole('option', { name: 'Otomatis (jkt)' }))
+			.toBeInTheDocument();
+		await expect
+			.element(dialog().getByText(/Memakai region bawaan workspace, jkt\./))
+			.toBeVisible();
+	});
+
+	it('says Sakala picks a server when the workspace has no default region', async () => {
+		await open();
+		await expect.element(dialog().getByRole('option', { name: 'Otomatis' })).toBeInTheDocument();
+		await expect.element(dialog().getByText(/tidak punya region bawaan/)).toBeVisible();
 	});
 
 	it('preselects the region of the project the user came from', async () => {
