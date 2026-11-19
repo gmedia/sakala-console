@@ -14825,6 +14825,27 @@
                 ],
                 "title": "DatabaseStatus"
             },
+            "DeploymentBuildFallbackReason": {
+                "type": "string",
+                "description": "Why the agent built a deployment that was planned to reuse an image, from the `reason` of its `deployment.image.reuse_skipped` event. The first four values match the agent's; `ImageUnavailable` stands for any reason this API does not know, so a newer agent never leaves the field empty.\n| |\n|---|\n| `image_missing` <br/> No image of that project, commit, and deployment on the node (pruned, another node, never there). |\n| `image_not_owned` <br/> The image's labels name another project or deployment. |\n| `image_metadata_missing` <br/> The image has no builder label: an agent from before image reuse built it. |\n| `invalid_reference` <br/> The payload's `reuse_image_from_deployment_id` was not a UUID string. |\n| `image_unavailable` <br/> A reason this API does not know. |",
+                "enum": [
+                    "image_missing",
+                    "image_not_owned",
+                    "image_metadata_missing",
+                    "invalid_reference",
+                    "image_unavailable"
+                ],
+                "title": "DeploymentBuildFallbackReason"
+            },
+            "DeploymentBuildMode": {
+                "type": "string",
+                "description": "How a deployment got its image. `Reused` is decided when the deployment is created (PlanDeploymentBuildAction) and stays unless the agent reports that it had to build after all (`deployment.image.reuse_skipped`), which makes it `Built`. Every deployment from before image reuse is `Built`.\n| |\n|---|\n| `built` <br/> The agent builds (or built) an image from the commit. |\n| `reused` <br/> The agent starts the image an earlier deployment of the project built. |",
+                "enum": [
+                    "built",
+                    "reused"
+                ],
+                "title": "DeploymentBuildMode"
+            },
             "DeploymentEventLevel": {
                 "type": "string",
                 "enum": [
@@ -14975,6 +14996,42 @@
                         "type": [
                             "string",
                             "null"
+                        ]
+                    },
+                    "build": {
+                        "type": "object",
+                        "properties": {
+                            "mode": {
+                                "$ref": "#/components/schemas/DeploymentBuildMode"
+                            },
+                            "image_source_deployment_id": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "image_source_sequence": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "fallback_reason": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/DeploymentBuildFallbackReason"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            }
+                        },
+                        "required": [
+                            "mode",
+                            "image_source_deployment_id",
+                            "image_source_sequence",
+                            "fallback_reason"
                         ]
                     },
                     "requested_resources": {
@@ -15256,6 +15313,7 @@
                     "commit_sha",
                     "commit_message",
                     "image_reference",
+                    "build",
                     "requested_resources",
                     "effective_resources",
                     "applied_resources",
@@ -18195,6 +18253,10 @@
                                 "minimum": 1
                             }
                         }
+                    },
+                    "force_build": {
+                        "type": "boolean",
+                        "description": "`true` always builds a fresh image. Without it, a deployment of the\nlive commit with no build-affecting change reuses the live image.\nDefaults to `false`."
                     }
                 },
                 "required": [
