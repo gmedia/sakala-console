@@ -12,6 +12,7 @@
 			title={step.title}
 			timestamp={step.timestamp}
 			durationSeconds={step.durationSeconds}
+			monorepo={step.monorepo}
 			last={index === steps.length - 1}
 		/>
 	{/each}

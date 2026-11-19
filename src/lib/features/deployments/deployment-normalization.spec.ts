@@ -461,3 +461,46 @@ describe('how long each stage took', () => {
 		expect(durationOf(deployment, 'Queued')).toBeUndefined();
 	});
 });
+
+describe('the workspace a deployment built from', () => {
+	const workspace = {
+		manager: 'pnpm',
+		root_directory: '.',
+		package_directory: 'apps/web',
+		package_name: '@kopi/web',
+		build_command: 'pnpm --filter @kopi/web run build',
+		start_command: null,
+		static_output_directory: 'apps/web/dist'
+	};
+	const running = createDeployment({ status: 'building' });
+	const stage = (type: string, sequence: number, metadata: unknown = null) =>
+		createEvent({ sequence, type, metadata: metadata as DeploymentEvent['metadata'] });
+
+	it('sits on the analysis step, with the commands from the event', () => {
+		const steps = normalizeDeploymentTimeline(running, [
+			stage('deployment.checkout.started', 1),
+			stage('deployment.analysis.started', 2),
+			stage('deployment.workspace.detected', 3, workspace),
+			stage('deployment.build.started', 4)
+		]);
+		expect(steps.find((step) => step.key === 'Analyzing')?.monorepo).toEqual(workspace);
+		expect(steps.filter((step) => step.monorepo)).toHaveLength(1);
+	});
+
+	it('falls back to the build step when the agent sent no analysis event', () => {
+		const steps = normalizeDeploymentTimeline(running, [
+			stage('deployment.checkout.started', 1),
+			stage('deployment.workspace.detected', 2, workspace),
+			stage('deployment.build.started', 3)
+		]);
+		expect(steps.find((step) => step.key === 'Building')?.monorepo).toEqual(workspace);
+	});
+
+	it('ignores metadata that does not have the documented shape', () => {
+		const steps = normalizeDeploymentTimeline(running, [
+			stage('deployment.analysis.started', 1),
+			stage('deployment.workspace.detected', 2, [])
+		]);
+		expect(steps.some((step) => step.monorepo)).toBe(false);
+	});
+});

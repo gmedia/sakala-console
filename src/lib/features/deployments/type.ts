@@ -1,3 +1,4 @@
+import type { ProjectMonorepo } from '$lib/features/projects/type';
 export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 
 export type DeploymentStatus =
@@ -47,6 +48,8 @@ export type DeploymentStep = {
 	timestamp?: string;
 	/** Only for a stage that ended and whose start is on record. */
 	durationSeconds?: number;
+	/** On the analysis step: the JavaScript workspace this deployment built from, and its commands. */
+	monorepo?: ProjectMonorepo;
 };
 
 export type DeploymentEventLevel = 'info' | 'warning' | 'error';
