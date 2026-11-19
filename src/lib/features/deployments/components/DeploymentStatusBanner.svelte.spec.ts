@@ -102,6 +102,16 @@ describe('a failed deployment', () => {
 		expect(redeploy.element().className).not.toContain('bg-error');
 	});
 
+	it('offers "Build ulang dari awal" beside Redeploy where the project has a live image', async () => {
+		const onRedeploy = vi.fn();
+		await render(DeploymentStatusBanner, { ...failed, onRedeploy, offerForceBuild: true });
+
+		await page.getByRole('button', { name: 'Pilihan cara build' }).click();
+		await page.getByRole('menuitem', { name: 'Build ulang dari awal' }).click();
+
+		expect(onRedeploy).toHaveBeenCalledExactlyOnceWith({ forceBuild: true });
+	});
+
 	it('takes the error button to the log', async () => {
 		const onViewError = vi.fn();
 		await render(DeploymentStatusBanner, { ...failed, onRedeploy: vi.fn(), onViewError });

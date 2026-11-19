@@ -114,10 +114,18 @@ export function getTimelineItemDisplay({
 	}
 }
 
+const TIMELINE_STATUS_SUFFIX: Partial<Record<StatusDeployment, string>> = {
+	failed: ' - gagal',
+	cancelled: ' - dibatalkan'
+};
+
+/** What a step title gets after it, for a step that stopped. Empty for every other step. */
+export function getTimelineStatusSuffix(status: StatusDeployment): string {
+	return TIMELINE_STATUS_SUFFIX[status] ?? '';
+}
+
 function titleForStatus(status: StatusDeployment, title: string): string {
-	if (status === 'failed') return `${title} - gagal`;
-	if (status === 'cancelled') return `${title} - dibatalkan`;
-	return title;
+	return `${title}${getTimelineStatusSuffix(status)}`;
 }
 
 const bannerIconColorMap: Partial<Record<BannerStatus, string>> = {

@@ -11,6 +11,7 @@ import {
 	createDeploymentEventsQuery
 } from './queries';
 import { normalizeDeploymentTimeline } from './deployment-normalization';
+import { getImageBuildState } from './image-reuse-presentation';
 import {
 	getBannerStatusFromDeploymentStatus,
 	deriveLiveInfoTimestamp,
@@ -130,6 +131,7 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 	});
 	const events = $derived(deploymentEventsQuery.data?.data ?? []);
 	const steps = $derived(deployment ? normalizeDeploymentTimeline(deployment, events) : []);
+	const imageBuild = $derived(getImageBuildState(deployment?.build, events));
 
 	const lastUpdateTimestamp = $derived(
 		deployment
@@ -193,6 +195,10 @@ export function useDeploymentDetail(projectId: () => string, deploymentId: () =>
 		/** The agent's stage events, which the log uses to tell the failed stage's lines apart. */
 		get events() {
 			return events;
+		},
+		/** Whether this deployment reused an image, built one, or built after a planned reuse. */
+		get imageBuild() {
+			return imageBuild;
 		},
 		get bannerInput() {
 			return bannerInput;

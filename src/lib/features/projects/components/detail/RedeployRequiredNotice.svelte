@@ -14,7 +14,7 @@
 	class="flex flex-col justify-between gap-3 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 md:flex-row md:items-center"
 >
 	<p class="min-w-0 text-sm text-foreground">{message}</p>
-	<Button onclick={redeploy.trigger} disabled={redeploy.isProcessing}>
+	<Button onclick={() => redeploy.trigger()} disabled={redeploy.isProcessing}>
 		{redeploy.isProcessing ? REDEPLOY_REQUIRED_COPY.busy : REDEPLOY_REQUIRED_COPY.action}
 	</Button>
 </div>

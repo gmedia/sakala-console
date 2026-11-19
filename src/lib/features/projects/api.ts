@@ -8,6 +8,7 @@ import type {
 	UpdateEnvVarPayload,
 	EnvVarValueResponse,
 	TriggerRedeployPayload,
+	StoreDeploymentRequest,
 	GetDeploymentsParams,
 	GetSkippedPushesParams,
 	PaginatedDeployments,
@@ -115,6 +116,12 @@ export async function triggerRedeploy(
 					? crypto.randomUUID()
 					: 'deploy-' + Date.now());
 
+	// Without `force_build` the API reuses the live image when the commit and build settings match.
+	const body: StoreDeploymentRequest = {
+		branch,
+		...(typeof payload !== 'string' && payload.forceBuild && { force_build: true })
+	};
+
 	const res = await apiRequest<{ data: Deployment }>(
 		`/api/v1/app/projects/${projectId}/deployments`,
 		{
@@ -122,9 +129,7 @@ export async function triggerRedeploy(
 			headers: {
 				'Idempotency-Key': idempotencyKey
 			},
-			json: {
-				branch
-			}
+			json: body
 		}
 	);
 	return res.data;

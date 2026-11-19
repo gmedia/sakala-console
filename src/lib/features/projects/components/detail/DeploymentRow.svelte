@@ -2,6 +2,7 @@
 	import { resolveRoute } from '$app/paths';
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
 	import { deriveDurationLabel } from '$lib/features/deployments/deployment-presentation';
+	import { getReuseRowLabel } from '$lib/features/deployments/image-reuse-presentation';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
 	import type { Deployment } from '../../type';
 	import {
@@ -14,6 +15,7 @@
 
 	const badge = $derived(getDeploymentBadge(deployment.status));
 	const note = $derived(getDeploymentCardNote(deployment));
+	const reuse = $derived(getReuseRowLabel(deployment.build));
 	const message = $derived(deployment.commit_message || 'Deployment manual');
 	const duration = $derived(
 		deriveDurationLabel(deployment.started_at, deployment.finished_at ?? deployment.cancelled_at)
@@ -51,14 +53,21 @@
 	<div class="min-w-0 @3xl:col-start-3 @3xl:row-start-1">
 		<a
 			{href}
-			aria-label={`Deployment #${deployment.sequence}, ${badge.label}: ${message}`}
+			aria-label={`Deployment #${deployment.sequence}, ${badge.label}${reuse ? `, ${reuse.accessible}` : ''}: ${message}`}
 			class="block min-h-6 truncate text-sm leading-6 font-medium text-foreground after:absolute after:inset-0 after:rounded-control after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:-outline-offset-3 focus-visible:after:outline-primary"
 			title={message}
 		>
 			{message}
 		</a>
-		{#if note}
-			<p class="truncate text-xs text-muted">{note}</p>
+		{#if note || reuse}
+			<p class="flex min-w-0 flex-wrap gap-x-2 text-xs text-muted">
+				{#if reuse}
+					<span class="whitespace-nowrap" data-testid="deployment-row-reuse">{reuse.label}</span>
+				{/if}
+				{#if note}
+					<span class="min-w-0 truncate">{note}</span>
+				{/if}
+			</p>
 		{/if}
 	</div>
 

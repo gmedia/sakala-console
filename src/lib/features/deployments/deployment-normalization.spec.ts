@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Deployment, DeploymentEvent } from '$lib/api/resources/deployment';
+import { BUILT_FROM_SCRATCH } from '$lib/api/resources/deployment-build';
+import { type Deployment, type DeploymentEvent } from '$lib/api/resources/deployment';
 import { normalizeDeploymentTimeline } from './deployment-normalization';
 
 function createDeployment(overrides: Partial<Deployment> = {}): Deployment {
@@ -28,6 +29,7 @@ function createDeployment(overrides: Partial<Deployment> = {}): Deployment {
 		failure_code: null,
 		failure_summary: null,
 		failure: null,
+		build: BUILT_FROM_SCRATCH,
 		created_at: '2026-09-20T10:00:00Z',
 		updated_at: '2026-09-20T10:00:00Z',
 		...overrides
@@ -502,5 +504,192 @@ describe('the workspace a deployment built from', () => {
 			stage('deployment.workspace.detected', 2, [])
 		]);
 		expect(steps.some((step) => step.monorepo)).toBe(false);
+	});
+});
+
+describe('normalizeDeploymentTimeline with a reused image', () => {
+	const reusedBuild = {
+		mode: 'reused',
+		image_source_deployment_id: 'deployment-12',
+		image_source_sequence: 12,
+		fallback_reason: null
+	} as const;
+	const reusedEvent = createEvent({
+		sequence: 1,
+		type: 'deployment.image.reused',
+		occurred_at: '2026-09-20T10:00:05Z'
+	});
+	const containerEvent = createEvent({
+		sequence: 2,
+		type: 'deployment.container.started',
+		occurred_at: '2026-09-20T10:00:20Z'
+	});
+	const healthEvent = createEvent({
+		sequence: 3,
+		type: 'deployment.health.started',
+		occurred_at: '2026-09-20T10:00:25Z'
+	});
+	const routeEvent = createEvent({
+		sequence: 4,
+		type: 'deployment.route.started',
+		occurred_at: '2026-09-20T10:00:30Z'
+	});
+
+	it('shows one step for the image in place of clone, analysis, and build', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({
+				status: 'succeeded',
+				build: reusedBuild,
+				finished_at: '2026-09-20T10:00:40Z'
+			}),
+			[reusedEvent, containerEvent, healthEvent, routeEvent]
+		);
+
+		expect(steps.map((step) => step.key)).toEqual([
+			'Queued',
+			'ImageReused',
+			'Deploying',
+			'HealthChecking',
+			'Routing'
+		]);
+		expect(steps.every((step) => step.status === 'success')).toBe(true);
+		expect(steps[1]).toMatchObject({
+			title: 'Memakai image dari deployment #12 (tanpa build)',
+			imageSource: { deploymentId: 'deployment-12', sequence: 12 },
+			durationSeconds: 15
+		});
+	});
+
+	it('runs the image step while the API still says queued, as during a release command', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({ status: 'queued', build: reusedBuild }),
+			[reusedEvent]
+		);
+
+		expect(steps.map((step) => [step.key, step.status])).toEqual([
+			['Queued', 'success'],
+			['ImageReused', 'running'],
+			['Deploying', 'pending'],
+			['HealthChecking', 'pending'],
+			['Routing', 'pending']
+		]);
+	});
+
+	it('waits in the queue with the image step ahead, and never lists clone or build', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({ status: 'queued', started_at: null, build: reusedBuild }),
+			[]
+		);
+
+		expect(steps.map((step) => step.key)).toEqual([
+			'Queued',
+			'ImageReused',
+			'Deploying',
+			'HealthChecking',
+			'Routing'
+		]);
+		expect(steps[0].status).toBe('running');
+		expect(steps.slice(1).every((step) => step.status === 'pending')).toBe(true);
+	});
+
+	it('marks the image step failed when the release command failed while queued', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({
+				status: 'failed',
+				build: reusedBuild,
+				finished_at: '2026-09-20T10:01:00Z',
+				failure: {
+					code: 'release_command_failed',
+					category: 'release',
+					summary: 'Release command gagal.',
+					recovery_hint: 'Lihat log.',
+					user_fixable: true,
+					detail: null,
+					stage: 'queued'
+				}
+			}),
+			[reusedEvent]
+		);
+
+		expect(steps.map((step) => [step.key, step.status])).toEqual([
+			['Queued', 'success'],
+			['ImageReused', 'failed']
+		]);
+	});
+
+	it('says the source was deleted in the step title', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({
+				status: 'succeeded',
+				build: { ...reusedBuild, image_source_deployment_id: null, image_source_sequence: null },
+				finished_at: '2026-09-20T10:00:40Z'
+			}),
+			[reusedEvent, containerEvent]
+		);
+
+		expect(steps[1]).toMatchObject({
+			key: 'ImageReused',
+			title: 'Memakai image dari deployment yang sudah dihapus (tanpa build)',
+			imageSource: { deploymentId: null, sequence: null }
+		});
+	});
+
+	it('goes back to the build steps after a fallback, and keeps the skipped event off the timeline', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({
+				status: 'building',
+				build: { ...reusedBuild, mode: 'built', fallback_reason: 'image_missing' }
+			}),
+			[
+				createEvent({
+					sequence: 1,
+					level: 'warning',
+					type: 'deployment.image.reuse_skipped',
+					occurred_at: '2026-09-20T10:00:03Z'
+				}),
+				createEvent({
+					sequence: 2,
+					type: 'deployment.checkout.started',
+					occurred_at: '2026-09-20T10:00:04Z'
+				}),
+				createEvent({
+					sequence: 3,
+					type: 'deployment.build.started',
+					occurred_at: '2026-09-20T10:00:30Z'
+				})
+			]
+		);
+
+		expect(steps.map((step) => [step.key, step.status])).toEqual([
+			['Queued', 'success'],
+			['Cloning', 'success'],
+			['Building', 'running'],
+			['Deploying', 'pending'],
+			['HealthChecking', 'pending'],
+			['Routing', 'pending']
+		]);
+		expect(steps.some((step) => step.imageSource)).toBe(false);
+	});
+
+	it('switches to the build steps on the skipped event, before the deployment is refreshed', () => {
+		const steps = normalizeDeploymentTimeline(
+			createDeployment({ status: 'cloning', build: reusedBuild }),
+			[
+				createEvent({
+					sequence: 1,
+					level: 'warning',
+					type: 'deployment.image.reuse_skipped',
+					occurred_at: '2026-09-20T10:00:03Z'
+				}),
+				createEvent({
+					sequence: 2,
+					type: 'deployment.checkout.started',
+					occurred_at: '2026-09-20T10:00:04Z'
+				})
+			]
+		);
+
+		expect(steps.map((step) => step.key)).toContain('Cloning');
+		expect(steps.map((step) => step.key)).not.toContain('ImageReused');
 	});
 });

@@ -24,6 +24,7 @@
 	import DeploymentStatusBanner from '$lib/features/deployments/components/DeploymentStatusBanner.svelte';
 	import DeploymentInfoRow from '$lib/features/deployments/components/DeploymentInfoRow.svelte';
 	import DeploymentTimeline from '$lib/features/deployments/components/DeploymentTimeline.svelte';
+	import ImageFallbackNote from '$lib/features/deployments/components/ImageFallbackNote.svelte';
 	import DeploymentLogPanel from '$lib/features/deployments/components/DeploymentLogPanel.svelte';
 	import { useDeploymentDetail } from '$lib/features/deployments/use-deployment-detail.svelte';
 	import { useFailedDeploymentRedeploy } from '$lib/features/deployments/use-failed-deployment-redeploy.svelte';
@@ -213,6 +214,7 @@
 				? undefined
 				: redeploy.trigger}
 			onCancel={access.readOnly ? undefined : () => (cancelOpen = true)}
+			offerForceBuild={Boolean(detail.project?.active_deployment_id)}
 			redeployPending={redeploy.isPending}
 			redeployDisabled={!redeploy.isReady || Boolean(projectState?.redeployBusy)}
 			redeployError={redeploy.errorMessage}
@@ -262,6 +264,11 @@
 				>
 					<div>
 						<h2 class="mb-3 font-sans text-sm text-foreground">Tahapan</h2>
+						{#if detail.imageBuild.kind === 'fallback'}
+							<div class="mb-3">
+								<ImageFallbackNote projectId={page.params.id ?? ''} state={detail.imageBuild} />
+							</div>
+						{/if}
 						{#if detail.eventsError}
 							<div role="alert" class="space-y-2 text-sm">
 								<p class="font-semibold text-foreground">{detail.eventsError.title}</p>
@@ -282,7 +289,7 @@
 								Tahapan deployment ini tidak tercatat. Log-nya mungkin masih bisa membantu.
 							</p>
 						{:else}
-							<DeploymentTimeline steps={detail.steps} />
+							<DeploymentTimeline steps={detail.steps} projectId={page.params.id} />
 						{/if}
 					</div>
 

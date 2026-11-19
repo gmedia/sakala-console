@@ -14,6 +14,7 @@ import {
 	type DeploymentEvent,
 	type DeploymentEventsResponse
 } from './deployment';
+import { BUILT_FROM_SCRATCH } from './deployment-build';
 
 vi.mock('../client', () => ({
 	apiRequest: vi.fn()
@@ -70,6 +71,7 @@ const validDeployment: Deployment = {
 	failure_code: null,
 	failure_summary: null,
 	failure: null,
+	build: BUILT_FROM_SCRATCH,
 	created_at: '2024-01-01T00:00:00Z',
 	updated_at: '2024-01-01T00:01:00Z'
 };
@@ -850,5 +852,37 @@ describe('real API shapes (from the end-to-end run)', () => {
 
 	it('still refuses a broken envelope, which no single row can explain', () => {
 		expect(() => parseDeploymentEventsResponse({ data: 'nope' })).toThrow();
+	});
+});
+
+describe('the build of a deployment', () => {
+	it('reads a deployment from an API before image reuse as built from scratch', () => {
+		const older: Partial<Deployment> = { ...validDeployment };
+		delete older.build;
+		expect(parseDeploymentResponse({ data: older }).data.build).toEqual(BUILT_FROM_SCRATCH);
+	});
+
+	it('keeps a reused image and its source', () => {
+		const build = {
+			mode: 'reused',
+			image_source_deployment_id: 'dep_0',
+			image_source_sequence: 7,
+			fallback_reason: null
+		};
+		expect(parseDeploymentResponse({ data: { ...validDeployment, build } }).data.build).toEqual(
+			build
+		);
+	});
+
+	it('reads a fallback reason it does not know as image_unavailable', () => {
+		const build = {
+			mode: 'built',
+			image_source_deployment_id: 'dep_0',
+			image_source_sequence: 7,
+			fallback_reason: 'something_new'
+		};
+		expect(
+			parseDeploymentResponse({ data: { ...validDeployment, build } }).data.build.fallback_reason
+		).toBe('image_unavailable');
 	});
 });
