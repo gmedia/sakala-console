@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { validateRepositoryUrl } from '../../validation/repositoryUrl';
+	import {
+		GITHUB_REPOSITORY_EXAMPLE,
+		normalizeGithubRepositoryUrl
+	} from '../../validation/repositoryUrl';
 
 	let {
 		value = $bindable(),
@@ -15,37 +18,43 @@
 		onValidityChange: (isValid: boolean) => void;
 	} = $props();
 
-	const validationError = $derived(validateRepositoryUrl(value));
-	const displayError = $derived((touched ? validationError : null) || apiErrorMessage);
+	const result = $derived(normalizeGithubRepositoryUrl(value));
+	const displayError = $derived((touched && !result.ok ? result.message : null) || apiErrorMessage);
+	// The address that will be used, shown as soon as it differs from what was typed.
+	const normalized = $derived(result.ok && result.changed ? result.url : null);
 
 	$effect(() => {
-		onValidityChange?.(validationError === null);
+		onValidityChange?.(result.ok);
 	});
-
-	function handleBlur() {
-		touched = true;
-	}
 </script>
 
 <div class="flex flex-col gap-2">
-	<label for="git-url" class="font-semibold">URL repository publik</label>
+	<label for="git-url" class="font-semibold">URL repository GitHub publik</label>
 	<input
 		id="git-url"
 		type="text"
+		inputmode="url"
+		autocomplete="off"
+		spellcheck="false"
 		aria-describedby="git-url-help"
 		bind:value
 		{disabled}
-		onblur={handleBlur}
-		placeholder="https://github.com/username/nama-repo.git"
+		onblur={() => (touched = true)}
+		placeholder={GITHUB_REPOSITORY_EXAMPLE}
 		class="control-input {displayError ? 'border-error' : ''}"
 		aria-invalid={displayError ? 'true' : 'false'}
 	/>
 	{#if displayError}
 		<p id="git-url-help" class="text-sm text-error-dark">{displayError}</p>
+	{:else if normalized}
+		<p id="git-url-help" class="text-sm wrap-anywhere" data-testid="git-url-normalized">
+			Akan memakai <span class="font-mono font-medium">{normalized}</span>. Branch dipilih di
+			langkah berikutnya.
+		</p>
 	{:else}
 		<p id="git-url-help" class="text-sm">
-			Dipakai untuk repository publik yang belum terhubung ke akun GitHubmu. Repo harus bisa diakses
-			tanpa login.
+			Untuk repository publik yang belum terhubung ke akun GitHub-mu. Alamat dari address bar,
+			tombol Code, atau halaman branch juga bisa dipakai.
 		</p>
 	{/if}
 </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createProjectWizardState } from './createProjectState.svelte';
 import type { Repository } from '../type';
+import { STARTER_EXAMPLES } from '$lib/config/starter-examples';
 
 const repo = (overrides: Partial<Repository> = {}): Repository => ({
 	id: '101',
@@ -206,5 +207,90 @@ describe('createProjectWizardState: environment variables', () => {
 		expect(wizard.envSaveStatus).toBe('done');
 		expect(wizard.envFailures).toEqual([]);
 		expect(wizard.envVars).toEqual([]);
+	});
+});
+
+describe('createProjectWizardState: what batch 4 added', () => {
+	it('sends the typed URL in the one form the API stores', () => {
+		const wizard = createProjectWizardState();
+		wizard.repositorySource = 'git-url';
+		wizard.gitUrl = 'github.com/rani/toko-kopi/tree/main/';
+		expect(wizard.gitRepositoryUrl).toBe('https://github.com/rani/toko-kopi');
+		wizard.gitUrl = 'https://gitlab.com/rani/toko-kopi';
+		expect(wizard.gitRepositoryUrl).toBe('');
+	});
+
+	it('adds pasted variables and changes an existing draft only when the plan says so', () => {
+		const wizard = createProjectWizardState();
+		wizard.addEnvVar('APP_ENV', 'local', true);
+		const planned = (key: string, value: string) => ({
+			key,
+			value,
+			isSecret: false,
+			looksSecret: false
+		});
+
+		wizard.importEnvVars({
+			toAdd: [planned('APP_DEBUG', 'false')],
+			toOverwrite: [],
+			kept: ['APP_ENV']
+		});
+		expect(wizard.envVars.map((env) => [env.key, env.value])).toEqual([
+			['APP_ENV', 'local'],
+			['APP_DEBUG', 'false']
+		]);
+
+		wizard.importEnvVars({ toAdd: [], toOverwrite: [planned('APP_ENV', 'production')], kept: [] });
+		expect(wizard.envVars.find((env) => env.key === 'APP_ENV')).toMatchObject({
+			value: 'production',
+			isSecret: false
+		});
+	});
+
+	it('an example fills the wizard, and a second example replaces what the first added', () => {
+		const wizard = createProjectWizardState();
+		const laravel = STARTER_EXAMPLES.find((example) => example.id === 'laravel')!;
+		const staticSite = STARTER_EXAMPLES.find((example) => example.id === 'static-site')!;
+
+		wizard.buildCommand = 'npm run build';
+		wizard.configuredPort = '8080';
+		wizard.applyStarterExample(laravel);
+		expect(wizard.releaseCommand).toBe('php artisan migrate --force');
+		// Laravel builds from its own Dockerfile: nothing typed earlier may override it.
+		expect(wizard.buildCommand).toBe('');
+		expect(wizard.startCommand).toBe('');
+		expect(wizard.configuredPort).toBe('');
+		expect(wizard.repositorySource).toBe('git-url');
+		expect(wizard.gitRepositoryUrl).toBe(laravel.repository);
+		expect(wizard.rootDirectory).toBe('laravel');
+		expect(wizard.projectName).toBe('contoh-laravel');
+		expect(wizard.envVars.map((env) => env.key)).toEqual(['APP_KEY']);
+
+		wizard.applyStarterExample(staticSite);
+		expect(wizard.rootDirectory).toBe('static-site');
+		expect(wizard.releaseCommand).toBe('');
+		expect(wizard.projectName).toBe('contoh-situs-statis');
+		expect(wizard.envVars).toEqual([]);
+	});
+
+	it('keeps the example suggestion when the repository is confirmed, and drops it for another URL', () => {
+		const wizard = createProjectWizardState();
+		wizard.applyStarterExample(STARTER_EXAMPLES[0]);
+		wizard.confirmGitUrl(repo({ name: 'sakala-examples', full_name: 'gmedia/sakala-examples' }));
+		expect(wizard.projectName).toBe(STARTER_EXAMPLES[0].projectName);
+
+		wizard.gitUrl = 'https://github.com/rani/toko-kopi';
+		expect(wizard.starterExample).toBeNull();
+	});
+
+	it('remembers whether the first deployment should start by itself', () => {
+		const wizard = createProjectWizardState();
+		wizard.markProjectCreated({ id: 'p-1', name: 'toko-kopi' }, { deploy: true });
+		expect(wizard.deployAfterCreate).toBe(true);
+		expect(wizard.currentStep).toBe(3);
+
+		const resumed = createProjectWizardState();
+		resumed.resumeCreatedProject('p-1');
+		expect(resumed.deployAfterCreate).toBe(false);
 	});
 });

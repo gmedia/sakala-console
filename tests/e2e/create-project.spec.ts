@@ -14,7 +14,9 @@ import {
 const DEPLOYMENT_URL = new RegExp(`/projects/${PROJECT_ID}/deployments/${DEPLOYMENT_ID}$`);
 const PROJECT_URL = new RegExp(`/projects/${PROJECT_ID}(/|$)`);
 
-const buatProyek = (page: Page) => page.getByRole('button', { name: 'Buat proyek' });
+const buatProyek = (page: Page) => page.getByRole('button', { name: 'Buat dan deploy' });
+const buatTanpaDeploy = (page: Page) => page.getByRole('button', { name: 'Buat tanpa deploy' });
+const DEPLOY_STEP = 'Deploy pertama';
 const lanjut = (page: Page) => page.getByRole('button', { name: 'Lanjut', exact: true });
 
 async function chooseFirstRepository(page: Page) {
@@ -38,19 +40,9 @@ async function addEnv(page: Page, key: string, value: string) {
 
 test.describe('create project wizard, from GitHub', () => {
 	test('walks the whole path to the deployment page', async ({ page }) => {
-		let polls = 0;
+		// Inspection never finishes here: with a configured port the deployment does not need it.
 		const calls = await mockWizardApi(page, {
-			project: () => {
-				polls += 1;
-				return polls < 2
-					? createdProject
-					: {
-							...createdProject,
-							...succeededInspection,
-							configured_port: 8080,
-							effective_port: 8080
-						};
-			}
+			project: () => ({ ...createdProject, configured_port: 8080, effective_port: 8080 })
 		});
 
 		await page.goto('/projects/new');
@@ -106,8 +98,9 @@ test.describe('create project wizard, from GitHub', () => {
 
 		await buatProyek(page).click();
 
-		// Step 3: the project exists now, and it says so by reading the API.
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		// Port 8080 is configured, so the port is settled: the deployment starts without waiting
+		// for detection, and its page opens.
+		await expect(page).toHaveURL(DEPLOYMENT_URL);
 		expect(calls.createProject).toEqual([
 			{
 				name: 'repo-1-baru',
@@ -125,19 +118,6 @@ test.describe('create project wizard, from GitHub', () => {
 			}
 		]);
 		expect(calls.addEnv).toEqual([{ key: 'APP_ENV', value: 'production', is_secret: true }]);
-		await expect(page).toHaveURL(new RegExp(`project=${PROJECT_ID}`));
-		await expect(page.getByTestId('project-domain')).toHaveText('repo-1.apps.example.test');
-
-		// Real results: unknown stays unknown.
-		await expect(page.getByText('Dockerfile terdeteksi')).toBeVisible({ timeout: 10_000 });
-		await expect(page.getByRole('definition').filter({ hasText: 'pnpm' })).toBeVisible();
-		await expect(page.getByText('Belum diketahui')).toBeVisible();
-		await expect(page.getByText('8080 (kamu yang mengisi)')).toBeVisible();
-		await expect(page.getByText(/punya \.env\.example/)).toBeVisible();
-
-		await page.getByRole('button', { name: 'Deploy sekarang' }).click();
-
-		await expect(page).toHaveURL(DEPLOYMENT_URL);
 		expect(calls.deploy).toHaveLength(1);
 		expect(calls.deploy[0].body).toEqual({ branch: 'develop' });
 		expect(calls.deploy[0].headers['idempotency-key']).toBeTruthy();
@@ -173,11 +153,10 @@ test.describe('create project wizard, from GitHub', () => {
 		await chooseFirstRepository(page);
 
 		await buatProyek(page).dblclick();
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
-		expect(calls.createProject).toHaveLength(1);
 
-		await page.getByRole('button', { name: 'Deploy sekarang' }).dblclick();
+		// Detection already succeeded, so the one deployment starts by itself.
 		await expect(page).toHaveURL(DEPLOYMENT_URL);
+		expect(calls.createProject).toHaveLength(1);
 		expect(calls.deploy).toHaveLength(1);
 	});
 
@@ -185,15 +164,16 @@ test.describe('create project wizard, from GitHub', () => {
 		page
 	}) => {
 		const calls = await mockWizardApi(page, {
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 		await buatProyek(page).click();
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
+		await expect(page).toHaveURL(new RegExp(`project=${PROJECT_ID}&deploy=1`));
 
 		await page.reload();
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 		await expect(buatProyek(page)).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Keluar' })).toBeVisible();
 		expect(calls.createProject).toHaveLength(1);
@@ -219,7 +199,7 @@ test.describe('create project wizard, from GitHub', () => {
 		await expect(field).toHaveAccessibleDescription('Direktori root harus berupa path relatif.');
 		await expect(field).toHaveValue('apps/web');
 		await expect(field).toBeFocused();
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toHaveCount(0);
 		expect(calls.createProject).toHaveLength(1);
 	});
 
@@ -245,7 +225,7 @@ test.describe('create project wizard, from GitHub', () => {
 
 	test('a variable typed but not added still goes with the project', async ({ page }) => {
 		const calls = await mockWizardApi(page, {
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 
@@ -253,7 +233,7 @@ test.describe('create project wizard, from GitHub', () => {
 		await page.getByLabel('Nilai variabel').fill('rahasia');
 		await buatProyek(page).click();
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 		expect(calls.addEnv).toEqual([{ key: 'API_KEY', value: 'rahasia', is_secret: true }]);
 	});
 });
@@ -299,11 +279,18 @@ test.describe('create project wizard, from a public URL', () => {
 
 		await page.goto('/projects/new');
 
-		// Figma's not-connected frame: this link is a real control now.
+		// One way to the public URL: the tab. The empty state only points at it.
 		await expect(page.getByText('Belum ada akun GitHub yang terhubung')).toBeVisible();
-		await page.getByRole('button', { name: 'Gunakan Public Git URL' }).click();
+		await expect(page.getByText(/Pilih tab URL GitHub publik di atas/)).toBeVisible();
+		await page.getByRole('button', { name: 'URL GitHub publik', exact: true }).click();
 
-		await page.getByLabel('URL repository publik').fill('https://github.com/publik/situs');
+		// Pasted from a branch page, with a trailing slash: the repository is what counts.
+		await page
+			.getByLabel('URL repository GitHub publik')
+			.fill('github.com/publik/situs/tree/main/');
+		await expect(page.getByTestId('git-url-normalized')).toContainText(
+			'https://github.com/publik/situs'
+		);
 		await lanjut(page).click();
 
 		await expect(page.getByRole('heading', { name: 'Persiapan deployment' })).toBeVisible();
@@ -318,13 +305,14 @@ test.describe('create project wizard, from a public URL', () => {
 
 		// Webhooks only exist for GitHub App installations.
 		await expect(page.getByRole('switch', { name: 'Auto-deploy' })).toHaveCount(0);
-		await expect(page.getByText(/Auto-deploy tidak tersedia untuk Public Git URL/)).toBeVisible();
+		await expect(
+			page.getByText(/Auto-deploy tidak tersedia untuk proyek dari URL GitHub publik/)
+		).toBeVisible();
 
 		await buatProyek(page).click();
 		await expect.poll(() => calls.createProject.length).toBe(1);
 		expect(calls.createProject[0]).not.toHaveProperty('auto_deploy');
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
 		expect(calls.createProject).toEqual([
 			{
 				name: 'situs',
@@ -334,12 +322,7 @@ test.describe('create project wizard, from a public URL', () => {
 		]);
 		expect(calls.addEnv).toEqual([]);
 
-		await expect(page.getByText('Build otomatis dengan Railpack')).toBeVisible();
-		await expect(page.getByText('vite', { exact: true })).toBeVisible();
-		await expect(page.getByText('Belum diketahui')).toBeVisible();
-
-		await page.getByRole('button', { name: 'Deploy sekarang' }).click();
-
+		// Detection succeeded, so the deployment starts without another click.
 		await expect(page).toHaveURL(DEPLOYMENT_URL);
 		expect(calls.deploy[0].body).toEqual({ branch: 'gh-pages' });
 	});
@@ -355,8 +338,8 @@ test.describe('create project wizard, from a public URL', () => {
 			})
 		});
 		await page.goto('/projects/new');
-		await page.getByRole('button', { name: 'Public Git URL' }).click();
-		await page.getByLabel('URL repository publik').fill('https://github.com/publik/privat');
+		await page.getByRole('button', { name: 'URL GitHub publik', exact: true }).click();
+		await page.getByLabel('URL repository GitHub publik').fill('https://github.com/publik/privat');
 
 		await lanjut(page).click();
 
@@ -385,7 +368,7 @@ test.describe('partial env failure', () => {
 				return { status: 201, body: { data: { id: 1, ...body } } };
 			},
 			envList: () => [{ id: 1, key: 'APP_ENV', is_secret: true }],
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 		await addEnv(page, 'APP_ENV', 'production');
@@ -405,7 +388,7 @@ test.describe('partial env failure', () => {
 		await page.getByLabel('Nilai variabel').fill('postgres://pendek');
 		await page.getByRole('button', { name: 'Simpan ulang variabel' }).click();
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 		expect(calls.createProject).toHaveLength(1);
 		expect(calls.addEnv.map((env) => [env.key, env.value])).toEqual([
 			['APP_ENV', 'production'],
@@ -423,7 +406,7 @@ test.describe('partial env failure', () => {
 			},
 			// The API stored it: only the response never made it back.
 			envList: () => [{ id: 9, key: 'APP_ENV', is_secret: true }],
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 		await addEnv(page, 'APP_ENV', 'production');
@@ -432,7 +415,7 @@ test.describe('partial env failure', () => {
 
 		await page.getByRole('button', { name: 'Simpan ulang variabel' }).click();
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 		expect(attempts).toBe(1);
 		expect(calls.createProject).toHaveLength(1);
 	});
@@ -441,7 +424,7 @@ test.describe('partial env failure', () => {
 		await mockWizardApi(page, {
 			addEnv: () => ({ status: 500, body: { message: 'Server Error' } }),
 			envList: () => [],
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 		await addEnv(page, 'APP_ENV', 'production');
@@ -449,7 +432,7 @@ test.describe('partial env failure', () => {
 
 		await page.getByRole('button', { name: 'Lanjut tanpa variabel ini' }).click();
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 	});
 });
 
@@ -564,24 +547,20 @@ test.describe('auto detect', () => {
 });
 
 test.describe('leaving the wizard', () => {
-	test('Lewati says the project exists but is not deployed, then opens it', async ({ page }) => {
+	test('Buat tanpa deploy creates the project and opens it, without deploying', async ({
+		page
+	}) => {
 		const calls = await mockWizardApi(page, {
 			project: () => ({ ...createdProject, ...succeededInspection })
 		});
 		await chooseFirstRepository(page);
-		await buatProyek(page).click();
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await addEnv(page, 'APP_ENV', 'production');
 
-		await page.getByRole('button', { name: 'Lewati' }).click();
-
-		const dialog = page.getByRole('dialog');
-		await expect(dialog).toContainText('sudah dibuat dan tetap tersimpan');
-		await expect(dialog).toContainText('belum di-deploy');
-		await expect(dialog).not.toContainText('akan tetap dibuat');
-
-		await dialog.getByRole('button', { name: 'Ya, lewati' }).click();
+		await buatTanpaDeploy(page).click();
 
 		await expect(page).toHaveURL(PROJECT_URL);
+		expect(calls.createProject).toHaveLength(1);
+		expect(calls.addEnv).toHaveLength(1);
 		expect(calls.deploy).toHaveLength(0);
 	});
 
@@ -613,11 +592,11 @@ test.describe('leaving the wizard', () => {
 
 	test('leaving after the project exists does not pretend to undo it', async ({ page }) => {
 		const calls = await mockWizardApi(page, {
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 		await buatProyek(page).click();
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Keluar' }).click();
 
@@ -781,7 +760,7 @@ test.describe('branches when the list is not simple', () => {
 			branches: () => ({
 				body: { data: Array.from({ length: 100 }, (_, i) => ({ name: `b-${i}` })) }
 			}),
-			project: () => ({ ...createdProject, ...succeededInspection })
+			project: () => createdProject
 		});
 		await chooseFirstRepository(page);
 
@@ -792,7 +771,7 @@ test.describe('branches when the list is not simple', () => {
 		await page.getByRole('option', { name: 'Pakai branch "branch-ke-101"' }).click();
 		await buatProyek(page).click();
 
-		await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 		expect(calls.createProject[0].branch).toBe('branch-ke-101');
 	});
 });
@@ -802,7 +781,7 @@ test.describe('narrow screens', () => {
 		test(`every step stays inside the page at ${width} px`, async ({ page }) => {
 			await page.setViewportSize({ width, height: 800 });
 			await mockWizardApi(page, {
-				project: () => ({ ...createdProject, ...succeededInspection })
+				project: () => createdProject
 			});
 			const overflows = () =>
 				page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -818,7 +797,7 @@ test.describe('narrow screens', () => {
 			expect(await overflows()).toBe(false);
 
 			await buatProyek(page).click();
-			await expect(page.getByRole('heading', { name: 'Sakala membaca proyekmu' })).toBeVisible();
+			await expect(page.getByRole('heading', { name: DEPLOY_STEP })).toBeVisible();
 			await expect(page.getByRole('button', { name: 'Deploy sekarang' })).toBeVisible();
 			expect(await overflows()).toBe(false);
 		});

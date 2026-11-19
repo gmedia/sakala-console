@@ -43,6 +43,11 @@ type ProjectPlacementFields = Partial<Pick<components['schemas']['ProjectResourc
 type ProjectDatabaseFields = Partial<Pick<components['schemas']['ProjectResource'], 'databases'>>;
 export type ProjectDatabase = NonNullable<ProjectDatabaseFields['databases']>[number];
 
+/** The newest deployment, which the wizard reads after a reload instead of starting another. */
+type ProjectLatestDeploymentFields = Partial<
+	Pick<components['schemas']['ProjectResource'], 'latest_deployment'>
+>;
+
 type DeploymentContractFields = Pick<
 	components['schemas']['DeploymentResource'],
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
@@ -102,7 +107,8 @@ export interface Project
 		ProjectReplicaFields,
 		ProjectReleaseFields,
 		ProjectPlacementFields,
-		ProjectDatabaseFields {}
+		ProjectDatabaseFields,
+		ProjectLatestDeploymentFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */
 export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];

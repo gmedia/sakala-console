@@ -16,7 +16,7 @@
 		steps = [
 			{ number: 1, title: 'Repository' },
 			{ number: 2, title: 'Konfigurasi' },
-			{ number: 3, title: 'Deteksi otomatis' }
+			{ number: 3, title: 'Deploy' }
 		]
 	}: Props = $props();
 

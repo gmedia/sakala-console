@@ -7,7 +7,8 @@ import {
 	getInspectionFailureMessage,
 	getInspectionNotes,
 	getInspectionState,
-	getPortDescription
+	getPortDescription,
+	isPortSettled
 } from './inspection-presentation';
 import type { Project } from './type';
 
@@ -131,5 +132,20 @@ describe('inspection notes', () => {
 
 	it('lists the manifests it found', () => {
 		expect(getInspectedFiles({ inspection })).toEqual(['package.json']);
+	});
+});
+
+describe('isPortSettled', () => {
+	it('is settled by a configured port, whatever inspection is doing', () => {
+		expect(isPortSettled({ configured_port: 8080, preview_status: 'pending' })).toBe(true);
+	});
+
+	it('is settled once inspection succeeded, also without a detected port', () => {
+		expect(isPortSettled({ configured_port: null, preview_status: 'succeeded' })).toBe(true);
+	});
+
+	it('is not settled while inspection runs or after it failed', () => {
+		expect(isPortSettled({ configured_port: null, preview_status: 'pending' })).toBe(false);
+		expect(isPortSettled({ configured_port: null, preview_status: 'failed' })).toBe(false);
 	});
 });

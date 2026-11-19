@@ -2,15 +2,18 @@
 	import '../../../../app.css';
 	import DeploymentLogConsole from './DeploymentLogConsole.svelte';
 	import type { DeploymentLogLine } from '../deployment-logs';
+	import type { LogLevel } from '../log-classification';
 
 	let {
 		initialLines,
 		onJumpToLatest,
-		paused = false
+		paused = false,
+		levels
 	}: {
 		initialLines: DeploymentLogLine[];
 		onJumpToLatest?: () => void;
 		paused?: boolean;
+		levels?: ReadonlyMap<number, LogLevel>;
 	} = $props();
 
 	let lines = $state<DeploymentLogLine[]>([]);
@@ -27,6 +30,6 @@
 </script>
 
 <div style="width: 320px; height: 240px">
-	<DeploymentLogConsole {lines} bind:following {paused} {onJumpToLatest} />
+	<DeploymentLogConsole {lines} {levels} bind:following {paused} {onJumpToLatest} />
 </div>
 <p data-testid="following">{following ? 'mengikuti' : 'tidak mengikuti'}</p>

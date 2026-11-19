@@ -167,7 +167,9 @@ test.describe('project settings: build configuration', () => {
 		const toggle = page.getByRole('switch', { name: 'Auto-deploy' });
 		await expect(toggle).toBeDisabled();
 		await expect(toggle).toHaveAttribute('aria-checked', 'false');
-		await expect(toggle).toHaveAccessibleDescription(/tidak tersedia untuk Public Git URL/);
+		await expect(toggle).toHaveAccessibleDescription(
+			/tidak tersedia untuk proyek dari URL GitHub publik/
+		);
 	});
 });
 

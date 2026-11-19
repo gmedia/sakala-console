@@ -14,9 +14,17 @@
 		errorMessage?: string | null;
 		onCreateProject: () => void;
 		onOpenProjects: () => void;
+		/** Opens the wizard at the example repositories, for someone without a repository yet. */
+		onStartFromExample?: () => void;
 	};
 
-	let { pendingDestination, errorMessage, onCreateProject, onOpenProjects }: Props = $props();
+	let {
+		pendingDestination,
+		errorMessage,
+		onCreateProject,
+		onOpenProjects,
+		onStartFromExample
+	}: Props = $props();
 
 	// What a new account can do today, in the order the wizard does it: configuration comes before
 	// detection, which reads the repository with the branch and settings already chosen.
@@ -84,6 +92,15 @@
 				: 'Lihat dashboard dulu'}
 		</Button>
 	</div>
+
+	{#if onStartFromExample}
+		<p class="-mt-4 text-sm text-muted">
+			Belum punya repo?
+			<Button variant="link" onclick={onStartFromExample} disabled={isBusy}>
+				Coba dulu dengan repo contoh
+			</Button>
+		</p>
+	{/if}
 
 	<p class="text-sm text-muted">
 		Butuh panduan? Baca

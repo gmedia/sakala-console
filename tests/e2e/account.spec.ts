@@ -870,16 +870,17 @@ test.describe('notifications', () => {
 		});
 
 		await page.goto('/settings?tab=notifications');
-		await page.getByRole('switch', { name: 'Deployment berhasil' }).click();
-		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
-		await expect(page.getByText('Pengaturan notifikasi tersimpan.')).toBeVisible();
+		// Saved as soon as it moves: no separate save button.
+		await page.getByRole('switch', { name: 'Lonceng: Deployment berhasil' }).click();
+		await expect(page.getByTestId('notification-row-deployment_success')).toContainText(
+			'Tersimpan'
+		);
 
 		await page.reload();
 
-		await expect(page.getByRole('switch', { name: 'Deployment berhasil' })).toHaveAttribute(
-			'aria-checked',
-			'false'
-		);
+		await expect(
+			page.getByRole('switch', { name: 'Lonceng: Deployment berhasil' })
+		).toHaveAttribute('aria-checked', 'false');
 		expect(bodies).toEqual([{ deployment_success: false }]);
 	});
 });

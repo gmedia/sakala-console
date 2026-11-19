@@ -20,14 +20,20 @@ export const MONITORING_COPY = {
 	restartsNote:
 		'Restart container selama berjalan, misalnya karena crash. Container yang dinyalakan lagi (bangun dari tidur, restart, atau replika dipulihkan) mulai menghitung dari nol.',
 	limitSince: 'Garis batas mulai dari saat jumlah replika itu berlaku.',
+	/**
+	 * The readout under a chart shows one point: the newest, or the one under the cursor. It names
+	 * that point, and calls a point's maximum "Puncak", so it never reads like the summary's
+	 * "tertinggi", which is the highest value of the whole range.
+	 */
 	series: {
 		average: 'Rata-rata',
-		peak: 'Tertinggi',
+		peak: 'Puncak',
 		limit: 'Batas',
 		replicas: 'Replika',
 		restarts: 'Restart',
-		time: 'Waktu'
+		time: 'Titik'
 	},
+	newestPoint: (time: string) => `terbaru, ${time}`,
 	titles: { cpu: 'CPU', memory: 'Memori', replicas: 'Replika', restarts: 'Restart' }
 } as const;
 

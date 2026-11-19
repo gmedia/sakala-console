@@ -145,16 +145,19 @@
 				}
 			},
 			axes: [
+				// A key set to `undefined` replaces uPlot's default rather than falling back to it, and
+				// without `space` or `incrs` uPlot computes no ticks: no labels, no grid. Only set them
+				// when there is a value.
 				{
 					...axis,
-					space: compact ? COMPACT_TICK_SPACE.x : undefined,
+					...(compact && { space: COMPACT_TICK_SPACE.x }),
 					values: (_plot, splits) => splits.map((seconds) => formatAxisTime(seconds))
 				},
 				{
 					...axis,
-					space: compact ? COMPACT_TICK_SPACE.y : undefined,
+					...(compact && { space: COMPACT_TICK_SPACE.y }),
+					...(increments && { incrs: [...increments] }),
 					size: axisSize,
-					incrs: increments ? [...increments] : undefined,
 					values: (_plot, splits) => splits.map((value) => formatValue(value))
 				}
 			],
@@ -162,8 +165,9 @@
 				{
 					label: MONITORING_COPY.series.time,
 					value: (plot, seconds, _series, index) => {
-						const time = index == null ? newestTime(plot) : seconds;
-						return time == null ? NO_VALUE : formatPointTime(time);
+						if (index != null) return seconds == null ? NO_VALUE : formatPointTime(seconds);
+						const newest = newestTime(plot);
+						return newest == null ? NO_VALUE : MONITORING_COPY.newestPoint(formatPointTime(newest));
 					}
 				},
 				...series.map((item): uPlot.Series => ({

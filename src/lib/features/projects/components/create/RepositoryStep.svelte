@@ -17,6 +17,10 @@
 	import FolderOpenIcon from 'phosphor-svelte/lib/FolderOpenIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
+	import { onMount } from 'svelte';
+	import { findStarterExample, type StarterExample } from '$lib/config/starter-examples';
+	import StarterExamples from './StarterExamples.svelte';
+	import WizardStepFooter from './WizardStepFooter.svelte';
 
 	type Props = {
 		repositories: Repository[];
@@ -44,6 +48,8 @@
 		onSearch?: (search: string) => void;
 		/** The pilot project quota is used up, so a new project would be refused. */
 		blocked?: boolean;
+		/** An example picked from a link (`?example=`), filled in and checked when the step opens. */
+		initialExampleId?: string | null;
 	};
 
 	let {
@@ -69,7 +75,8 @@
 		onPageChange,
 		search = '',
 		onSearch,
-		blocked = false
+		blocked = false,
+		initialExampleId = null
 	}: Props = $props();
 
 	const wizard = getCreateProjectContext();
@@ -90,7 +97,7 @@
 	const isDisabled = $derived.by(() => {
 		if (blocked) return true;
 		if (wizard.repositorySource !== 'github') {
-			return !isGitUrlValid || wizard.gitUrl.trim() === '' || isValidating;
+			return !isGitUrlValid || wizard.gitRepositoryUrl === '' || isValidating;
 		}
 		if (loading || errorMessage || !githubConnected) return true;
 		return wizard.selectedRepositoryId === null;
@@ -106,6 +113,28 @@
 		);
 	}
 
+	/**
+	 * Asks the API whether the repository can be read before moving on. Only the normalized
+	 * address is sent; a reply for an address the user has since changed is ignored.
+	 */
+	async function confirmPublicRepository(): Promise<'ok' | 'stale' | 'failed'> {
+		const targetUrl = wizard.gitRepositoryUrl;
+		isValidating = true;
+		try {
+			const validatedRepo = await onValidateGitUrl(targetUrl);
+			if (wizard.gitRepositoryUrl !== targetUrl) return 'stale';
+			wizard.confirmGitUrl(validatedRepo);
+			return 'ok';
+		} catch (err: unknown) {
+			if (wizard.gitRepositoryUrl !== targetUrl) return 'stale';
+			gitUrlTouched = true;
+			gitUrlApiError = validationMessage(err);
+			return 'failed';
+		} finally {
+			isValidating = false;
+		}
+	}
+
 	async function handleNext() {
 		if (wizard.repositorySource === 'git-url') {
 			if (!isGitUrlValid) {
@@ -114,25 +143,38 @@
 			}
 			if (isValidating) return;
 			gitUrlApiError = null;
-
-			const targetUrl = wizard.gitUrl.trim();
-			isValidating = true;
-			try {
-				const validatedRepo = await onValidateGitUrl(targetUrl);
-				if (wizard.gitUrl.trim() !== targetUrl) return;
-				wizard.confirmGitUrl(validatedRepo);
-				onNext();
-			} catch (err: unknown) {
-				if (wizard.gitUrl.trim() !== targetUrl) return;
-				gitUrlTouched = true;
-				gitUrlApiError = validationMessage(err);
-			} finally {
-				isValidating = false;
-			}
+			if ((await confirmPublicRepository()) === 'ok') onNext();
 			return;
 		}
 		onNext();
 	}
+
+	let pendingExampleId = $state<string | null>(null);
+	let exampleError = $state<string | null>(null);
+
+	async function pickExample(example: StarterExample) {
+		if (pendingExampleId || blocked) return;
+		exampleError = null;
+		pendingExampleId = example.id;
+		wizard.applyStarterExample(example);
+		try {
+			const outcome = await confirmPublicRepository();
+			if (outcome === 'ok') onNext();
+			else if (outcome === 'failed') {
+				// One message, beside the examples, instead of a second copy under the URL field.
+				exampleError = `Repo contoh tidak bisa dibaca sekarang. ${gitUrlApiError ?? ''}`.trim();
+				gitUrlApiError = null;
+				gitUrlTouched = false;
+			}
+		} finally {
+			pendingExampleId = null;
+		}
+	}
+
+	onMount(() => {
+		const example = findStarterExample(initialExampleId);
+		if (example) void pickExample(example);
+	});
 
 	function handleInstallationChange(event: Event) {
 		searchQuery = '';
@@ -200,11 +242,8 @@
 					Hubungkan GitHub
 				</Button>
 			</div>
-			<p class="text-center text-foreground/70">
-				Tidak ingin menghubungkan akun?
-				<Button variant="link" onclick={() => (wizard.repositorySource = 'git-url')}>
-					Gunakan Public Git URL
-				</Button>
+			<p class="text-center text-sm text-foreground/70">
+				Repository-mu publik? Pilih tab URL GitHub publik di atas, tanpa perlu menghubungkan akun.
 			</p>
 		{:else}
 			{#if installations.length > 1}
@@ -338,13 +377,28 @@
 		</p>
 	{/if}
 
-	<Button size="lg" class="w-full" disabled={isDisabled} onclick={handleNext}>
-		{#if isValidating}
-			<CircleNotchIcon class="h-5 w-5 animate-spin" />
-			Memvalidasi...
-		{:else}
-			Lanjut
-			<ArrowRightIcon class="h-5 w-5" />
-		{/if}
-	</Button>
+	<StarterExamples
+		pendingId={pendingExampleId}
+		disabled={blocked || isValidating}
+		error={exampleError}
+		onPick={pickExample}
+	/>
+
+	<WizardStepFooter>
+		<Button
+			size="lg"
+			class="w-full sm:w-auto"
+			disabled={isDisabled}
+			aria-busy={isValidating}
+			onclick={handleNext}
+		>
+			{#if isValidating && !pendingExampleId}
+				<CircleNotchIcon class="h-5 w-5 animate-spin motion-reduce:animate-none" />
+				Memeriksa repository...
+			{:else}
+				Lanjut
+				<ArrowRightIcon class="h-5 w-5" />
+			{/if}
+		</Button>
+	</WizardStepFooter>
 </div>

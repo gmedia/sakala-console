@@ -25,6 +25,11 @@ export default defineConfig({
 			version: { pollInterval: 120_000 }
 		})
 	],
+	optimizeDeps: {
+		// Found late otherwise (uqr is imported only when the QR dialog opens), and Vite's reload
+		// halfway through a browser test run makes vitest fail or hang on a cold cache, as in CI.
+		include: ['uqr', 'dotenv']
+	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

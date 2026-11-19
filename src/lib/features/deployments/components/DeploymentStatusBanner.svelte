@@ -8,6 +8,8 @@
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
+	import ClipboardText from 'phosphor-svelte/lib/ClipboardText';
+	import { FAILURE_SUMMARY_WARNING } from '../failure-summary';
 	import XCircle from 'phosphor-svelte/lib/XCircle';
 	import type { ResolvedPathname } from '$app/types';
 	import {
@@ -18,6 +20,7 @@
 		type ServingState
 	} from '../status-config';
 	import { getPublicUrlLabel } from '$lib/features/projects/presentation';
+	import SiteShareActions from '$lib/features/projects/components/share/SiteShareActions.svelte';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { cn } from '$lib/utils/cn';
 
@@ -41,6 +44,8 @@
 		/** Where the state of the running app can be read, when this deployment is not healthy. */
 		projectHref?: ResolvedPathname;
 		onViewError?: () => void;
+		/** Copies a plain-text summary of the failure, to paste into a chat or an AI assistant. */
+		onCopySummary?: () => void;
 		onRedeploy?: () => void;
 		onCancel?: () => void;
 		redeployPending?: boolean;
@@ -67,6 +72,7 @@
 		firstLiveProjectName = null,
 		projectHref,
 		onViewError,
+		onCopySummary,
 		onRedeploy,
 		onCancel,
 		redeployPending = false,
@@ -164,6 +170,11 @@
 							<ArrowSquareOut size={16} weight="bold" aria-hidden="true" />
 						</Button>
 						{@render copyButton('md')}
+						<SiteShareActions
+							url={publicUrl}
+							label={displayUrl}
+							projectName={firstLiveProjectName ?? displayUrl}
+						/>
 					</div>
 				</div>
 			</div>
@@ -221,6 +232,16 @@
 						<Button variant="secondary" onclick={onViewError}>
 							<MagnifyingGlass size={16} weight="bold" aria-hidden="true" />
 							Lihat error di log
+						</Button>
+					{/if}
+					{#if onCopySummary && status === 'failed'}
+						<Button
+							variant="secondary"
+							onclick={onCopySummary}
+							title="Menyamarkan nilai yang terlihat seperti secret. {FAILURE_SUMMARY_WARNING}"
+						>
+							<ClipboardText size={16} weight="bold" aria-hidden="true" />
+							Salin ringkasan error
 						</Button>
 					{/if}
 					{#if onRedeploy}

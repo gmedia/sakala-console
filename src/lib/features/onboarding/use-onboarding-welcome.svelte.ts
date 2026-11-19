@@ -1,7 +1,11 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { NetworkError } from '$lib/api/errors';
-import { ONBOARDING_DESTINATIONS, type OnboardingDestination } from './constants';
+import {
+	ONBOARDING_DESTINATIONS,
+	ONBOARDING_EXAMPLES_HASH,
+	type OnboardingDestination
+} from './constants';
 import { useCompleteOnboarding } from './mutations';
 
 export function onboardingErrorMessage(error: unknown): string | null {
@@ -21,10 +25,14 @@ export function useOnboardingWelcome() {
 	const completeMutation = useCompleteOnboarding();
 	let destination = $state<OnboardingDestination | null>(null);
 
-	function leaveFor(to: OnboardingDestination) {
+	/** `hash` points at a section of the destination, such as the wizard's examples. */
+	function leaveFor(to: OnboardingDestination, hash = '') {
 		if (completeMutation.isPending) return;
 		destination = to;
-		completeMutation.mutate(undefined, { onSuccess: () => goto(resolve(to)) });
+		completeMutation.mutate(undefined, {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved, plus a hash
+			onSuccess: () => goto(`${resolve(to)}${hash}`)
+		});
 	}
 
 	return {
@@ -36,6 +44,9 @@ export function useOnboardingWelcome() {
 			return onboardingErrorMessage(completeMutation.error);
 		},
 		createProject: () => leaveFor(ONBOARDING_DESTINATIONS.createProject),
+		/** The wizard, scrolled to the example repositories. */
+		startFromExample: () =>
+			leaveFor(ONBOARDING_DESTINATIONS.createProject, ONBOARDING_EXAMPLES_HASH),
 		openProjects: () => leaveFor(ONBOARDING_DESTINATIONS.projects)
 	};
 }
