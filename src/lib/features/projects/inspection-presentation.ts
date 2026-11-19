@@ -94,3 +94,15 @@ export function getInspectedFiles(project: Pick<Project, 'inspection'>): string[
 		(file): file is string => typeof file === 'string'
 	);
 }
+
+/**
+ * Whether the port of the next deployment is final. The API fixes `container_port` when the
+ * deployment is created: the configured port, else the port inspection read from a Dockerfile's
+ * EXPOSE, else 3000. Until inspection succeeds, a Dockerfile app could still change it, so a
+ * deployment started then could probe the wrong port.
+ */
+export function isPortSettled(
+	project: Pick<Project, 'configured_port' | 'preview_status'>
+): boolean {
+	return project.configured_port !== null || getInspectionState(project) === 'succeeded';
+}

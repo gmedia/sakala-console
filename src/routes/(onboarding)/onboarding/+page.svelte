@@ -20,5 +20,6 @@
 		errorMessage={welcome.errorMessage}
 		onCreateProject={welcome.createProject}
 		onOpenProjects={welcome.openProjects}
+		onStartFromExample={welcome.startFromExample}
 	/>
 </main>

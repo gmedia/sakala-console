@@ -192,6 +192,13 @@
 		outline-offset: 3px;
 	}
 
+	/* The wizard's sticky step footer must never cover the field that has focus (WCAG 2.4.11). */
+	@media (width >= 40rem) {
+		main:has([data-sticky-step-footer]) {
+			scroll-padding-bottom: 6rem;
+		}
+	}
+
 	/* One focus style for every field, over the blue ring of the forms plugin. */
 	input:not([type='checkbox'], [type='radio']):focus,
 	textarea:focus,

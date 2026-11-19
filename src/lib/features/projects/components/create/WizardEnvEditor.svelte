@@ -2,10 +2,15 @@
 	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
 	import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlashIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+	import ClipboardTextIcon from 'phosphor-svelte/lib/ClipboardTextIcon';
+	import { tick } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { getCreateProjectContext } from '../../create/createProjectContext';
+	import EnvImportPanel from '../../env-import/EnvImportPanel.svelte';
+	import { looksLikeEnvFile } from '../../env-import/parse-env-text';
+	import type { EnvImportPlan } from '../../env-import/plan-env-import';
 	import {
 		normalizeEnvKey,
 		validateEnvKeyFormat,
@@ -21,6 +26,53 @@
 	let keyError = $state('');
 	let valueError = $state('');
 	const visibleIds = new SvelteSet<number>();
+
+	let importOpen = $state(false);
+	let importText = $state('');
+	let importButton = $state<HTMLElement | null>();
+	let importNotice = $state('');
+	const PORT_PATTERN = /^\d{1,5}$/;
+
+	function openImport(text = '') {
+		importText = text;
+		importNotice = '';
+		importOpen = true;
+	}
+
+	async function closeImport() {
+		importOpen = false;
+		await tick();
+		importButton?.focus();
+	}
+
+	/**
+	 * Sakala gives the app its PORT from the project's port, so a pasted PORT becomes that port
+	 * when none is set yet. A different PORT would make the deployment fail.
+	 */
+	function portNote(port: string): string {
+		if (!PORT_PATTERN.test(port)) return '';
+		if (!wizard.configuredPort)
+			return `Port proyek diisi ${port}, jadi aplikasimu tetap menerima PORT=${port}.`;
+		if (wizard.configuredPort === port) return '';
+		return `Port proyek tetap ${wizard.configuredPort}; ubah di Pengaturan lanjutan kalau aplikasimu butuh ${port}.`;
+	}
+
+	function applyImport(plan: EnvImportPlan, port: string | null) {
+		wizard.importEnvVars(plan);
+		const portAdopted = port !== null && PORT_PATTERN.test(port) && !wizard.configuredPort;
+		if (portAdopted) wizard.configuredPort = port;
+		const changed = plan.toAdd.length + plan.toOverwrite.length;
+		importNotice = `${changed} variabel ditambahkan ke daftar${portAdopted ? `, dan Port proyek diisi ${port}` : ''}.`;
+		void closeImport();
+	}
+
+	/** A whole .env pasted into the name field opens the import instead of becoming one name. */
+	function handleKeyPaste(event: ClipboardEvent) {
+		const text = event.clipboardData?.getData('text') ?? '';
+		if (!looksLikeEnvFile(text)) return;
+		event.preventDefault();
+		openImport(text);
+	}
 
 	function addDraft(): boolean {
 		const key = newKey.trim();
@@ -109,6 +161,31 @@
 		</ul>
 	{/if}
 
+	{#if importNotice}
+		<p class="text-sm text-foreground" role="status">{importNotice}</p>
+	{/if}
+
+	{#if importOpen}
+		<EnvImportPanel
+			existingKeys={wizard.envVars.map((env) => env.key)}
+			initialText={importText}
+			{portNote}
+			confirmLabel={(count) => `Tambahkan ${count} variabel`}
+			onApply={applyImport}
+			onCancel={closeImport}
+		/>
+	{:else}
+		<Button
+			variant="secondary"
+			class="w-full sm:w-fit"
+			bind:ref={importButton}
+			onclick={() => openImport()}
+		>
+			<ClipboardTextIcon class="size-5" aria-hidden="true" />
+			Tempel dari .env
+		</Button>
+	{/if}
+
 	<div class="flex flex-col gap-2 rounded-control bg-primary-50 p-2">
 		<div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
 			<div class="min-w-0">
@@ -120,6 +197,7 @@
 						newKey = normalizeEnvKey(event.currentTarget.value);
 						keyError = '';
 					}}
+					onpaste={handleKeyPaste}
 					onkeydown={handleDraftKeydown}
 					placeholder="NAMA_VARIABEL"
 					autocomplete="off"

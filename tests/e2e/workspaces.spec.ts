@@ -348,8 +348,10 @@ test.describe('team workspaces', () => {
 		await page.getByRole('radio', { name: /rani\/repo-1\b/ }).click();
 		await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
 		await expect(page.getByRole('heading', { name: 'Persiapan deployment' })).toBeVisible();
-		await expect(picker).toHaveValue(TEAM.id);
-		await page.getByRole('button', { name: 'Buat proyek' }).click();
+		// Chosen once on the first step, and only named here.
+		await expect(picker).toHaveCount(0);
+		await expect(page.getByTestId('workspace-summary')).toHaveText(`Workspace: ${TEAM.name}`);
+		await page.getByRole('button', { name: 'Buat tanpa deploy' }).click();
 
 		await expect.poll(() => calls.createProject.length).toBe(1);
 		expect(calls.createProject[0].workspace_id).toBe(TEAM.id);
@@ -363,7 +365,8 @@ test.describe('team workspaces', () => {
 		await expect(picker).toHaveValue('00000001-personal');
 		await page.getByRole('radio', { name: /rani\/repo-1\b/ }).click();
 		await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
-		await page.getByRole('button', { name: 'Buat proyek' }).click();
+		await expect(page.getByTestId('workspace-summary')).toHaveText('Workspace: Pribadi');
+		await page.getByRole('button', { name: 'Buat tanpa deploy' }).click();
 
 		await expect.poll(() => calls.createProject.length).toBe(1);
 		expect(calls.createProject[0]).not.toHaveProperty('workspace_id');

@@ -12,7 +12,6 @@
 	import type { PilotLimits } from '$lib/api/resources/pilot-limits';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
-	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import {
 		getDetectedBuilder,
 		getDetectedFramework,
@@ -22,21 +21,28 @@
 		getInspectionNotes,
 		getInspectionState,
 		getPortDescription,
+		isPortSettled,
 		type DetectedValue
 	} from '../../inspection-presentation';
 	import { createRedeployMutation, createRequestInspectionMutation } from '../../mutations';
 	import { getActiveDeploymentLimitNotice } from '../../presentation';
 	import { createProjectInspectionQuery } from '../../queries';
 	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
+	import WizardStepFooter from './WizardStepFooter.svelte';
 
 	type Props = {
 		projectId: string;
 		pilotLimits?: PilotLimits;
+		/**
+		 * "Buat dan deploy" was chosen: the first deployment starts by itself as soon as the port it
+		 * will use is settled, without another click.
+		 */
+		autoDeploy?: boolean;
 		/** How long inspection may stay pending before deploying without it is offered. */
 		patienceMs?: number;
 	};
 
-	let { projectId, pilotLimits, patienceMs = 120_000 }: Props = $props();
+	let { projectId, pilotLimits, autoDeploy = false, patienceMs = 120_000 }: Props = $props();
 
 	const projectQuery = createProjectInspectionQuery(() => projectId);
 	const inspectMutation = createRequestInspectionMutation();
@@ -44,6 +50,7 @@
 
 	const project = $derived(projectQuery.data);
 	const inspectionState = $derived(project ? getInspectionState(project) : 'loading');
+	const portSettled = $derived(project ? isPortSettled(project) : false);
 	const repositoryName = $derived(
 		project?.repository_full_name ?? project?.repository_url ?? 'repository ini'
 	);
@@ -73,12 +80,6 @@
 		if (inspectionState !== 'pending') return;
 		const timer = setTimeout(() => (waitedLong = true), patienceMs);
 		return () => clearTimeout(timer);
-	});
-
-	const headline = $derived.by(() => {
-		if (inspectionState === 'succeeded') return `Hasil deteksi dari ${repositoryName}.`;
-		if (inspectionState === 'failed') return `Sakala belum bisa membaca ${repositoryName}.`;
-		return `Sakala sedang memeriksa ${repositoryName}. Analisis pertama bisa makan waktu satu menit atau lebih. Pemeriksaan berjalan di server, jadi halaman ini boleh ditinggal.`;
 	});
 
 	// After a reload the wizard no longer knows which workspace was picked, but the project does.
@@ -112,6 +113,15 @@
 		});
 	}
 
+	function openDeployment(deploymentId: string) {
+		void goto(
+			resolveRoute('/(app)/projects/[id]/deployments/[deploymentId]', {
+				id: projectId,
+				deploymentId
+			})
+		);
+	}
+
 	let deployError = $state('');
 	// `isPending` updates a tick after mutate(), which is too late for a double click.
 	let deploying = false;
@@ -125,14 +135,7 @@
 		deployMutation.mutate(
 			{ projectId, branch: project.branch, idempotencyKey },
 			{
-				onSuccess: (deployment) => {
-					void goto(
-						resolveRoute('/(app)/projects/[id]/deployments/[deploymentId]', {
-							id: projectId,
-							deploymentId: deployment.id
-						})
-					);
-				},
+				onSuccess: (deployment) => openDeployment(deployment.id),
 				onError: (error) => {
 					deployError = getErrorMessage(
 						error,
@@ -148,18 +151,44 @@
 		);
 	}
 
-	let showSkipConfirm = $state(false);
+	// Starts once. A failed attempt leaves the button to the user instead of retrying by itself.
+	let autoStarted = false;
+	$effect(() => {
+		if (!autoDeploy || autoStarted || !project) return;
+		// A reload after the deployment started: open it rather than starting a second one.
+		if (project.latest_deployment) {
+			autoStarted = true;
+			openDeployment(project.latest_deployment.id);
+			return;
+		}
+		if (!portSettled) return;
+		autoStarted = true;
+		handleDeploy();
+	});
 
-	function handleConfirmSkip() {
-		showSkipConfirm = false;
-		void goto(resolveRoute('/(app)/projects/[id]', { id: projectId }));
-	}
+	const waitingForPort = $derived(autoDeploy && inspectionState === 'pending' && !portSettled);
+	const canDeploy = $derived(portSettled || waitedLong);
+
+	const headline = $derived.by(() => {
+		if (inspectionState === 'failed') return `Sakala belum bisa membaca ${repositoryName}.`;
+		if (autoDeploy && portSettled && !deployError) {
+			return `Memulai deployment pertama dari ${repositoryName}...`;
+		}
+		if (waitingForPort && !waitedLong) {
+			return `Sakala sedang membaca ${repositoryName} untuk tahu port aplikasimu. Deploy dimulai otomatis setelah itu, biasanya dalam satu menit.`;
+		}
+		if (inspectionState === 'succeeded') return `Hasil deteksi dari ${repositoryName}.`;
+		return `Sakala sedang memeriksa ${repositoryName}. Analisis pertama bisa makan waktu satu menit atau lebih. Pemeriksaan berjalan di server, jadi halaman ini boleh ditinggal.`;
+	});
 </script>
 
 {#snippet detectedValue(value: DetectedValue)}
 	{#if inspectionState === 'pending'}
 		<span class="flex items-center gap-2 text-sm text-foreground/70">
-			<CircleNotchIcon class="size-5 shrink-0 animate-spin text-primary" aria-hidden="true" />
+			<CircleNotchIcon
+				class="size-5 shrink-0 animate-spin text-primary motion-reduce:animate-none"
+				aria-hidden="true"
+			/>
 			Mendeteksi konfigurasi...
 		</span>
 	{:else if value.kind === 'known'}
@@ -183,7 +212,7 @@
 <div class="mt-3 flex flex-col gap-4">
 	<div>
 		<h2 tabindex="-1" data-step-heading class="text-xl font-semibold outline-none">
-			Sakala membaca proyekmu
+			Deploy pertama
 		</h2>
 		<p class="wrap-anywhere" role="status">{headline}</p>
 	</div>
@@ -233,10 +262,11 @@
 			<p class="rounded-control border border-error/30 bg-error/10 p-3 text-sm" role="alert">
 				{getInspectionFailureMessage(project)}
 			</p>
-		{:else if waitedLong}
+		{:else if waitedLong && !portSettled}
 			<p class="rounded-control border border-warning/40 bg-warning/10 p-3 text-sm">
 				Analisis masih berjalan, dan ini belum berarti gagal. Kamu tidak perlu menunggu hasilnya:
-				Sakala tetap memilih cara build saat deploy.
+				Sakala tetap memilih cara build saat deploy. Kalau repository-mu memakai Dockerfile dengan
+				port selain PORT, isi Port di Pengaturan proyek dulu.
 			</p>
 		{/if}
 
@@ -264,11 +294,11 @@
 			<p class="text-sm text-error-dark" role="alert">{deployError}</p>
 		{/if}
 
-		<div class="flex flex-col gap-2">
+		<WizardStepFooter>
 			{#if inspectionState === 'failed'}
 				<Button
 					size="lg"
-					class="w-full"
+					class="w-full sm:w-auto"
 					disabled={inspectMutation.isPending}
 					onclick={handleDetectAgain}
 				>
@@ -278,37 +308,22 @@
 			{:else}
 				<Button
 					size="lg"
-					class="w-full"
-					disabled={deployMutation.isPending || (inspectionState === 'pending' && !waitedLong)}
+					class="w-full sm:w-auto"
+					disabled={deployMutation.isPending || !canDeploy}
+					aria-busy={deployMutation.isPending}
 					onclick={handleDeploy}
 				>
-					{#if deployMutation.isPending}
-						<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
+					{#if deployMutation.isPending || (waitingForPort && !waitedLong)}
+						<CircleNotchIcon
+							class="size-5 animate-spin motion-reduce:animate-none"
+							aria-hidden="true"
+						/>
 					{:else}
 						<ArrowsClockwise size={18} aria-hidden="true" />
 					{/if}
 					Deploy sekarang
 				</Button>
 			{/if}
-			<Button
-				variant="ghost"
-				size="lg"
-				class="w-full text-primary hover:text-primary-dark"
-				onclick={() => (showSkipConfirm = true)}
-			>
-				Lewati
-			</Button>
-		</div>
+		</WizardStepFooter>
 	{/if}
 </div>
-
-<Dialog
-	bind:open={showSkipConfirm}
-	class="text-center"
-	title="Lewati deploy untuk sekarang?"
-	description={`Proyek ${project?.name ?? 'ini'} sudah dibuat dan tetap tersimpan, tapi belum di-deploy, jadi belum bisa diakses publik. Kamu bisa deploy kapan saja dari halaman proyek.`}
-	confirmLabel="Ya, lewati"
-	cancelLabel="Lanjutkan proses"
-	emphasis="cancel"
-	onConfirm={handleConfirmSkip}
-/>

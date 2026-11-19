@@ -20,6 +20,7 @@
 		type ServingState
 	} from '../status-config';
 	import { getPublicUrlLabel } from '$lib/features/projects/presentation';
+	import SiteShareActions from '$lib/features/projects/components/share/SiteShareActions.svelte';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { cn } from '$lib/utils/cn';
 
@@ -169,6 +170,11 @@
 							<ArrowSquareOut size={16} weight="bold" aria-hidden="true" />
 						</Button>
 						{@render copyButton('md')}
+						<SiteShareActions
+							url={publicUrl}
+							label={displayUrl}
+							projectName={firstLiveProjectName ?? displayUrl}
+						/>
 					</div>
 				</div>
 			</div>

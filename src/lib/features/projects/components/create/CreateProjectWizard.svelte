@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { resolve, resolveRoute } from '$app/paths';
 	import { page } from '$app/state';
 	import { ApiError } from '$lib/api/errors';
 	import type { GetInstallationRepositoriesParams } from '$lib/api/resources/github';
 	import type { StoreProjectRequest } from '$lib/api/resources/projects';
-	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
-	import type { BreadCrumbItem } from '$lib/components/ui/Breadcrumb.svelte';
 	import {
 		githubConfigureUrl,
 		githubInstallUrl,
@@ -16,7 +14,7 @@
 	} from '$lib/features/auth/utils/oauth';
 	import { getEnvironmentVariables } from '../../api';
 	import { initCreateProjectContext } from '../../create/createProjectContext';
-	import type { WizardEnvVar } from '../../create/createProjectState.svelte';
+	import type { CreateIntent, WizardEnvVar } from '../../create/createProjectState.svelte';
 	import { saveEnvVars, withoutAlreadySaved } from '../../create/save-env-vars';
 	import { parseGithubInstallationResult } from '../../github-installation-result';
 	import {
@@ -38,14 +36,17 @@
 		mapCreateProjectErrors,
 		type CreateProjectFieldErrors
 	} from '../../validation/createProjectSchema';
-	import AutoDetectStep from './AutoDetectStep.svelte';
-	import CancelCreateProjectAction from './CancelCreateProjectAction.svelte';
 	import ConfigureProjectStep from './ConfigureProjectStep.svelte';
 	import CreateProjectStepper from './CreateProjectStepper.svelte';
 	import EnvRetryStep from './EnvRetryStep.svelte';
+	import FirstDeployStep from './FirstDeployStep.svelte';
 	import RepositoryStep from './RepositoryStep.svelte';
 
 	const REPOSITORIES_PER_PAGE = 5;
+	/** Query parameters this wizard reads: the project it created, whether to deploy, an example. */
+	const PROJECT_PARAM = 'project';
+	const DEPLOY_PARAM = 'deploy';
+	const EXAMPLE_PARAM = 'example';
 
 	const installationResult = parseGithubInstallationResult(page.url.searchParams);
 
@@ -53,8 +54,13 @@
 
 	// A reload after the project was created must not bring the form back: submitting it again
 	// would create a second project. The id in the URL is enough to pick up from step 3.
-	const resumedProjectId = page.url.searchParams.get('project');
-	if (resumedProjectId) wizard.resumeCreatedProject(resumedProjectId);
+	const resumedProjectId = page.url.searchParams.get(PROJECT_PARAM);
+	if (resumedProjectId) {
+		wizard.resumeCreatedProject(resumedProjectId, {
+			deploy: page.url.searchParams.get(DEPLOY_PARAM) === '1'
+		});
+	}
+	const initialExampleId = resumedProjectId ? null : page.url.searchParams.get(EXAMPLE_PARAM);
 
 	// The result stays on screen; the query goes, so a refresh does not show it again.
 	onMount(() => {
@@ -169,6 +175,17 @@
 	let apiErrors = $state<CreateProjectFieldErrors>({});
 	// `isPending` updates a tick after mutate(), which is too late for a double click.
 	let creating = false;
+	let createIntent: CreateIntent = 'deploy';
+
+	/** "Buat tanpa deploy": the project page is where the project is read and deployed later. */
+	function openCreatedProject() {
+		const projectId = wizard.createdProjectId;
+		if (projectId) void goto(resolveRoute('/(app)/projects/[id]', { id: projectId }));
+	}
+
+	function afterEnvSaved() {
+		if (createIntent === 'create' && wizard.envSaveStatus === 'done') openCreatedProject();
+	}
 
 	function saveEnv(projectId: string, env: WizardEnvVar) {
 		return addEnvMutation.mutateAsync({
@@ -177,9 +194,10 @@
 		});
 	}
 
-	async function handleCreateProject(payload: StoreProjectRequest) {
+	async function handleCreateProject(payload: StoreProjectRequest, intent: CreateIntent) {
 		if (creating) return;
 		creating = true;
+		createIntent = intent;
 		apiErrors = {};
 
 		try {
@@ -189,9 +207,10 @@
 				workspaceId ? { ...payload, workspace_id: workspaceId } : payload
 			);
 			wizard.startEnvSave();
-			wizard.markProjectCreated(project);
+			wizard.markProjectCreated(project, { deploy: intent === 'deploy' });
+			const query = `${PROJECT_PARAM}=${encodeURIComponent(project.id)}${intent === 'deploy' ? `&${DEPLOY_PARAM}=1` : ''}`;
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved, plus a query
-			await goto(`${resolve('/projects/new')}?project=${encodeURIComponent(project.id)}`, {
+			await goto(`${resolve('/projects/new')}?${query}`, {
 				replaceState: true,
 				keepFocus: true,
 				noScroll: true
@@ -202,6 +221,7 @@
 				onSaved: () => wizard.markEnvSaved()
 			});
 			wizard.finishEnvSave(failures);
+			afterEnvSaved();
 		} catch (err) {
 			// Only a failed create lands here on step 2; a variable never makes the project fail.
 			if (!wizard.createdProjectId) apiErrors = mapCreateProjectErrors(err);
@@ -235,9 +255,15 @@
 				}
 			);
 			wizard.finishEnvSave(failures);
+			afterEnvSaved();
 		} finally {
 			retryingEnv = false;
 		}
+	}
+
+	function handleDismissEnvFailures() {
+		wizard.dismissEnvFailures();
+		afterEnvSaved();
 	}
 
 	const showEnvStep = $derived(
@@ -256,28 +282,20 @@
 		}
 		lastStepKey = key;
 	});
-
-	const itemsBreadcrumb: BreadCrumbItem[] = [
-		{ label: 'Proyek' },
-		{ label: 'Proyek baru', current: true }
-	];
 </script>
 
-{#snippet picker()}
+{#snippet picker(readOnly: boolean)}
 	<WorkspacePicker
 		workspaces={manageable}
 		value={targetWorkspace?.id ?? null}
 		limits={pilotLimits}
 		onChange={(id) => (chosenWorkspaceId = id)}
+		{readOnly}
 	/>
 {/snippet}
 
+<!-- The page title in the header already says "Proyek baru", so there is no breadcrumb repeating it. -->
 <div class="flex flex-col items-center justify-center">
-	<div class="flex w-full items-center justify-between">
-		<Breadcrumb items={itemsBreadcrumb} class="mb-4 font-semibold" />
-		<CancelCreateProjectAction />
-	</div>
-
 	<div class="w-full max-w-2xl" bind:this={container}>
 		<CreateProjectStepper currentStep={stepperStep} />
 
@@ -302,10 +320,14 @@
 				<EnvRetryStep
 					retrying={retryingEnv}
 					onRetry={handleRetryEnv}
-					onContinue={wizard.dismissEnvFailures}
+					onContinue={handleDismissEnvFailures}
 				/>
 			{:else if wizard.currentStep === 3 && wizard.createdProjectId}
-				<AutoDetectStep projectId={wizard.createdProjectId} {pilotLimits} />
+				<FirstDeployStep
+					projectId={wizard.createdProjectId}
+					autoDeploy={wizard.deployAfterCreate}
+					{pilotLimits}
+				/>
 			{:else if wizard.currentStep === 2}
 				<ConfigureProjectStep
 					onSubmit={handleCreateProject}
@@ -316,11 +338,11 @@
 					reconnectUrl={githubReconnectUrl(installation)}
 				>
 					{#snippet workspacePicker()}
-						{@render picker()}
+						{@render picker(true)}
 					{/snippet}
 				</ConfigureProjectStep>
 			{:else}
-				{@render picker()}
+				{@render picker(false)}
 				<RepositoryStep
 					{repositories}
 					{githubConnected}
@@ -347,6 +369,7 @@
 					search={repositorySearch}
 					onSearch={handleSearch}
 					blocked={atQuota}
+					{initialExampleId}
 				/>
 			{/if}
 		</div>

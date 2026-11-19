@@ -20,6 +20,7 @@
 			(failure) => validateEnvKeyFormat(failure.env.key) !== null || !failure.env.value.trim()
 		)
 	);
+	import WizardStepFooter from './WizardStepFooter.svelte';
 </script>
 
 {#if wizard.envSaveStatus === 'saving'}
@@ -93,22 +94,27 @@
 			{/each}
 		</ul>
 
-		<Button size="lg" class="w-full" disabled={retrying || invalid} onclick={onRetry}>
-			{#if retrying}
-				<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
-				Menyimpan...
-			{:else}
-				Simpan ulang variabel
-			{/if}
-		</Button>
-		<Button
-			variant="ghost"
-			size="lg"
-			class="w-full text-primary hover:text-primary-dark"
-			disabled={retrying}
-			onclick={onContinue}
-		>
-			Lanjut tanpa variabel ini
-		</Button>
+		<WizardStepFooter>
+			<Button
+				variant="secondary"
+				size="lg"
+				class="w-full sm:w-auto"
+				disabled={retrying}
+				onclick={onContinue}
+			>
+				Lanjut tanpa variabel ini
+			</Button>
+			<Button size="lg" class="w-full sm:w-auto" disabled={retrying || invalid} onclick={onRetry}>
+				{#if retrying}
+					<CircleNotchIcon
+						class="size-5 animate-spin motion-reduce:animate-none"
+						aria-hidden="true"
+					/>
+					Menyimpan...
+				{:else}
+					Simpan ulang variabel
+				{/if}
+			</Button>
+		</WizardStepFooter>
 	</div>
 {/if}

@@ -23,18 +23,28 @@
 	import {
 		AUTO_DEPLOY_HELP,
 		AUTO_DEPLOY_UNAVAILABLE_HELP,
+		BUILD_COMMAND_EXAMPLE,
 		BUILD_COMMAND_HELP,
+		DETECTED_PLACEHOLDER,
+		PORT_HELP,
+		RELEASE_COMMAND_EXAMPLE,
 		RELEASE_COMMAND_HELP,
 		RELEASE_COMMAND_LABEL,
+		RELEASE_COMMAND_PLACEHOLDER,
 		ROOT_DIRECTORY_HELP,
+		ROOT_DIRECTORY_PLACEHOLDER,
+		START_COMMAND_EXAMPLE,
 		START_COMMAND_HELP
 	} from '../../build-help';
+	import type { CreateIntent } from '../../create/createProjectState.svelte';
 	import BranchCombobox from './BranchCombobox.svelte';
 	import PilotQuotaNotice from './PilotQuotaNotice.svelte';
+	import StarterExampleNotice from './StarterExampleNotice.svelte';
 	import WizardEnvEditor from './WizardEnvEditor.svelte';
+	import WizardStepFooter from './WizardStepFooter.svelte';
 
 	type Props = {
-		onSubmit: (payload: StoreProjectRequest) => void;
+		onSubmit: (payload: StoreProjectRequest, intent: CreateIntent) => void;
 		onRepositoryChange: () => void;
 		isSubmitting?: boolean;
 		apiErrors?: CreateProjectFieldErrors;
@@ -77,7 +87,7 @@
 				repositoryId: repo.id
 			};
 		}
-		return isGithub ? null : { kind: 'public', repositoryUrl: wizard.gitUrl.trim() };
+		return isGithub ? null : { kind: 'public', repositoryUrl: wizard.gitRepositoryUrl };
 	});
 	const branchesQuery = createRepositoryBranchesQuery(() => branchSource);
 
@@ -118,7 +128,7 @@
 		}
 		return {
 			type: 'public_url' as const,
-			url: isGithub ? (repo?.clone_url?.replace(/\.git$/, '') ?? '') : wizard.gitUrl.trim()
+			url: isGithub ? (repo?.clone_url?.replace(/\.git$/, '') ?? '') : wizard.gitRepositoryUrl
 		};
 	});
 
@@ -195,9 +205,14 @@
 		formEl?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 	}
 
+	// Enter in a field submits the form without a submitter, which means the primary action.
+	let submittedIntent = $state<CreateIntent>('deploy');
+
 	function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
 		submitted = true;
+		const submitter = event.submitter as HTMLButtonElement | null;
+		submittedIntent = submitter?.value === 'create' ? 'create' : 'deploy';
 
 		const envReady = envEditor?.flushDraft() ?? true;
 		if (!envReady || !basicsResult.success || !configurationResult.success || previewNameError) {
@@ -208,19 +223,22 @@
 		const { name, branch, repository } = basicsResult.data;
 		const configuration = configurationResult.data;
 
-		onSubmit({
-			name,
-			branch,
-			repository,
-			...(configuration.configured_port !== null && {
-				configured_port: configuration.configured_port
-			}),
-			...(configuration.build_command && { build_command: configuration.build_command }),
-			...(configuration.start_command && { start_command: configuration.start_command }),
-			...(configuration.release_command && { release_command: configuration.release_command }),
-			...(configuration.root_directory && { root_directory: configuration.root_directory }),
-			...(isGithub && wizard.autoDeploy && { auto_deploy: true })
-		});
+		onSubmit(
+			{
+				name,
+				branch,
+				repository,
+				...(configuration.configured_port !== null && {
+					configured_port: configuration.configured_port
+				}),
+				...(configuration.build_command && { build_command: configuration.build_command }),
+				...(configuration.start_command && { start_command: configuration.start_command }),
+				...(configuration.release_command && { release_command: configuration.release_command }),
+				...(configuration.root_directory && { root_directory: configuration.root_directory }),
+				...(isGithub && wizard.autoDeploy && { auto_deploy: true })
+			},
+			submittedIntent
+		);
 	}
 
 	$effect(() => {
@@ -231,8 +249,12 @@
 <form bind:this={formEl} class="mt-3 flex flex-col gap-4" onsubmit={handleSubmit} novalidate>
 	<div>
 		<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Persiapan deployment</h2>
-		<p>Atur konfigurasi proyek sebelum dibuat.</p>
+		<p>Periksa nama dan branch. Port dan perintah dideteksi Sakala dari repository.</p>
 	</div>
+
+	{#if wizard.starterExample}
+		<StarterExampleNotice example={wizard.starterExample} />
+	{/if}
 
 	{#if workspacePicker}
 		{@render workspacePicker()}
@@ -258,7 +280,7 @@
 			class="flex w-full flex-wrap items-center justify-between gap-x-2 rounded-control border border-border bg-background px-4 py-1"
 		>
 			<p class="min-w-0 font-mono font-medium wrap-anywhere">
-				{repo?.full_name || wizard.gitUrl || 'Repository'}
+				{repo?.full_name || wizard.gitRepositoryUrl || 'Repository'}
 			</p>
 			<Button variant="link" onclick={onRepositoryChange}>Ganti repository</Button>
 		</div>
@@ -366,9 +388,9 @@
 						label="Port (opsional)"
 						bind:value={wizard.configuredPort}
 						inputmode="numeric"
-						placeholder="3000"
+						placeholder={DETECTED_PLACEHOLDER}
 						error={fieldError('configured_port')}
-						hint="Aplikasimu harus mendengarkan di environment variable PORT. Kosong berarti 3000."
+						hint={PORT_HELP}
 					/>
 				</div>
 				<div>
@@ -376,10 +398,10 @@
 						id="project-build-command"
 						label="Build command (opsional)"
 						bind:value={wizard.buildCommand}
-						placeholder="npm run build"
+						placeholder={DETECTED_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('build_command')}
-						hint={BUILD_COMMAND_HELP}
+						hint={`${BUILD_COMMAND_HELP} ${BUILD_COMMAND_EXAMPLE}`}
 						inputClass="font-mono"
 					/>
 				</div>
@@ -388,10 +410,10 @@
 						id="project-start-command"
 						label="Start command (opsional)"
 						bind:value={wizard.startCommand}
-						placeholder="npm start"
+						placeholder={DETECTED_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('start_command')}
-						hint={START_COMMAND_HELP}
+						hint={`${START_COMMAND_HELP} ${START_COMMAND_EXAMPLE}`}
 						inputClass="font-mono"
 					/>
 				</div>
@@ -400,10 +422,10 @@
 						id="project-release-command"
 						label={`${RELEASE_COMMAND_LABEL} (opsional)`}
 						bind:value={wizard.releaseCommand}
-						placeholder="php artisan migrate --force"
+						placeholder={RELEASE_COMMAND_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('release_command')}
-						hint={RELEASE_COMMAND_HELP}
+						hint={`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`}
 						inputClass="font-mono"
 					/>
 				</div>
@@ -412,7 +434,7 @@
 						id="project-root-directory"
 						label="Root directory (opsional)"
 						bind:value={wizard.rootDirectory}
-						placeholder="apps/web"
+						placeholder={ROOT_DIRECTORY_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('root_directory')}
 						hint={ROOT_DIRECTORY_HELP}
@@ -427,12 +449,43 @@
 		<p class="text-sm text-foreground/70">{formatPilotRuntime(pilotLimits)}</p>
 	{/if}
 
-	<Button size="lg" class="w-full" type="submit" disabled={isSubmitting || atQuota}>
-		{#if isSubmitting}
-			<CircleNotchIcon class="size-5 animate-spin" aria-hidden="true" />
-			<span>Membuat proyek...</span>
-		{:else}
-			<span>Buat proyek</span>
-		{/if}
-	</Button>
+	<WizardStepFooter>
+		<Button
+			variant="secondary"
+			size="lg"
+			class="w-full sm:w-auto"
+			type="submit"
+			value="create"
+			disabled={isSubmitting || atQuota}
+			aria-busy={isSubmitting && submittedIntent === 'create'}
+		>
+			{#if isSubmitting && submittedIntent === 'create'}
+				<CircleNotchIcon
+					class="size-5 animate-spin motion-reduce:animate-none"
+					aria-hidden="true"
+				/>
+				<span>Membuat proyek...</span>
+			{:else}
+				<span>Buat tanpa deploy</span>
+			{/if}
+		</Button>
+		<Button
+			size="lg"
+			class="w-full sm:w-auto"
+			type="submit"
+			value="deploy"
+			disabled={isSubmitting || atQuota}
+			aria-busy={isSubmitting && submittedIntent === 'deploy'}
+		>
+			{#if isSubmitting && submittedIntent === 'deploy'}
+				<CircleNotchIcon
+					class="size-5 animate-spin motion-reduce:animate-none"
+					aria-hidden="true"
+				/>
+				<span>Membuat proyek...</span>
+			{:else}
+				<span>Buat dan deploy</span>
+			{/if}
+		</Button>
+	</WizardStepFooter>
 </form>
