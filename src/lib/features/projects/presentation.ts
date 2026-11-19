@@ -326,6 +326,29 @@ export function getDeployErrorMessage(error: unknown, fallback: string): string 
 }
 
 /** The notice for settings the running deployment does not use yet (`redeploy_required`). */
+/**
+ * The Redeploy control. Redeploy lets the API reuse the live image when it can; the menu beside it
+ * holds the one other way, a full build, and says how the two differ.
+ */
+export const REDEPLOY_COPY = {
+	action: 'Redeploy',
+	busy: 'Menjalankan...',
+	firstDeploy: 'Deploy sekarang',
+	otherDeploymentRunning: 'Sedang men-deploy',
+	/** The menu button's name. It leaves out "redeploy", so the Redeploy button keeps its own name. */
+	menuLabel: 'Pilihan cara build',
+	reuse: {
+		label: 'Redeploy',
+		description:
+			'Memakai ulang image yang sedang dipakai kalau commit dan pengaturan build-nya sama, jadi jauh lebih cepat. Perubahan variabel build seperti VITE_* atau NEXT_PUBLIC_* tetap memicu build.'
+	},
+	forceBuild: {
+		label: 'Build ulang dari awal',
+		description:
+			'Build dari commit terbaru tanpa memakai image lama. Pakai kalau hasil build sebelumnya bermasalah, atau build membaca variabel lain yang baru kamu ubah.'
+	}
+} as const;
+
 export const REDEPLOY_REQUIRED_COPY = {
 	variables:
 		'Perubahan variabel belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya berlaku.',

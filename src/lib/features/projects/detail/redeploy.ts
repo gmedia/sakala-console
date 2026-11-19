@@ -1,6 +1,12 @@
-import type { UpdateProjectPayload } from '../type';
+import { getReuseRowLabel } from '$lib/features/deployments/image-reuse-presentation';
+import type {
+	Deployment,
+	RedeployOptions,
+	TriggerRedeployPayload,
+	UpdateProjectPayload
+} from '../type';
 
-export interface ExecuteRedeployParams {
+export interface ExecuteRedeployParams extends RedeployOptions {
 	project: { id: string; branch?: string | null };
 	detailState?: {
 		draftName?: string | null;
@@ -11,18 +17,17 @@ export interface ExecuteRedeployParams {
 		resetDraft: () => void;
 	} | null;
 	updateProject: (payload: { id: string; data: UpdateProjectPayload }) => Promise<unknown>;
-	triggerRedeploy: (payload: {
-		projectId: string;
-		branch: string;
-		idempotencyKey?: string;
-	}) => void | Promise<unknown>;
+	triggerRedeploy: (
+		payload: { projectId: string } & TriggerRedeployPayload
+	) => void | Promise<unknown>;
 }
 
 export async function executeRedeployFlow({
 	project,
 	detailState,
 	updateProject,
-	triggerRedeploy
+	triggerRedeploy,
+	forceBuild = false
 }: ExecuteRedeployParams): Promise<void> {
 	const activeBranch = detailState?.draftBranch || project.branch || 'main';
 
@@ -54,16 +59,24 @@ export async function executeRedeployFlow({
 		idempotencyKey:
 			typeof crypto !== 'undefined' && crypto.randomUUID
 				? crypto.randomUUID()
-				: 'redeploy-' + Date.now()
+				: 'redeploy-' + Date.now(),
+		// Left out by default, so the API decides whether the live image can be reused.
+		...(forceBuild && { forceBuild: true })
 	});
 }
 
 /**
  * The toast after a redeploy is accepted. The page it opens shows the new deployment, but nothing
  * there announces that it started: `DeploymentLiveAnnouncement` only speaks when one finishes.
+ * A planned reuse says so, since it is why this one will be quick.
  */
-export function redeployStartedMessage(deployment: { sequence: number; status: string }): string {
-	return deployment.status === 'queued'
-		? `Redeploy masuk antrean sebagai deployment #${deployment.sequence}.`
-		: `Redeploy dimulai sebagai deployment #${deployment.sequence}.`;
+export function redeployStartedMessage(
+	deployment: Pick<Deployment, 'sequence' | 'status' | 'build'>
+): string {
+	const started =
+		deployment.status === 'queued'
+			? `Redeploy masuk antrean sebagai deployment #${deployment.sequence}`
+			: `Redeploy dimulai sebagai deployment #${deployment.sequence}`;
+	const reuse = getReuseRowLabel(deployment.build);
+	return reuse ? `${started}, ${reuse.accessible}.` : `${started}.`;
 }

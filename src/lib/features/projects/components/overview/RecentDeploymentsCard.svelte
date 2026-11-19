@@ -7,6 +7,7 @@
 		deriveDurationLabel,
 		getDeploymentTriggerLabel
 	} from '$lib/features/deployments/deployment-presentation';
+	import { getReuseRowLabel } from '$lib/features/deployments/image-reuse-presentation';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
 	import { createRecentDeploymentsQuery } from '../../queries';
 	import { getDeploymentBadge } from '../../presentation';
@@ -106,6 +107,7 @@
 					{#each deployments as deployment (deployment.id)}
 						{@const badge = getDeploymentBadge(deployment.status)}
 						{@const time = duration(deployment)}
+						{@const reuse = getReuseRowLabel(deployment.build)}
 						<tr data-testid="overview-deployment-row">
 							<td class="px-4 py-2.5 align-top sm:pl-6">
 								<a
@@ -119,6 +121,11 @@
 									<span class="font-mono tabular-nums">#{deployment.sequence}</span>
 									{#if shortSha(deployment)}
 										<span class="font-mono tabular-nums">{shortSha(deployment)}</span>
+									{/if}
+									{#if reuse}
+										<span class="whitespace-nowrap" data-testid="overview-deployment-reuse"
+											>{reuse.label}</span
+										>
 									{/if}
 									<span class="@xl:hidden">{getDeploymentTriggerLabel(deployment.trigger)}</span>
 									{#if deployment.created_at}

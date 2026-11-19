@@ -7,6 +7,7 @@ import {
 } from '$lib/features/projects/detail/redeploy';
 import { createRedeployMutation } from '$lib/features/projects/mutations';
 import { getDeployErrorMessage } from '$lib/features/projects/presentation';
+import type { RedeployOptions } from '$lib/features/projects/type';
 
 const REDEPLOY_FALLBACK_ERROR = 'Redeploy belum berhasil dijalankan. Silakan coba lagi.';
 
@@ -20,7 +21,7 @@ export function useFailedDeploymentRedeploy(project: () => { id: string; branch?
 	// `isPending` updates a tick after mutate(), which is too late for a double click.
 	let submitting = false;
 
-	async function trigger() {
+	async function trigger({ forceBuild = false }: RedeployOptions = {}) {
 		const current = project();
 		if (!current || submitting) return;
 
@@ -29,6 +30,7 @@ export function useFailedDeploymentRedeploy(project: () => { id: string; branch?
 
 		await executeRedeployFlow({
 			project: current,
+			forceBuild,
 			updateProject: () => Promise.resolve(),
 			triggerRedeploy: (payload) => {
 				redeploy.mutate(payload, {

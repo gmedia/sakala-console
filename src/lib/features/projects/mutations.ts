@@ -25,7 +25,8 @@ import type {
 	Deployment,
 	CreateEnvVarPayload,
 	UpdateEnvVarPayload,
-	EnvironmentVariable
+	EnvironmentVariable,
+	TriggerRedeployPayload
 } from './type';
 
 export function createValidateGithubRepositoryMutation() {
@@ -104,10 +105,11 @@ export function createRedeployMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: (variables: { projectId: string; branch: string; idempotencyKey?: string }) =>
+		mutationFn: (variables: { projectId: string } & TriggerRedeployPayload) =>
 			triggerRedeploy(variables.projectId, {
 				branch: variables.branch,
-				idempotencyKey: variables.idempotencyKey
+				idempotencyKey: variables.idempotencyKey,
+				...(variables.forceBuild && { forceBuild: true })
 			}),
 		onSuccess: (_: Deployment, variables) => {
 			queryClient.invalidateQueries({ queryKey: projectKeys.deployments(variables.projectId) });

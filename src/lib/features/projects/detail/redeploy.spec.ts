@@ -184,6 +184,36 @@ describe('executeRedeployFlow', () => {
 	});
 });
 
+describe('executeRedeployFlow and the image', () => {
+	it('sends no forceBuild by default, so the API decides whether to reuse the live image', async () => {
+		const triggerRedeploy = vi.fn();
+
+		await executeRedeployFlow({
+			project: { id: 'proj-1', branch: 'main' },
+			updateProject: vi.fn(),
+			triggerRedeploy
+		});
+
+		expect(triggerRedeploy).toHaveBeenCalledOnce();
+		expect(triggerRedeploy.mock.calls[0][0]).not.toHaveProperty('forceBuild');
+	});
+
+	it('asks for a full build when "Build ulang dari awal" was chosen', async () => {
+		const triggerRedeploy = vi.fn();
+
+		await executeRedeployFlow({
+			project: { id: 'proj-1', branch: 'main' },
+			updateProject: vi.fn(),
+			triggerRedeploy,
+			forceBuild: true
+		});
+
+		expect(triggerRedeploy).toHaveBeenCalledWith(
+			expect.objectContaining({ projectId: 'proj-1', branch: 'main', forceBuild: true })
+		);
+	});
+});
+
 describe('redeployStartedMessage', () => {
 	it('says a queued redeploy is waiting, and names the new deployment', () => {
 		expect(redeployStartedMessage({ sequence: 12, status: 'queued' })).toBe(
@@ -194,6 +224,23 @@ describe('redeployStartedMessage', () => {
 	it('says one that already left the queue has started', () => {
 		expect(redeployStartedMessage({ sequence: 13, status: 'cloning' })).toBe(
 			'Redeploy dimulai sebagai deployment #13.'
+		);
+	});
+
+	it('says when the API plans to reuse an image, since that is why it will be quick', () => {
+		expect(
+			redeployStartedMessage({
+				sequence: 14,
+				status: 'queued',
+				build: {
+					mode: 'reused',
+					image_source_deployment_id: 'dep-12',
+					image_source_sequence: 12,
+					fallback_reason: null
+				}
+			})
+		).toBe(
+			'Redeploy masuk antrean sebagai deployment #14, tanpa build, memakai image deployment #12.'
 		);
 	});
 });

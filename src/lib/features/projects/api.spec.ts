@@ -141,3 +141,30 @@ describe('Projects API - Deployment Pagination & Filter Regression', () => {
 		expect(result).toEqual(mockResponse);
 	});
 });
+
+describe('triggerRedeploy and the image', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockedApiRequest.mockResolvedValue({ data: { id: 'dep-1' } });
+	});
+
+	it('leaves force_build out by default, so the API decides whether to reuse the live image', async () => {
+		await triggerRedeploy('p-1', { branch: 'main', idempotencyKey: 'key-1' });
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('/api/v1/app/projects/p-1/deployments', {
+			method: 'POST',
+			headers: { 'Idempotency-Key': 'key-1' },
+			json: { branch: 'main' }
+		});
+	});
+
+	it('sends force_build: true for "Build ulang dari awal"', async () => {
+		await triggerRedeploy('p-1', { branch: 'main', idempotencyKey: 'key-2', forceBuild: true });
+
+		expect(mockedApiRequest).toHaveBeenCalledWith('/api/v1/app/projects/p-1/deployments', {
+			method: 'POST',
+			headers: { 'Idempotency-Key': 'key-2' },
+			json: { branch: 'main', force_build: true }
+		});
+	});
+});

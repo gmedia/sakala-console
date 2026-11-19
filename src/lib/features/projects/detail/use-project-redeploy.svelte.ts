@@ -4,7 +4,7 @@ import { resolveRoute } from '$app/paths';
 import { getErrorMessage } from '$lib/api/errors';
 import { createRedeployMutation, createUpdateProjectMutation } from '../mutations';
 import { getDeployErrorMessage } from '../presentation';
-import type { Project } from '../type';
+import type { Project, RedeployOptions } from '../type';
 import { getProjectDetailContext } from './projectDetailState.svelte';
 import { executeRedeployFlow, redeployStartedMessage } from './redeploy';
 
@@ -23,7 +23,7 @@ export function useProjectRedeploy(project: () => Pick<Project, 'id' | 'branch'>
 
 	const isProcessing = $derived(redeploy.isPending || updateProjectMutation.isPending);
 
-	async function trigger() {
+	async function trigger({ forceBuild = false }: RedeployOptions = {}) {
 		if (submitting || isProcessing) return;
 
 		submitting = true;
@@ -34,6 +34,7 @@ export function useProjectRedeploy(project: () => Pick<Project, 'id' | 'branch'>
 			await executeRedeployFlow({
 				project: current,
 				detailState,
+				forceBuild,
 				updateProject: (payload) => updateProjectMutation.mutateAsync(payload),
 				triggerRedeploy: (payload) => {
 					redeploy.mutate(payload, {
