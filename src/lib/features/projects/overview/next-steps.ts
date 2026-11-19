@@ -4,7 +4,8 @@ import {
 	RELEASE_COMMAND_DOCS_URL,
 	RELEASE_COMMAND_LABEL
 } from '../build-help';
-import { SETTINGS_ANCHORS } from '../settings-anchors';
+import { SUGGESTION_COPY } from '../env-suggestions/presentation';
+import { SETTINGS_ANCHORS, VARIABLES_ANCHORS } from '../settings-anchors';
 import { maxReplicasOf, replicasOf, MIN_REPLICAS } from '../replicas';
 import type { Project } from '../type';
 import type { TopologyTarget } from './topology';
@@ -59,7 +60,14 @@ const RULES: ((project: NextStepProject, context: NextStepContext) => NextStep |
 					id: 'env-example',
 					title: 'Isi environment variable dari .env.example',
 					body: 'Repository-mu punya file .env.example, tetapi proyek ini belum punya environment variable. Aplikasi yang membaca nilai dari sana bisa gagal berjalan tanpanya.',
-					action: { label: 'Buka Variabel', target: 'variables' }
+					// With the file's entries, the Variabel tab opens Sakala's suggestions directly.
+					action: project.inspection.env_example?.entries.length
+						? {
+								label: SUGGESTION_COPY.tabAction,
+								target: 'variables',
+								anchor: VARIABLES_ANCHORS.envExample
+							}
+						: { label: 'Buka Variabel', target: 'variables' }
 				}
 			: null,
 	(project) =>

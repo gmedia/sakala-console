@@ -2083,7 +2083,7 @@
             },
             "post": {
                 "operationId": "v1.app.workspaces.databases.store",
-                "summary": "Create a database. It is `provisioning` until the database node of its region creates it",
+                "summary": "Create a database. It is `provisioning` until the database node of its region creates it. With `project_id` it is\nattached to that project in the same step, and with `deploy_when_ready` the project is deployed once the\ndatabase is ready (`databases[].deploy_when_ready` on the project)",
                 "tags": [
                     "Database"
                 ],
@@ -2100,7 +2100,6 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -2123,6 +2122,122 @@
                                     },
                                     "required": [
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "A database for a project (`project_id`) is refused while no database server can take a new database (`databases.available` in `GET app/pilot-limits` is false).\n\nThe project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.\n\nThe project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.\n\nNo database node is allowed work in the region (`region`), or anywhere when `region` is null.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "A database for a project (`project_id`) is refused while no database server can take a new database (`databases.available` in `GET app/pilot-limits` is false).",
+                                                    "enum": [
+                                                        "DATABASE_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.",
+                                                    "enum": [
+                                                        "PROJECT_DATABASE_ALREADY_ATTACHED"
+                                                    ]
+                                                },
+                                                "database": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "database"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.",
+                                                    "enum": [
+                                                        "DATABASE_CROSS_REGION_UNSUPPORTED"
+                                                    ]
+                                                },
+                                                "database_region": {
+                                                    "type": "string"
+                                                },
+                                                "project_region": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "database_region",
+                                                "project_region"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No database node is allowed work in the region (`region`), or anywhere when `region` is null.",
+                                                    "enum": [
+                                                        "DATABASE_REGION_UNAVAILABLE"
+                                                    ]
+                                                },
+                                                "region": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "region"
+                                            ]
+                                        }
                                     ]
                                 }
                             }
@@ -2218,17 +2333,11 @@
                             }
                         }
                     },
-                    "409": {
-                        "$ref": "#/components/responses/DatabaseRegionUnavailableException"
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -3335,7 +3444,66 @@
                         }
                     },
                     "409": {
-                        "$ref": "#/components/responses/DatabaseEndpointUnavailableException"
+                        "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.",
+                                                    "enum": [
+                                                        "DATABASE_ENDPOINT_UNAVAILABLE"
+                                                    ]
+                                                },
+                                                "database": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "database"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "DATABASE_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
@@ -14251,6 +14419,115 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "env_example": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "enum": [
+                                            ".env.example",
+                                            ".env.sample",
+                                            ".env.dist"
+                                        ]
+                                    },
+                                    "entries": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "example_value": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "example_value"
+                                            ]
+                                        }
+                                    },
+                                    "truncated": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "file",
+                                    "entries",
+                                    "truncated"
+                                ]
+                            },
+                            "database_hint": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "likely": {
+                                        "type": "boolean"
+                                    },
+                                    "engine": {
+                                        "type": "string",
+                                        "enum": [
+                                            "postgresql",
+                                            "mysql",
+                                            "sqlite",
+                                            "unknown"
+                                        ]
+                                    },
+                                    "signals": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "kind": {
+                                                    "type": "string"
+                                                },
+                                                "file": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "kind",
+                                                "file",
+                                                "name"
+                                            ]
+                                        }
+                                    },
+                                    "suggested_release_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "enum": [
+                                            "php artisan migrate --force",
+                                            "python manage.py migrate",
+                                            "npx prisma migrate deploy",
+                                            "bin/rails db:migrate",
+                                            null
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "likely",
+                                    "engine",
+                                    "signals",
+                                    "suggested_release_command"
+                                ]
                             }
                         },
                         "required": [
@@ -14261,7 +14538,9 @@
                             "compose_found",
                             "manifests",
                             "package_manager",
-                            "inspected_at"
+                            "inspected_at",
+                            "env_example",
+                            "database_hint"
                         ]
                     },
                     "stack": {
@@ -17425,6 +17704,115 @@
                                     "string",
                                     "null"
                                 ]
+                            },
+                            "env_example": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "enum": [
+                                            ".env.example",
+                                            ".env.sample",
+                                            ".env.dist"
+                                        ]
+                                    },
+                                    "entries": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "example_value": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "example_value"
+                                            ]
+                                        }
+                                    },
+                                    "truncated": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "file",
+                                    "entries",
+                                    "truncated"
+                                ]
+                            },
+                            "database_hint": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "likely": {
+                                        "type": "boolean"
+                                    },
+                                    "engine": {
+                                        "type": "string",
+                                        "enum": [
+                                            "postgresql",
+                                            "mysql",
+                                            "sqlite",
+                                            "unknown"
+                                        ]
+                                    },
+                                    "signals": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "kind": {
+                                                    "type": "string"
+                                                },
+                                                "file": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "kind",
+                                                "file",
+                                                "name"
+                                            ]
+                                        }
+                                    },
+                                    "suggested_release_command": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "enum": [
+                                            "php artisan migrate --force",
+                                            "python manage.py migrate",
+                                            "npx prisma migrate deploy",
+                                            "bin/rails db:migrate",
+                                            null
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "likely",
+                                    "engine",
+                                    "signals",
+                                    "suggested_release_command"
+                                ]
                             }
                         },
                         "required": [
@@ -17435,7 +17823,9 @@
                             "compose_found",
                             "manifests",
                             "package_manager",
-                            "inspected_at"
+                            "inspected_at",
+                            "env_example",
+                            "database_hint"
                         ]
                     },
                     "stack": {
@@ -17548,7 +17938,7 @@
                     },
                     "databases": {
                         "type": "array",
-                        "description": "The managed database attached to the project, as a list of at most one: a project uses one database at a\ntime. Its connection variables reach the next deployment; see each item's `variables`.",
+                        "description": "The managed database attached to the project, as a list of at most one: a project uses one database at a\ntime. Its connection variables reach the next deployment; see each item's `variables`. `deploy_when_ready`\nis the deployment asked for when the database was created for this project, or `null`.",
                         "items": {
                             "type": "object",
                             "properties": {
@@ -17578,6 +17968,43 @@
                                     "items": {
                                         "type": "string"
                                     }
+                                },
+                                "deploy_when_ready": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ],
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "waiting",
+                                                "started",
+                                                "skipped"
+                                            ]
+                                        },
+                                        "requested_at": {
+                                            "type": "string"
+                                        },
+                                        "deployment_id": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "skipped_reason": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "requested_at",
+                                        "deployment_id",
+                                        "skipped_reason"
+                                    ]
                                 }
                             },
                             "required": [
@@ -17586,7 +18013,8 @@
                                 "status",
                                 "region",
                                 "variables",
-                                "overridden_variables"
+                                "overridden_variables",
+                                "deploy_when_ready"
                             ]
                         }
                     },
@@ -18200,8 +18628,11 @@
                 "type": "object",
                 "properties": {
                     "name": {
-                        "type": "string",
-                        "description": "Name people see, unique among the workspace's databases. The names on the database node are random.",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Name people see, unique among the workspace's databases. The names on the database node are random.\nOptional with `project_id`: the project's name, followed by ` 2`, ` 3`, ... when taken.",
                         "maxLength": 100
                     },
                     "region": {
@@ -18209,13 +18640,22 @@
                             "string",
                             "null"
                         ],
-                        "description": "Region of the database node, for example `jkt`. `null` (the default) uses the workspace's default region,\nor any region without one. Projects attach only to databases of their own region.",
+                        "description": "Region of the database node, for example `jkt`. `null` (the default) uses the workspace's default region,\nor any region without one; with `project_id`, the project's region first. Projects attach only to\ndatabases of their own region.",
                         "maxLength": 32
+                    },
+                    "project_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid",
+                        "description": "A project of this workspace the caller may change, which has no database yet: the new database is\nattached to it at once, while it is still `provisioning`. Another workspace's project answers `404`."
+                    },
+                    "deploy_when_ready": {
+                        "type": "boolean",
+                        "description": "Deploy the project as the caller once the database is ready, through the normal deployment path with\nevery limit. Defaults to `false`; `true` only with `project_id`."
                     }
                 },
-                "required": [
-                    "name"
-                ],
                 "title": "StoreDatabaseRequest"
             },
             "StoreDeploymentRequest": {
@@ -19727,74 +20167,6 @@
                             "required": [
                                 "message",
                                 "code"
-                            ]
-                        }
-                    }
-                }
-            },
-            "DatabaseEndpointUnavailableException": {
-                "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string",
-                                    "description": "Error overview, in Indonesian."
-                                },
-                                "code": {
-                                    "type": "string",
-                                    "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.",
-                                    "enum": [
-                                        "DATABASE_ENDPOINT_UNAVAILABLE"
-                                    ]
-                                },
-                                "database": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "required": [
-                                "message",
-                                "code",
-                                "database"
-                            ]
-                        }
-                    }
-                }
-            },
-            "DatabaseRegionUnavailableException": {
-                "description": "No database node is allowed work in the region (`region`), or anywhere when `region` is null.",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string",
-                                    "description": "Error overview, in Indonesian."
-                                },
-                                "code": {
-                                    "type": "string",
-                                    "description": "No database node is allowed work in the region (`region`), or anywhere when `region` is null.",
-                                    "enum": [
-                                        "DATABASE_REGION_UNAVAILABLE"
-                                    ]
-                                },
-                                "region": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ]
-                                }
-                            },
-                            "required": [
-                                "message",
-                                "code",
-                                "region"
                             ]
                         }
                     }

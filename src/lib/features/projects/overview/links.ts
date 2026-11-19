@@ -11,8 +11,10 @@ function deploymentsHref(projectId: string): string {
 	return resolveRoute('/(app)/projects/[id]/deployments', { id: projectId });
 }
 
-function variablesHref(projectId: string): string {
-	return resolveRoute('/(app)/projects/[id]/environments', { id: projectId });
+/** The Variabel tab; an anchor such as `isi-dari-env-example` opens that part of it. */
+function variablesHref(projectId: string, anchor?: string): string {
+	const base = resolveRoute('/(app)/projects/[id]/environments', { id: projectId });
+	return anchor ? `${base}#${anchor}` : base;
 }
 
 /** A field of the settings tab; SvelteKit scrolls to the id once the tab renders. */
@@ -38,6 +40,6 @@ export function topologyHref(link: TopologyLink, projectId: string): string {
 
 export function nextStepHref(action: NextStep['action'], projectId: string): string {
 	return action.target === 'variables'
-		? variablesHref(projectId)
+		? variablesHref(projectId, action.anchor)
 		: settingsHref(projectId, action.anchor);
 }

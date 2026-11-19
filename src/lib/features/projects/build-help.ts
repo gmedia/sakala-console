@@ -32,6 +32,10 @@ export function isLaravelStack(stack: { framework?: string | null } | null | und
 export const RELEASE_COMMAND_HELP =
 	'Dijalankan sekali setiap deployment, setelah build dan sebelum versi baru menerima trafik. Cocok untuk migration database. Kalau gagal, deployment dibatalkan dan versi sebelumnya tetap melayani. Versi lama masih melayani selama perintah ini berjalan, jadi migration harus tetap cocok dengannya. Jangan taruh seeder di sini.';
 
+/** The release command beside a database choice, where the full help would crowd the card. */
+export const RELEASE_COMMAND_SHORT_HELP =
+	'Dijalankan sekali setiap deploy, setelah build dan sebelum versi baru menerima trafik, misalnya migration. Kosongkan kalau tidak perlu; bisa diubah nanti di Pengaturan.';
+
 /**
  * The placeholder of a field Sakala fills in itself. An example command there reads like a value
  * that is already set, so examples go in the help text instead.

@@ -75,7 +75,9 @@ export const DATABASE_ERROR_CODES = {
 	inUse: 'DATABASE_IN_USE',
 	busy: 'DATABASE_BUSY',
 	projectAlreadyAttached: 'PROJECT_DATABASE_ALREADY_ATTACHED',
-	endpointUnavailable: 'DATABASE_ENDPOINT_UNAVAILABLE'
+	endpointUnavailable: 'DATABASE_ENDPOINT_UNAVAILABLE',
+	/** No database server takes new databases now; only refused for a database made for a project. */
+	unavailable: 'DATABASE_UNAVAILABLE'
 } as const;
 
 export type ValidationErrors = Record<string, string[]>;

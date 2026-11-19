@@ -14,6 +14,7 @@ import type {
 import { resolveRefetchInterval, rateLimitWait } from '$lib/features/deployments/queries';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
 import { getProject, getDeployments, getEnvironmentVariables, getSkippedPushes } from './api';
+import { isWaitingForDatabase } from './first-deploy/deploy-when-ready';
 import {
 	ACTIVE_DEPLOYMENT_STATUSES,
 	type Deployment,
@@ -36,11 +37,14 @@ export const projectKeys = {
 		[...projectKeys.detail(id), 'skippedPushes', params] as const
 };
 
-export function createEnvironmentVariablesQuery(projectId: () => string) {
+export function createEnvironmentVariablesQuery(
+	projectId: () => string,
+	options: () => { enabled?: boolean } = () => ({})
+) {
 	return createQuery(() => ({
 		queryKey: projectKeys.environmentVariables(projectId()),
 		queryFn: () => getEnvironmentVariables(projectId()),
-		enabled: !!projectId()
+		enabled: !!projectId() && (options().enabled ?? true)
 	}));
 }
 
@@ -153,6 +157,13 @@ export function createProjectQuery(projectId: () => string, options: { poll?: bo
 /** Inspection runs on a node, so the wizard asks until the status settles. */
 export const INSPECTION_POLL_MS = 5_000;
 
+/**
+ * While a database made for the project is created, the deployment starts as soon as it is ready,
+ * which usually takes seconds; asking a little faster than for inspection keeps the hand-over
+ * prompt without nearing `throttle:api` (60 a minute).
+ */
+export const DEPLOY_WHEN_READY_POLL_MS = 3_000;
+
 export function resolveInspectionPollInterval(
 	previewStatus: string | null | undefined,
 	error?: unknown
@@ -162,6 +173,17 @@ export function resolveInspectionPollInterval(
 	return previewStatus === 'pending' ? INSPECTION_POLL_MS : false;
 }
 
+/** The wizard's last step: inspection first, then the database its first deploy waits for. */
+export function resolveFirstDeployPollInterval(
+	project: Pick<Project, 'preview_status' | 'databases'> | undefined,
+	error?: unknown
+): number | false {
+	const wait = rateLimitWait(error);
+	if (wait !== undefined) return wait;
+	if (isWaitingForDatabase(project)) return DEPLOY_WHEN_READY_POLL_MS;
+	return resolveInspectionPollInterval(project?.preview_status);
+}
+
 export function createProjectInspectionQuery(projectId: () => string) {
 	return createQuery(() => ({
 		queryKey: projectKeys.detail(projectId()),
@@ -169,7 +191,7 @@ export function createProjectInspectionQuery(projectId: () => string) {
 		enabled: !!projectId(),
 		retry: false,
 		refetchInterval: (query: { state: { data: Project | undefined; error: unknown } }) =>
-			resolveInspectionPollInterval(query.state.data?.preview_status, query.state.error)
+			resolveFirstDeployPollInterval(query.state.data, query.state.error)
 	}));
 }
 

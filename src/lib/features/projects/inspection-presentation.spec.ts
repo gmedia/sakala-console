@@ -130,6 +130,19 @@ describe('inspection notes', () => {
 		expect(getInspectionNotes({ inspection: null })).toEqual([]);
 	});
 
+	it('leaves the .env.example to the suggestions once its entries are known', () => {
+		const found = { ...inspection, env_example_found: true };
+		const entries = [{ key: 'APP_NAME', example_value: 'Kopi' }];
+		expect(
+			getInspectionNotes({
+				inspection: { ...found, env_example: { file: '.env.example', entries, truncated: false } }
+			})
+		).toEqual([]);
+		// An older API, an older agent, or a file too large to read: the note stays.
+		expect(getInspectionNotes({ inspection: found })[0]).toContain('tab Variabel');
+		expect(getInspectionNotes({ inspection: { ...found, env_example: null } })).toHaveLength(1);
+	});
+
 	it('lists the manifests it found', () => {
 		expect(getInspectedFiles({ inspection })).toEqual(['package.json']);
 	});
