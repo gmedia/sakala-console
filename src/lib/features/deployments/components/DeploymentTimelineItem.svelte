@@ -3,8 +3,10 @@
 	import { cn } from '$lib/utils/cn';
 	import { formatDuration } from '$lib/utils/date';
 	import { formatDeploymentTime } from '../deployment-presentation';
-	import { getTimelineItemDisplay } from '../status-config';
+	import { getTimelineItemDisplay, getTimelineStatusSuffix } from '../status-config';
+	import { getReusedStepSegments, type ImageSource } from '../image-reuse-presentation';
 	import type { StatusDeployment } from '../type';
+	import ImageSourceText from './ImageSourceText.svelte';
 	import type { ProjectMonorepo } from '$lib/features/projects/type';
 	import MonorepoSummary from '$lib/features/projects/components/monorepo/MonorepoSummary.svelte';
 
@@ -16,9 +18,21 @@
 		last?: boolean;
 		/** The workspace this deployment built from, with the commands it really ran. */
 		monorepo?: ProjectMonorepo;
+		/** For the step of a reused image: the deployment that built it, linked from the title. */
+		imageSource?: ImageSource;
+		projectId?: string;
 	};
 
-	let { status, title = '', timestamp, durationSeconds, last = false, monorepo }: Props = $props();
+	let {
+		status,
+		title = '',
+		timestamp,
+		durationSeconds,
+		last = false,
+		monorepo,
+		imageSource,
+		projectId
+	}: Props = $props();
 
 	let display = $derived(
 		getTimelineItemDisplay({
@@ -48,7 +62,14 @@
 					status === 'failed' && 'text-error'
 				)}
 			>
-				{display.title}
+				{#if imageSource && projectId}
+					<ImageSourceText
+						{projectId}
+						segments={getReusedStepSegments(imageSource)}
+					/>{getTimelineStatusSuffix(status)}
+				{:else}
+					{display.title}
+				{/if}
 			</span>
 			{#if display.subtitle}
 				<span class="text-xs text-muted tabular-nums">{display.subtitle}</span>

@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-19
+
 ### Added
 
 - Variables from `.env.example` and a database before the first deploy (requires gmedia/sakala-api#184 and the agent's protocol revision 4). Once inspection has read the repository, the wizard's last step shows a Persiapan phase when there is something to confirm, led by what Sakala already did ("Sakala sudah membaca … dan menyiapkan 18 variabel. Tinggal pilihan database dan 2 variabel yang perlu kamu isi."). A database card says why in plain words ("Sakala menemukan DB_CONNECTION di .env.example dan migration Laravel di database/migrations.") and offers a new database for the project (preselected when likely and possible), an existing one of the workspace (unusable ones listed with the reason), or none; it is honest that MySQL apps get PostgreSQL and that SQLite data is lost on every deploy, says why a new one cannot be made (no database server, quota full), and prefills the suggested release command when the project has none. Variables are grouped: "Perlu kamu isi" (credential-like names, empty inputs, a safe example as hint, skipped when empty) is open; "Dibuatkan Sakala" (APP_KEY, SECRET_KEY_BASE, auth and session secrets, generated with Web Crypto and stored as secrets), "Dari .env.example" (with production values for APP_ENV, NODE_ENV, APP_DEBUG, and the project address for APP_URL, NEXTAUTH_URL, AUTH_URL), and "Diisi Sakala" (PORT, and the DB variables with a database) are closed groups with counts and names; keys the project has are listed once and left alone. "Deploy sekarang" saves the release command and the variables one by one (with the existing fix-or-continue step on refusals), then creates the database with `project_id` and `deploy_when_ready`, waits for it with the provisioning steps, and opens the deployment the API starts. The Variabel tab gains "Isi dari .env.example", and the overview's next step links to it. `getInspectionNotes` no longer tells users to compare `.env.example` by hand when the suggestions exist. API types regenerated from sakala-api 3ce1f6b.
@@ -216,7 +218,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/gmedia/sakala-console/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/gmedia/sakala-console/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/gmedia/sakala-console/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/gmedia/sakala-console/compare/v0.6.0...v0.7.0

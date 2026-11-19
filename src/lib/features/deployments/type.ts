@@ -1,4 +1,5 @@
 import type { ProjectMonorepo } from '$lib/features/projects/type';
+import type { ImageSource } from './image-reuse-presentation';
 export type StatusDeployment = 'pending' | 'running' | 'success' | 'failed' | 'cancelled';
 
 export type DeploymentStatus =
@@ -41,6 +42,23 @@ export type DeploymentPipelineStage = Extract<
 	'Queued' | 'Cloning' | 'Analyzing' | 'Building' | 'Deploying' | 'HealthChecking' | 'Routing'
 >;
 
+/**
+ * A deployment that reuses an image starts it straight away: one step stands in for checkout,
+ * analysis, and build, which never run. It has no status of its own; the API stays `queued` until
+ * the container starts.
+ */
+export const IMAGE_REUSED_STAGE = 'ImageReused';
+
+export type TimelineStage = DeploymentPipelineStage | typeof IMAGE_REUSED_STAGE;
+
+export const REUSED_IMAGE_PIPELINE_STAGES = [
+	'Queued',
+	IMAGE_REUSED_STAGE,
+	'Deploying',
+	'HealthChecking',
+	'Routing'
+] as const satisfies readonly TimelineStage[];
+
 export type DeploymentStep = {
 	key: string;
 	title: string;
@@ -50,6 +68,8 @@ export type DeploymentStep = {
 	durationSeconds?: number;
 	/** On the analysis step: the JavaScript workspace this deployment built from, and its commands. */
 	monorepo?: ProjectMonorepo;
+	/** On the step of a reused image: the deployment that built it, which the title links to. */
+	imageSource?: ImageSource;
 };
 
 export type DeploymentEventLevel = 'info' | 'warning' | 'error';

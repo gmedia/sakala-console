@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { apiRequest } from '../client';
 import type { components, operations, paths } from '../generated/schema';
+import {
+	BUILT_FROM_SCRATCH,
+	DEPLOYMENT_BUILD_FALLBACK_REASONS,
+	toFallbackReason
+} from './deployment-build';
 
 export type GeneratedDeployment = components['schemas']['DeploymentResource'];
 /**
@@ -11,6 +16,8 @@ export type Deployment = Omit<GeneratedDeployment, 'status' | 'trigger'> & {
 	status: string;
 	trigger: string;
 };
+
+export type { DeploymentBuild, DeploymentBuildFallbackReason } from './deployment-build';
 
 export type GeneratedDeploymentEvent = components['schemas']['DeploymentEventResource'];
 /** What the parser returns: an event without `occurred_at` is dropped, so it is never `null` here. */
@@ -120,6 +127,23 @@ const effectiveResourcesSchema = z.object({
 	})
 });
 
+const deploymentBuildSchema = z
+	.object({
+		mode: z.enum(['built', 'reused']).catch('built'),
+		image_source_deployment_id: z.string().nullable().catch(null),
+		image_source_sequence: z.number().nullable().catch(null),
+		fallback_reason: z
+			.enum(DEPLOYMENT_BUILD_FALLBACK_REASONS)
+			.nullable()
+			.catch(({ input }) => (input == null ? null : toFallbackReason(input)))
+	})
+	.catch(({ issues, input }) => {
+		if (input !== undefined) {
+			console.warn('[deployment] build diabaikan karena bentuknya tidak dikenal', issues);
+		}
+		return BUILT_FROM_SCRATCH;
+	});
+
 export const deploymentSchema = z.object({
 	id: z.string(),
 	project_id: z.string(),
@@ -146,6 +170,7 @@ export const deploymentSchema = z.object({
 	failure_code: z.string().nullable(),
 	failure_summary: z.string().nullable(),
 	failure: decorative(deploymentFailureSchema),
+	build: deploymentBuildSchema,
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
 }) satisfies z.ZodType<Deployment>;

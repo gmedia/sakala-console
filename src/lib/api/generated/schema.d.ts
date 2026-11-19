@@ -3360,6 +3360,29 @@ export interface components {
          */
         DatabaseStatus: "provisioning" | "ready" | "failed" | "deleting" | "deleted" | "locked";
         /**
+         * DeploymentBuildFallbackReason
+         * @description Why the agent built a deployment that was planned to reuse an image, from the `reason` of its `deployment.image.reuse_skipped` event. The first four values match the agent's; `ImageUnavailable` stands for any reason this API does not know, so a newer agent never leaves the field empty.
+         *     | |
+         *     |---|
+         *     | `image_missing` <br/> No image of that project, commit, and deployment on the node (pruned, another node, never there). |
+         *     | `image_not_owned` <br/> The image's labels name another project or deployment. |
+         *     | `image_metadata_missing` <br/> The image has no builder label: an agent from before image reuse built it. |
+         *     | `invalid_reference` <br/> The payload's `reuse_image_from_deployment_id` was not a UUID string. |
+         *     | `image_unavailable` <br/> A reason this API does not know. |
+         * @enum {string}
+         */
+        DeploymentBuildFallbackReason: "image_missing" | "image_not_owned" | "image_metadata_missing" | "invalid_reference" | "image_unavailable";
+        /**
+         * DeploymentBuildMode
+         * @description How a deployment got its image. `Reused` is decided when the deployment is created (PlanDeploymentBuildAction) and stays unless the agent reports that it had to build after all (`deployment.image.reuse_skipped`), which makes it `Built`. Every deployment from before image reuse is `Built`.
+         *     | |
+         *     |---|
+         *     | `built` <br/> The agent builds (or built) an image from the commit. |
+         *     | `reused` <br/> The agent starts the image an earlier deployment of the project built. |
+         * @enum {string}
+         */
+        DeploymentBuildMode: "built" | "reused";
+        /**
          * DeploymentEventLevel
          * @enum {string}
          */
@@ -3401,6 +3424,12 @@ export interface components {
             commit_sha: string | null;
             commit_message: string | null;
             image_reference: string | null;
+            build: {
+                mode: components["schemas"]["DeploymentBuildMode"];
+                image_source_deployment_id: string | null;
+                image_source_sequence: number | null;
+                fallback_reason: components["schemas"]["DeploymentBuildFallbackReason"] | null;
+            };
             requested_resources: {
                 memory_mb: number | null;
                 cpu_millis: number | null;
@@ -4365,6 +4394,12 @@ export interface components {
                 cpu_millis?: number | null;
                 pids_limit?: number | null;
             } | null;
+            /**
+             * @description `true` always builds a fresh image. Without it, a deployment of the
+             *     live commit with no build-affecting change reuses the live image.
+             *     Defaults to `false`.
+             */
+            force_build?: boolean;
         };
         /** StoreFeedbackRequest */
         StoreFeedbackRequest: {

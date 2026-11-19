@@ -98,6 +98,9 @@ type DeploymentContractFields = Pick<
 	'is_active' | 'cancel_requested_at' | 'queue_state' | 'failure'
 >;
 
+/** Added by the API with image reuse, so an older one leaves it out. */
+type DeploymentBuildFields = Partial<Pick<components['schemas']['DeploymentResource'], 'build'>>;
+
 export type { RuntimeStatus };
 
 export type ProjectStatus = 'draft' | 'active' | 'failed' | 'suspended';
@@ -195,7 +198,8 @@ export interface DeploymentBase {
 	updated_at: string;
 }
 
-export interface Deployment extends DeploymentBase, DeploymentContractFields {}
+export interface Deployment
+	extends DeploymentBase, DeploymentContractFields, DeploymentBuildFields {}
 
 export type DeploymentFilter = '7_days' | '30_days' | 'all';
 
@@ -234,10 +238,19 @@ export interface PaginatedSkippedPushes {
 	meta: PaginationMeta;
 }
 
-export interface TriggerRedeployPayload {
+/** How a redeploy gets its image. By default the API decides whether the live image can be reused. */
+export interface RedeployOptions {
+	/** Always build from the latest commit, without the live image (`force_build`). */
+	forceBuild?: boolean;
+}
+
+export interface TriggerRedeployPayload extends RedeployOptions {
 	branch: string;
 	idempotencyKey?: string;
 }
+
+/** The body of `POST .../deployments`. */
+export type StoreDeploymentRequest = components['schemas']['StoreDeploymentRequest'];
 
 export type UpdateProjectPayload = components['schemas']['UpdateProjectRequest'];
 

@@ -3,8 +3,8 @@
 	import type { Project } from '$lib/features/projects/type';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import ProjectStatusNotice from './ProjectStatusNotice.svelte';
+	import RedeployButton from './RedeployButton.svelte';
 	import ArrowSquareOut from 'phosphor-svelte/lib/ArrowSquareOut';
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Check from 'phosphor-svelte/lib/Check';
@@ -21,7 +21,8 @@
 		getPortDisplay,
 		getProjectPublicUrl,
 		getPublicUrlLabel,
-		PROJECT_WAKE_COPY
+		PROJECT_WAKE_COPY,
+		REDEPLOY_COPY
 	} from '$lib/features/projects/presentation';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import { ROLE_LABELS, workspaceLabel } from '$lib/features/workspaces/presentation';
@@ -50,6 +51,18 @@
 	const showUrl = $derived(header.serving || header.showUrl === true);
 	const isBusy = $derived(redeploy.isProcessing || header.redeployBusy);
 	const hasFacts = $derived(header.kind !== 'not_deployed' && header.kind !== 'failed');
+
+	const redeployLabel = $derived(
+		header.redeployBusy
+			? REDEPLOY_COPY.otherDeploymentRunning
+			: header.kind === 'not_deployed'
+				? REDEPLOY_COPY.firstDeploy
+				: REDEPLOY_COPY.action
+	);
+	// A full build is only a choice next to a live image; without one, every redeploy builds.
+	const canForceBuild = $derived(
+		header.kind !== 'not_deployed' && Boolean(project.active_deployment_id)
+	);
 
 	const suspensionReason = $derived(project.suspension?.reason ?? null);
 
@@ -186,30 +199,15 @@
 					</Button>
 				{/if}
 				{#if header.showRedeploy}
-					<Button
+					<RedeployButton
 						class="max-sm:w-full"
 						variant={header.showWake ? 'secondary' : 'primary'}
-						onclick={redeploy.trigger}
+						onRedeploy={redeploy.trigger}
 						disabled={isBusy}
-					>
-						{#if isBusy}
-							<CircleNotch
-								size={18}
-								weight="bold"
-								class="animate-spin motion-reduce:animate-none"
-								aria-hidden="true"
-							/>
-						{:else}
-							<ArrowsClockwise size={18} weight="bold" aria-hidden="true" />
-						{/if}
-						{#if header.redeployBusy}
-							Sedang men-deploy
-						{:else if header.kind === 'not_deployed'}
-							Deploy sekarang
-						{:else}
-							Redeploy
-						{/if}
-					</Button>
+						busy={isBusy}
+						label={redeployLabel}
+						offerForceBuild={canForceBuild}
+					/>
 				{/if}
 			</div>
 		{/if}

@@ -2,7 +2,7 @@
 	import type { DeploymentStep } from '../type';
 	import DeploymentTimelineItem from './DeploymentTimelineItem.svelte';
 
-	let { steps }: { steps: DeploymentStep[] } = $props();
+	let { steps, projectId }: { steps: DeploymentStep[]; projectId?: string } = $props();
 </script>
 
 <ol class="flex flex-col">
@@ -13,6 +13,8 @@
 			timestamp={step.timestamp}
 			durationSeconds={step.durationSeconds}
 			monorepo={step.monorepo}
+			imageSource={step.imageSource}
+			{projectId}
 			last={index === steps.length - 1}
 		/>
 	{/each}

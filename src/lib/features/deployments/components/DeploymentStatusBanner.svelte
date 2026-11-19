@@ -2,10 +2,8 @@
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import ArrowSquareOut from 'phosphor-svelte/lib/ArrowSquareOut';
 	import Check from 'phosphor-svelte/lib/Check';
-	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import ClipboardText from 'phosphor-svelte/lib/ClipboardText';
@@ -19,7 +17,9 @@
 		type QueueState,
 		type ServingState
 	} from '../status-config';
-	import { getPublicUrlLabel } from '$lib/features/projects/presentation';
+	import { getPublicUrlLabel, REDEPLOY_COPY } from '$lib/features/projects/presentation';
+	import RedeployButton from '$lib/features/projects/components/detail/RedeployButton.svelte';
+	import type { RedeployOptions } from '$lib/features/projects/type';
 	import SiteShareActions from '$lib/features/projects/components/share/SiteShareActions.svelte';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { cn } from '$lib/utils/cn';
@@ -46,7 +46,9 @@
 		onViewError?: () => void;
 		/** Copies a plain-text summary of the failure, to paste into a chat or an AI assistant. */
 		onCopySummary?: () => void;
-		onRedeploy?: () => void;
+		onRedeploy?: (options: RedeployOptions) => void;
+		/** Offers "Build ulang dari awal" beside Redeploy, where the project has a live image. */
+		offerForceBuild?: boolean;
 		onCancel?: () => void;
 		redeployPending?: boolean;
 		redeployDisabled?: boolean;
@@ -74,6 +76,7 @@
 		onViewError,
 		onCopySummary,
 		onRedeploy,
+		offerForceBuild = false,
 		onCancel,
 		redeployPending = false,
 		redeployDisabled = false,
@@ -245,23 +248,14 @@
 						</Button>
 					{/if}
 					{#if onRedeploy}
-						<Button
+						<RedeployButton
+							{onRedeploy}
+							iconSize={16}
+							busy={redeployPending}
 							disabled={redeployPending || redeployDisabled}
-							aria-busy={redeployPending}
-							onclick={onRedeploy}
-						>
-							{#if redeployPending}
-								<CircleNotch
-									size={16}
-									weight="bold"
-									class="animate-spin motion-reduce:animate-none"
-								/>
-								Menjalankan...
-							{:else}
-								<ArrowsClockwise size={16} weight="bold" aria-hidden="true" />
-								Redeploy
-							{/if}
-						</Button>
+							label={redeployPending ? REDEPLOY_COPY.busy : REDEPLOY_COPY.action}
+							{offerForceBuild}
+						/>
 					{/if}
 				</div>
 			{/if}
