@@ -76,9 +76,11 @@ export function getInspectionNotes(project: Pick<Project, 'inspection'>): string
 	if (!inspection) return [];
 
 	const notes: string[] = [];
-	if (inspection.env_example_found) {
+	// With the file's entries, Sakala suggests the variables itself (the first deploy's Persiapan,
+	// and "Isi dari .env.example" on the Variabel tab), so only an unread file needs a note.
+	if (inspection.env_example_found && !inspection.env_example?.entries.length) {
 		notes.push(
-			'Repository ini punya .env.example. Cocokkan isinya dengan variabel di tab Environment variable sebelum deploy.'
+			'Repository ini punya .env.example. Cocokkan isinya dengan variabel di tab Variabel sebelum deploy.'
 		);
 	}
 	if (inspection.compose_found) {

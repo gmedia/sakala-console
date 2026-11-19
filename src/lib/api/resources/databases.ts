@@ -188,10 +188,20 @@ export type CreateDatabasePayload = Pick<
 	'name' | 'region'
 >;
 
+/**
+ * A database made for one project: attached in the same transaction, named after the project and
+ * placed in its region unless given. With `deploy_when_ready` the API starts the project's
+ * deployment once the database is ready (`databases[].deploy_when_ready` on the project).
+ */
+export type CreateProjectDatabasePayload = Pick<
+	components['schemas']['StoreDatabaseRequest'],
+	'name' | 'region' | 'deploy_when_ready'
+> & { project_id: string };
+
 /** `201`, `provisioning` until the database node creates it. `region: null` lets the API pick. */
 export async function createDatabase(
 	workspaceId: string,
-	payload: CreateDatabasePayload
+	payload: CreateDatabasePayload | CreateProjectDatabasePayload
 ): Promise<Database> {
 	return parseDatabase(
 		await apiRequest<unknown>(databasesPath(workspaceId), { method: 'POST', json: payload })

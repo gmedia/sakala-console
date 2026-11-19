@@ -14,10 +14,41 @@ type ProjectContractFields = Pick<
 	| 'auto_deploy'
 	| 'redeploy_required'
 	| 'preview_status'
-	| 'inspection'
 	| 'inspection_error_code'
 	| 'suspension'
 >;
+
+type GeneratedInspection = NonNullable<components['schemas']['ProjectResource']['inspection']>;
+
+/** The repository's `.env.example` (or `.env.sample`, `.env.dist`), at most 200 entries in file order. */
+export type ProjectEnvExample = NonNullable<GeneratedInspection['env_example']>;
+/** One `KEY=value` line; `example_value` is `null` when empty or when it looks like a credential. */
+export type EnvExampleEntry = ProjectEnvExample['entries'][number];
+
+/** What the agent found that suggests the app needs a database (agent protocol revision 4). */
+export type ProjectDatabaseHint = NonNullable<GeneratedInspection['database_hint']>;
+export type DatabaseHintEngine = ProjectDatabaseHint['engine'];
+/** `kind` is a string: new kinds may be added, and the Console ignores the ones it does not know. */
+export type DatabaseHintSignal = ProjectDatabaseHint['signals'][number];
+
+/**
+ * `env_example` and `database_hint` came with the wizard env + database change (sakala-api), so an
+ * older API leaves them out; `null` means an older agent inspected the project, or no file.
+ */
+export type ProjectInspection = Omit<GeneratedInspection, 'env_example' | 'database_hint'> &
+	Partial<Pick<GeneratedInspection, 'env_example' | 'database_hint'>>;
+
+type ProjectInspectionFields = { inspection: ProjectInspection | null };
+
+type GeneratedDeployWhenReady = NonNullable<
+	NonNullable<components['schemas']['ProjectResource']['databases']>[number]['deploy_when_ready']
+>;
+
+/**
+ * The first deployment asked for when the database was created for the project. `status` stays a
+ * string, as for every status the Console shows: `waiting`, `started`, `skipped`.
+ */
+export type DeployWhenReady = Omit<GeneratedDeployWhenReady, 'status'> & { status: string };
 
 type GeneratedStack = NonNullable<components['schemas']['ProjectResource']['stack']>;
 /** The JavaScript workspace a project's root directory belongs to (sakala-api #179). */
@@ -48,8 +79,14 @@ type ProjectPlacementFields = Partial<Pick<components['schemas']['ProjectResourc
  * Added by the API with managed databases, so an older one leaves it out. At most one item: a
  * project uses one database at a time.
  */
-type ProjectDatabaseFields = Partial<Pick<components['schemas']['ProjectResource'], 'databases'>>;
-export type ProjectDatabase = NonNullable<ProjectDatabaseFields['databases']>[number];
+type GeneratedProjectDatabase = NonNullable<
+	components['schemas']['ProjectResource']['databases']
+>[number];
+/** `deploy_when_ready` came with the wizard env + database change, so an older API leaves it out. */
+export type ProjectDatabase = Omit<GeneratedProjectDatabase, 'deploy_when_ready'> & {
+	deploy_when_ready?: DeployWhenReady | null;
+};
+type ProjectDatabaseFields = { databases?: ProjectDatabase[] };
 
 /** The newest deployment, which the wizard reads after a reload instead of starting another. */
 type ProjectLatestDeploymentFields = Partial<
@@ -112,6 +149,7 @@ export interface Project
 	extends
 		ProjectBase,
 		ProjectContractFields,
+		ProjectInspectionFields,
 		ProjectStackFields,
 		ProjectReplicaFields,
 		ProjectReleaseFields,

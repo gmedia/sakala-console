@@ -500,7 +500,11 @@ export interface paths {
         /** The workspace's databases, newest first. Dropped ones are gone; quotas and usage are in `GET app/pilot-limits` */
         get: operations["v1.app.workspaces.databases.index"];
         put?: never;
-        /** Create a database. It is `provisioning` until the database node of its region creates it */
+        /**
+         * Create a database. It is `provisioning` until the database node of its region creates it. With `project_id` it is
+         *     attached to that project in the same step, and with `deploy_when_ready` the project is deployed once the
+         *     database is ready (`databases[].deploy_when_ready` on the project)
+         */
         post: operations["v1.app.workspaces.databases.store"];
         delete?: never;
         options?: never;
@@ -3147,6 +3151,27 @@ export interface components {
                 manifests: string[];
                 package_manager: string | null;
                 inspected_at: string | null;
+                env_example: {
+                    /** @enum {string} */
+                    file: ".env.example" | ".env.sample" | ".env.dist";
+                    entries: {
+                        key: string;
+                        example_value: string | null;
+                    }[];
+                    truncated: boolean;
+                } | null;
+                database_hint: {
+                    likely: boolean;
+                    /** @enum {string} */
+                    engine: "postgresql" | "mysql" | "sqlite" | "unknown";
+                    signals: {
+                        kind: string;
+                        file: string;
+                        name: string | null;
+                    }[];
+                    /** @enum {string|null} */
+                    suggested_release_command: "php artisan migrate --force" | "python manage.py migrate" | "npx prisma migrate deploy" | "bin/rails db:migrate" | null;
+                } | null;
             } | null;
             stack: {
                 /** @enum {string} */
@@ -4047,6 +4072,27 @@ export interface components {
                 manifests: string[];
                 package_manager: string | null;
                 inspected_at: string | null;
+                env_example: {
+                    /** @enum {string} */
+                    file: ".env.example" | ".env.sample" | ".env.dist";
+                    entries: {
+                        key: string;
+                        example_value: string | null;
+                    }[];
+                    truncated: boolean;
+                } | null;
+                database_hint: {
+                    likely: boolean;
+                    /** @enum {string} */
+                    engine: "postgresql" | "mysql" | "sqlite" | "unknown";
+                    signals: {
+                        kind: string;
+                        file: string;
+                        name: string | null;
+                    }[];
+                    /** @enum {string|null} */
+                    suggested_release_command: "php artisan migrate --force" | "python manage.py migrate" | "npx prisma migrate deploy" | "bin/rails db:migrate" | null;
+                } | null;
             } | null;
             stack: {
                 /** @enum {string} */
@@ -4069,7 +4115,8 @@ export interface components {
             last_deployed_at: string | null;
             /**
              * @description The managed database attached to the project, as a list of at most one: a project uses one database at a
-             *     time. Its connection variables reach the next deployment; see each item's `variables`.
+             *     time. Its connection variables reach the next deployment; see each item's `variables`. `deploy_when_ready`
+             *     is the deployment asked for when the database was created for this project, or `null`.
              */
             databases: {
                 id: string;
@@ -4078,6 +4125,13 @@ export interface components {
                 region: string | null;
                 variables: string[];
                 overridden_variables: string[];
+                deploy_when_ready: {
+                    /** @enum {string} */
+                    status: "waiting" | "started" | "skipped";
+                    requested_at: string;
+                    deployment_id: string | null;
+                    skipped_reason: string | null;
+                } | null;
             }[];
             /** @description The workspace that owns the project. Null only for a project that is being purged. */
             workspace: {
@@ -4280,13 +4334,28 @@ export interface components {
         };
         /** StoreDatabaseRequest */
         StoreDatabaseRequest: {
-            /** @description Name people see, unique among the workspace's databases. The names on the database node are random. */
-            name: string;
+            /**
+             * @description Name people see, unique among the workspace's databases. The names on the database node are random.
+             *     Optional with `project_id`: the project's name, followed by ` 2`, ` 3`, ... when taken.
+             */
+            name?: string | null;
             /**
              * @description Region of the database node, for example `jkt`. `null` (the default) uses the workspace's default region,
-             *     or any region without one. Projects attach only to databases of their own region.
+             *     or any region without one; with `project_id`, the project's region first. Projects attach only to
+             *     databases of their own region.
              */
             region?: string | null;
+            /**
+             * Format: uuid
+             * @description A project of this workspace the caller may change, which has no database yet: the new database is
+             *     attached to it at once, while it is still `provisioning`. Another workspace's project answers `404`.
+             */
+            project_id?: string | null;
+            /**
+             * @description Deploy the project as the caller once the database is ready, through the normal deployment path with
+             *     every limit. Defaults to `false`; `true` only with `project_id`.
+             */
+            deploy_when_ready?: boolean;
         };
         /** StoreDeploymentRequest */
         StoreDeploymentRequest: {
@@ -4836,42 +4905,6 @@ export interface components {
                     code: "GITHUB_UNAVAILABLE" | "GITHUB_RATE_LIMITED";
                     /** @description Seconds to wait, also in the `Retry-After` header. Only with `GITHUB_RATE_LIMITED`. */
                     retry_after?: number;
-                };
-            };
-        };
-        /** @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built. */
-        DatabaseEndpointUnavailableException: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": {
-                    /** @description Error overview, in Indonesian. */
-                    message: string;
-                    /**
-                     * @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
-                     * @enum {string}
-                     */
-                    code: "DATABASE_ENDPOINT_UNAVAILABLE";
-                    database: string[];
-                };
-            };
-        };
-        /** @description No database node is allowed work in the region (`region`), or anywhere when `region` is null. */
-        DatabaseRegionUnavailableException: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": {
-                    /** @description Error overview, in Indonesian. */
-                    message: string;
-                    /**
-                     * @description No database node is allowed work in the region (`region`), or anywhere when `region` is null.
-                     * @enum {string}
-                     */
-                    code: "DATABASE_REGION_UNAVAILABLE";
-                    region: string | null;
                 };
             };
         };
@@ -5875,7 +5908,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["StoreDatabaseRequest"];
             };
@@ -5895,7 +5928,59 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
-            409: components["responses"]["DatabaseRegionUnavailableException"];
+            /**
+             * @description A database for a project (`project_id`) is refused while no database server can take a new database (`databases.available` in `GET app/pilot-limits` is false).
+             *
+             *     The project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.
+             *
+             *     The project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.
+             *
+             *     No database node is allowed work in the region (`region`), or anywhere when `region` is null.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description A database for a project (`project_id`) is refused while no database server can take a new database (`databases.available` in `GET app/pilot-limits` is false).
+                         * @enum {string}
+                         */
+                        code: "DATABASE_UNAVAILABLE";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project already uses another database, named in `database` (`id`, `name`). A project uses one database at a time.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_DATABASE_ALREADY_ATTACHED";
+                        database: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project runs, or must run, in another region than the database; attaching across regions waits for a private network between them.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_CROSS_REGION_UNSUPPORTED";
+                        database_region: string;
+                        project_region: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description No database node is allowed work in the region (`region`), or anywhere when `region` is null.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_REGION_UNAVAILABLE";
+                        region: string | null;
+                    };
+                };
+            };
             /**
              * @description The workspace holds as many databases as its limit allows. `limit` 0 means the workspace may not create databases at all.
              *
@@ -6416,7 +6501,37 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
-            409: components["responses"]["DatabaseEndpointUnavailableException"];
+            /**
+             * @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
+             *
+             *     The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_ENDPOINT_UNAVAILABLE";
+                        database: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_NOT_READY";
+                        status: string;
+                    };
+                };
+            };
             /**
              * @description The workspace reached its build rate limit
              *
