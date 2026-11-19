@@ -17,6 +17,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { defaultTreeAdapter as adapter, parse } from 'parse5';
 
 const HOST_PATTERN = /^[a-z0-9.-]+$/i;
 
@@ -51,16 +52,44 @@ function reverbOrigin(env) {
 /**
  * SvelteKit starts the app from one inline script, so the policy allows exactly that script.
  *
+ * The HTML is parsed the way a browser parses it (parse5 follows the WHATWG spec), so the hash is
+ * taken over the same source text the browser hashes, and a comment or an odd closing tag such as
+ * `</script >` cannot make the list differ from what the browser runs.
+ *
  * @param {string} html
  * @returns {string[]}
  */
 export function inlineScriptHashes(html) {
-	const hashes = [];
-	for (const [, attributes, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
-		if (/\bsrc\s*=/i.test(attributes) || !body.trim()) continue;
-		hashes.push(`'sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}'`);
+	const hashes = new Set();
+	for (const script of scriptElements(parse(html))) {
+		if (adapter.getAttrList(script).some((attribute) => attribute.name === 'src')) continue;
+		const source = adapter
+			.getChildNodes(script)
+			.filter((child) => adapter.isTextNode(child))
+			.map((text) => adapter.getTextNodeContent(text))
+			.join('');
+		if (!source.trim()) continue;
+		hashes.add(`'sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}'`);
 	}
-	return [...new Set(hashes)];
+	return [...hashes];
+}
+
+/**
+ * Every script element in document order, including those inside `<template>` content.
+ *
+ * @param {import('parse5').DefaultTreeAdapterMap['parentNode']} parent
+ * @returns {Generator<import('parse5').DefaultTreeAdapterMap['element']>}
+ */
+function* scriptElements(parent) {
+	for (const child of adapter.getChildNodes(parent)) {
+		if (!adapter.isElementNode(child)) continue;
+		if (adapter.getTagName(child) === 'script') yield child;
+		if (adapter.getTagName(child) === 'template') {
+			const template = /** @type {import('parse5').DefaultTreeAdapterMap['template']} */ (child);
+			yield* scriptElements(adapter.getTemplateContent(template));
+		}
+		yield* scriptElements(child);
+	}
 }
 
 /** Stand-ins that docker/entrypoint.sh replaces with origins it has validated. */
