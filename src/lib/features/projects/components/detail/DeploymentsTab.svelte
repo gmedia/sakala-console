@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { createDeploymentsQuery } from '../../queries';
+	import { createDeploymentsQuery, createSkippedPushesQuery } from '../../queries';
+	import {
+		groupSkippedPushes,
+		SKIPPED_PUSHES_PER_PAGE,
+		skippedPushesSince
+	} from '../../skipped-pushes';
 	import type { DeploymentFilter } from '../../type';
 	import ClockCounterClockwise from 'phosphor-svelte/lib/ClockCounterClockwise';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
@@ -10,6 +15,7 @@
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import ProjectFilter from '../project/ProjectFilter.svelte';
 	import DeploymentRow from './DeploymentRow.svelte';
+	import SkippedPushRow from './SkippedPushRow.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -46,6 +52,24 @@
 	// A few deployments fit on one page. Controls appear when there is something to narrow down, and
 	// stay while narrowing, or the way back would be gone.
 	const showControls = $derived(narrowed || totalPages > 1);
+
+	// Monorepo pushes that changed only other projects sit right above the deployment they followed.
+	// A search looks for deployment numbers, so it shows deployments only.
+	const skippedPushesParams = $derived(
+		searchQuery.trim() || deployments.length === 0
+			? undefined
+			: { since: skippedPushesSince(deployments), per_page: SKIPPED_PUSHES_PER_PAGE }
+	);
+	const skippedPushesQuery = createSkippedPushesQuery(
+		() => projectId,
+		() => skippedPushesParams
+	);
+	const skippedByDeployment = $derived(
+		groupSkippedPushes(
+			deployments,
+			Array.isArray(skippedPushesQuery.data?.data) ? skippedPushesQuery.data.data : []
+		)
+	);
 </script>
 
 <div class="flex w-full flex-col gap-4">
@@ -131,6 +155,9 @@
 			</div>
 			<ul class="divide-y divide-border">
 				{#each deployments as deployment (deployment.id)}
+					{#each skippedByDeployment.get(deployment.id) ?? [] as skip (skip.delivery_id)}
+						<SkippedPushRow {skip} />
+					{/each}
 					<DeploymentRow {deployment} />
 				{/each}
 			</ul>

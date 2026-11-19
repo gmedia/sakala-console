@@ -1764,6 +1764,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/skipped-pushes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pushes that auto-deploy skipped because nothing in them concerned the project, newest first
+         * @description In a monorepo a push deploys a project only when it changes a file in the project's root directory or a
+         *     file in no project's folder. The other pushes appear here, not as deployments: they have no number, count
+         *     against no limit, and notify no one. Pushes skipped for a limit or a problem are notifications instead.
+         */
+        get: operations["v1.app.projects.skipped-pushes.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/signals": {
         parameters: {
             query?: never;
@@ -4156,6 +4178,30 @@ export interface components {
             service: string;
             status: string;
             api_version: string;
+        };
+        /** SkippedPushResource */
+        SkippedPushResource: {
+            /** @description The GitHub delivery (X-GitHub-Delivery) that was skipped; one record per delivery and project. */
+            delivery_id: string;
+            /**
+             * @description Why the push did not deploy. The only value: `no_changes_in_root_directory`.
+             * @constant
+             */
+            reason: "no_changes_in_root_directory";
+            /** @description The pushed commit (`after`), 40 hexadecimal characters. */
+            commit_sha: string;
+            /** @description First line of the head commit's message, at most 500 characters; null without one. */
+            commit_message: string | null;
+            branch: string;
+            /** @description The project's root directory when the push arrived, normalized (`apps/web`, never empty). */
+            root_directory: string;
+            /** @description Distinct files the push changed. */
+            changed_path_count: number;
+            /** @description Up to 5 of those files, sorted; all of them belong to other projects. */
+            example_paths: string[];
+            /** @description The project's newest deployment when the push arrived: the history shows the skip right above it. */
+            after_deployment_id: string;
+            created_at: string;
         };
         /** StopProjectRequest */
         StopProjectRequest: {
@@ -8762,6 +8808,69 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    "v1.app.projects.skipped-pushes.index": {
+        parameters: {
+            query?: {
+                page?: number;
+                /** @description Defaults to 20. */
+                per_page?: number;
+                /**
+                 * @description ISO 8601 date-time; only pushes skipped at or after it. The Console passes the oldest
+                 *     deployment on its history page, so every push skipped after one of those comes back.
+                 */
+                since?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `SkippedPushResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SkippedPushResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            current_page: number;
+                            from: number | null;
+                            last_page: number;
+                            /** @description Generated paginator links. */
+                            links: {
+                                url: string | null;
+                                label: string;
+                                active: boolean;
+                            }[];
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description Number of the last item in the slice. */
+                            to: number | null;
+                            /** @description Total number of items being paginated. */
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "admin.usageSignals": {
