@@ -73,6 +73,11 @@
 				<Badge tone={header.badge.variant}>
 					{header.badge.label}
 				</Badge>
+				{#if header.activity}
+					<Badge tone={header.activity.variant}>
+						<span data-testid="project-header-activity">{header.activity.label}</span>
+					</Badge>
+				{/if}
 				{#if header.replicaHealth}
 					<Badge tone={header.replicaHealth.tone} class="tabular-nums">
 						<span data-testid="project-replica-health">{header.replicaHealth.label}</span>

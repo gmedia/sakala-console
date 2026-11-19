@@ -8,7 +8,8 @@ const triggerLabels: Record<string, string> = {
 	manual: 'Manual',
 	redeploy: 'Manual redeploy',
 	webhook: 'Auto-deploy dari push',
-	system: 'System'
+	system: 'System',
+	database_password_rotated: 'Redeploy setelah ganti password database'
 };
 
 export const TERMINAL_STATUSES = new Set(['succeeded', 'failed', 'cancelled']);

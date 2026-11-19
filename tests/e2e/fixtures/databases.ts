@@ -24,9 +24,21 @@ export type MockDatabase = {
 		summary: string;
 		failed_at: string | null;
 	} | null;
+	password_rotation?: {
+		status: string;
+		requested_at: string;
+		completed_at: string | null;
+		failed_at: string | null;
+		redeploy_attached: boolean;
+		redeploys:
+			{ project_id: string; deployment_id: string | null; skipped_reason: string | null }[] | null;
+	} | null;
 	created_at: string | null;
 	updated_at: string | null;
 };
+
+/** The deployment the mock API queues for an attached project after a rotation. */
+export const ROTATION_DEPLOYMENT_ID = 'dep-rotation-1';
 
 const MB = 1024 * 1024;
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -112,6 +124,10 @@ export type DatabaseMockOptions = {
 	quota?: { max_databases: number; max_database_storage_mb: number };
 	/** A database the API reports as `provisioning` this many reads before it turns `ready`. */
 	provisioningReads?: number;
+	/** A rotation stays `pending` this many reads, then completes (default 1). */
+	rotationReads?: number;
+	/** `databases.available` on pilot-limits: whether the installation has a database server (default true). */
+	databasesAvailable?: boolean;
 	handlers?: DatabaseHandlers;
 	/** The project resource the project pages read. */
 	project?: Record<string, unknown>;
@@ -199,6 +215,7 @@ export async function mockDatabaseApi(
 				data: {
 					...limits,
 					workspace_id: workspace.id,
+					databases: { available: options.databasesAvailable ?? true },
 					quotas: {
 						...limits.quotas,
 						max_databases: quota.max_databases,
@@ -296,6 +313,15 @@ export async function mockDatabaseApi(
 		if (action === 'rotate-password') {
 			const refused = options.handlers?.rotate?.();
 			if (refused) return fulfill(route, refused);
+			database.password_rotation = {
+				status: 'pending',
+				requested_at: new Date().toISOString(),
+				completed_at: null,
+				failed_at: null,
+				redeploy_attached: body?.redeploy_attached === true,
+				redeploys: null
+			};
+			reads.set(`rotation:${database.id}`, 0);
 			return fulfill(route, { status: 202, body: { data: database } });
 		}
 		if (action === 'extensions') {
@@ -343,6 +369,24 @@ export async function mockDatabaseApi(
 			}
 			database.status = 'deleting';
 			return fulfill(route, { status: 202, body: { data: database } });
+		}
+
+		// A rotation completes after a few reads, and the attached project gets a redeploy.
+		const rotation = database.password_rotation;
+		if (rotation?.status === 'pending') {
+			const seen = (reads.get(`rotation:${database.id}`) ?? 0) + 1;
+			reads.set(`rotation:${database.id}`, seen);
+			if (seen > (options.rotationReads ?? 1)) {
+				rotation.status = 'completed';
+				rotation.completed_at = new Date().toISOString();
+				rotation.redeploys = rotation.redeploy_attached
+					? database.projects.map((project) => ({
+							project_id: project.id,
+							deployment_id: ROTATION_DEPLOYMENT_ID,
+							skipped_reason: null
+						}))
+					: null;
+			}
 		}
 
 		// A new database turns ready after a few reads, like a node reporting back.

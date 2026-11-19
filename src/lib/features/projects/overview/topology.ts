@@ -62,6 +62,8 @@ export type TopologyBlock = {
 	mono: boolean;
 	/** The header's own status badge. Only the app has it. */
 	badge: { label: string; tone: BadgeTone } | null;
+	/** A second badge for work beside that status, such as a new version deploying. */
+	activity: { label: string; tone: BadgeTone } | null;
 	replicas: ReplicaCells | null;
 	tone: TopologyTone;
 	detail: BlockDetail;
@@ -240,9 +242,10 @@ function replicaExplanation(cells: ReplicaCells): string | null {
 	return null;
 }
 
-function appTone(kind: ProjectHeaderKind, cells: ReplicaCells): TopologyTone {
+function appTone(kind: ProjectHeaderKind, cells: ReplicaCells, serving: boolean): TopologyTone {
 	const unready = cells.cells.includes('unready');
-	if (kind === 'live') return unready ? 'warning' : 'live';
+	// A deploy over a live version: visitors still reach the live one.
+	if (kind === 'live' || (kind === 'deploying' && serving)) return unready ? 'warning' : 'live';
 	if (kind === 'live_failed_attempt') return 'warning';
 	if (kind === 'deploying') return 'running';
 	if (kind === 'failed' || kind === 'crashed') return 'error';
@@ -260,27 +263,50 @@ function addressNote(kind: ProjectHeaderKind, beforeFirst: boolean): string {
 	return 'Alamat bawaan dari Sakala, dibuat dari nama proyek.';
 }
 
-function variablesBlock(variables: VariablesState): TopologyBlock {
-	const fact =
-		variables.state === 'loading'
-			? TOPOLOGY_COPY.variablesLoading
-			: variables.state === 'error'
-				? TOPOLOGY_COPY.variablesError
-				: variables.count === 0
-					? TOPOLOGY_COPY.variablesNone
-					: `${countFormat.format(variables.count)} variabel`;
+/**
+ * The attached database's variables the app really receives: a project variable with the same name
+ * wins, so those are not counted twice.
+ */
+export function databaseVariableNames(database: ProjectDatabase | null): string[] {
+	if (!database) return [];
+	const overridden = new Set(database.overridden_variables);
+	return database.variables.filter((name) => !overridden.has(name));
+}
+
+/** `3 variabel`, `3 variabel + 7 dari database`, or `7 dari database`. */
+function variablesFact(variables: VariablesState, fromDatabase: number): string {
+	if (variables.state === 'loading') return TOPOLOGY_COPY.variablesLoading;
+	if (variables.state === 'error') return TOPOLOGY_COPY.variablesError;
+	const own = variables.count > 0 ? `${countFormat.format(variables.count)} variabel` : null;
+	const injected = fromDatabase > 0 ? `${countFormat.format(fromDatabase)} dari database` : null;
+	if (own && injected) return `${own} + ${injected}`;
+	return own ?? injected ?? TOPOLOGY_COPY.variablesNone;
+}
+
+function variablesBlock(
+	variables: VariablesState,
+	database: ProjectDatabase | null
+): TopologyBlock {
+	const injected = databaseVariableNames(database);
+	const fact = variablesFact(variables, injected.length);
+	const databaseLine =
+		database && injected.length > 0
+			? `${countFormat.format(injected.length)} variabel lagi (${injected.join(', ')}) datang dari database ${database.name} saat deploy, tidak perlu diisi sendiri.`
+			: null;
 	return {
 		id: 'variables',
 		name: TOPOLOGY_COPY.variables,
 		fact,
 		mono: false,
 		badge: null,
+		activity: null,
 		replicas: null,
 		tone: 'neutral',
 		detail: {
 			body: [
-				'Nilai yang dibaca aplikasimu saat berjalan, seperti alamat database atau API key. Perubahan berlaku setelah redeploy.'
-			],
+				'Nilai yang dibaca aplikasimu saat berjalan, seperti alamat database atau API key. Perubahan berlaku setelah redeploy.',
+				databaseLine
+			].filter((line): line is string => line !== null),
 			value: null,
 			link: { label: TOPOLOGY_COPY.links.variables, target: 'variables' }
 		}
@@ -294,6 +320,7 @@ function releaseBlock(command: string | null): TopologyBlock {
 		fact: command ? TOPOLOGY_COPY.releaseSet : TOPOLOGY_COPY.releaseNone,
 		mono: false,
 		badge: null,
+		activity: null,
 		replicas: null,
 		tone: 'neutral',
 		detail: {
@@ -336,6 +363,7 @@ function databaseBlock(
 		fact: database.name,
 		mono: true,
 		badge: { label: view.label, tone: view.tone },
+		activity: null,
 		replicas: null,
 		tone: databaseTone(database.status),
 		detail: {
@@ -362,13 +390,13 @@ function databaseBlock(
 function attachedSentence(
 	variables: VariablesState,
 	command: string | null,
-	database: { name: string; view: DatabaseStatusView } | null
+	database: { name: string; view: DatabaseStatusView; variableCount: number } | null
 ): string {
 	const releasePart = command
 		? 'menjalankan release command sebelum setiap versi baru menerima trafik'
 		: 'belum punya release command';
 	const databasePart = database
-		? ` Aplikasi memakai database ${database.name}, statusnya ${database.view.label.toLowerCase()}.`
+		? ` Aplikasi memakai database ${database.name}, statusnya ${database.view.label.toLowerCase()}, yang memberi ${countFormat.format(database.variableCount)} variabel koneksi.`
 		: '';
 	if (variables.state !== 'ready') return `Aplikasi ${releasePart}.${databasePart}`;
 	const variablesPart =
@@ -384,7 +412,8 @@ function attachedSentence(
  */
 export function deriveTopology(
 	project: Project,
-	header: Pick<ProjectHeaderState, 'kind' | 'badge' | 'serving'>,
+	header: Pick<ProjectHeaderState, 'kind' | 'badge' | 'serving'> &
+		Partial<Pick<ProjectHeaderState, 'activity'>>,
 	variables: VariablesState,
 	options: TopologyOptions
 ): Topology {
@@ -409,6 +438,7 @@ export function deriveTopology(
 		fact: domain ?? TOPOLOGY_COPY.noAddress,
 		mono: domain !== null,
 		badge: null,
+		activity: null,
 		replicas: null,
 		tone: 'neutral',
 		detail: {
@@ -423,6 +453,7 @@ export function deriveTopology(
 		fact: kind === 'suspended' ? TOPOLOGY_COPY.edgeCut : TOPOLOGY_COPY.edgeActive,
 		mono: false,
 		badge: null,
+		activity: null,
 		replicas: null,
 		tone: 'neutral',
 		detail: { body: [TOPOLOGY_COPY.edgeDetail], value: null, link: null }
@@ -433,6 +464,7 @@ export function deriveTopology(
 		fact: project.region || TOPOLOGY_COPY.regionAuto,
 		mono: Boolean(project.region),
 		badge: null,
+		activity: null,
 		replicas: null,
 		tone: asleep ? 'asleep' : 'neutral',
 		detail: {
@@ -452,8 +484,11 @@ export function deriveTopology(
 		fact: `port ${port}`,
 		mono: false,
 		badge: { label: header.badge.label, tone: header.badge.variant },
+		activity: header.activity
+			? { label: header.activity.label, tone: header.activity.variant }
+			: null,
 		replicas: cells,
-		tone: appTone(kind, cells),
+		tone: appTone(kind, cells, serving),
 		detail: {
 			body: [
 				appExplanation(kind, beforeFirst),
@@ -481,7 +516,7 @@ export function deriveTopology(
 				...(attachedDatabase && databaseView
 					? [databaseBlock(attachedDatabase, databaseView, project.workspace?.id ?? null)]
 					: []),
-				variablesBlock(variables),
+				variablesBlock(variables, attachedDatabase),
 				releaseBlock(command)
 			]
 		},
@@ -495,7 +530,13 @@ export function deriveTopology(
 		})} ${attachedSentence(
 			variables,
 			command,
-			attachedDatabase && databaseView ? { name: attachedDatabase.name, view: databaseView } : null
+			attachedDatabase && databaseView
+				? {
+						name: attachedDatabase.name,
+						view: databaseView,
+						variableCount: databaseVariableNames(attachedDatabase).length
+					}
+				: null
 		)}`
 	};
 }

@@ -54,6 +54,40 @@ const lastFailureSchema = z.object({
 export type DatabaseFailure = z.output<typeof lastFailureSchema>;
 
 /**
+ * One attached project after a rotation that asked for redeploys: the deployment the API queued, or
+ * why it queued none (`no_active_deployment`, a limit, a suspension, ...). Reasons stay strings, so
+ * one added by a newer API still renders.
+ */
+const rotationRedeploySchema = z.object({
+	project_id: z.string(),
+	deployment_id: z.string().nullable(),
+	skipped_reason: z.string().nullable()
+});
+export type DatabaseRotationRedeploy = z.output<typeof rotationRedeploySchema>;
+
+/**
+ * The newest password rotation. The node switches as soon as it runs the request, so the old
+ * password can stop working while `status` is still `pending`. `redeploys` is `null` until the API
+ * has queued the redeploys after `completed`, and always without `redeploy_attached`.
+ */
+const passwordRotationSchema = z.object({
+	status: z.string(),
+	requested_at: z.string(),
+	completed_at: z.string().nullable(),
+	failed_at: z.string().nullable(),
+	redeploy_attached: z.boolean(),
+	redeploys: z.array(rotationRedeploySchema).nullable()
+});
+export type DatabasePasswordRotation = z.output<typeof passwordRotationSchema>;
+
+/** `pending`, `completed`, and `failed`, which the Console explains; a newer value shows as unknown. */
+export const PASSWORD_ROTATION_STATUSES = [
+	'pending',
+	'completed',
+	'failed'
+] as const satisfies readonly components['schemas']['DatabasePasswordRotationStatus'][];
+
+/**
  * Where applications connect, without the password: what attached projects receive as `DB_HOST`,
  * `DB_PORT`, `DB_DATABASE`, and `DB_USERNAME`. Every member reads it; the host is on the database
  * node's private network.
@@ -85,9 +119,21 @@ const databaseSchema = z.object({
 	 */
 	connection: connectionSchema.nullable().default(null),
 	last_failure: lastFailureSchema.nullable(),
+	/** `null` when the password was never rotated, and from an API before rotation state (#182). */
+	password_rotation: passwordRotationSchema.nullable().default(null),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
-}) satisfies z.ZodType<Omit<GeneratedDatabase, 'status' | 'engine'> & { status: string }, unknown>;
+}) satisfies z.ZodType<
+	Omit<GeneratedDatabase, 'status' | 'engine' | 'password_rotation'> & {
+		status: string;
+		password_rotation:
+			| (Omit<NonNullable<GeneratedDatabase['password_rotation']>, 'status'> & {
+					status: string;
+			  })
+			| null;
+	},
+	unknown
+>;
 
 export type Database = z.output<typeof databaseSchema>;
 
@@ -217,14 +263,23 @@ export async function getDatabaseCredentials(
 	);
 }
 
-/** `202`. The old password keeps working until the node reports the new one. */
+/**
+ * `202` with `password_rotation.status: pending`. The node stops accepting the old password as soon as
+ * it runs the request; with `redeploy_attached` the API then redeploys the attached projects.
+ */
+export type RotateDatabasePasswordPayload = Required<
+	components['schemas']['RotateDatabasePasswordRequest']
+>;
+
 export async function rotateDatabasePassword(
 	workspaceId: string,
-	databaseId: string
+	databaseId: string,
+	payload: RotateDatabasePasswordPayload
 ): Promise<Database> {
 	return parseDatabase(
 		await apiRequest<unknown>(`${databasePath(workspaceId, databaseId)}/rotate-password`, {
-			method: 'POST'
+			method: 'POST',
+			json: payload
 		})
 	);
 }

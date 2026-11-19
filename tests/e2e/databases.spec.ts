@@ -7,6 +7,7 @@ import {
 	lockedDatabase,
 	mockDatabaseApi,
 	provisioningDatabase,
+	ROTATION_DEPLOYMENT_ID,
 	sampleDatabases
 } from './fixtures/databases';
 import { auditDom } from './fixtures/dom-audit';
@@ -89,6 +90,50 @@ test.describe('database list', () => {
 		await expect(page.getByTestId('database-row')).toHaveCount(3);
 		await expect(page.getByTestId('create-database')).toHaveCount(0);
 		await expect(page.getByTestId('database-viewer-note')).toBeVisible();
+	});
+});
+
+test('a database on a node without a region reads Otomatis, never "tanpa region"', async ({
+	page
+}) => {
+	const databases = sampleDatabases().map((database, index) =>
+		index === 0 ? { ...database, region: null } : database
+	);
+	await mockDatabaseApi(page, { databases });
+	await page.goto(LIST_URL);
+	await expect(page.getByRole('main')).not.toContainText('tanpa region');
+	await expect(page.getByRole('main')).toContainText('Otomatis');
+
+	await page.goto(detailUrl());
+	await expect(page.getByTestId('database-region-auto')).toHaveText('region dipilih otomatis');
+	await expect(page.getByTestId('database-overview')).not.toContainText('tanpa region');
+});
+
+test.describe('an installation without a database server', () => {
+	test('says databases are not offered here, with no way to create one', async ({ page }) => {
+		await mockDatabaseApi(page, { databases: [], databasesAvailable: false, role: 'owner' });
+		await page.goto(LIST_URL);
+
+		await expect(
+			page.getByRole('heading', { name: 'Database terkelola belum tersedia di server ini' })
+		).toBeVisible();
+		await expect(
+			page.getByText('Belum ada server database yang terhubung ke Sakala ini')
+		).toBeVisible();
+		await expect(page.getByTestId('create-database')).toHaveCount(0);
+		// The sidebar keeps the page, so people can find it and read why.
+		await expect(page.getByRole('link', { name: 'Database', exact: true }).first()).toBeVisible();
+	});
+
+	test('still lists existing databases, without the create action', async ({ page }) => {
+		await mockDatabaseApi(page, { databasesAvailable: false, role: 'owner' });
+		await page.goto(LIST_URL);
+
+		await expect(page.getByTestId('databases-unavailable')).toContainText(
+			'Database terkelola belum tersedia di server ini'
+		);
+		await expect(page.getByRole('link', { name: 'toko-kopi-db' })).toBeVisible();
+		await expect(page.getByTestId('create-database')).toHaveCount(0);
 	});
 });
 
@@ -298,15 +343,49 @@ test.describe('database detail', () => {
 
 		await page.getByTestId('rotate-password').click();
 		const dialog = page.getByRole('dialog', { name: 'Ganti password database?' });
-		await expect(dialog).toContainText(`Redeploy proyek ini sesudahnya`);
+		await expect(dialog).toContainText('Password lama langsung tidak berlaku');
 		await expect(dialog).toContainText(attachedProject.name);
+		await expect(
+			dialog.getByRole('checkbox', { name: 'Redeploy otomatis proyek yang terpasang' })
+		).toBeChecked();
 		await dialog.getByRole('button', { name: 'Ganti password' }).click();
 
-		await expect(page.getByTestId('rotation-requested')).toBeVisible();
-		await expect(page.getByTestId('redeploy-notices')).toContainText(
-			`Redeploy ${attachedProject.name} setelah penggantian password selesai`
+		// Pending first, then the page polls until the node reported and the redeploy is queued.
+		await expect(page.getByTestId('rotation-pending')).toBeVisible();
+		await expect(page.getByTestId('rotation-completed')).toContainText(
+			'Password sudah diganti pukul'
 		);
-		expect(calls.some((call) => call.path.endsWith('/rotate-password'))).toBe(true);
+		const row = page.getByTestId(`rotation-project-${attachedProject.id}`);
+		await expect(row).toContainText('Redeploy otomatis berjalan');
+		await expect(row.getByRole('link', { name: /Lihat deployment/ })).toHaveAttribute(
+			'href',
+			`/projects/${attachedProject.id}/deployments/${ROTATION_DEPLOYMENT_ID}`
+		);
+		expect(calls.find((call) => call.path.endsWith('/rotate-password'))?.body).toEqual({
+			redeploy_attached: true
+		});
+	});
+
+	test('a rotation without redeploys offers a Redeploy button per project', async ({ page }) => {
+		const { calls } = await mockDatabaseApi(page, {
+			role: 'owner',
+			project: { redeploy_required: true }
+		});
+		await page.goto(detailUrl());
+
+		await page.getByTestId('rotate-password').click();
+		const dialog = page.getByRole('dialog', { name: 'Ganti password database?' });
+		await dialog.getByRole('checkbox').uncheck();
+		await dialog.getByRole('button', { name: 'Ganti password' }).click();
+
+		const row = page.getByTestId(`rotation-project-${attachedProject.id}`);
+		await expect(row).toContainText('Masih memakai password lama');
+		await expect(
+			row.getByRole('button', { name: `Redeploy ${attachedProject.name}` })
+		).toBeVisible();
+		expect(calls.find((call) => call.path.endsWith('/rotate-password'))?.body).toEqual({
+			redeploy_attached: false
+		});
 	});
 
 	test('a viewer sees no actions on the database page', async ({ page }) => {
@@ -568,6 +647,50 @@ test.describe('screenshots', () => {
 			await shot('project-variables');
 		});
 
+		test(`rotation, region, and deploy states at ${width} px`, async ({ page }) => {
+			const dir = SCREENSHOT_DIR!;
+			await mkdir(dir, { recursive: true });
+			await page.setViewportSize({ width, height: SCREENSHOT_HEIGHT });
+			const databases = sampleDatabases().map((database, index) =>
+				index === 0 ? { ...database, region: null } : database
+			);
+			await mockDatabaseApi(page, {
+				databases,
+				role: 'owner',
+				project: {
+					runtime_status: 'deploying',
+					databases: [projectDatabase({ region: null })]
+				},
+				envList: [
+					{
+						id: 1,
+						key: 'APP_KEY',
+						value: 'base64:example',
+						is_secret: true,
+						created_at: '2026-01-01T00:00:00Z'
+					}
+				]
+			});
+			await page.goto(LIST_URL);
+			await fullShot(page, `${dir}/list-region-auto-${width}.png`, width);
+
+			await page.goto(detailUrl());
+			await page.getByTestId('rotate-password').click();
+			await page.waitForTimeout(300);
+			await page.screenshot({ path: `${dir}/rotate-dialog-${width}.png` });
+			await page
+				.getByRole('dialog', { name: 'Ganti password database?' })
+				.getByRole('button', { name: 'Ganti password' })
+				.click();
+			await expect(page.getByTestId('rotation-completed')).toContainText('Password sudah diganti');
+			await page.getByTestId('password-rotation').scrollIntoViewIfNeeded();
+			await fullShot(page, `${dir}/rotation-completed-${width}.png`, width);
+
+			await page.goto(`/projects/${PROJECT_ID}`);
+			await settled(page);
+			await fullShot(page, `${dir}/project-deploying-over-live-${width}.png`, width);
+		});
+
 		test(`states at ${width} px`, async ({ page }) => {
 			const dir = SCREENSHOT_DIR!;
 			await page.setViewportSize({ width, height: SCREENSHOT_HEIGHT });
@@ -583,6 +706,16 @@ test.describe('screenshots', () => {
 			await mockDatabaseApi(page, { databases: [] });
 			await page.goto(LIST_URL);
 			await fullShot(page, `${dir}/empty-${width}.png`, width);
+
+			await page.unrouteAll({ behavior: 'ignoreErrors' });
+			await mockDatabaseApi(page, { databases: [], databasesAvailable: false });
+			await page.goto(LIST_URL);
+			await fullShot(page, `${dir}/unavailable-empty-${width}.png`, width);
+
+			await page.unrouteAll({ behavior: 'ignoreErrors' });
+			await mockDatabaseApi(page, { databasesAvailable: false });
+			await page.goto(LIST_URL);
+			await fullShot(page, `${dir}/unavailable-list-${width}.png`, width);
 		});
 	}
 });

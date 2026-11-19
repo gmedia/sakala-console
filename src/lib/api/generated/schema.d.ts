@@ -556,8 +556,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Ask the database node for a new password. Answers `202`; the old password works until the node reports success,
-         *     then attached projects show `redeploy_required`
+         * Ask the database node for a new password. Answers `202` with `password_rotation.status: pending`. The node
+         *     switches at once: the old password stops connecting right away, so running applications cannot open new
+         *     connections until they are redeployed. Once the node reports, `password_rotation.status` is `completed`,
+         *     attached projects show `redeploy_required`, and with `redeploy_attached` the API redeploys the attached projects
+         *     that have a live deployment (`password_rotation.redeploys`)
          */
         post: operations["v1.app.workspaces.databases.rotate-password"];
         delete?: never;
@@ -1400,7 +1403,8 @@ export interface paths {
         };
         /**
          * Quotas, usage, and runtime maximums of one workspace: the one named by
-         *     `workspace_id`, or the caller's personal workspace
+         *     `workspace_id`, or the caller's personal workspace, plus whether this
+         *     installation offers managed databases right now (`databases.available`)
          */
         get: operations["v1.app.pilot-limits.show"];
         put?: never;
@@ -2229,7 +2233,7 @@ export interface components {
                 /** @enum {string} */
                 status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
                 /** @enum {string} */
-                trigger: "manual" | "redeploy" | "webhook" | "system";
+                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated";
                 branch: string;
                 commit_sha: string | null;
                 commit_message: string | null;
@@ -3196,6 +3200,17 @@ export interface components {
          * @enum {string}
          */
         DatabaseExtension: "pgcrypto" | "citext" | "pg_trgm" | "unaccent" | "hstore" | "vector";
+        /**
+         * DatabasePasswordRotationStatus
+         * @description Where the newest password rotation of a managed database stands, read from its RotateDatabasePassword command.
+         *     | |
+         *     |---|
+         *     | `pending` <br/> Waiting for or running on the database node. The stored password is still the old one. |
+         *     | `completed` <br/> The node switched to the new password: the old one no longer connects. |
+         *     | `failed` <br/> The node failed it or did not finish in time. The old password still works. |
+         * @enum {string}
+         */
+        DatabasePasswordRotationStatus: "pending" | "completed" | "failed";
         /** DatabaseResource */
         DatabaseResource: {
             id: string;
@@ -3253,6 +3268,33 @@ export interface components {
                 summary: string;
                 failed_at: string | null;
             } | null;
+            /**
+             * @description The newest password rotation; `null` when the password was never rotated. `status` is `pending` while
+             *     the database node has not reported, `completed` once the new password is the only one that connects,
+             *     and `failed` when the node failed it or did not finish in time (the old password still works; see
+             *     `last_failure`). The node switches as soon as it runs the request, so a `pending` rotation can
+             *     already have cut off the old password. `requested_at` is when it was asked for, `completed_at` and
+             *     `failed_at` are set only in their status. `redeploy_attached` is what the request asked for.
+             *     `redeploys` is `null` until the API has queued the redeploys after completion (and always without
+             *     `redeploy_attached`), then one item per project attached at that moment: `deployment_id` of the queued
+             *     deployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:
+             *     `no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,
+             *     `active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,
+             *     `database_endpoint_unavailable`, `release_command_unsupported`, or `failed`.
+             */
+            password_rotation: {
+                /** @enum {string} */
+                status: "pending" | "completed" | "failed";
+                requested_at: string;
+                completed_at: string | null;
+                failed_at: string | null;
+                redeploy_attached: boolean;
+                redeploys: {
+                    project_id: string;
+                    deployment_id: string | null;
+                    skipped_reason: string | null;
+                }[] | null;
+            } | null;
             created_at: string | null;
             updated_at: string | null;
         };
@@ -3308,7 +3350,7 @@ export interface components {
             /** @enum {string} */
             status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
             /** @enum {string} */
-            trigger: "manual" | "redeploy" | "webhook" | "system";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated";
             commit_sha: string | null;
             commit_message: string | null;
             image_reference: string | null;
@@ -3450,7 +3492,7 @@ export interface components {
              * @description `manual`, `webhook`, or another `DeploymentTrigger`.
              * @enum {string}
              */
-            trigger: "manual" | "redeploy" | "webhook" | "system";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated";
             agent_node_id: string | null;
             /** @description Who asked for the deployment; null for an account deleted since. */
             requested_by: {
@@ -3799,6 +3841,15 @@ export interface components {
              *     limit profile or the global setting. `0` means its projects never sleep.
              */
             project_idle_sleep_minutes: number;
+            /**
+             * @description Managed databases on this installation. `available` is true while at least one online database node
+             *     may receive new databases and its PostgreSQL instance last reported that it answers. False on an
+             *     installation without a database server, and while every database node is offline or its instance
+             *     is down: creating one would wait or fail. Existing databases stay listed either way.
+             */
+            databases: {
+                available: boolean;
+            };
         };
         /** PilotValidationMetricsResource */
         PilotValidationMetricsResource: {
@@ -4130,6 +4181,14 @@ export interface components {
         /** ResumeAgentNodeRequest */
         ResumeAgentNodeRequest: {
             reason: string;
+        };
+        /** RotateDatabasePasswordRequest */
+        RotateDatabasePasswordRequest: {
+            /**
+             * @description Redeploy every attached project that has a live deployment as soon as the node reports the new
+             *     password, as whoever asked for the rotation. Defaults to `false`.
+             */
+            redeploy_attached?: boolean;
         };
         /**
          * RuntimeCleanupTarget
@@ -6003,7 +6062,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RotateDatabasePasswordRequest"];
+            };
+        };
         responses: {
             /** @description `DatabaseResource` */
             202: {
@@ -6049,6 +6112,7 @@ export interface operations {
                     };
                 };
             };
+            422: components["responses"]["ValidationException"];
         };
     };
     "v1.app.workspaces.databases.extensions.store": {

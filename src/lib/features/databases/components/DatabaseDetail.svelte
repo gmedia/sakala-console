@@ -52,17 +52,6 @@
 		notices = addRedeployNotices(notices, added);
 	}
 
-	function handleRotated() {
-		if (!database) return;
-		addNotices(
-			database.projects.map((project) => ({
-				projectId: project.id,
-				projectName: project.name,
-				kind: 'rotated' as const
-			}))
-		);
-	}
-
 	const notFound = $derived(
 		databaseQuery.error instanceof ApiError && databaseQuery.error.status === 404
 	);
@@ -106,7 +95,7 @@
 				preselectedProjectId={route.projectId}
 				onChanged={addNotices}
 			/>
-			<DatabaseConnectionCard {database} {workspaceId} {access} onRotated={handleRotated} />
+			<DatabaseConnectionCard {database} {workspaceId} {access} />
 			<DatabaseExtensionsCard {database} {workspaceId} {access} />
 		</div>
 		<aside

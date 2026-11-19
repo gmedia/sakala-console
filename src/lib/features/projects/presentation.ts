@@ -58,6 +58,12 @@ export const runtimeStatusPresentation: Record<RuntimeStatus, RuntimeStatusPrese
 	}
 };
 
+/** Beside `Live`: the deployment runs, but visitors still reach the previous version. */
+export const deployingNewVersionPresentation: RuntimeStatusPresentation = {
+	label: 'Men-deploy versi baru',
+	variant: 'running'
+};
+
 /** A suspended project reads the same everywhere, whatever its runtime is still doing. */
 export const suspendedStatusPresentation: RuntimeStatusPresentation = {
 	label: 'Ditangguhkan',
@@ -202,7 +208,10 @@ export type ProjectHeaderNotice = {
 
 export type ProjectHeaderState = {
 	kind: ProjectHeaderKind;
+	/** What visitors get now: `Live` while the previous version serves during a deploy. */
 	badge: RuntimeStatusPresentation;
+	/** Work beside that state, shown as a second badge: a new version deploying over a live one. */
+	activity: RuntimeStatusPresentation | null;
 	/** Offered at all: a suspended project has no Redeploy, and says why. */
 	showRedeploy: boolean;
 	/** A deployment is already running, and a second click would only hit the limit. */
@@ -357,6 +366,7 @@ function deriveHeaderClaims(
 	const serving = isProjectServing(project);
 
 	const base = {
+		activity: null,
 		showRedeploy: true,
 		redeployBusy: false,
 		showWake: false,
@@ -380,10 +390,12 @@ function deriveHeaderClaims(
 
 	if (running || runtimeStatus === 'deploying') {
 		const description = describeRunningDeployment(running);
+		// The agent cuts over last, so a live project stays Live until the new version takes over.
 		return {
 			...base,
 			kind: 'deploying',
-			badge: runtimeStatusPresentation.deploying,
+			badge: serving ? runtimeStatusPresentation.running : runtimeStatusPresentation.deploying,
+			activity: serving ? deployingNewVersionPresentation : null,
 			redeployBusy: true,
 			serving,
 			notice: {

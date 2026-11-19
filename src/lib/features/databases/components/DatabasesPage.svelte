@@ -17,6 +17,7 @@
 		DATABASE_VARIABLES,
 		databaseErrorMessage,
 		databaseQuota,
+		databasesUnavailable,
 		workspacePhrase
 	} from '../presentation';
 	import { createDatabasesQuery } from '../queries';
@@ -37,6 +38,9 @@
 		() => ({ enabled: Boolean(active) })
 	);
 	const quota = $derived(databaseQuota(limitsQuery.data?.quotas));
+	// No database server on this installation: nothing to create, existing ones still listed.
+	const unavailable = $derived(databasesUnavailable(limitsQuery.data));
+	const canCreate = $derived(access.canManage && !unavailable);
 	// Admins are not held to the workspace's count; the API decides for them.
 	const blockedReason = $derived(siteAdmin ? null : (quota?.blockedReason ?? null));
 
@@ -60,8 +64,22 @@
 	</Button>
 {/snippet}
 
+{#snippet unavailableNotice()}
+	<div
+		class="flex items-start gap-3 rounded-control border border-border bg-background-soft px-4 py-3"
+		role="status"
+		data-testid="databases-unavailable"
+	>
+		<Database size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
+		<div class="flex min-w-0 flex-col gap-1">
+			<p class="text-sm font-medium text-foreground">{DATABASE_COPY.unavailableTitle}</p>
+			<p class="text-sm text-muted">{DATABASE_COPY.unavailableBody}</p>
+		</div>
+	</div>
+{/snippet}
+
 {#snippet projectBanner()}
-	{#if project && access.canManage}
+	{#if project && canCreate}
 		<p
 			class="rounded-control border border-primary/30 bg-primary-50 px-4 py-3 text-sm text-foreground"
 			role="status"
@@ -95,6 +113,13 @@
 			)}
 			onRetry={() => databasesQuery.refetch()}
 		/>
+	{:else if databases.length === 0 && unavailable}
+		<EmptyState
+			icon={Database}
+			tone="muted"
+			title={DATABASE_COPY.unavailableTitle}
+			description={DATABASE_COPY.unavailableBody}
+		/>
 	{:else if databases.length === 0}
 		{@render projectBanner()}
 		<EmptyState
@@ -114,12 +139,15 @@
 		{/if}
 	{:else}
 		{@render projectBanner()}
+		{#if unavailable}
+			{@render unavailableNotice()}
+		{/if}
 		<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 			<p class="max-w-2xl text-sm text-muted">
 				PostgreSQL terkelola milik <span class="wrap-anywhere text-foreground">{workspaceName}</span
 				>. Satu database bisa dipasang ke beberapa proyek, dan tetap ada walaupun proyeknya dihapus.
 			</p>
-			{#if access.canManage}
+			{#if canCreate}
 				<div class="shrink-0">{@render createButton()}</div>
 			{/if}
 		</div>
@@ -140,7 +168,7 @@
 	{/if}
 </div>
 
-{#if active && access.canManage}
+{#if active && canCreate}
 	<CreateDatabaseDialog
 		bind:open={createOpen}
 		workspaceId={active.id}

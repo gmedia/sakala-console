@@ -19,8 +19,8 @@ type OptionalQuotaKey =
 	| 'current_database_storage_bytes';
 
 /**
- * The part of the resource the Console reads. The workspace, container, replica, and idle sleep
- * fields stay optional because an older API does not send them.
+ * The part of the resource the Console reads. The workspace, container, replica, idle sleep, and
+ * database availability fields stay optional because an older API does not send them.
  */
 type PilotLimitsContract = Pick<
 	GeneratedPilotLimits,
@@ -31,6 +31,7 @@ type PilotLimitsContract = Pick<
 	workspace_id?: GeneratedPilotLimits['workspace_id'];
 	limit_profile?: GeneratedPilotLimits['limit_profile'];
 	project_idle_sleep_minutes?: GeneratedPilotLimits['project_idle_sleep_minutes'];
+	databases?: GeneratedPilotLimits['databases'];
 };
 
 const pilotLimitsResponseSchema = z.object({
@@ -67,7 +68,12 @@ const pilotLimitsResponseSchema = z.object({
 		}),
 		deleted_project_retention_days: z.number(),
 		/** `0`: projects of this workspace never sleep. */
-		project_idle_sleep_minutes: z.number().optional()
+		project_idle_sleep_minutes: z.number().optional(),
+		/**
+		 * Whether this installation offers managed databases right now: a database server is connected
+		 * and answers. Absent from an API before sakala-api #182, which read as available.
+		 */
+		databases: z.object({ available: z.boolean() }).optional()
 	})
 }) satisfies z.ZodType<{ data: PilotLimitsContract }>;
 

@@ -99,6 +99,55 @@ describe('the canvas groups', () => {
 		expect(database?.detail.body.join(' ')).toContain('menimpa DB_HOST');
 		expect(topology.summary).toContain('memakai database toko-kopi-db, statusnya terkunci');
 	});
+
+	it('counts the database variables apart from the project ones, without the overridden ones', () => {
+		const attached = {
+			id: 'db-1',
+			name: 'toko-kopi-db',
+			status: 'ready',
+			region: 'jkt',
+			variables: [
+				'DATABASE_URL',
+				'DB_CONNECTION',
+				'DB_HOST',
+				'DB_PORT',
+				'DB_DATABASE',
+				'DB_USERNAME',
+				'DB_PASSWORD'
+			],
+			overridden_variables: ['DB_HOST']
+		};
+		const topology = topologyOf(
+			{ databases: [attached] },
+			{ variables: { state: 'ready', count: 1 } }
+		);
+		const variables = block(topology, 'variables');
+		expect(variables?.fact).toBe('1 variabel + 6 dari database');
+		expect(variables?.detail.body.join(' ')).toContain(
+			'6 variabel lagi (DATABASE_URL, DB_CONNECTION, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD) datang dari database toko-kopi-db'
+		);
+		expect(topology.summary).toContain('yang memberi 6 variabel koneksi');
+
+		const onlyDatabase = topologyOf(
+			{ databases: [{ ...attached, overridden_variables: [] }] },
+			{ variables: { state: 'ready', count: 0 } }
+		);
+		expect(block(onlyDatabase, 'variables')?.fact).toBe('7 dari database');
+	});
+});
+
+describe('a deploy over a live version', () => {
+	it('keeps the app block Live, with the new version as a second badge', () => {
+		const topology = topologyOf(
+			{ runtime_status: 'running' },
+			{ deployments: [{ ...failedDeployment, id: 'dep_new', sequence: 99, status: 'building' }] }
+		);
+		expect(block(topology, 'app')).toMatchObject({
+			badge: { label: 'Live', tone: 'success' },
+			activity: { label: 'Men-deploy versi baru', tone: 'running' },
+			tone: 'live'
+		});
+	});
 });
 
 describe('one fact per block', () => {
