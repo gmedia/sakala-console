@@ -25,6 +25,11 @@
 		{#each example.env as env (env.key)}
 			<p><span class="font-mono font-medium">{env.key}</span>: {env.hint}</p>
 		{/each}
+		{#each example.optionalEnv as env (env.key)}
+			<p>
+				<span class="font-mono font-medium">{env.key}</span> (opsional): {env.hint}
+			</p>
+		{/each}
 		<p class="text-foreground/70">
 			Mau mengubah kodenya? Fork repo ini di GitHub, lalu buat proyek dari fork-mu supaya
 			auto-deploy aktif.

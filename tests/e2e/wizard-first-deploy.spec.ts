@@ -279,6 +279,12 @@ test.describe('starting from an example repository', () => {
 		await expect(page.getByRole('heading', { name: 'Persiapan deployment' })).toBeVisible();
 		await expect(page.getByTestId('starter-example-notice')).toContainText('Laravel');
 		await expect(page.getByTestId('starter-example-notice')).toContainText('APP_KEY');
+		await expect(page.getByTestId('starter-example-notice')).toContainText(
+			'DATABASE_URL (opsional)'
+		);
+		await expect(page.getByLabel('Release command (opsional)')).toHaveValue(
+			'php artisan migrate --force'
+		);
 		await expect(page.getByLabel('Nama proyek')).toHaveValue('contoh-laravel');
 		await expect(page.getByLabel('Root directory (opsional)')).toHaveValue('laravel');
 
@@ -290,8 +296,11 @@ test.describe('starting from an example repository', () => {
 		expect(calls.createProject[0]).toMatchObject({
 			name: 'contoh-laravel',
 			repository: { type: 'public_url', url: EXAMPLES_REPOSITORY },
-			root_directory: 'laravel'
+			root_directory: 'laravel',
+			release_command: 'php artisan migrate --force'
 		});
+		expect(calls.createProject[0]).not.toHaveProperty('build_command');
+		expect(calls.createProject[0]).not.toHaveProperty('start_command');
 		expect(calls.addEnv).toHaveLength(1);
 		expect(calls.addEnv[0]).toMatchObject({ key: 'APP_KEY', is_secret: true });
 		expect(String(calls.addEnv[0].value)).toMatch(/^base64:[A-Za-z0-9+/]{43}=$/);

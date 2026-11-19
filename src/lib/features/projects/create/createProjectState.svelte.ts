@@ -232,6 +232,10 @@ export function createProjectWizardState() {
 			starterExample = example;
 			rootDirectory = example.rootDirectory;
 			releaseCommand = example.releaseCommand ?? '';
+			// Each example leaves these to detection; an earlier entry would override it.
+			configuredPort = '';
+			buildCommand = '';
+			startCommand = '';
 			if (!projectNameTouched) projectName = example.projectName;
 			envVars = envVars.filter((item) => !exampleEnvIds.includes(item.id));
 			exampleEnvIds = [];

@@ -1,8 +1,9 @@
 /**
- * Example apps for a first deploy (P-07). They live in one repository owned by the Sakala
- * organisation, one folder per app, and are deployed on every release so they keep working.
- * Picking one in the wizard fills in the public URL, the root directory, the release command, and
- * the variables listed here. Keep this list in step with the folders of that repository.
+ * Example apps for a first deploy (P-07), from gmedia/sakala-examples: one folder per app, with
+ * its own CI. Picking one in the wizard fills in the public URL, the root directory, the release
+ * command, and the required variables, and clears port, build, and start, which each example
+ * leaves to detection (Laravel builds from its own Dockerfile). Keep this list in step with the
+ * folders of that repository.
  */
 export const STARTER_EXAMPLES_REPOSITORY = 'https://github.com/gmedia/sakala-examples';
 
@@ -19,6 +20,9 @@ export type StarterExampleEnv = {
 	hint: string;
 };
 
+/** A variable the example can use but runs without; named on the configuration step only. */
+export type StarterExampleOptionalEnv = { key: string; hint: string };
+
 export type StarterExample = {
 	id: string;
 	label: string;
@@ -29,6 +33,7 @@ export type StarterExample = {
 	/** The project name, and so the address, the wizard suggests. */
 	projectName: string;
 	env: StarterExampleEnv[];
+	optionalEnv: StarterExampleOptionalEnv[];
 };
 
 export const STARTER_EXAMPLES: readonly StarterExample[] = [
@@ -40,7 +45,8 @@ export const STARTER_EXAMPLES: readonly StarterExample[] = [
 		rootDirectory: 'static-site',
 		releaseCommand: null,
 		projectName: 'contoh-situs-statis',
-		env: []
+		env: [],
+		optionalEnv: []
 	},
 	{
 		id: 'node-express',
@@ -50,7 +56,8 @@ export const STARTER_EXAMPLES: readonly StarterExample[] = [
 		rootDirectory: 'node-express',
 		releaseCommand: null,
 		projectName: 'contoh-node-express',
-		env: []
+		env: [],
+		optionalEnv: []
 	},
 	{
 		id: 'laravel',
@@ -58,13 +65,19 @@ export const STARTER_EXAMPLES: readonly StarterExample[] = [
 		description: 'Aplikasi PHP, APP_KEY dibuatkan otomatis.',
 		repository: STARTER_EXAMPLES_REPOSITORY,
 		rootDirectory: 'laravel',
-		releaseCommand: null,
+		releaseCommand: 'php artisan migrate --force',
 		projectName: 'contoh-laravel',
 		env: [
 			{
 				key: 'APP_KEY',
 				value: { kind: 'laravel-app-key' },
 				hint: 'Laravel butuh APP_KEY untuk mengenkripsi session. Sakala sudah membuatkan kunci baru dan menyimpannya sebagai secret.'
+			}
+		],
+		optionalEnv: [
+			{
+				key: 'DATABASE_URL',
+				hint: 'Tanpa database, aplikasinya tetap jalan dan menampilkan cara menghubungkan database.'
 			}
 		]
 	}

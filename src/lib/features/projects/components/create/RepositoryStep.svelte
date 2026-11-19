@@ -162,7 +162,7 @@
 			if (outcome === 'ok') onNext();
 			else if (outcome === 'failed') {
 				// One message, beside the examples, instead of a second copy under the URL field.
-				exampleError = `Repo contoh belum bisa dibaca. ${gitUrlApiError ?? ''}`.trim();
+				exampleError = `Repo contoh tidak bisa dibaca sekarang. ${gitUrlApiError ?? ''}`.trim();
 				gitUrlApiError = null;
 				gitUrlTouched = false;
 			}

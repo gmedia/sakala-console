@@ -489,7 +489,9 @@ describe('RepositoryStep: repository list from the API', () => {
 		await page.getByRole('button', { name: /Situs HTML statis/ }).click();
 
 		await expect
-			.element(page.getByText(/Repo contoh belum bisa dibaca\. Repository tidak ditemukan/))
+			.element(
+				page.getByText(/Repo contoh tidak bisa dibaca sekarang\. Repository tidak ditemukan/)
+			)
 			.toBeVisible();
 		expect(onNext).not.toHaveBeenCalled();
 	});

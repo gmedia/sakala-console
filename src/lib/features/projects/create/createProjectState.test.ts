@@ -252,7 +252,14 @@ describe('createProjectWizardState: what batch 4 added', () => {
 		const laravel = STARTER_EXAMPLES.find((example) => example.id === 'laravel')!;
 		const staticSite = STARTER_EXAMPLES.find((example) => example.id === 'static-site')!;
 
+		wizard.buildCommand = 'npm run build';
+		wizard.configuredPort = '8080';
 		wizard.applyStarterExample(laravel);
+		expect(wizard.releaseCommand).toBe('php artisan migrate --force');
+		// Laravel builds from its own Dockerfile: nothing typed earlier may override it.
+		expect(wizard.buildCommand).toBe('');
+		expect(wizard.startCommand).toBe('');
+		expect(wizard.configuredPort).toBe('');
 		expect(wizard.repositorySource).toBe('git-url');
 		expect(wizard.gitRepositoryUrl).toBe(laravel.repository);
 		expect(wizard.rootDirectory).toBe('laravel');
@@ -261,6 +268,7 @@ describe('createProjectWizardState: what batch 4 added', () => {
 
 		wizard.applyStarterExample(staticSite);
 		expect(wizard.rootDirectory).toBe('static-site');
+		expect(wizard.releaseCommand).toBe('');
 		expect(wizard.projectName).toBe('contoh-situs-statis');
 		expect(wizard.envVars).toEqual([]);
 	});
