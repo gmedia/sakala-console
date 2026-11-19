@@ -5,14 +5,18 @@ import type { components } from '../generated/schema';
 type GeneratedPilotLimits = components['schemas']['PilotLimitsResource'];
 type GeneratedQuotas = GeneratedPilotLimits['quotas'];
 /**
- * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas.
- * `max_builds_per_hour` is not read by the Console yet.
+ * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas,
+ * the database quotas with managed databases. `max_builds_per_hour` is not read by the Console yet.
  */
 type OptionalQuotaKey =
 	| 'max_active_containers'
 	| 'current_active_containers_count'
 	| 'max_replicas'
-	| 'max_builds_per_hour';
+	| 'max_builds_per_hour'
+	| 'max_databases'
+	| 'current_databases_count'
+	| 'max_database_storage_mb'
+	| 'current_database_storage_bytes';
 
 /**
  * The part of the resource the Console reads. The workspace, container, replica, and idle sleep
@@ -42,7 +46,14 @@ const pilotLimitsResponseSchema = z.object({
 			max_active_containers: z.number().optional(),
 			current_active_containers_count: z.number().optional(),
 			/** Most replicas per project; `1` means replicas are off for this workspace. */
-			max_replicas: z.number().optional()
+			max_replicas: z.number().optional(),
+			/** Managed databases the workspace may hold; `0` allows none. */
+			max_databases: z.number().optional(),
+			/** Every live database except those whose creation failed. */
+			current_databases_count: z.number().optional(),
+			/** Total size the workspace's databases may reach, in MB (1 MB is 1024 × 1024 bytes). */
+			max_database_storage_mb: z.number().optional(),
+			current_database_storage_bytes: z.number().optional()
 		}),
 		runtime_defaults: z.object({
 			memory_mb: z.number(),

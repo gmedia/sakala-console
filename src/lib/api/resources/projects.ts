@@ -5,11 +5,15 @@ import { workspaceSummarySchema, type WorkspaceSummary } from './workspaces';
 
 export type GeneratedProject = components['schemas']['GetCollectionProjectResource'];
 type GeneratedLatestDeployment = components['schemas']['LatestDeploymentResource'];
+type GeneratedListStack = NonNullable<GeneratedProject['stack']>;
 /** Statuses stay plain strings, as parsed, so a value added by a newer API still renders. */
 export type Project = Omit<
 	GeneratedProject,
-	'runtime_status' | 'latest_deployment' | 'workspace'
+	'runtime_status' | 'latest_deployment' | 'workspace' | 'stack'
 > & {
+	/** `monorepo` came with sakala-api #179, so an older API leaves it out. */
+	stack:
+		(Omit<GeneratedListStack, 'monorepo'> & { monorepo?: GeneratedListStack['monorepo'] }) | null;
 	runtime_status: string;
 	latest_deployment: (Omit<GeneratedLatestDeployment, 'status'> & { status: string }) | null;
 	/** The owning workspace. Optional because an API from before workspaces does not send it. */
@@ -63,7 +67,20 @@ const projectSchema: z.ZodType<Project> = z.object({
 			builder: z.enum(['dockerfile', 'railpack']),
 			provider: z.string().nullable(),
 			framework: z.string().nullable(),
-			package_manager: z.string().nullable()
+			package_manager: z.string().nullable(),
+			monorepo: z
+				.object({
+					manager: z.enum(['npm', 'pnpm', 'yarn', 'bun']),
+					root_directory: z.string(),
+					package_directory: z.string(),
+					package_name: z.string().nullable(),
+					build_command: z.string().nullable(),
+					start_command: z.string().nullable(),
+					static_output_directory: z.string().nullable()
+				})
+				.nullable()
+				// An API before sakala-api #179 does not send it.
+				.optional()
 		})
 		.nullable(),
 	last_deployed_at: z.string().nullable(),

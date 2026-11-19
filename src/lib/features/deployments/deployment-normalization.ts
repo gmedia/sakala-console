@@ -1,4 +1,8 @@
 import type { Deployment, DeploymentEvent } from '$lib/api/resources/deployment';
+import {
+	parseWorkspaceEventMetadata,
+	WORKSPACE_DETECTED_EVENT
+} from '$lib/features/projects/monorepo-presentation';
 import { getDeploymentStageLabel, getStageFromStatus } from './status-config';
 import {
 	DEPLOYMENT_PIPELINE_STAGES,
@@ -68,6 +72,13 @@ export function normalizeDeploymentTimeline(
 	const stageStart = (stage: DeploymentPipelineStage) =>
 		stage === 'Queued' ? deployment.created_at : stageEvents.get(stage)?.occurred_at;
 
+	// The agent reports the workspace while analysing; without that step, the build step shows it.
+	const workspaceEvent = sortedEvents.findLast((event) => event.type === WORKSPACE_DETECTED_EVENT);
+	const monorepo = workspaceEvent ? parseWorkspaceEventMetadata(workspaceEvent.metadata) : null;
+	const monorepoStage: DeploymentPipelineStage = visibleStages.includes('Analyzing')
+		? 'Analyzing'
+		: 'Building';
+
 	return visibleStages.map((stage, index) => {
 		const status = getStepStatus(deployment, stage, currentIndex);
 		// A stage's event says when it began; the step that stopped shows when it stopped.
@@ -91,7 +102,8 @@ export function normalizeDeploymentTimeline(
 					(stage === 'Queued' ? deployment.started_at : null) ??
 					deployment.finished_at ??
 					deployment.cancelled_at
-			)
+			),
+			...(monorepo && stage === monorepoStage && { monorepo })
 		};
 	});
 }
