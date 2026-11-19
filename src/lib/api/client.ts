@@ -18,6 +18,11 @@ export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
 	params?: Record<string, string | number | boolean | undefined>;
 	/** A read behind its own narrow limit: its 429 says nothing about the shared one, and vice versa. */
 	separateRateLimit?: boolean;
+	/**
+	 * A stateless public route, such as a signed unsubscribe link: no cookies, no CSRF cookie, no
+	 * `X-XSRF-TOKEN`. The request carries only what is in its URL.
+	 */
+	anonymous?: boolean;
 };
 
 type ErrorPayload = {
@@ -29,10 +34,17 @@ type ErrorPayload = {
 };
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-	const { json, skipCsrf = false, params, separateRateLimit = false, ...requestOptions } = options;
+	const {
+		json,
+		skipCsrf = false,
+		params,
+		separateRateLimit = false,
+		anonymous = false,
+		...requestOptions
+	} = options;
 	const method = (requestOptions.method ?? 'GET').toUpperCase();
 
-	if (!safeMethods.has(method) && !skipCsrf) {
+	if (!safeMethods.has(method) && !skipCsrf && !anonymous) {
 		await ensureCsrfCookie();
 	}
 
@@ -43,7 +55,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 		headers.set('Content-Type', 'application/json');
 	}
 
-	const xsrfToken = readXsrfToken();
+	const xsrfToken = anonymous ? null : readXsrfToken();
 	if (!safeMethods.has(method) && xsrfToken) {
 		headers.set('X-XSRF-TOKEN', xsrfToken);
 	}
@@ -72,7 +84,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 		response = await fetch(url, {
 			...requestOptions,
 			method,
-			credentials: 'include',
+			credentials: anonymous ? 'omit' : 'include',
 			headers,
 			body: json !== undefined ? JSON.stringify(json) : requestOptions.body
 		});

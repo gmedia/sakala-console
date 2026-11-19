@@ -5591,6 +5591,139 @@
                 }
             }
         },
+        "/v1/public/notifications/unsubscribe": {
+            "get": {
+                "operationId": "v1.public.notifications.unsubscribe.show",
+                "summary": "Opening the link changes nothing: link scanners in school and office\nmailboxes open every link, and must not switch off failure emails. It\nsends the reader to the console page that asks before it POSTs",
+                "tags": [
+                    "NotificationUnsubscribe"
+                ],
+                "responses": {
+                    "302": {
+                        "description": "",
+                        "headers": {
+                            "Location": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.public.notifications.unsubscribe",
+                "summary": "Turns off this category's email for the user the signed link names, without a session. Mail clients call it\nas the RFC 8058 one-click unsubscribe, and the console confirmation page calls it with the same query",
+                "tags": [
+                    "NotificationUnsubscribe"
+                ],
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": true,
+                        "description": "The category whose email to turn off.",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "deployment_success",
+                                "deployment_failure",
+                                "project_issue"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "user",
+                        "in": "query",
+                        "required": true,
+                        "description": "The account the link was sent to.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "signature",
+                        "in": "query",
+                        "required": true,
+                        "description": "HMAC of the link. Forward the query string unchanged: order and encoding are signed.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UnsubscribeNotificationEmailRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`NotificationUnsubscribeResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/NotificationUnsubscribeResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "The signature does not match the link.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "The account no longer exists.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/v1/onboarding/source": {
             "post": {
                 "operationId": "v1.onboarding.source",
@@ -9189,6 +9322,12 @@
                                     "type": "boolean"
                                 }
                             },
+                            "notification_email_preferences": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "boolean"
+                                }
+                            },
                             "last_login_at": {
                                 "type": [
                                     "string",
@@ -9373,6 +9512,7 @@
                             "onboarding_role",
                             "onboarding_completed_at",
                             "notification_preferences",
+                            "notification_email_preferences",
                             "last_login_at",
                             "created_at",
                             "legal_acceptances",
@@ -14492,6 +14632,29 @@
                     "workspace": {
                         "type": "boolean",
                         "description": "Invitations to an account's verified address, and changes to its team memberships. Invitation emails are\nsent regardless, since they are the invitation itself."
+                    },
+                    "email": {
+                        "type": "object",
+                        "description": "Email, independent of the in-app switch above. Only categories that can be emailed are listed:\n`account_security` and `workspace` have no email preference.",
+                        "properties": {
+                            "deployment_success": {
+                                "type": "boolean",
+                                "description": "Default false: a success is only worth a glance at the bell."
+                            },
+                            "deployment_failure": {
+                                "type": "boolean",
+                                "description": "Default true."
+                            },
+                            "project_issue": {
+                                "type": "boolean",
+                                "description": "Default true. A crash of the running app, or a push that auto-deploy skipped."
+                            }
+                        },
+                        "required": [
+                            "deployment_success",
+                            "deployment_failure",
+                            "project_issue"
+                        ]
                     }
                 },
                 "required": [
@@ -14499,7 +14662,8 @@
                     "deployment_failure",
                     "project_issue",
                     "account_security",
-                    "workspace"
+                    "workspace",
+                    "email"
                 ],
                 "title": "NotificationPreferenceResource"
             },
@@ -14579,6 +14743,28 @@
                     "created_at"
                 ],
                 "title": "NotificationResource"
+            },
+            "NotificationUnsubscribeResource": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "deployment_success",
+                            "deployment_failure",
+                            "project_issue"
+                        ]
+                    },
+                    "email": {
+                        "type": "boolean",
+                        "description": "Always false: email for this category is now off."
+                    }
+                },
+                "required": [
+                    "category",
+                    "email"
+                ],
+                "title": "NotificationUnsubscribeResource"
             },
             "OnboardingProfile": {
                 "type": "string",
@@ -16359,6 +16545,29 @@
                 ],
                 "title": "UnreadNotificationCountResource"
             },
+            "UnsubscribeNotificationEmailRequest": {
+                "type": "object",
+                "description": "The query of a signed unsubscribe link. The `signed` middleware has already\nproved it came from an email Sakala sent; there is no session to check.",
+                "properties": {
+                    "user": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "deployment_success",
+                            "deployment_failure",
+                            "project_issue"
+                        ]
+                    }
+                },
+                "required": [
+                    "user",
+                    "category"
+                ],
+                "title": "UnsubscribeNotificationEmailRequest"
+            },
             "UnsuspendProjectRequest": {
                 "type": "object",
                 "properties": {
@@ -16430,6 +16639,20 @@
                     },
                     "workspace": {
                         "type": "boolean"
+                    },
+                    "email": {
+                        "type": "object",
+                        "properties": {
+                            "deployment_success": {
+                                "type": "boolean"
+                            },
+                            "deployment_failure": {
+                                "type": "boolean"
+                            },
+                            "project_issue": {
+                                "type": "boolean"
+                            }
+                        }
                     }
                 },
                 "title": "UpdateNotificationPreferencesRequest"

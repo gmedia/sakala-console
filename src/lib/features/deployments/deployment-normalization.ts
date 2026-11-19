@@ -24,6 +24,18 @@ function getStageFromEvent(event: DeploymentEvent): DeploymentPipelineStage | un
 	return event.type ? EVENT_STAGE_MAP[event.type] : undefined;
 }
 
+/** When each stage began, by the agent's events, in order. A stage seen twice keeps its last start. */
+export function getStageStarts(
+	events: readonly DeploymentEvent[]
+): { stage: DeploymentPipelineStage; startedAt: string }[] {
+	const starts = new Map<DeploymentPipelineStage, string>();
+	for (const event of sortUniqueEvents([...events])) {
+		const stage = getStageFromEvent(event);
+		if (stage) starts.set(stage, event.occurred_at);
+	}
+	return [...starts].map(([stage, startedAt]) => ({ stage, startedAt }));
+}
+
 /**
  * The timeline only names stages this deployment really went through, or can still go through.
  * Older agents skip the analysis, health, and route events, so a stage that was passed without an

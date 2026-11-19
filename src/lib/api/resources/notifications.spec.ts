@@ -7,8 +7,10 @@ import {
 	listNotifications,
 	markAllNotificationsRead,
 	markNotificationRead,
+	unsubscribeFromNotificationEmail,
 	updateNotificationPreferences
 } from './notifications';
+import { applyPreferencesChange, valuesForChange } from '$lib/features/notifications/preferences';
 
 vi.mock('../client', () => ({ apiRequest: vi.fn() }));
 const mockedApiRequest = vi.mocked(apiRequest);
@@ -29,7 +31,8 @@ const preferences = {
 	deployment_failure: true,
 	project_issue: false,
 	account_security: true,
-	workspace: false
+	workspace: false,
+	email: { deployment_success: false, deployment_failure: true, project_issue: true }
 };
 
 beforeEach(() => mockedApiRequest.mockReset());
@@ -109,7 +112,51 @@ describe('notifications resource', () => {
 			account_security: true
 		};
 		mockedApiRequest.mockResolvedValueOnce({ data: older });
-		await expect(getNotificationPreferences()).resolves.toMatchObject({ workspace: true });
+		await expect(getNotificationPreferences()).resolves.toMatchObject({
+			workspace: true,
+			// The API's email defaults, from before email notifications (gmedia/sakala-api#177).
+			email: { deployment_success: false, deployment_failure: true, project_issue: true }
+		});
+	});
+
+	it('sends part of one channel, as the API allows', async () => {
+		mockedApiRequest.mockResolvedValue({ data: preferences });
+		await updateNotificationPreferences({ email: { deployment_success: true } });
+
+		expect(mockedApiRequest).toHaveBeenLastCalledWith('api/v1/app/notification-preferences', {
+			method: 'PATCH',
+			json: { email: { deployment_success: true } }
+		});
+	});
+
+	it('applies a change and reads back the same keys, for the optimistic switch', () => {
+		const parsed = { ...preferences, workspace: true };
+		const changed = applyPreferencesChange(parsed, {
+			project_issue: true,
+			email: { deployment_success: true }
+		});
+		expect(changed.project_issue).toBe(true);
+		expect(changed.email).toEqual({
+			deployment_success: true,
+			deployment_failure: true,
+			project_issue: true
+		});
+		expect(
+			valuesForChange(parsed, { project_issue: true, email: { deployment_success: true } })
+		).toEqual({ project_issue: false, email: { deployment_success: false } });
+	});
+
+	it('unsubscribes with the signed query exactly as received, without cookies or CSRF', async () => {
+		mockedApiRequest.mockResolvedValueOnce({
+			data: { category: 'deployment_failure', email: false }
+		});
+		const search = '?category=deployment_failure&user=7&signature=ab%2Fcd';
+
+		await expect(unsubscribeFromNotificationEmail(search)).resolves.toBe('deployment_failure');
+		expect(mockedApiRequest).toHaveBeenLastCalledWith(
+			`api/v1/public/notifications/unsubscribe${search}`,
+			{ method: 'POST', anonymous: true }
+		);
 	});
 
 	it('reads preferences and saves only what changed', async () => {
