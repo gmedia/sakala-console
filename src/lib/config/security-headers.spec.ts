@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import * as headers from '../../../docker/security-headers.mjs';
 
@@ -12,6 +13,31 @@ const { buildContentSecurityPolicy, inlineScriptHashes, renderCaddySnippet } = h
 
 const directive = (policy: string, name: string) =>
 	policy.split('; ').find((part) => part.startsWith(`${name} `));
+
+/** What the browser computes for an inline script: sha256 over the exact text between the tags. */
+const hashOf = (source: string) =>
+	`'sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}'`;
+
+/** The shape of the inline script adapter-static writes into every page. */
+const SVELTEKIT_START = `
+				{
+					__sveltekit_1x2y3z = {
+						base: new URL(".", location).pathname.slice(0, -1)
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("./_app/immutable/entry/start.Dk2.js"),
+						import("./_app/immutable/entry/app.Bq9.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			`;
+
+const page = (body: string) =>
+	`<!doctype html>\n<html lang="id">\n\t<head>\n\t\t<meta charset="utf-8" />\n\t\t<script src="/runtime-config.js"></script>\n\t</head>\n\t<body>\n\t\t<div style="display: contents">${body}</div>\n\t</body>\n</html>\n`;
 
 describe('Content-Security-Policy for the image', () => {
 	const staging = {
@@ -95,5 +121,50 @@ describe('Content-Security-Policy for the image', () => {
 			})
 		).toThrow(/host name/);
 		expect(() => renderCaddySnippet('default-src "x"')).toThrow(/quote/);
+	});
+});
+
+describe('inline script hashes', () => {
+	it('hashes the SvelteKit start script exactly as the browser sees it', () => {
+		expect(inlineScriptHashes(page(`<script>${SVELTEKIT_START}</script>`))).toEqual([
+			hashOf(SVELTEKIT_START)
+		]);
+	});
+
+	it('ends the script where the browser ends it, whatever the case or trailing space', () => {
+		expect(inlineScriptHashes(page('<script>start()</script >'))).toEqual([hashOf('start()')]);
+		expect(inlineScriptHashes(page('<SCRIPT>start()</SCRIPT>'))).toEqual([hashOf('start()')]);
+		expect(inlineScriptHashes(page('<Script type="module">start()</sCrIpT\t\n>'))).toEqual([
+			hashOf('start()')
+		]);
+	});
+
+	it('ignores scripts loaded from a file and scripts with nothing to run', () => {
+		expect(
+			inlineScriptHashes(
+				page(
+					'<script src="/a.js"></script><script SRC=/b.js>ignored()</script><script></script><script> \n\t</script>'
+				)
+			)
+		).toEqual([]);
+	});
+
+	it('lists every distinct inline script once, in document order', () => {
+		expect(
+			inlineScriptHashes(
+				page('<script>first()</script><p><script>second()</script></p><script>first()</script>')
+			)
+		).toEqual([hashOf('first()'), hashOf('second()')]);
+		expect(inlineScriptHashes(page('<template><script>cloned()</script></template>'))).toEqual([
+			hashOf('cloned()')
+		]);
+	});
+
+	it('does not count a script tag written inside a comment or inside another script', () => {
+		expect(
+			inlineScriptHashes(page('<!-- <script>evil()</script> --><script>start()</script>'))
+		).toEqual([hashOf('start()')]);
+		const nested = 'const html = "<script>evil()<\\/script>"; start()';
+		expect(inlineScriptHashes(page(`<script>${nested}</script>`))).toEqual([hashOf(nested)]);
 	});
 });
