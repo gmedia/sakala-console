@@ -1,0 +1,14 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Database ini masih dipasang ke proyek. Lepas dulu dari semua proyek, lalu hapus.",
+		"code": "DATABASE_IN_USE",
+		"projects": [
+			{
+				"id": "01a1f215-ac53-70ba-97d0-09b81ab00566",
+				"name": "toko-kopi-web",
+				"slug": "toko-kopi-web"
+			}
+		]
+	}
+}

@@ -62,6 +62,42 @@ describe('the canvas groups', () => {
 			'variables',
 			'release_command'
 		]);
+		expect(topologyOf({ databases: [] }).attached.blocks).toHaveLength(2);
+	});
+
+	it('puts the attached database first in Terpasang, with its status and a link to its page', () => {
+		const topology = topologyOf({
+			databases: [
+				{
+					id: 'db-1',
+					name: 'toko-kopi-db',
+					status: 'locked',
+					region: 'jkt',
+					variables: ['DATABASE_URL'],
+					overridden_variables: ['DB_HOST']
+				}
+			]
+		});
+		expect(topology.attached.blocks.map((item) => item.id)).toEqual([
+			'database',
+			'variables',
+			'release_command'
+		]);
+		const database = block(topology, 'database');
+		expect(database).toMatchObject({
+			fact: 'toko-kopi-db',
+			mono: true,
+			badge: { label: 'Terkunci', tone: 'warning' },
+			tone: 'warning'
+		});
+		expect(database?.detail.link).toEqual({
+			label: TOPOLOGY_COPY.links.database,
+			target: 'database',
+			workspaceId: baseProject.workspace.id,
+			databaseId: 'db-1'
+		});
+		expect(database?.detail.body.join(' ')).toContain('menimpa DB_HOST');
+		expect(topology.summary).toContain('memakai database toko-kopi-db, statusnya terkunci');
 	});
 });
 

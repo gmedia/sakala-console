@@ -10,6 +10,7 @@
 	import NotificationPopover from '$lib/features/notifications/components/NotificationPopover.svelte';
 	import { createProjectQuery } from '$lib/features/projects/queries';
 	import ProjectAvatar from '$lib/features/projects/components/project/ProjectAvatar.svelte';
+	import { useDatabaseRoute } from '$lib/features/databases/route-state.svelte';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -26,6 +27,9 @@
 	const currentProject = $derived(page.params.id ? projectQuery.data : null);
 	const projectName = $derived(currentProject?.name ?? currentProject?.project_name ?? '');
 
+	// A database page names its database after "Database /", like a project page does.
+	const databaseRoute = useDatabaseRoute();
+
 	// The one page heading. Pages below it do not repeat it.
 	const pageTitle = $derived.by(() => {
 		const path = page.url.pathname;
@@ -36,6 +40,7 @@
 		if (path.startsWith('/projects/new')) return 'Proyek baru';
 		if (path.startsWith('/workspace-invitations')) return 'Undangan workspace';
 		if (path.startsWith('/workspaces')) return 'Workspace';
+		if (path.startsWith('/databases')) return 'Database';
 		return 'Proyek';
 	});
 </script>
@@ -82,6 +87,14 @@
 							title={projectName}>{projectName || '...'}</a
 						>
 					</span>
+				{:else if databaseRoute.databaseId}
+					<a href={resolve('/databases')} class="font-medium text-muted hover:text-foreground">
+						Database
+					</a>
+					<span class="font-medium text-muted" aria-hidden="true">/</span>
+					<span class="line-clamp-2 min-w-0 font-mono wrap-anywhere text-foreground"
+						>{databaseRoute.name ?? '...'}</span
+					>
 				{:else}
 					<span class="text-foreground">{pageTitle}</span>
 				{/if}

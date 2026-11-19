@@ -4,6 +4,20 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- Managed databases, phase 1 (requires sakala-api with managed PostgreSQL databases, gmedia/sakala-api#178). Databases belong to the workspace, live next to Proyek in the sidebar as "Database", survive project deletion, and attach to any number of projects in the same workspace (one database per project).
+  - `/databases` lists the active workspace's databases with name, status in words (Menyiapkan, Siap, Gagal, Menghapus, Terkunci) and a one-line reason where one is needed, size against the workspace storage quota, attached projects, and region, under a quota summary such as "1 dari 2 database" and "12 MB dari 512 MB" (warning at 80 %, full at 100 %). An empty workspace explains what a database is and offers "Buat database"; viewers get no create action.
+  - "Buat database" asks for a name and a region ("Otomatis" by default, or the project's region when opened from a project) and explains quota, storage, and region refusals with their numbers. A used-up quota is explained before the form.
+  - The database page (`/databases/{id}?workspace=…`) shows the status with the provisioning steps (polled every 5 seconds only while the node works), the lock explanation with the workspace's usage, attached projects with attach and detach (each followed by a note to redeploy that project, linking to its Variabel tab), connection details, password rotation with a confirmation that names the projects to redeploy, the extension allow-list, a release command hint for migrations, rename, and delete, which is blocked while projects are attached.
+  - Credentials are shown only to workspace owners and admins, only after "Tampilkan", never cached, and with a note that every reveal is audited. Members and viewers see why they are hidden.
+  - On the project side, the Ringkasan diagram draws the attached database in "Terpasang" with its status and a link to its page, and the Variabel tab lists the injected `DATABASE_URL` and `DB_*` variables read-only, flags the ones a project variable overrides, and gives Laravel projects without a release command the migration hint.
+  - API types are regenerated from sakala-api `main`.
+
+### Changed
+
+- Refusing to delete a team that still has databases now shows the API's message, which names projects, databases, or both, instead of always saying projects.
+
 ### Security
 
 - The image build now finds the inline scripts it hashes for the Content-Security-Policy with parse5, a spec-compliant HTML parser, instead of a regular expression. A closing tag such as `</script >` or a `<script>` inside a comment can no longer make the hashed scripts differ from the ones the browser runs (code scanning alert #1, `js/bad-tag-filter`). The policy for today's build output is unchanged.

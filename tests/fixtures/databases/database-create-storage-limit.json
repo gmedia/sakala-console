@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Penyimpanan database workspace ini sudah penuh (20,0 MB dari 10 MB), jadi database baru belum bisa dibuat. Hapus database yang tidak dipakai, atau minta admin menaikkan kuota.",
+		"code": "DATABASE_STORAGE_LIMIT_EXCEEDED",
+		"limit_mb": 10,
+		"current_bytes": 20971520
+	}
+}

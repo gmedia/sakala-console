@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Database ini masih dibuat. Tunggu sampai siap, lalu coba lagi.",
+		"code": "DATABASE_NOT_READY",
+		"status": "provisioning"
+	}
+}

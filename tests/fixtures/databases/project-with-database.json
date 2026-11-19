@@ -1,0 +1,70 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a1f215-ac53-70ba-97d0-09b81ab00566",
+			"name": "toko-kopi-web",
+			"slug": "toko-kopi-web",
+			"repository_provider": "github",
+			"thumbnail_url": null,
+			"repository_url": "https://github.com/sakala-demo/sed-earum-ut",
+			"repository_full_name": "sakala-demo/sed-earum-ut",
+			"repository_source": "public_url",
+			"github_installation_id": null,
+			"github_repository_id": null,
+			"branch": "main",
+			"default_domain": "sed-earum-ut.run.sakala.localhost",
+			"public_url": "http://sed-earum-ut.run.sakala.localhost",
+			"status": "draft",
+			"runtime_status": "not_deployed",
+			"suspension": null,
+			"detected_port": null,
+			"configured_port": null,
+			"effective_port": 3000,
+			"serving_port": null,
+			"replicas": 1,
+			"max_replicas": 1,
+			"serving_replicas": null,
+			"replicas_ready": null,
+			"region": "jkt",
+			"build_command": null,
+			"start_command": null,
+			"release_command": null,
+			"root_directory": null,
+			"auto_deploy": false,
+			"redeploy_required": false,
+			"active_deployment_id": null,
+			"latest_deployment": null,
+			"preview_status": "unavailable",
+			"inspection": null,
+			"stack": null,
+			"inspection_error_code": null,
+			"last_deployed_at": null,
+			"databases": [
+				{
+					"id": "01a1f215-ac90-716a-843d-a9c786146c7c",
+					"name": "toko-kopi-db",
+					"status": "ready",
+					"region": "jkt",
+					"variables": [
+						"DATABASE_URL",
+						"DB_CONNECTION",
+						"DB_PORT",
+						"DB_DATABASE",
+						"DB_USERNAME",
+						"DB_PASSWORD"
+					],
+					"overridden_variables": ["DB_HOST"]
+				}
+			],
+			"workspace": {
+				"id": "01a1f215-ac40-739a-84db-579e773259fe",
+				"name": "UD Nasyiah",
+				"slug": "team-71897",
+				"type": "team"
+			},
+			"created_at": "2026-11-19T04:34:29+00:00",
+			"updated_at": "2026-11-19T04:34:29+00:00"
+		}
+	}
+}

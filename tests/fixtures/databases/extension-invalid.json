@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Pilihan extension tidak tersedia. Pilih salah satu opsi yang ada.",
+		"errors": {
+			"extension": ["Pilihan extension tidak tersedia. Pilih salah satu opsi yang ada."]
+		}
+	}
+}

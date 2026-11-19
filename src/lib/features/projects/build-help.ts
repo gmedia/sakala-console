@@ -16,6 +16,18 @@ export const AUTO_DEPLOY_UNAVAILABLE_HELP =
 
 export const RELEASE_COMMAND_LABEL = 'Release command';
 
+/** sakala-landing's guide to the release command, the one the setting's help points at. */
+export const RELEASE_COMMAND_DOCS_URL = 'https://sakala.dev/docs/perintah-rilis';
+
+/** What sakala-api's stack detection calls a Laravel project. */
+export const LARAVEL_FRAMEWORK = 'laravel';
+/** The release command a Laravel app with a database usually needs. */
+export const LARAVEL_RELEASE_COMMAND = 'php artisan migrate --force';
+
+export function isLaravelStack(stack: { framework?: string | null } | null | undefined): boolean {
+	return stack?.framework?.toLowerCase() === LARAVEL_FRAMEWORK;
+}
+
 // The old version keeps serving while this runs, which is why the help asks for compatible migrations.
 export const RELEASE_COMMAND_HELP =
 	'Dijalankan sekali setiap deployment, setelah build dan sebelum versi baru menerima trafik. Cocok untuk migration database. Kalau gagal, deployment dibatalkan dan versi sebelumnya tetap melayani. Versi lama masih melayani selama perintah ini berjalan, jadi migration harus tetap cocok dengannya. Jangan taruh seeder di sini.';

@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Belum ada server database di region sby. Pilih region lain, atau kosongkan agar database dibuat di region mana pun.",
+		"code": "DATABASE_REGION_UNAVAILABLE",
+		"region": "sby"
+	}
+}

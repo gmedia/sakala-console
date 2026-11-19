@@ -26,6 +26,8 @@
 	import EnvKey from './EnvKey.svelte';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
+	import ProjectDatabaseVariables from '$lib/features/databases/components/ProjectDatabaseVariables.svelte';
+	import { overriddenNames } from '$lib/features/databases/project-variables';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -37,6 +39,9 @@
 	const projectQuery = createProjectQuery(() => projectId);
 	// A viewer reads keys and plain values; the API refuses secret values and every change.
 	const access = useProjectAccess(() => projectQuery.data);
+
+	// Project variables that take the place of a value from the attached database.
+	const overridesDatabase = $derived(overriddenNames(projectQuery.data?.databases));
 
 	// Local State
 	let revealedValues = $state<Record<number, string>>({});
@@ -361,6 +366,12 @@
 								{#if env.is_secret}
 									<span class="text-xs text-foreground/70">Secret</span>
 								{/if}
+								{#if overridesDatabase.has(env.key)}
+									<span
+										class="text-xs font-medium text-warning-dark"
+										data-testid="env-overrides-database">Menimpa database</span
+									>
+								{/if}
 							</span>
 
 							<span
@@ -617,6 +628,10 @@
 			<Plus size={24} weight="regular" />
 			<span>Tambah variabel</span>
 		</Button>
+	{/if}
+
+	{#if projectQuery.data}
+		<ProjectDatabaseVariables project={projectQuery.data} readOnly={access.readOnly} />
 	{/if}
 
 	<DeleteEnvConfirmModal

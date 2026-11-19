@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "nama ini sudah dipakai. Pakai nama lain.",
+		"errors": {
+			"name": ["nama ini sudah dipakai. Pakai nama lain."]
+		}
+	}
+}

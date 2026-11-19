@@ -1,0 +1,18 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a1f215-ac90-716a-843d-a9c786146c7c",
+			"name": "toko-kopi-db",
+			"engine": "postgresql",
+			"status": "provisioning",
+			"region": "jkt",
+			"size_bytes": null,
+			"size_checked_at": null,
+			"projects": [],
+			"last_failure": null,
+			"created_at": "2026-11-19T04:34:29+00:00",
+			"updated_at": "2026-11-19T04:34:29+00:00"
+		}
+	}
+}

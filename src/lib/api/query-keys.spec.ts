@@ -9,7 +9,9 @@ describe('workspace query keys', () => {
 			queryKeys.workspaces.list,
 			queryKeys.workspaces.members('w1'),
 			queryKeys.workspaces.invitations('w1'),
-			queryKeys.workspaces.myInvitations
+			queryKeys.workspaces.myInvitations,
+			queryKeys.workspaces.databases('w1'),
+			queryKeys.workspaces.database('w1', 'db-1')
 		]) {
 			expect(partialMatchKey(key, all)).toBe(true);
 		}
@@ -44,6 +46,8 @@ describe('workspaceIdOfQueryKey', () => {
 	it.each([
 		['members', queryKeys.workspaces.members('w1')],
 		['invitations', queryKeys.workspaces.invitations('w1')],
+		['databases', queryKeys.workspaces.databases('w1')],
+		['one database', queryKeys.workspaces.database('w1', 'db-1')],
 		['limits', queryKeys.workspaces.limits('w1')],
 		['a project list filtered to it', queryKeys.projects.list({ page: 1, workspace_id: 'w1' })]
 	])('names the workspace of its %s', (_name, key) => {

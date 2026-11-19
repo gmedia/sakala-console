@@ -1,0 +1,77 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1f215-adff-73ec-885c-3a0b26e23ace",
+				"name": "percobaan",
+				"engine": "postgresql",
+				"status": "failed",
+				"region": "jkt",
+				"size_bytes": null,
+				"size_checked_at": null,
+				"projects": [],
+				"last_failure": {
+					"command": "CreateDatabase",
+					"code": "command_lease_expired",
+					"user_fixable": false,
+					"summary": "Server database tidak menyelesaikan permintaan ini tepat waktu. Coba lagi beberapa saat lagi.",
+					"failed_at": "2026-11-19T04:34:29+00:00"
+				},
+				"created_at": "2026-11-19T04:34:29+00:00",
+				"updated_at": "2026-11-19T04:34:29+00:00"
+			},
+			{
+				"id": "01a1f215-ad3b-716e-8e06-822e4a9d7a3c",
+				"name": "arsip-lama",
+				"engine": "postgresql",
+				"status": "locked",
+				"region": "jkt",
+				"size_bytes": 524288000,
+				"size_checked_at": "2026-11-19T04:34:29+00:00",
+				"projects": [],
+				"last_failure": null,
+				"created_at": "2026-11-19T04:34:29+00:00",
+				"updated_at": "2026-11-19T04:34:29+00:00"
+			},
+			{
+				"id": "01a1f215-ad28-715b-859f-7a35ee70e29a",
+				"name": "analitik",
+				"engine": "postgresql",
+				"status": "ready",
+				"region": "jkt",
+				"size_bytes": 8388608,
+				"size_checked_at": "2026-11-19T04:34:29+00:00",
+				"projects": [],
+				"last_failure": {
+					"command": "InstallDatabaseExtension",
+					"code": "database_extension_unavailable",
+					"user_fixable": false,
+					"summary": "Extension ini belum tersedia di server database. Operator Sakala perlu memasangnya di server dulu.",
+					"failed_at": "2026-11-19T04:34:29+00:00"
+				},
+				"created_at": "2026-11-19T04:34:29+00:00",
+				"updated_at": "2026-11-19T04:34:29+00:00"
+			},
+			{
+				"id": "01a1f215-ac90-716a-843d-a9c786146c7c",
+				"name": "toko-kopi-db",
+				"engine": "postgresql",
+				"status": "ready",
+				"region": "jkt",
+				"size_bytes": 12582912,
+				"size_checked_at": "2026-11-19T04:34:29+00:00",
+				"projects": [
+					{
+						"id": "01a1f215-ac53-70ba-97d0-09b81ab00566",
+						"name": "toko-kopi-web",
+						"slug": "toko-kopi-web"
+					}
+				],
+				"last_failure": null,
+				"created_at": "2026-11-19T04:34:29+00:00",
+				"updated_at": "2026-11-19T04:34:29+00:00"
+			}
+		]
+	}
+}

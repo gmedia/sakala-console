@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Workspace ini sudah punya 3 database, dan itu batasnya. Hapus database yang tidak dipakai untuk membuat yang baru.",
+		"code": "DATABASE_LIMIT_EXCEEDED",
+		"limit": 3,
+		"current": 3
+	}
+}

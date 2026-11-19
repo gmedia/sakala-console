@@ -16,6 +16,8 @@ Gunakan Vitest node untuk utility, parsing, API error mapping, query key, dan lo
 
 Schema workspace diuji terhadap respons asli sakala-api di `tests/fixtures/workspaces`, yang dibaca lewat `src/lib/testing/workspace-fixtures.ts`. Component test dan mock e2e (`tests/e2e/fixtures/workspaces.ts`) memakai fixture yang sama, jadi bentuk respons dan pesan error-nya tidak dikarang ulang.
 
+Schema database diuji dengan cara yang sama terhadap `tests/fixtures/databases`, lewat `src/lib/testing/database-fixtures.ts`. `errorFromDatabaseFixture()` ikut membawa field tambahan penolakan (`limit`, `projects`, `database_region`) ke `ApiError.details`. Mock e2e `tests/e2e/fixtures/databases.ts` memakai fixture yang sama dan menyimpan perubahan di memori, jadi buat, pasang, lepas, dan hapus terlihat di baca berikutnya seperti di API.
+
 ## Component
 
 Gunakan Vitest Browser + Playwright untuk behavior component yang membutuhkan DOM. Jangan menguji detail class visual yang mudah berubah; uji role, label, state, dan interaction.
@@ -33,6 +35,8 @@ CI memasang Chromium sekali, lalu menjalankan unit, component, build, dan E2E te
 `tests/e2e/a11y-floor.spec.ts` membuka semua route di lebar 320, 768, 1024, 1280, dan 1366 px, dengan data biasa dan string sangat panjang, lalu mengukur DOM yang benar-benar dirender lewat `tests/e2e/fixtures/dom-audit.ts`: tidak ada yang melewati viewport, kontras teks 4,5:1, tepi input 3:1, target minimal 24 px (44 px untuk aksi utama di bawah 768 px), satu `h1`, satu `main`, dan `<title>` sendiri. Spec yang sama berjalan lewat keyboard: skip link, focus trap drawer, focus yang terlihat, dan debounce pencarian.
 
 `tests/e2e/runtime-config.spec.ts` mengganti `/runtime-config.js` dan memastikan bundle hasil build memanggil API yang disebut di sana. Entrypoint container diuji tanpa Docker di `src/lib/config/entrypoint.spec.ts`, dan terhadap image sungguhan lewat `tests/container/runtime-config.sh` (butuh Docker, tidak dijalankan CI; tambahkan `BROWSER=1` untuk cek Chromium). Skrip yang sama memastikan file yang tidak ada di bawah `/_app/` dijawab `404` tanpa `text/html`, sementara deep link tetap mendapat `index.html` dengan `Cache-Control: no-cache`.
+
+`tests/e2e/databases.spec.ts` menjalankan perjalanan database: daftar dan status, buat (termasuk penolakan kuota), pasang dan lepas, hapus yang diblokir, kredensial per peran, rotasi password, extension, sisi proyek, dan audit DOM di 320 dan 1280 px. Screenshot untuk PR ditulis kalau `DATABASE_SCREENSHOTS` berisi folder tujuan, misalnya `DATABASE_SCREENSHOTS=/tmp/console-databases-screens pnpm test:e2e tests/e2e/databases.spec.ts`; tanpa itu test screenshot dilewati.
 
 `tests/e2e/admin.spec.ts` menjalankan perjalanan utama area admin terhadap `tests/e2e/fixtures/admin.ts`, mock yang menyajikan respons asli API dari `tests/fixtures/admin`, termasuk penolakan untuk akun bukan admin. Spec yang sama mengukur semua halaman admin di 320 dan 1280 px dengan `auditDom`.
 

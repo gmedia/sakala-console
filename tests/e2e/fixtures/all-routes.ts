@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page, Route } from '@playwright/test';
 import { DEPLOYMENT_ID, PROJECT_ID, mockWizardApi } from './create-project';
 import { baseProject, failedDeployment, succeededDeployment } from './project-detail';
+import { DATABASE_ID, lockedDatabase, provisioningDatabase, sampleDatabases } from './databases';
 
 // A word with no break opportunity, the longest thing real data throws at a layout.
 export const LONG = 'sangat-panjang-tanpa-spasi-'.repeat(8);
@@ -229,6 +230,22 @@ export async function mockEveryRoute(page: Page, { long = false }: { long?: bool
 	await page.route(/\/api\/v1\/app\/pilot-limits\?workspace_id=/, (route) =>
 		json(route, { data: capturedData('pilot-limits-team') })
 	);
+	// Every database state, with names as long as real data allows.
+	const databases = [...sampleDatabases(), provisioningDatabase(), lockedDatabase()].map(
+		(database) => ({
+			...database,
+			name: long ? `${database.name}-${LONG}` : database.name,
+			projects: database.projects.map((item) => ({ ...item, name: long ? name : item.name }))
+		})
+	);
+	await page.route(/\/api\/v1\/app\/workspaces\/[^/]+\/databases$/, (route) =>
+		json(route, { data: databases })
+	);
+	await page.route(/\/api\/v1\/app\/workspaces\/[^/]+\/databases\/[^/]+$/, (route) => {
+		const id = new URL(route.request().url()).pathname.split('/').at(-1);
+		return json(route, { data: databases.find((database) => database.id === id) ?? databases[0] });
+	});
+	await page.route('**/api/v1/app/regions', (route) => json(route, { data: [{ slug: 'jkt' }] }));
 	await page.route('**/api/v1/app/profile', (route) =>
 		json(route, {
 			data: {
@@ -267,6 +284,9 @@ export const SIGNED_IN_ROUTES = [
 	['feedback', '/feedback'],
 	['workspace', `/workspaces/${TEAM_ID}`],
 	['workspace-invitations', '/workspace-invitations'],
+	['databases', '/databases'],
+	['database-detail', `/databases/${DATABASE_ID}`],
+	['database-locked', `/databases/${lockedDatabase().id}`],
 	['workspace-invitation-link', `/workspace-invitations/${INVITATION_ID}?token=t`],
 	['not-found', '/halaman-yang-tidak-ada']
 ] as const;

@@ -1,0 +1,6 @@
+{
+	"status": 403,
+	"body": {
+		"message": "This action is unauthorized."
+	}
+}

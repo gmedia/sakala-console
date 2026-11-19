@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NetworkError } from '$lib/api/errors';
+import { ApiError, NetworkError } from '$lib/api/errors';
 import { parseMemberList } from '$lib/api/resources/workspaces';
 import { errorFromFixture, getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
 import {
@@ -107,6 +107,17 @@ describe('workspaceErrorMessage', () => {
 		expect(workspaceErrorMessage(errorFromFixture('workspace-delete-not-empty'), 'x')).toMatch(
 			/masih punya proyek/
 		);
+	});
+
+	it('names databases when they are what keeps a workspace', () => {
+		const error = new ApiError(
+			'Workspace ini masih punya database. Hapus database-nya dulu, lalu hapus workspace-nya.',
+			409,
+			{},
+			undefined,
+			{ code: 'WORKSPACE_NOT_EMPTY' }
+		);
+		expect(workspaceErrorMessage(error, 'x')).toMatch(/masih punya database/);
 	});
 
 	it('explains a 403 as missing permission', () => {
