@@ -4,6 +4,10 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Security
+
+- The image build now finds the inline scripts it hashes for the Content-Security-Policy with parse5, a spec-compliant HTML parser, instead of a regular expression. A closing tag such as `</script >` or a `<script>` inside a comment can no longer make the hashed scripts differ from the ones the browser runs (code scanning alert #1, `js/bad-tag-filter`). The policy for today's build output is unchanged.
+
 ## [0.9.0] - 2026-11-19
 
 ### Added
