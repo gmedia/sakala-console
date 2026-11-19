@@ -1,0 +1,34 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a1f27c-14b9-7387-85b2-f9813cd87496",
+				"name": "Harja Tarihoran",
+				"slug": "user-87522",
+				"type": "personal",
+				"role": "owner",
+				"limit_profile": null,
+				"default_region": null,
+				"projects_count": 0,
+				"active_deployments_count": 0,
+				"created_at": "2026-11-19T06:26:20+00:00"
+			},
+			{
+				"id": "01a1f27c-14bc-7146-8d7e-4ee803fd2eea",
+				"name": "PJ Halimah Utami",
+				"slug": "team-39762",
+				"type": "team",
+				"role": "member",
+				"limit_profile": {
+					"id": "01a1f27c-14bc-7146-8d7e-4ee803719e4f",
+					"name": "Profil 7208"
+				},
+				"default_region": "jkt",
+				"projects_count": 3,
+				"active_deployments_count": 0,
+				"created_at": "2026-11-19T06:26:20+00:00"
+			}
+		]
+	}
+}

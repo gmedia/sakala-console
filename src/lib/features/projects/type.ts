@@ -44,6 +44,13 @@ type ProjectReleaseFields = Partial<
 /** Added by the API with regions, so an older one leaves it out. `null` means placement picks one. */
 type ProjectPlacementFields = Partial<Pick<components['schemas']['ProjectResource'], 'region'>>;
 
+/**
+ * Added by the API with managed databases, so an older one leaves it out. At most one item: a
+ * project uses one database at a time.
+ */
+type ProjectDatabaseFields = Partial<Pick<components['schemas']['ProjectResource'], 'databases'>>;
+export type ProjectDatabase = NonNullable<ProjectDatabaseFields['databases']>[number];
+
 /** The newest deployment, which the wizard reads after a reload instead of starting another. */
 type ProjectLatestDeploymentFields = Partial<
 	Pick<components['schemas']['ProjectResource'], 'latest_deployment'>
@@ -109,6 +116,7 @@ export interface Project
 		ProjectReplicaFields,
 		ProjectReleaseFields,
 		ProjectPlacementFields,
+		ProjectDatabaseFields,
 		ProjectLatestDeploymentFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */

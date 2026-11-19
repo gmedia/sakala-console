@@ -4,6 +4,7 @@
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { Popover } from 'bits-ui';
 	import Cube from 'phosphor-svelte/lib/Cube';
+	import Database from 'phosphor-svelte/lib/Database';
 	import Globe from 'phosphor-svelte/lib/Globe';
 	import HardDrives from 'phosphor-svelte/lib/HardDrives';
 	import Key from 'phosphor-svelte/lib/Key';
@@ -33,6 +34,7 @@
 		edge: ShareNetwork,
 		node: HardDrives,
 		app: Cube,
+		database: Database,
 		variables: Key,
 		release_command: TerminalWindow
 	};
@@ -143,7 +145,7 @@
 			{/each}
 			{#if block.detail.link}
 				<a
-					href={topologyHref(block.detail.link.target, projectId)}
+					href={topologyHref(block.detail.link, projectId)}
 					onclick={() => (open = false)}
 					class="inline-flex min-h-6 items-center self-start text-sm font-medium text-primary-dark underline underline-offset-2"
 				>

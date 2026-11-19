@@ -1,0 +1,9 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Database ini ada di region jkt, sedangkan proyek ini berjalan di region sby. Database dan proyek harus di region yang sama, jadi buat database baru di region sby untuk proyek ini.",
+		"code": "DATABASE_CROSS_REGION_UNSUPPORTED",
+		"database_region": "jkt",
+		"project_region": "sby"
+	}
+}

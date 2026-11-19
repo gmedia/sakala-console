@@ -1,0 +1,11 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Proyek ini sudah memakai database toko-kopi-db. Lepas dulu database itu dari proyek, lalu pasang yang ini.",
+		"code": "PROJECT_DATABASE_ALREADY_ATTACHED",
+		"database": {
+			"id": "01a1f27c-14e7-72f6-abc4-42ec0610221f",
+			"name": "toko-kopi-db"
+		}
+	}
+}

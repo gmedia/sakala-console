@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Database ini dikunci karena penyimpanan database workspace sudah penuh, jadi belum bisa dipasang ke proyek. Hapus database yang tidak dipakai, atau minta admin menaikkan kuota.",
+		"code": "DATABASE_LOCKED"
+	}
+}

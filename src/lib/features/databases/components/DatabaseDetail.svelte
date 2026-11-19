@@ -1,0 +1,122 @@
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import Database from 'phosphor-svelte/lib/Database';
+	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import { ApiError } from '$lib/api/errors';
+	import { useCurrentUser } from '$lib/features/auth/queries';
+	import { isAdmin } from '$lib/features/admin/access';
+	import { useActiveWorkspace } from '$lib/features/workspaces/access.svelte';
+	import { limitsWorkspaceId } from '$lib/features/workspaces/presentation';
+	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
+	import { databaseAccess } from '../access';
+	import {
+		DATABASE_COPY,
+		addRedeployNotices,
+		databaseErrorMessage,
+		databaseQuota,
+		type RedeployNotice
+	} from '../presentation';
+	import { createDatabaseQuery } from '../queries';
+	import { useDatabaseRoute } from '../route-state.svelte';
+	import DatabaseConnectionCard from './DatabaseConnectionCard.svelte';
+	import DatabaseExtensionsCard from './DatabaseExtensionsCard.svelte';
+	import DatabaseOverviewCard from './DatabaseOverviewCard.svelte';
+	import DatabaseProjectsCard from './DatabaseProjectsCard.svelte';
+	import DatabaseSettingsCard from './DatabaseSettingsCard.svelte';
+	import ReleaseCommandHint from './ReleaseCommandHint.svelte';
+
+	type Props = { workspaceId: string | null; databaseId: string };
+
+	let { workspaceId, databaseId }: Props = $props();
+
+	const route = useDatabaseRoute();
+	const userQuery = useCurrentUser();
+	const workspaces = useActiveWorkspace();
+	const workspace = $derived(workspaces.workspaces.find((item) => item.id === workspaceId) ?? null);
+	const access = $derived(databaseAccess(workspace?.role, isAdmin(userQuery.data)));
+
+	const databaseQuery = createDatabaseQuery(
+		() => workspaceId,
+		() => databaseId
+	);
+	const limitsQuery = createWorkspaceLimitsQuery(
+		() => limitsWorkspaceId(workspace),
+		() => ({ enabled: Boolean(workspace) })
+	);
+	const quota = $derived(databaseQuota(limitsQuery.data?.quotas));
+	const database = $derived(databaseQuery.data);
+
+	let notices = $state<RedeployNotice[]>([]);
+
+	function addNotices(added: RedeployNotice[]) {
+		notices = addRedeployNotices(notices, added);
+	}
+
+	function handleRotated() {
+		if (!database) return;
+		addNotices(
+			database.projects.map((project) => ({
+				projectId: project.id,
+				projectName: project.name,
+				kind: 'rotated' as const
+			}))
+		);
+	}
+
+	const notFound = $derived(
+		databaseQuery.error instanceof ApiError && databaseQuery.error.status === 404
+	);
+</script>
+
+{#if !workspaceId || databaseQuery.isPending}
+	<div class="flex flex-col gap-4" role="status" aria-label="Memuat database">
+		<div class="skeleton h-40 w-full"></div>
+		<div class="skeleton h-32 w-full"></div>
+	</div>
+{:else if databaseQuery.isError || !database}
+	<ErrorBlock
+		icon={Database}
+		title={notFound ? 'Database tidak ditemukan' : 'Database belum bisa dimuat'}
+		description={databaseErrorMessage(
+			databaseQuery.error,
+			'load',
+			'Database belum bisa dimuat. Data di dalamnya tidak terpengaruh.'
+		)}
+		onRetry={notFound ? undefined : () => databaseQuery.refetch()}
+		links={[{ label: 'Lihat semua database', href: resolve('/databases') }]}
+	/>
+{:else}
+	<div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+		<div class="flex min-w-0 flex-col gap-4 lg:gap-6">
+			{#if !access.canManage}
+				<p class="text-sm text-muted" data-testid="database-viewer-note">
+					{DATABASE_COPY.viewerNote}
+				</p>
+			{/if}
+			<DatabaseOverviewCard
+				{database}
+				storageQuotaMb={limitsQuery.data?.quotas.max_database_storage_mb}
+				workspaceStorage={quota?.storage ?? null}
+			/>
+			<DatabaseProjectsCard
+				{database}
+				{workspaceId}
+				{access}
+				{notices}
+				preselectedProjectId={route.projectId}
+				onChanged={addNotices}
+			/>
+			<DatabaseConnectionCard {database} {workspaceId} {access} onRotated={handleRotated} />
+			<DatabaseExtensionsCard {database} {workspaceId} {access} />
+		</div>
+		<aside
+			class="flex min-w-0 flex-col gap-4 lg:gap-6"
+			aria-label="Petunjuk dan pengaturan database"
+		>
+			<ReleaseCommandHint />
+			{#if access.canManage}
+				<DatabaseSettingsCard {database} {workspaceId} />
+			{/if}
+		</aside>
+	</div>
+{/if}

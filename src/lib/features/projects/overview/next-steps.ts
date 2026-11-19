@@ -1,18 +1,18 @@
-import { RELEASE_COMMAND_LABEL } from '../build-help';
+import {
+	isLaravelStack,
+	LARAVEL_RELEASE_COMMAND,
+	RELEASE_COMMAND_DOCS_URL,
+	RELEASE_COMMAND_LABEL
+} from '../build-help';
 import { SETTINGS_ANCHORS } from '../settings-anchors';
 import { maxReplicasOf, replicasOf, MIN_REPLICAS } from '../replicas';
 import type { Project } from '../type';
 import type { TopologyTarget } from './topology';
 
-/** sakala-landing's guide to the release command, the one the setting's help points at. */
-export const RELEASE_COMMAND_DOCS_URL = 'https://sakala.dev/docs/perintah-rilis';
+export { RELEASE_COMMAND_DOCS_URL };
 
 /** The overview never asks for more than this, so the card stays a short list (Hick's Law). */
 export const MAX_NEXT_STEPS = 3;
-
-/** What sakala-api's stack detection calls a Laravel project. */
-const LARAVEL_FRAMEWORK = 'laravel';
-const LARAVEL_RELEASE_COMMAND = 'php artisan migrate --force';
 
 export type NextStepId = 'env-example' | 'release-command' | 'auto-deploy' | 'replicas';
 
@@ -63,8 +63,7 @@ const RULES: ((project: NextStepProject, context: NextStepContext) => NextStep |
 				}
 			: null,
 	(project) =>
-		!project.release_command?.trim() &&
-		project.stack?.framework?.toLowerCase() === LARAVEL_FRAMEWORK
+		!project.release_command?.trim() && isLaravelStack(project.stack)
 			? {
 					id: 'release-command',
 					title: 'Jalankan migration lewat release command',

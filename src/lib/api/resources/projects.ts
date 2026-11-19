@@ -9,8 +9,13 @@ type GeneratedListStack = NonNullable<GeneratedProject['stack']>;
 /** Statuses stay plain strings, as parsed, so a value added by a newer API still renders. */
 export type Project = Omit<
 	GeneratedProject,
-	'runtime_status' | 'latest_deployment' | 'workspace' | 'stack'
+	'runtime_status' | 'latest_deployment' | 'workspace' | 'stack' | 'databases'
 > & {
+	/**
+	 * The attached managed database, at most one, with `id`, `name`, and `status` only. Optional
+	 * because an API from before managed databases does not send it.
+	 */
+	databases?: { id: string; name: string; status: string }[];
 	/** `monorepo` came with sakala-api #179, so an older API leaves it out. */
 	stack:
 		(Omit<GeneratedListStack, 'monorepo'> & { monorepo?: GeneratedListStack['monorepo'] }) | null;
@@ -85,6 +90,7 @@ const projectSchema: z.ZodType<Project> = z.object({
 		.nullable(),
 	last_deployed_at: z.string().nullable(),
 	created_at: z.string(),
+	databases: z.array(z.object({ id: z.string(), name: z.string(), status: z.string() })).optional(),
 	workspace: workspaceSummarySchema.nullable().optional()
 });
 

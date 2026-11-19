@@ -1,4 +1,9 @@
 import type { BadgeTone } from '$lib/components/ui/Badge.svelte';
+import {
+	DATABASE_VARIABLES,
+	databaseStatusView,
+	type DatabaseStatusView
+} from '$lib/features/databases/presentation';
 import { RELEASE_COMMAND_LABEL } from '../build-help';
 import {
 	getPortDisplay,
@@ -8,15 +13,22 @@ import {
 	type ProjectHeaderState
 } from '../presentation';
 import { MIN_REPLICAS, replicasOf } from '../replicas';
-import type { Project } from '../type';
+import type { Project, ProjectDatabase } from '../type';
 
 /** Where a block's details lead. The component turns these into routes. */
-export type TopologyTarget = 'address' | 'deployments' | 'variables' | 'release_command';
+export type TopologyTarget =
+	'address' | 'deployments' | 'variables' | 'release_command' | 'database';
+
+/** A database page needs its workspace and id, the other targets only the project. */
+export type TopologyLink =
+	| { label: string; target: Exclude<TopologyTarget, 'database'> }
+	| { label: string; target: 'database'; workspaceId: string; databaseId: string };
 
 /** How a block is drawn. `live` serves traffic, `asleep` is dimmed; the rest follow the header. */
 export type TopologyTone = 'live' | 'neutral' | 'running' | 'warning' | 'error' | 'asleep';
 
-export type TopologyBlockId = 'address' | 'edge' | 'node' | 'app' | 'variables' | 'release_command';
+export type TopologyBlockId =
+	'address' | 'edge' | 'node' | 'app' | 'database' | 'variables' | 'release_command';
 
 /**
  * One square per replica of the version that serves. `ready` passed the router's health check,
@@ -37,7 +49,7 @@ export type BlockDetail = {
 	body: string[];
 	/** A value to show in full, such as the hostname or the release command. */
 	value: string | null;
-	link: { label: string; target: TopologyTarget } | null;
+	link: TopologyLink | null;
 };
 
 export type TopologyBlock = {
@@ -65,8 +77,8 @@ export type Topology = {
 	/** The groups a visit passes through, in order: Jaringan, then the region. */
 	path: TopologyGroup[];
 	/**
-	 * What the app is wired to. A managed database (ADR-020) joins these blocks once the API reports
-	 * one; until then nothing stands in for it, so the diagram never shows a feature that is not there.
+	 * What the app is wired to: the managed database (ADR-020) when one is attached, the environment
+	 * variables, and the release command. Without a database nothing stands in for it.
 	 */
 	attached: TopologyGroup;
 	/** The whole diagram in words, the description a screen reader hears for it. */
@@ -103,6 +115,7 @@ export const TOPOLOGY_COPY = {
 	nodeDetail: 'Server Sakala yang menjalankan container aplikasimu.',
 	app: 'Aplikasi',
 	variables: 'Environment variable',
+	database: 'Database',
 	regionAuto: 'otomatis',
 	noAddress: 'belum ada',
 	variablesLoading: 'memuat...',
@@ -114,7 +127,8 @@ export const TOPOLOGY_COPY = {
 		address: 'Salin atau buka alamat',
 		deployments: 'Lihat riwayat',
 		variables: 'Buka Variabel',
-		release_command: 'Atur di Pengaturan'
+		release_command: 'Atur di Pengaturan',
+		database: 'Buka database'
 	} satisfies Record<TopologyTarget, string>
 } as const;
 
@@ -294,16 +308,74 @@ function releaseBlock(command: string | null): TopologyBlock {
 	};
 }
 
-function attachedSentence(variables: VariablesState, command: string | null): string {
+/** Ready serves like the app does; the rest follow the database's own status tone. */
+function databaseTone(status: string): TopologyTone {
+	switch (status) {
+		case 'provisioning':
+			return 'running';
+		case 'locked':
+			return 'warning';
+		case 'failed':
+			return 'error';
+		case 'deleting':
+			return 'asleep';
+		default:
+			return 'neutral';
+	}
+}
+
+function databaseBlock(
+	database: ProjectDatabase,
+	view: DatabaseStatusView,
+	workspaceId: string | null
+): TopologyBlock {
+	const overridden = database.overridden_variables;
+	return {
+		id: 'database',
+		name: TOPOLOGY_COPY.database,
+		fact: database.name,
+		mono: true,
+		badge: { label: view.label, tone: view.tone },
+		replicas: null,
+		tone: databaseTone(database.status),
+		detail: {
+			body: [
+				view.description,
+				`Aplikasi menerima ${DATABASE_VARIABLES[0]} dan variabel DB_* dari database ini saat deploy.`,
+				overridden.length > 0
+					? `Environment variable proyek menimpa ${overridden.join(', ')}, jadi nilai proyek yang dipakai.`
+					: null
+			].filter((line): line is string => line !== null),
+			value: null,
+			link: workspaceId
+				? {
+						label: TOPOLOGY_COPY.links.database,
+						target: 'database',
+						workspaceId,
+						databaseId: database.id
+					}
+				: null
+		}
+	};
+}
+
+function attachedSentence(
+	variables: VariablesState,
+	command: string | null,
+	database: { name: string; view: DatabaseStatusView } | null
+): string {
 	const releasePart = command
 		? 'menjalankan release command sebelum setiap versi baru menerima trafik'
 		: 'belum punya release command';
-	if (variables.state !== 'ready') return `Aplikasi ${releasePart}.`;
+	const databasePart = database
+		? ` Aplikasi memakai database ${database.name}, statusnya ${database.view.label.toLowerCase()}.`
+		: '';
+	if (variables.state !== 'ready') return `Aplikasi ${releasePart}.${databasePart}`;
 	const variablesPart =
 		variables.count === 0
 			? 'belum punya environment variable'
 			: `memakai ${countFormat.format(variables.count)} environment variable`;
-	return `Aplikasi ${variablesPart} dan ${releasePart}.`;
+	return `Aplikasi ${variablesPart} dan ${releasePart}.${databasePart}`;
 }
 
 /**
@@ -325,6 +397,11 @@ export function deriveTopology(
 	const port = getPortDisplay(project).current;
 	const cells = deriveReplicaCells(project, serving);
 	const command = project.release_command?.trim() || null;
+	// A project uses one database at a time; the API sends a list of at most one.
+	const attachedDatabase = project.databases?.[0] ?? null;
+	const databaseView = attachedDatabase
+		? databaseStatusView({ status: attachedDatabase.status, last_failure: null })
+		: null;
 
 	const address: TopologyBlock = {
 		id: 'address',
@@ -400,7 +477,13 @@ export function deriveTopology(
 		attached: {
 			id: 'attached',
 			label: TOPOLOGY_COPY.groups.attached,
-			blocks: [variablesBlock(variables), releaseBlock(command)]
+			blocks: [
+				...(attachedDatabase && databaseView
+					? [databaseBlock(attachedDatabase, databaseView, project.workspace?.id ?? null)]
+					: []),
+				variablesBlock(variables),
+				releaseBlock(command)
+			]
 		},
 		asleep,
 		summary: `${pathSentence(kind, beforeFirst, {
@@ -409,7 +492,11 @@ export function deriveTopology(
 			region: project.region,
 			port,
 			replicas: serving ? sentenceReplicas(cells) : null
-		})} ${attachedSentence(variables, command)}`
+		})} ${attachedSentence(
+			variables,
+			command,
+			attachedDatabase && databaseView ? { name: attachedDatabase.name, view: databaseView } : null
+		)}`
 	};
 }
 

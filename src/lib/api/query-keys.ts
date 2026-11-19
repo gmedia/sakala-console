@@ -37,6 +37,10 @@ export const queryKeys = {
 		members: (workspaceId: string) => ['workspaces', 'members', workspaceId] as const,
 		invitations: (workspaceId: string) => ['workspaces', 'invitations', workspaceId] as const,
 		myInvitations: ['workspaces', 'my-invitations'] as const,
+		/** One workspace's databases; the detail keys sit under it, so invalidating it refreshes both. */
+		databases: (workspaceId: string) => ['workspaces', 'databases', workspaceId] as const,
+		database: (workspaceId: string, databaseId: string) =>
+			['workspaces', 'databases', workspaceId, databaseId] as const,
 		/** Under `pilot-limits`, so invalidating that prefix still refreshes every workspace's limits. */
 		limits: (workspaceId: string | null) => ['pilot-limits', workspaceId ?? 'personal'] as const
 	},
@@ -81,6 +85,7 @@ export const queryKeys = {
 		audit: (params: QueryParams) => ['admin', 'audit', params] as const
 	},
 	domainPreview: (name: string) => ['domain-preview', name] as const,
+	regions: ['regions'] as const,
 	pilotLimits: ['pilot-limits'] as const
 };
 
@@ -91,7 +96,10 @@ export const queryKeys = {
  */
 export function workspaceIdOfQueryKey(key: QueryKey): string | null {
 	const [root, kind, scope] = key;
-	if (root === 'workspaces' && (kind === 'members' || kind === 'invitations')) {
+	if (
+		root === 'workspaces' &&
+		(kind === 'members' || kind === 'invitations' || kind === 'databases')
+	) {
 		return typeof scope === 'string' && scope ? scope : null;
 	}
 	if (root === 'pilot-limits') {

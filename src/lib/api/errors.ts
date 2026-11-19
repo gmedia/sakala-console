@@ -61,6 +61,23 @@ export const PROJECT_REPLICAS_UNSUPPORTED = 'PROJECT_REPLICAS_UNSUPPORTED';
  */
 export const PROJECT_RELEASE_COMMAND_UNSUPPORTED = 'PROJECT_RELEASE_COMMAND_UNSUPPORTED';
 
+/**
+ * Refusals of the managed database endpoints (DatabaseRuleException in sakala-api). Their extra
+ * fields are read through `parseDatabaseRefusal()` in `api/resources/database-refusals.ts`.
+ */
+export const DATABASE_ERROR_CODES = {
+	limitExceeded: 'DATABASE_LIMIT_EXCEEDED',
+	storageLimitExceeded: 'DATABASE_STORAGE_LIMIT_EXCEEDED',
+	regionUnavailable: 'DATABASE_REGION_UNAVAILABLE',
+	crossRegionUnsupported: 'DATABASE_CROSS_REGION_UNSUPPORTED',
+	notReady: 'DATABASE_NOT_READY',
+	locked: 'DATABASE_LOCKED',
+	inUse: 'DATABASE_IN_USE',
+	busy: 'DATABASE_BUSY',
+	projectAlreadyAttached: 'PROJECT_DATABASE_ALREADY_ATTACHED',
+	endpointUnavailable: 'DATABASE_ENDPOINT_UNAVAILABLE'
+} as const;
+
 export type ValidationErrors = Record<string, string[]>;
 
 export type ApiErrorMeta = {

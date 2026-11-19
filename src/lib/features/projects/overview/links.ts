@@ -1,7 +1,8 @@
 import { resolveRoute } from '$app/paths';
 import type { NextStep } from './next-steps';
 import { SETTINGS_ANCHORS } from '../settings-anchors';
-import type { TopologyTarget } from './topology';
+import { databaseHref } from '$lib/features/databases/routes';
+import type { TopologyLink } from './topology';
 
 /** The address card's id, which the diagram's address box jumps to. */
 export const ADDRESS_SECTION_ID = 'alamat-dan-domain';
@@ -20,8 +21,8 @@ export function settingsHref(projectId: string, anchor?: string): string {
 	return anchor ? `${base}#${anchor}` : base;
 }
 
-export function topologyHref(target: TopologyTarget, projectId: string): string {
-	switch (target) {
+export function topologyHref(link: TopologyLink, projectId: string): string {
+	switch (link.target) {
 		case 'address':
 			return `#${ADDRESS_SECTION_ID}`;
 		case 'deployments':
@@ -30,6 +31,8 @@ export function topologyHref(target: TopologyTarget, projectId: string): string 
 			return variablesHref(projectId);
 		case 'release_command':
 			return settingsHref(projectId, SETTINGS_ANCHORS.releaseCommand);
+		case 'database':
+			return databaseHref(link.workspaceId, link.databaseId);
 	}
 }
 

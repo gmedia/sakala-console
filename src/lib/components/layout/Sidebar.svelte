@@ -8,6 +8,7 @@
 	import { REPOSITORY_URL } from '$lib/config/project';
 	import { cn } from '$lib/utils/cn';
 	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
+	import DatabaseIcon from 'phosphor-svelte/lib/Database';
 	import BookOpenText from 'phosphor-svelte/lib/BookOpenText';
 	import ChatCircleText from 'phosphor-svelte/lib/ChatCircleText';
 	import UserIcon from 'phosphor-svelte/lib/User';
@@ -56,6 +57,7 @@
 	// Feedback opens from the project or deployment on screen, and the form lets the user remove it.
 	const navigation: readonly NavItem[] = $derived([
 		{ href: '/projects', label: 'Proyek', icon: SquaresFour },
+		{ href: '/databases', label: 'Database', icon: DatabaseIcon },
 		{
 			href: feedbackPath('/feedback', {
 				projectId: page.params.id,

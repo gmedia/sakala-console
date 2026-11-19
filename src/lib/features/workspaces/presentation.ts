@@ -100,10 +100,10 @@ export function workspaceErrorMessage(error: unknown, fallback: string): string 
 		switch (error.code) {
 			case 'LAST_WORKSPACE_OWNER':
 				return 'Workspace tim harus selalu punya pemilik. Jadikan anggota lain pemilik dulu, lalu coba lagi.';
-			case 'WORKSPACE_NOT_EMPTY':
-				return 'Workspace ini masih punya proyek. Hapus proyeknya dulu, lalu hapus workspace-nya.';
 			case 'EMAIL_VERIFICATION_REQUIRED':
 				return 'Verifikasi email kamu dulu sebelum membuat atau bergabung ke workspace tim. Buka tautan verifikasi yang dikirim ke email kamu, lalu coba lagi.';
+			// The API names what is left: projects, databases, or both.
+			case 'WORKSPACE_NOT_EMPTY':
 			case 'TEAM_LIMIT_EXCEEDED':
 			case 'ALREADY_WORKSPACE_MEMBER':
 			case 'WORKSPACE_IS_PERSONAL':
