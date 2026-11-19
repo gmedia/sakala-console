@@ -3,6 +3,7 @@ import {
 	ApiError,
 	apiErrorFromResponse,
 	getErrorMessage,
+	isConnectionFailure,
 	NetworkError,
 	parseRetryAfter
 } from './errors';
@@ -193,5 +194,36 @@ describe('EMAIL_DELIVERY_UNAVAILABLE', () => {
 		const error = apiErrorFromResponse(503, { code: 'EMAIL_DELIVERY_UNAVAILABLE' });
 
 		expect(error.message).toContain('belum bisa mengirim email');
+	});
+});
+
+describe('isConnectionFailure', () => {
+	it.each([
+		['an API request that never arrived', new NetworkError()],
+		[
+			'a chunk Chromium could not fetch',
+			new TypeError(
+				'Failed to fetch dynamically imported module: https://console.example.test/_app/immutable/nodes/5.js'
+			)
+		],
+		[
+			'a chunk Firefox could not fetch',
+			new TypeError('error loading dynamically imported module: https://console.example.test/x.js')
+		],
+		['a chunk Safari could not fetch', new TypeError('Importing a module script failed.')],
+		['chunk CSS Vite could not preload', new Error('Unable to preload CSS for /_app/x.css')],
+		['a fetch Chromium could not send', new TypeError('Failed to fetch')],
+		['a fetch Safari could not send', new TypeError('Load failed')]
+	])('is true for %s', (_case, error) => {
+		expect(isConnectionFailure(error)).toBe(true);
+	});
+
+	it.each([
+		['a server error', new ApiError('Server error', 500)],
+		['a bug in a component', new TypeError("Cannot read properties of undefined (reading 'id')")],
+		['a plain error that mentions fetching', new Error('Failed to fetch the project list')],
+		['something that is not an error', 'Failed to fetch']
+	])('is false for %s', (_case, error) => {
+		expect(isConnectionFailure(error)).toBe(false);
 	});
 });

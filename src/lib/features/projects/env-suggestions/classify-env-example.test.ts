@@ -157,6 +157,45 @@ describe('classifyEnvExample, production overrides and the project address', () 
 		]);
 	});
 
+	it.each([
+		['debug', 'info'],
+		['trace', 'info'],
+		['DEBUG', 'INFO'],
+		['Debug', 'info']
+	])(
+		"suggests info for LOG_LEVEL=%s, in the example's case, saying what it replaced",
+		(from, to) => {
+			const { rows } = classifyEnvExample([entry('LOG_LEVEL', from)], context);
+			expect(rows).toEqual([
+				{
+					group: 'example',
+					key: 'LOG_LEVEL',
+					value: to,
+					included: true,
+					note: { kind: 'production-override', from }
+				}
+			]);
+		}
+	);
+
+	it.each([
+		['warning', 'warning', true],
+		['error', 'error', true],
+		['info', 'info', true],
+		[null, '', false]
+	])('keeps LOG_LEVEL=%s as the file has it', (from, value, included) => {
+		const { rows } = classifyEnvExample([entry('LOG_LEVEL', from)], context);
+		expect(rows).toEqual([{ group: 'example', key: 'LOG_LEVEL', value, included, note: null }]);
+	});
+
+	it('changes LOG_LEVEL in the Laravel example', () => {
+		const { rows } = classifyEnvExample(LARAVEL, context);
+		expect(find(rows, 'LOG_LEVEL')).toMatchObject({
+			value: 'info',
+			note: { kind: 'production-override', from: 'debug' }
+		});
+	});
+
 	it('does not mark a value that is already the production one', () => {
 		const { rows } = classifyEnvExample([entry('APP_ENV', 'production')], context);
 		expect(rows[0]).toMatchObject({ value: 'production', note: null });

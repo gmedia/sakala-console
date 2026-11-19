@@ -14,9 +14,18 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
   The line is the save button's accessible description. Several keys at once build if any one does. Variables from an attached database always say "tanpa build". A project without a live image gets no restart promise. An API without the field only names the old build-time prefixes.
 
+- The deployment trigger `database_ready` (requires gmedia/sakala-api#188) reads "Deploy pertama setelah database siap" on the deployment page and in recent deployments, instead of the raw value. API types regenerated from that branch.
+- The wizard suggests `LOG_LEVEL=info` instead of a verbose `debug` or `trace` from `.env.example`, keeping the example's case (`DEBUG` becomes `INFO`), with the usual "Diubah dari debug untuk production." note. Other levels stay as the file has them.
+
 ### Changed
 
 - The Redeploy menu now explains reuse without listing prefixes: it reuses the live image when the commit, build settings, and the variables read at build are unchanged. "Build ulang dari awal" is unchanged.
+
+### Fixed
+
+- Wizard step 3: the Persiapan lead no longer counts down while "Deploy sekarang" saves the variables (it read "menyiapkan 11 variabel", then 7, then 1). Each saved variable refreshed the project's variable list, which turned the rows being saved into "already set"; the list is now read once when the save starts, so the count and the rows stay put.
+- Wizard step 3 names the project instead of the repository in its sentences ("Database untuk contoh-laravel disiapkan, lalu deploy pertama dimulai.", "Sakala sudah membaca contoh-laravel …"), because the projects of a monorepo share one repository. The Repository row of the detection still shows the repository.
+- A failed connection reads the same everywhere: "Tidak dapat terhubung ke server" with one description, on the account check of every signed-in page (was "Tidak ada koneksi internet" with a hard-coded "Terputus dari sakala.dev"), on the project list, and on the root error page. A page whose code could not load (offline, `ERR_NETWORK_CHANGED`) showed "Error 500 Terjadi kesalahan"; `handleError` in `src/hooks.client.ts` now marks those failures, and the error page shows the connection message with "Muat ulang halaman". It does the same when the error page itself cannot reach the API.
 
 ## [0.10.0] - 2026-11-19
 

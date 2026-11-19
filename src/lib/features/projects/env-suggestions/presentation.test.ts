@@ -3,25 +3,21 @@ import { alreadySetText, exampleNoteText, needsInputHint, prepareLead } from './
 
 describe('prepareLead', () => {
 	it('says what Sakala did, then what is left', () => {
-		expect(
-			prepareLead({ repository: 'rani/kopi', prepared: 9, needsYou: 2, databaseDecision: true })
-		).toBe(
-			'Sakala sudah membaca rani/kopi dan menyiapkan 9 variabel. Tinggal pilihan database dan 2 variabel yang perlu kamu isi.'
+		expect(prepareLead({ project: 'kopi', prepared: 9, needsYou: 2, databaseDecision: true })).toBe(
+			'Sakala sudah membaca kopi dan menyiapkan 9 variabel. Tinggal pilihan database dan 2 variabel yang perlu kamu isi.'
 		);
 	});
 
 	it('asks only for a look when nothing waits for the user', () => {
 		expect(
-			prepareLead({ repository: 'rani/kopi', prepared: 3, needsYou: 0, databaseDecision: false })
-		).toBe(
-			'Sakala sudah membaca rani/kopi dan menyiapkan 3 variabel. Periksa sebentar, lalu deploy.'
-		);
+			prepareLead({ project: 'kopi', prepared: 3, needsYou: 0, databaseDecision: false })
+		).toBe('Sakala sudah membaca kopi dan menyiapkan 3 variabel. Periksa sebentar, lalu deploy.');
 	});
 
 	it('does not count variables it did not prepare', () => {
-		expect(
-			prepareLead({ repository: 'rani/kopi', prepared: 0, needsYou: 0, databaseDecision: true })
-		).toBe('Sakala sudah membaca rani/kopi. Tinggal pilihan database.');
+		expect(prepareLead({ project: 'kopi', prepared: 0, needsYou: 0, databaseDecision: true })).toBe(
+			'Sakala sudah membaca kopi. Tinggal pilihan database.'
+		);
 	});
 });
 

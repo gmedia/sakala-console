@@ -147,6 +147,35 @@ export class NetworkError extends Error {
 	}
 }
 
+/**
+ * What browsers throw when a code-split chunk of the Console cannot be fetched: Chromium, Firefox,
+ * and Safari in that order, then Vite's preload helper for the chunk's CSS.
+ */
+const MODULE_LOAD_FAILURES = [
+	'failed to fetch dynamically imported module',
+	'error loading dynamically imported module',
+	'importing a module script failed',
+	'unable to preload css'
+];
+
+/** What the same browsers throw from `fetch` when the request never reached a server. */
+const FETCH_FAILURES = ['failed to fetch', 'networkerror when attempting to fetch', 'load failed'];
+
+/**
+ * The browser could not reach Sakala at all: an API request or a chunk of the Console that never
+ * arrived (offline, `ERR_NETWORK_CHANGED`). It says nothing about the server, so it is not shown
+ * as a server error.
+ */
+export function isConnectionFailure(error: unknown): boolean {
+	if (error instanceof NetworkError) return true;
+	if (!(error instanceof Error)) return false;
+	const message = error.message.toLowerCase();
+	if (MODULE_LOAD_FAILURES.some((failure) => message.startsWith(failure))) return true;
+	return (
+		error instanceof TypeError && FETCH_FAILURES.some((failure) => message.startsWith(failure))
+	);
+}
+
 export type ApiErrorInput = {
 	errors?: ValidationErrors;
 	apiMessage?: unknown;

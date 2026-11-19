@@ -6,10 +6,13 @@ import {
 	DATABASE_URL_OVERRIDE_KEY,
 	EMPTY_EXAMPLE_VALUES,
 	GENERATED_SECRET_FORMATS,
+	LOG_LEVEL_KEY,
 	PORT_KEY,
+	PRODUCTION_LOG_LEVEL,
 	PRODUCTION_OVERRIDES,
 	PROJECT_URL_KEYS,
-	VARIABLE_REFERENCE
+	VARIABLE_REFERENCE,
+	VERBOSE_LOG_LEVELS
 } from './rules';
 
 /**
@@ -29,7 +32,8 @@ import {
  *    does. The input starts empty; the example shows as a hint only when it is a real value that
  *    does not itself look like a secret. Empty means skipped, never a blocker.
  * 6. `example` (Dari .env.example): the example value, on by default only when it is not empty
- *    (`null` is empty). APP_ENV, NODE_ENV, and APP_DEBUG get production values, marked as changed.
+ *    (`null` is empty). APP_ENV, NODE_ENV, and APP_DEBUG get production values, and a verbose
+ *    LOG_LEVEL (debug, trace) becomes info, each marked as changed.
  *    A value that refers to another variable (`${APP_NAME}`) is left empty and off.
  *
  * An example value that looks like a secret is never used as a value or a hint.
@@ -110,6 +114,18 @@ export function normalizeExampleValue(value: string | null): string {
 	return trimmed === '' || EMPTY_EXAMPLE_VALUES.includes(trimmed.toLowerCase()) ? '' : value;
 }
 
+/** The value a deployed app should run with instead of the example's, if any. */
+function productionValue(key: string, exampleValue: string): string | undefined {
+	const fixed = PRODUCTION_OVERRIDES[key];
+	if (fixed !== undefined) return fixed;
+	if (key !== LOG_LEVEL_KEY || !VERBOSE_LOG_LEVELS.includes(exampleValue.toLowerCase())) {
+		return undefined;
+	}
+	return exampleValue === exampleValue.toUpperCase()
+		? PRODUCTION_LOG_LEVEL.toUpperCase()
+		: PRODUCTION_LOG_LEVEL;
+}
+
 function classifyEntry(
 	key: string,
 	exampleValue: string,
@@ -154,7 +170,7 @@ function classifyEntry(
 		};
 	}
 
-	const override = PRODUCTION_OVERRIDES[key];
+	const override = productionValue(key, exampleValue);
 	if (override !== undefined) {
 		return {
 			group: SUGGESTION_GROUPS.example,

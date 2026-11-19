@@ -58,6 +58,16 @@ export const PRODUCTION_OVERRIDES: Readonly<Record<string, string>> = {
 	APP_DEBUG: 'false'
 };
 
+/**
+ * A `.env.example` often logs everything on a laptop (Laravel's writes `LOG_LEVEL=debug`), which
+ * in production fills the log with request detail. `info` is normal operation for Monolog, pino,
+ * winston, and Python's logging. Only these verbose levels are replaced, and in the example's case
+ * (Python's logging knows `INFO`, not `info`), so a stricter level the project chose stays.
+ */
+export const LOG_LEVEL_KEY = 'LOG_LEVEL';
+export const VERBOSE_LOG_LEVELS: readonly string[] = ['debug', 'trace'];
+export const PRODUCTION_LOG_LEVEL = 'info';
+
 /** What Laravel's `.env.example` writes for "no value"; read as empty, like an empty line. */
 export const EMPTY_EXAMPLE_VALUES: readonly string[] = ['null', '""', "''"];
 

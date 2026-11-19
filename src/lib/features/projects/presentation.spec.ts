@@ -131,7 +131,8 @@ describe('getProjectListErrorPresentation', () => {
 
 		expect(getProjectListErrorPresentation(error)).toEqual({
 			title: 'Tidak dapat terhubung ke server',
-			description: 'API tidak dapat dijangkau. Periksa koneksi internetmu lalu coba lagi.',
+			description:
+				'Browser ini belum bisa menjangkau Sakala. Periksa koneksi internetmu, lalu coba lagi.',
 			action: 'retry'
 		});
 	});

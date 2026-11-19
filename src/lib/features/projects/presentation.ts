@@ -17,6 +17,7 @@ import {
 	parseReplicasUnsupportedDetails
 } from '$lib/api/resources/project-deploy-refusals';
 import { getDeploymentStatusLabel } from '$lib/features/deployments/status-config';
+import { CONNECTION_ERROR_COPY } from '$lib/components/feedback/connection-copy';
 import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
@@ -125,11 +126,7 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 	}
 
 	if (error instanceof NetworkError) {
-		return {
-			title: 'Tidak dapat terhubung ke server',
-			description: 'API tidak dapat dijangkau. Periksa koneksi internetmu lalu coba lagi.',
-			action: 'retry'
-		};
+		return { ...CONNECTION_ERROR_COPY, action: 'retry' };
 	}
 
 	return {

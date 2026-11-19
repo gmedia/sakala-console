@@ -15,7 +15,7 @@ Jangan memanggil raw `fetch` dari route atau component. Tambahkan wrapper domain
 - `ApiError(401)`: session tidak tersedia. Query dan mutation apa pun mengarah ke login, lihat [Authentication](AUTHENTICATION.md#session-berakhir-di-tengah-jalan).
 - `ApiError(403)`: user login tetapi tidak memiliki izin.
 - `ApiError(422)`: tampilkan field validation dari `errors`.
-- `NetworkError`: tampilkan retry/offline state, bukan login redirect.
+- `NetworkError`: tampilkan retry/offline state, bukan login redirect. Judul dan teksnya satu untuk seluruh Console, `CONNECTION_ERROR_COPY` di `lib/components/feedback/connection-copy.ts` ("Tidak dapat terhubung ke server"). `isConnectionFailure()` di `api/errors.ts` juga mengenali chunk Console yang gagal dimuat; `handleError` di `src/hooks.client.ts` menandainya `connection: true`, sehingga halaman error root menampilkan pesan koneksi itu, bukan "Error 500".
 - `ApiError(429)`: `message` menyebut waktu tunggu dari `Retry-After`, tersedia juga di `retryAfterSeconds`. `sakala-api` mencantumkan header ini di `exposed_headers` CORS, jadi terbaca lintas origin. Polling yang kena 429 menunggu selama itu, lewat `rateLimitWait()` di `features/deployments/queries.ts`.
 - `5xx`: tampilkan service error tanpa mengekspos payload internal.
 

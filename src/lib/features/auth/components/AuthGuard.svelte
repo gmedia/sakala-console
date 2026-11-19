@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ApiError, NetworkError } from '$lib/api/errors';
+	import { ApiError, isConnectionFailure } from '$lib/api/errors';
 	import { isRateLimitError, rateLimitWait } from '$lib/api/rate-limit';
 	import {
 		getPendingOAuthProvider,
@@ -14,6 +14,7 @@
 	import { noteSessionEnded, rememberSession } from '$lib/features/auth/session-notice';
 	import { getOnboardingRedirect } from '$lib/features/auth/onboarding-redirect';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import { CONNECTION_ERROR_COPY } from '$lib/components/feedback/connection-copy';
 	import LoadingSkeleton from '$lib/components/feedback/LoadingSkeleton.svelte';
 	import LegalAcceptanceScreen from './LegalAcceptanceScreen.svelte';
 	import CellSignalSlashIcon from 'phosphor-svelte/lib/CellSignalSlashIcon';
@@ -103,16 +104,12 @@
 			};
 		}
 
-		if (error instanceof NetworkError) {
+		if (isConnectionFailure(error)) {
 			return {
-				title: 'Tidak ada koneksi internet',
-				description:
-					'Sakala butuh koneksi internet buat memuat data proyek dan status deploymentmu. Cek koneksi kamu lalu coba lagi.',
+				...CONNECTION_ERROR_COPY,
 				icon: CellSignalSlashIcon,
 				iconClass: 'text-error-base',
 				iconBackgroundClass: 'bg-background-soft',
-				statusIndicator: 'Terputus dari sakala.dev',
-				statusIndicatorClass: 'text-warning-dark',
 				buttonText: 'Coba lagi',
 				onRetry: () => currentUser.refetch()
 			};
