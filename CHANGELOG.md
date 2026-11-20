@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-20
+
 ### Added
 
 - The Variabel tab says what the next redeploy will do before a variable change is saved (requires gmedia/sakala-api#186, `variable_changes`). Next to the save button of adding, editing, pasting a `.env`, and deleting a variable, one calm line reads either "Cukup restart dengan image yang sama (tanpa build)." or "Perubahan ini butuh build ulang karena …" with the reason:
@@ -241,7 +243,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/gmedia/sakala-console/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/gmedia/sakala-console/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/gmedia/sakala-console/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/gmedia/sakala-console/compare/v0.7.0...v0.8.0
