@@ -151,6 +151,7 @@ test.describe('the first deploy offers a database and the variables of .env.exam
 		]);
 		expect(stepThree).toContainEqual({ key: 'APP_ENV', value: 'production', is_secret: false });
 		expect(stepThree).toContainEqual({ key: 'APP_DEBUG', value: 'false', is_secret: false });
+		expect(stepThree).toContainEqual({ key: 'LOG_LEVEL', value: 'info', is_secret: false });
 		expect(stepThree).toContainEqual({
 			key: 'APP_URL',
 			value: 'https://contoh-laravel.apps.example.test',

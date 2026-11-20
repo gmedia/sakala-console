@@ -364,7 +364,24 @@ test('does NOT redirect to login on network failure, user stay and sees a error 
 	await page.goto('/projects');
 
 	await expect(page).toHaveURL('/projects');
-	await expect(page.getByText('Tidak ada koneksi internet')).toBeVisible({ timeout: 15000 });
+	await expect(page.getByText('Tidak dapat terhubung ke server')).toBeVisible({ timeout: 15000 });
+});
+
+test('a page whose code cannot load while offline says the connection failed, not the server', async ({
+	page
+}) => {
+	await mockCurrentUserNetworkError(page);
+	// The route's own chunk never arrives (ERR_NETWORK_CHANGED); the root layout and error page do.
+	await page.route(/\/_app\/immutable\/nodes\/(?![01]\.)[^/]+\.js$/, (route) =>
+		route.abort('internetdisconnected')
+	);
+	await page.goto('/projects/p-1');
+
+	await expect(page.getByRole('heading', { name: 'Tidak dapat terhubung ke server' })).toBeVisible({
+		timeout: 15000
+	});
+	await expect(page.getByText('Error 500')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Muat ulang halaman' })).toBeVisible();
 });
 
 test('does NOT render protected content while current user is still pending', async ({ page }) => {

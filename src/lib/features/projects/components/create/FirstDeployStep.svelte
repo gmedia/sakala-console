@@ -70,6 +70,8 @@
 	const repositoryName = $derived(
 		project?.repository_full_name ?? project?.repository_url ?? 'repository ini'
 	);
+	// Sentences name the project: in a monorepo several projects share one repository.
+	const projectName = $derived(project?.name ?? 'proyek ini');
 
 	const facts = $derived(
 		project
@@ -258,25 +260,24 @@
 	const canDeploy = $derived(portSettled || waitedLong);
 
 	const headline = $derived.by(() => {
-		if (waitingView)
-			return `Database untuk ${repositoryName} disiapkan, lalu deploy pertama dimulai.`;
-		if (inspectionState === 'failed') return `Sakala belum bisa membaca ${repositoryName}.`;
+		if (waitingView) return `Database untuk ${projectName} disiapkan, lalu deploy pertama dimulai.`;
+		if (inspectionState === 'failed') return `Sakala belum bisa membaca ${projectName}.`;
 		if (preparing) {
 			return prepareLead({
-				repository: repositoryName,
+				project: projectName,
 				prepared: setup.prepared,
 				needsYou: setup.needsYou,
 				databaseDecision: Boolean(setup.hint?.likely) && !setup.attached
 			});
 		}
 		if (autoDeploy && portSettled && !deployError) {
-			return `Memulai deployment pertama dari ${repositoryName}...`;
+			return `Memulai deployment pertama untuk ${projectName}...`;
 		}
 		if (waitingForPort && !waitedLong) {
-			return `Sakala sedang membaca ${repositoryName} untuk tahu port aplikasimu. Deploy dimulai otomatis setelah itu, biasanya dalam satu menit.`;
+			return `Sakala sedang membaca ${projectName} untuk tahu port aplikasimu. Deploy dimulai otomatis setelah itu, biasanya dalam satu menit.`;
 		}
-		if (inspectionState === 'succeeded') return `Hasil deteksi dari ${repositoryName}.`;
-		return `Sakala sedang memeriksa ${repositoryName}. Analisis pertama bisa makan waktu satu menit atau lebih. Pemeriksaan berjalan di server, jadi halaman ini boleh ditinggal.`;
+		if (inspectionState === 'succeeded') return `Hasil deteksi untuk ${projectName}.`;
+		return `Sakala sedang memeriksa ${projectName}. Analisis pertama bisa makan waktu satu menit atau lebih. Pemeriksaan berjalan di server, jadi halaman ini boleh ditinggal.`;
 	});
 </script>
 

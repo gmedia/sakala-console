@@ -11021,7 +11021,8 @@
                                         "redeploy",
                                         "webhook",
                                         "system",
-                                        "database_password_rotated"
+                                        "database_password_rotated",
+                                        "database_ready"
                                     ]
                                 },
                                 "branch": {
@@ -15256,7 +15257,8 @@
                             "redeploy",
                             "webhook",
                             "system",
-                            "database_password_rotated"
+                            "database_password_rotated",
+                            "database_ready"
                         ]
                     },
                     "commit_sha": {
@@ -15868,7 +15870,8 @@
                             "redeploy",
                             "webhook",
                             "system",
-                            "database_password_rotated"
+                            "database_password_rotated",
+                            "database_ready"
                         ]
                     },
                     "agent_node_id": {

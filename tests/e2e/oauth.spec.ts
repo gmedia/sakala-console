@@ -284,7 +284,7 @@ test('does not clear pending_oauth_provider on transient network error during ve
 	await page.goto('/dashboard');
 	await page.waitForURL(/\/projects/, { timeout: 10000 });
 
-	await expect(page.getByText('Tidak ada koneksi internet')).toBeVisible({ timeout: 15000 });
+	await expect(page.getByText('Tidak dapat terhubung ke server')).toBeVisible({ timeout: 15000 });
 
 	const pendingProvider = await page.evaluate(() => localStorage.getItem('pending_oauth_provider'));
 	expect(pendingProvider).toBe('google');

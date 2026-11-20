@@ -97,9 +97,14 @@ export function useFirstDeploySetup(options: Options) {
 		() => ({ enabled: Boolean(envExample?.entries.length) })
 	);
 	// Unknown is treated as none: a key that turns out to exist is refused on save, and named.
-	const existingKeys = $derived(
+	const liveExistingKeys = $derived(
 		envQuery.data?.map((env) => env.key) ?? (envQuery.isError ? [] : null)
 	);
+	// Taken when "Deploy sekarang" starts. Each saved variable refreshes the list, and reading it
+	// live would turn the rows being saved into "already set": the lead would count down
+	// (11, 7, 1 variables) and the rows would leave the panel mid-save.
+	let frozenExistingKeys = $state<readonly string[] | null>(null);
+	const existingKeys = $derived(frozenExistingKeys ?? liveExistingKeys);
 
 	const databasesQuery = createDatabasesQuery(
 		() => workspaceId,
@@ -259,6 +264,7 @@ export function useFirstDeploySetup(options: Options) {
 		running = true;
 		phase = 'running';
 		failure = null;
+		frozenExistingKeys ??= liveExistingKeys;
 		const database = planDatabase(choice);
 		const command = releaseSuggestion !== null ? releaseCommand.trim() : '';
 

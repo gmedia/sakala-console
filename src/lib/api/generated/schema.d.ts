@@ -2259,7 +2259,7 @@ export interface components {
                 /** @enum {string} */
                 status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
                 /** @enum {string} */
-                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated";
+                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready";
                 branch: string;
                 commit_sha: string | null;
                 commit_message: string | null;
@@ -3420,7 +3420,7 @@ export interface components {
             /** @enum {string} */
             status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
             /** @enum {string} */
-            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready";
             commit_sha: string | null;
             commit_message: string | null;
             image_reference: string | null;
@@ -3568,7 +3568,7 @@ export interface components {
              * @description `manual`, `webhook`, or another `DeploymentTrigger`.
              * @enum {string}
              */
-            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready";
             agent_node_id: string | null;
             /** @description Who asked for the deployment; null for an account deleted since. */
             requested_by: {

@@ -86,12 +86,13 @@ export function groupSummary(group: EnvSuggestionGroup, keys: readonly string[])
  * left for the user (Tesler's Law: the system carries the rest).
  */
 export function prepareLead({
-	repository,
+	project,
 	prepared,
 	needsYou,
 	databaseDecision
 }: {
-	repository: string;
+	/** The project's name; a monorepo's projects share one repository. */
+	project: string;
 	/** Variables Sakala prepared: generated, example, and platform rows. */
 	prepared: number;
 	/** "Perlu kamu isi" rows. */
@@ -101,8 +102,8 @@ export function prepareLead({
 }): string {
 	const done =
 		prepared > 0
-			? `Sakala sudah membaca ${repository} dan menyiapkan ${countFormat.format(prepared)} variabel.`
-			: `Sakala sudah membaca ${repository}.`;
+			? `Sakala sudah membaca ${project} dan menyiapkan ${countFormat.format(prepared)} variabel.`
+			: `Sakala sudah membaca ${project}.`;
 	const asks: string[] = [];
 	if (databaseDecision) asks.push('pilihan database');
 	if (needsYou > 0) asks.push(`${countFormat.format(needsYou)} variabel yang perlu kamu isi`);

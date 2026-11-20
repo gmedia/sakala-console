@@ -292,6 +292,54 @@ describe('Persiapan, the variables', () => {
 	});
 });
 
+describe('Persiapan while saving', () => {
+	it('names the project, not the repository, in the lead', async () => {
+		await renderStep();
+
+		await expect
+			.element(page.getByText(/^Sakala sudah membaca toko-kopi dan menyiapkan \d+ variabel\./))
+			.toBeVisible();
+		expect(document.body.textContent).not.toContain('membaca rani/toko-kopi');
+	});
+
+	it('keeps the count and the rows while each saved variable refreshes the list', async () => {
+		// Each POST waits for the test, and the list answers what was saved so far, as the API does.
+		const saved: string[] = [];
+		const releases: (() => void)[] = [];
+		vi.mocked(apiRequest).mockImplementation(async (path, options) => {
+			const url = String(path);
+			if (options?.method === 'POST' && url.endsWith('/environment-variables')) {
+				const { key } = options.json as { key: string };
+				await new Promise<void>((resume) => releases.push(resume));
+				saved.push(key);
+				return { data: { id: key, key } };
+			}
+			if (options?.method === 'POST') return { data: { id: 'x' } };
+			if (url.endsWith('/environment-variables')) {
+				return { data: saved.map((key) => ({ id: key, key, is_secret: false })) };
+			}
+			if (url.endsWith('/databases')) return { data: databases };
+			return { data: project };
+		});
+		await renderStep({ pilotLimits: limits({ available: false }) });
+
+		const lead = page.getByText(/^Sakala sudah membaca toko-kopi dan menyiapkan \d+ variabel\./);
+		await expect.element(lead).toBeVisible();
+		const before = lead.element().textContent;
+		await page.getByRole('button', { name: 'Deploy sekarang' }).click();
+
+		for (let count = 1; count <= 3; count++) {
+			await vi.waitFor(() => expect(releases).toHaveLength(count));
+			releases[count - 1]();
+			await vi.waitFor(() => expect(saved).toHaveLength(count));
+			// Give the refreshed list time to arrive before checking that nothing moved.
+			await new Promise((done) => setTimeout(done, 50));
+			await expect.element(lead).toHaveTextContent(before ?? '');
+			expect(document.body.textContent).not.toContain('Sudah ada di proyek');
+		}
+	});
+});
+
 describe('Persiapan by keyboard', () => {
 	it('moves the database choice with arrow keys and opens a group with Enter', async () => {
 		databases = [ready('db-c', 'cadangan')];
