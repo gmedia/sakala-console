@@ -34,7 +34,7 @@ RUN --mount=type=secret,id=frontend_env,target=/app/.env.production,required=tru
     && pnpm build \
     && node docker/security-headers.mjs .env.production build /app/security-headers.caddy /app/runtime-template
 
-FROM caddy:2.10-alpine AS runtime
+FROM caddy:2.11-alpine AS runtime
 
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/console-entrypoint
