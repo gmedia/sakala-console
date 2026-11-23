@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mockSignedOutRoutes } from './fixtures/all-routes';
-import { DETAIL_URL, mockProjectApi, PROJECT_ID } from './fixtures/project-detail';
+import {
+	baseProject,
+	DETAIL_URL,
+	failedDeployment,
+	mockProjectApi,
+	PROJECT_ID
+} from './fixtures/project-detail';
 import {
 	failedEvents,
 	failedLogLines,
@@ -275,5 +281,86 @@ test.describe('unsubscribing from an email link', () => {
 			page.getByRole('heading', { name: 'Tautan ini tidak bisa dipakai' })
 		).toBeVisible();
 		expect(requests).toHaveLength(0);
+	});
+});
+
+test.describe('a deployment that stops at "Mengecek aplikasi"', () => {
+	const healthCheckFailed = {
+		...failedDeployment,
+		failure_code: 'runtime_app_not_listening',
+		failure_summary:
+			'Aplikasi berjalan, tetapi tidak menerima koneksi di port yang ditentukan Sakala.',
+		failure: {
+			...failedDeployment.failure,
+			code: 'runtime_app_not_listening',
+			category: 'runtime',
+			summary: 'Aplikasi berjalan, tetapi tidak menerima koneksi di port yang ditentukan Sakala.',
+			stage: 'health_checking'
+		}
+	};
+	const withEnvExample = {
+		...baseProject,
+		inspection: {
+			repository_url: null,
+			commit_sha: null,
+			dockerfile_found: false,
+			env_example_found: true,
+			compose_found: false,
+			manifests: ['package.json'],
+			package_manager: 'npm',
+			inspected_at: null,
+			env_example: {
+				file: '.env.example',
+				entries: [
+					{ key: 'PORT', example_value: '3000' },
+					{ key: 'APP_KEY', example_value: null },
+					{ key: 'JWT_SECRET', example_value: null }
+				],
+				truncated: false
+			},
+			database_hint: null
+		}
+	};
+
+	test('names the .env.example variables not set yet, and links the code to the guide', async ({
+		page
+	}) => {
+		await mockProjectApi(page, {
+			project: () => withEnvExample,
+			deployment: () => healthCheckFailed,
+			deploymentList: () => [healthCheckFailed],
+			envList: () => [
+				{ id: 1, key: 'APP_KEY', is_secret: true, created_at: '2026-01-01T00:00:00Z' }
+			]
+		});
+		await page.goto(DETAIL_URL);
+
+		const note = page.getByTestId('missing-env-variables');
+		await expect(note).toContainText('1 variabel yang belum ada di proyek ini: JWT_SECRET');
+		await expect(note).not.toContainText('PORT');
+		await expect(note.getByRole('link', { name: 'Isi di tab Variabel' })).toHaveAttribute(
+			'href',
+			`/projects/${PROJECT_ID}/environments#isi-dari-env-example`
+		);
+		await expect(page.getByRole('link', { name: /Baca penjelasan kode ini/ })).toHaveAttribute(
+			'href',
+			'https://sakala.dev/docs/deploy-gagal#runtime_app_not_listening'
+		);
+	});
+
+	test('a failure at another stage says nothing about variables', async ({ page }) => {
+		await mockProjectApi(page, {
+			project: () => withEnvExample,
+			deployment: () => failedDeployment,
+			deploymentList: () => [failedDeployment],
+			envList: () => []
+		});
+		await page.goto(DETAIL_URL);
+
+		await expect(page.getByRole('link', { name: /Baca penjelasan kode ini/ })).toHaveAttribute(
+			'href',
+			'https://sakala.dev/docs/deploy-gagal#runtime_build_failed'
+		);
+		await expect(page.getByTestId('missing-env-variables')).toHaveCount(0);
 	});
 });

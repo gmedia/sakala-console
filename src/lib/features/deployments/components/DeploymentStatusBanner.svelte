@@ -8,6 +8,8 @@
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import ClipboardText from 'phosphor-svelte/lib/ClipboardText';
 	import { FAILURE_SUMMARY_WARNING } from '../failure-summary';
+	import { FAILURE_DOCS_COPY, failureDocsHref } from '../failure-docs';
+	import type { MissingEnvVariablesNote } from '../missing-env-variables';
 	import XCircle from 'phosphor-svelte/lib/XCircle';
 	import type { ResolvedPathname } from '$app/types';
 	import {
@@ -46,6 +48,8 @@
 		onViewError?: () => void;
 		/** Copies a plain-text summary of the failure, to paste into a chat or an AI assistant. */
 		onCopySummary?: () => void;
+		/** Variables from the repository's `.env.example` that the project has not set yet. */
+		missingEnvVariables?: MissingEnvVariablesNote | null;
 		onRedeploy?: (options: RedeployOptions) => void;
 		/** Offers "Build ulang dari awal" beside Redeploy, where the project has a live image. */
 		offerForceBuild?: boolean;
@@ -75,6 +79,7 @@
 		projectHref,
 		onViewError,
 		onCopySummary,
+		missingEnvVariables = null,
 		onRedeploy,
 		offerForceBuild = false,
 		onCancel,
@@ -110,8 +115,10 @@
 		status === 'success' && (servingState === 'crash_looping' || servingState === 'not_serving')
 	);
 	let isFirstLive = $derived(isLive && Boolean(firstLiveProjectName && publicUrl && displayUrl));
+	let failureDocs = $derived(failureDocsHref(failureCode));
 	let hasFailureDetails = $derived(
-		status === 'failed' && Boolean(failureCode || failureDetail || display.recoveryHint)
+		status === 'failed' &&
+			Boolean(failureCode || failureDetail || display.recoveryHint || missingEnvVariables)
 	);
 	let canRedeploy = $derived(status === 'failed' || status === 'cancelled');
 
@@ -293,9 +300,37 @@
 							{display.recoveryHint}
 						</p>
 					{/if}
+					{#if missingEnvVariables}
+						<div class="space-y-1 text-sm text-foreground" data-testid="missing-env-variables">
+							<p class="wrap-anywhere">{missingEnvVariables.sentence}</p>
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a hash -->
+							<a
+								href={missingEnvVariables.href}
+								class="inline-flex min-h-6 items-center text-sm font-medium text-primary-dark underline underline-offset-2"
+							>
+								{missingEnvVariables.action}
+							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
+						</div>
+					{/if}
 					{#if failureCode}
-						<p class="text-xs text-muted">
-							Kode <span class="font-mono wrap-anywhere">{failureCode}</span>
+						<p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+							<span>Kode <span class="font-mono wrap-anywhere">{failureCode}</span></span>
+							{#if failureDocs}
+								<!-- eslint-disable svelte/no-navigation-without-resolve -- a page on the landing site -->
+								<a
+									href={failureDocs}
+									target="_blank"
+									rel="noreferrer noopener"
+									class="inline-flex min-h-6 items-center gap-1 font-medium text-primary-dark underline underline-offset-2"
+									data-testid="failure-docs-link"
+								>
+									{FAILURE_DOCS_COPY.link}
+									<ArrowSquareOut size={12} aria-hidden="true" />
+									<span class="sr-only">{FAILURE_DOCS_COPY.newTab}</span>
+								</a>
+								<!-- eslint-enable svelte/no-navigation-without-resolve -->
+							{/if}
 						</p>
 					{/if}
 				</div>

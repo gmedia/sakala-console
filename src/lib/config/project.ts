@@ -11,6 +11,12 @@ export const LEGAL_LINKS = {
 /** Published by sakala-landing: the guide to a first deploy, linked from the sidebar and onboarding. */
 export const DEPLOY_GUIDE_URL = 'https://sakala.dev/docs/deploy-pertama';
 
+/**
+ * Published by sakala-landing (`src/content/docs/deploy-gagal.md`): what each failure code means and
+ * how to fix it. Its headings are the codes, so `#runtime_app_crashed` lands on one.
+ */
+export const DEPLOY_FAILURE_GUIDE_URL = 'https://sakala.dev/docs/deploy-gagal';
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = 'abuse@sakala.dev';
 
