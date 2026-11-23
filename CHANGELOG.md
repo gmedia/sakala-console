@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-23
+
 ### Added
 
 - Invite several people at once. The "Undang anggota" field takes one or more addresses separated by commas, spaces, or new lines, so a column pasted from a spreadsheet works. After a paste the dialog lists what will be left out, with the address named: a malformed one ("gita@kampus belum berupa alamat email lengkap, misalnya nama@kampus.ac.id.") and one that is already a member of the team, checked against the member list. The button counts the rest ("Kirim 3 undangan") and sends them one by one with the same role, showing "Mengirim 2 dari 3...". When everything went out the dialog closes with "3 undangan terkirim."; otherwise it stays open with what was sent and one line per address that was not, and keeps only the addresses worth fixing in the field. A rate limit (`429`) stops the rest and says how many were not sent and when to try again. Each address is still one `POST /workspaces/{id}/invitations`, so no API change is needed; the pending list is refreshed once at the end.
@@ -11,6 +13,14 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - Database limits and a default region in a limit profile, which sakala-api already accepted. In Opsional: "Database" (managed databases per workspace, 0 to 1,000; 0 means the workspace cannot create one, empty follows the server, 2 unless changed), "Penyimpanan database (MB)" (total size of the workspace's databases, 0 to 1,048,576; databases are locked while usage is at the limit and 0 locks them all, empty follows the server, 512 MB unless changed), both noting that managed databases are a limited pilot; and "Region bawaan", a select of the regions `GET app/regions` reports ("Semua region" sends `null`), which keeps a saved region no node reports anymore and says so.
 - Leaving a limit profile page with unsaved changes asks first: a link inside the Console shows a confirmation, and closing or reloading the tab gets the browser's own prompt. Nothing typed, or a finished save, leaves without asking.
 - A Build/jam column in the limit profiles table. An empty value reads "Bawaan" (follows the server setting) there and in Tidur otomatis (was "Ikut bawaan server"), and the Tidur otomatis column is headed "Tidur", so the ten columns and the actions fit at 1440 px.
+- Rollback from the History tab (requires gmedia/sakala-api#196 and gmedia/sakala-agent v0.16.1). The row menu "Kembalikan ke versi ini" opens a dialog that compares the serving version with the target and says that variables stay as they are now, whether the old image is still on the node, and that auto-deploy pauses. A rollback deployment reads "Rollback ke #N"; when the image is gone it says Sakala rebuilt that commit.
+- "Sedang melayani" badge on the deployment that serves the project, and trigger lines with names in team workspaces ("Rani, push ke main", "Rani, rollback ke #4").
+- A banner while auto-deploy is paused after a rollback, with the number of held pushes and "Nyalakan lagi auto-deploy".
+- Restart without a build in the Redeploy menu ("Pilihan build dan restart"), with "Sedang restart" in the header until the API reports the outcome.
+- A deployment held until the project analysis finishes (`queue_state` `waiting_for_inspection`, requires gmedia/sakala-api#195) reads "Menunggu analisis proyek" and can be cancelled. The wizard no longer asks to fill in Port first for a Dockerfile app.
+- A note in the first-deploy Persiapan step for apps that keep files on their own disk (Laravel, or `FILESYSTEM_DISK`/upload folder keys in `.env.example`): files written inside the container are lost when the project sleeps, restarts, or redeploys, with a link to the file storage guide. The sleeping notice says the same in one line.
+- Deployment failure details link the matching section of "Saat Deploy Gagal" on sakala.dev.
+- A failed health check lists the `.env.example` variables that are not filled in yet, with a link to the Variabel tab.
 
 ### Changed
 
@@ -20,10 +30,20 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - The invite dialog opens with the cursor in the email field instead of on the send button.
 - Limit profiles are created and edited on their own page instead of a 512 px dialog that opened scrolled to its last field. `/admin/limit-profiles/new` and `/admin/limit-profiles/{id}` show one column: what the profile applies to, Nama (focused when the page opens), then three groups: Kapasitas workspace (projects, running containers, running deployments), Sumber daya per proyek (memory, CPU), and Opsional (builds per hour, idle sleep, max replicas), closed unless it holds a value or a value in it is refused. Alasan comes last, and Batal and Buat profil (or Simpan perubahan) stay in view at the bottom. The list's "Buat profil" and "Ubah" are links to these pages; the assign dialog's "Buat profil batas" and older `?create=1&return_to=` links open the new page and still return to the workspace or user with the new profile chosen. Editing reads the profile with `GET admin/limit-profiles/{id}`.
 - The admin workspace page names member roles the way members see them: Pemilik, Anggota, Pengamat (was Owner, Member, Viewer).
+- Wake estimates read "biasanya dalam kurang dari satu menit" everywhere, matching the page on a sleeping project's domain (measured: production wakes 3 to 11 s).
+- Error messages no longer say "tidak valid" or "Silakan coba lagi"; each says what did not happen and what to do next.
+- The SQLite note suggests a Sakala database only when the workspace can get one, and says the file is lost on sleep, restart, and redeploy.
+- The login page shows one short line when email delivery is off instead of the registration box; the register page links the privacy notice once.
+- Inviting several people stops at the first error that applies to all addresses (for example email delivery off) and shows one invitation message.
+- The first deployment's toast says "Deploy masuk antrean" instead of "Redeploy".
+- Settings tabs are part of the browser history, so Back and Forward move between tabs.
+- The Metrik help text matches how restarts are counted.
+- The project header and project cards show the same last deploy time; the header hides Port for static sites.
 
 ### Fixed
 
 - The Build per jam help said the API did not enforce the limit yet. It now says what sakala-api counts: deployments that build an image in the workspace in the last 60 minutes, failed ones included, not redeploys that reuse the image, and that empty follows the server default (20 unless changed).
+- The "Versi baru Sakala sudah tersedia" toast only appears when the version check finds a new version; a page chunk that fails to load while offline shows the connection message.
 
 ## [0.11.0] - 2026-11-20
 
@@ -264,7 +284,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/gmedia/sakala-console/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/gmedia/sakala-console/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/gmedia/sakala-console/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/gmedia/sakala-console/compare/v0.8.0...v0.9.0
