@@ -1,4 +1,5 @@
 import { apiRequest } from '$lib/api/client';
+import type { components } from '$lib/api/generated/schema';
 import type {
 	Deployment,
 	Project,
@@ -51,6 +52,21 @@ export async function requestProjectInspection(id: string): Promise<Project> {
 export async function wakeProject(id: string): Promise<Project> {
 	const res = await apiRequest<{ data: Project }>(`/api/v1/app/projects/${id}/wake`, {
 		method: 'POST'
+	});
+	return res.data;
+}
+
+/** What the API answers for a lifecycle action: the project's state and the command it queued. */
+export type ProjectControl = components['schemas']['ProjectControlResource'];
+
+/**
+ * Restart the running (or crash-looping) project without a build. Answers 202; `restart` on the
+ * project stays set until the node reports back. No deployment is created.
+ */
+export async function restartProject(id: string, idempotencyKey: string): Promise<ProjectControl> {
+	const res = await apiRequest<{ data: ProjectControl }>(`/api/v1/app/projects/${id}/restart`, {
+		method: 'POST',
+		headers: { 'Idempotency-Key': idempotencyKey }
 	});
 	return res.data;
 }

@@ -12,10 +12,19 @@ export type GeneratedDeployment = components['schemas']['DeploymentResource'];
  * `status` and `trigger` stay plain strings, as the schema below parses them: a value added by a
  * newer API still renders, and `status-config.ts` falls back for a status it does not know.
  */
-export type Deployment = Omit<GeneratedDeployment, 'status' | 'trigger'> & {
+export type Deployment = Omit<
+	GeneratedDeployment,
+	'status' | 'trigger' | RollbackDeploymentField
+> & {
 	status: string;
 	trigger: string;
-};
+} & Partial<Pick<GeneratedDeployment, RollbackDeploymentField>>;
+
+/** Added by the API with rollback and `triggered_by`, so an older one leaves them out. */
+type RollbackDeploymentField = 'triggered_by' | 'rollback' | 'rollback_target';
+export type DeploymentTriggeredBy = GeneratedDeployment['triggered_by'];
+export type DeploymentRollback = NonNullable<GeneratedDeployment['rollback']>;
+export type DeploymentRollbackTarget = NonNullable<GeneratedDeployment['rollback_target']>;
 
 export type { DeploymentBuild, DeploymentBuildFallbackReason } from './deployment-build';
 
@@ -171,6 +180,22 @@ export const deploymentSchema = z.object({
 	failure_summary: z.string().nullable(),
 	failure: decorative(deploymentFailureSchema),
 	build: deploymentBuildSchema,
+	// A kind this Console does not know reads as no actor, so the trigger keeps its plain label.
+	triggered_by: z
+		.object({
+			kind: z.enum(['user', 'github_push', 'system']),
+			name: z.string().nullable(),
+			user_id: z.number().nullable()
+		})
+		.optional()
+		.catch(undefined),
+	rollback: decorative(
+		z.object({
+			target_deployment_id: z.string().nullable(),
+			target_sequence: z.number().nullable()
+		})
+	).optional(),
+	rollback_target: decorative(z.object({ image_expected: z.boolean() })).optional(),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
 }) satisfies z.ZodType<Deployment>;
@@ -292,6 +317,24 @@ export async function cancelDeployment(
 	const response = await apiRequest<unknown>(
 		`api/v1/app/projects/${project}/deployments/${deployment}/cancel`,
 		{ method: 'POST' }
+	);
+
+	return parseDeploymentResponse(response);
+}
+
+/**
+ * Deploys the version of an earlier successful deployment again, as a new deployment with trigger
+ * `rollback`. The same key for the same target returns the same deployment, so a retry after a lost
+ * answer starts nothing twice. Refused with 409 `DEPLOYMENT_NOT_ROLLBACK_TARGET`, or as a deploy is.
+ */
+export async function rollbackDeployment(
+	project: string,
+	deployment: string,
+	idempotencyKey: string
+): Promise<DeploymentResponse> {
+	const response = await apiRequest<unknown>(
+		`api/v1/app/projects/${project}/deployments/${deployment}/rollback`,
+		{ method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } }
 	);
 
 	return parseDeploymentResponse(response);

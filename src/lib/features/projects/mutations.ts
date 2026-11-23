@@ -10,6 +10,7 @@ import {
 	triggerRedeploy,
 	addEnvironmentVariable,
 	requestProjectInspection,
+	restartProject,
 	wakeProject,
 	updateEnvironmentVariable,
 	deleteEnvironmentVariable
@@ -146,6 +147,34 @@ export function createWakeProjectMutation() {
 			if (error instanceof ApiError && error.code) {
 				queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId), exact: true });
 				queryClient.invalidateQueries({ queryKey: queryKeys.pilotLimits });
+			}
+		}
+	}));
+}
+
+/**
+ * The 202 carries the command, not the project, so the project is read again: it says `restart`
+ * until the node reports back. A coded refusal (not running, busy, suspended) means the cached
+ * project is out of date.
+ */
+export function createRestartProjectMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: (variables: { projectId: string; idempotencyKey: string }) =>
+			restartProject(variables.projectId, variables.idempotencyKey),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: projectKeys.detail(variables.projectId),
+				exact: true
+			});
+		},
+		onError: (error, variables) => {
+			if (error instanceof ApiError && error.code) {
+				queryClient.invalidateQueries({
+					queryKey: projectKeys.detail(variables.projectId),
+					exact: true
+				});
 			}
 		}
 	}));

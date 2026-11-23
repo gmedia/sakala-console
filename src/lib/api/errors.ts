@@ -62,6 +62,16 @@ export const PROJECT_REPLICAS_UNSUPPORTED = 'PROJECT_REPLICAS_UNSUPPORTED';
 export const PROJECT_RELEASE_COMMAND_UNSUPPORTED = 'PROJECT_RELEASE_COMMAND_UNSUPPORTED';
 
 /**
+ * A 409 on rollback: the deployment cannot be rolled back to (any more). Carries `reason`:
+ * `not_succeeded`, `already_active`, `no_commit`, or `branch_changed`.
+ */
+export const DEPLOYMENT_NOT_ROLLBACK_TARGET = 'DEPLOYMENT_NOT_ROLLBACK_TARGET';
+/** A 409 on restart: nothing runs to restart. Carries `runtime_status`. */
+export const PROJECT_NOT_RUNNING = 'PROJECT_NOT_RUNNING';
+/** A 409 on restart: a deployment, or a restart, stop, sleep, or wake, of the project is still open. */
+export const PROJECT_RUNTIME_BUSY = 'PROJECT_RUNTIME_BUSY';
+
+/**
  * Refusals of the managed database endpoints (DatabaseRuleException in sakala-api). Their extra
  * fields are read through `parseDatabaseRefusal()` in `api/resources/database-refusals.ts`.
  */
