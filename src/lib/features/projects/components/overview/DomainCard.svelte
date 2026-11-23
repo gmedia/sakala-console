@@ -4,6 +4,7 @@
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import Button from '$lib/components/ui/Button.svelte';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
+	import { CUSTOM_DOMAIN_ROADMAP_URL } from '$lib/config/project';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { ADDRESS_SECTION_ID } from '../../overview/links';
 	import { getPublicUrlLabel } from '../../presentation';
@@ -21,8 +22,6 @@
 
 	let { publicUrl, defaultDomain, reachable, unreachableNote }: Props = $props();
 
-	/** Horizon D of the public roadmap lists custom domains; the card says so instead of offering one. */
-	const ROADMAP_URL = 'https://sakala.dev/docs/proyek/roadmap#horizon-d--operasi-yang-andal';
 	const COPIED_MS = 2_000;
 
 	const COPY = {
@@ -99,7 +98,7 @@
 			<dd class="flex flex-col gap-1 text-sm text-foreground">
 				<span>{COPY.customNote}</span>
 				<a
-					href={ROADMAP_URL}
+					href={CUSTOM_DOMAIN_ROADMAP_URL}
 					target="_blank"
 					rel="external noopener noreferrer"
 					class="inline-flex min-h-6 items-center self-start font-medium text-primary-dark underline underline-offset-2"

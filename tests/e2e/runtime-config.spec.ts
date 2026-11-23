@@ -59,6 +59,48 @@ test('ignores a runtime API URL that is not http or https', async ({ page }) => 
 	expect(origins.every((origin) => origin.startsWith('http'))).toBe(true);
 });
 
+test('links to the legal documents the runtime config names', async ({ page }) => {
+	await serveRuntimeConfig(page, {
+		PUBLIC_TERMS_URL: 'https://selfhost.example/legal/terms',
+		PUBLIC_ACCEPTABLE_USE_URL: 'https://selfhost.example/legal?doc=aup',
+		PUBLIC_PRIVACY_URL: 'https://selfhost.example/legal#privacy'
+	});
+	await recordUserRequests(page);
+
+	await page.goto('/projects');
+
+	await expect(page).toHaveURL(/\/login/);
+	await expect(page.getByRole('link', { name: 'Syarat Layanan' })).toHaveAttribute(
+		'href',
+		'https://selfhost.example/legal/terms'
+	);
+	await expect(page.getByRole('link', { name: 'Penggunaan Wajar' })).toHaveAttribute(
+		'href',
+		'https://selfhost.example/legal?doc=aup'
+	);
+	await expect(page.getByRole('link', { name: 'Privasi' })).toHaveAttribute(
+		'href',
+		'https://selfhost.example/legal#privacy'
+	);
+});
+
+test('keeps the hosted legal links when the runtime config names none', async ({ page }) => {
+	await serveRuntimeConfig(page, {});
+	await recordUserRequests(page);
+
+	await page.goto('/projects');
+
+	await expect(page).toHaveURL(/\/login/);
+	await expect(page.getByRole('link', { name: 'Syarat Layanan' })).toHaveAttribute(
+		'href',
+		'https://sakala.dev/syarat'
+	);
+	await expect(page.getByRole('link', { name: 'Privasi' })).toHaveAttribute(
+		'href',
+		'https://sakala.dev/privasi'
+	);
+});
+
 test('the shipped build serves an empty runtime config', async ({ request }) => {
 	const response = await request.get('/runtime-config.js');
 	expect(response.ok()).toBe(true);

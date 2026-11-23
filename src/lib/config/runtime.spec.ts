@@ -21,8 +21,18 @@ describe('readRuntimeConfig', () => {
 			PUBLIC_REVERB_HOST: 'api.example.com',
 			PUBLIC_REVERB_PORT: '443',
 			PUBLIC_REVERB_SCHEME: 'https',
-			PUBLIC_REVERB_KEY: 'abc123'
+			PUBLIC_REVERB_KEY: 'abc123',
+			PUBLIC_DOCS_URL: 'https://docs.example.com/sakala',
+			PUBLIC_TERMS_URL: 'https://example.com/legal?doc=terms',
+			PUBLIC_ACCEPTABLE_USE_URL: 'https://example.com/legal#aup',
+			PUBLIC_PRIVACY_URL: 'https://example.com/privacy',
+			PUBLIC_ABUSE_EMAIL: 'ops@example.com'
 		};
+		expect(readRuntimeConfig(windowWith(config))).toEqual(config);
+	});
+
+	it('keeps an empty site link, which brings back the hosted one', () => {
+		const config = { PUBLIC_DOCS_URL: '', PUBLIC_PRIVACY_URL: '', PUBLIC_ABUSE_EMAIL: '' };
 		expect(readRuntimeConfig(windowWith(config))).toEqual(config);
 	});
 
@@ -40,10 +50,15 @@ describe('readRuntimeConfig', () => {
 			PUBLIC_REVERB_HOST: 'evil.example.com; script-src *',
 			PUBLIC_REVERB_PORT: '70000',
 			PUBLIC_REVERB_SCHEME: 'wss',
-			PUBLIC_REVERB_KEY: 'has space'
+			PUBLIC_REVERB_KEY: 'has space',
+			PUBLIC_DOCS_URL: 'https://docs.example.com/?page=',
+			PUBLIC_TERMS_URL: 'javascript:alert(1)',
+			PUBLIC_ACCEPTABLE_USE_URL: 'mailto:ops@example.com',
+			PUBLIC_PRIVACY_URL: 'example.com/privacy',
+			PUBLIC_ABUSE_EMAIL: 'ops@example.com?bcc=x@example.com'
 		};
 		expect(readRuntimeConfig(windowWith(config))).toEqual({});
-		expect(warn).toHaveBeenCalledTimes(6);
+		expect(warn).toHaveBeenCalledTimes(11);
 	});
 
 	it('ignores values that are not strings and keys it does not know', () => {

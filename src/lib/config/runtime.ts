@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /**
  * Public settings the container supplies when it starts, so one published image can serve any
  * installation. `docker/entrypoint.sh` renders `/runtime-config.js` from the container's
@@ -16,7 +18,12 @@ export const PUBLIC_CONFIG_KEYS = [
 	'PUBLIC_REVERB_HOST',
 	'PUBLIC_REVERB_PORT',
 	'PUBLIC_REVERB_SCHEME',
-	'PUBLIC_REVERB_KEY'
+	'PUBLIC_REVERB_KEY',
+	'PUBLIC_DOCS_URL',
+	'PUBLIC_TERMS_URL',
+	'PUBLIC_ACCEPTABLE_USE_URL',
+	'PUBLIC_PRIVACY_URL',
+	'PUBLIC_ABUSE_EMAIL'
 ] as const;
 
 export type PublicConfigKey = (typeof PUBLIC_CONFIG_KEYS)[number];
@@ -31,10 +38,30 @@ export function isHttpUrl(value: string): boolean {
 	return protocol === 'http:' || protocol === 'https:';
 }
 
+/**
+ * A base that page paths are appended to, so it cannot carry a query or a fragment: appending to
+ * `https://example.com/docs?x` would land the page inside the query.
+ */
+export function isDocsBaseUrl(value: string): boolean {
+	return isHttpUrl(value) && !value.includes('?') && !value.includes('#');
+}
+
+const emailSchema = z.email();
+
+/** Reaches the browser as a `mailto:` link, so it must be an address and nothing else. */
+export function isEmailAddress(value: string): boolean {
+	return emailSchema.safeParse(value).success;
+}
+
 function isPort(value: string): boolean {
 	if (!/^\d{1,5}$/.test(value)) return false;
 	const port = Number(value);
 	return port >= 1 && port <= 65_535;
+}
+
+/** For the site links, where an empty value means the hosted default (see ./site-links.ts). */
+function orEmpty(check: (value: string) => boolean): (value: string) => boolean {
+	return (value) => value === '' || check(value);
 }
 
 /**
@@ -48,7 +75,12 @@ const validators: Record<PublicConfigKey, (value: string) => boolean> = {
 	PUBLIC_REVERB_HOST: (value) => HOST_PATTERN.test(value),
 	PUBLIC_REVERB_PORT: isPort,
 	PUBLIC_REVERB_SCHEME: (value) => value === 'http' || value === 'https',
-	PUBLIC_REVERB_KEY: (value) => KEY_PATTERN.test(value)
+	PUBLIC_REVERB_KEY: (value) => KEY_PATTERN.test(value),
+	PUBLIC_DOCS_URL: orEmpty(isDocsBaseUrl),
+	PUBLIC_TERMS_URL: orEmpty(isHttpUrl),
+	PUBLIC_ACCEPTABLE_USE_URL: orEmpty(isHttpUrl),
+	PUBLIC_PRIVACY_URL: orEmpty(isHttpUrl),
+	PUBLIC_ABUSE_EMAIL: orEmpty(isEmailAddress)
 };
 
 /**
