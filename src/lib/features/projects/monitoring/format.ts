@@ -17,8 +17,13 @@ export const MONITORING_COPY = {
 	noPointsInRange: 'Belum ada data di rentang ini.',
 	cpuNote:
 		'100% = 1 core, dijumlah dari semua replika, jadi bisa lebih dari 100%. Diukur sesaat sekali per menit, jadi lonjakan singkat bisa terlewat.',
+	/**
+	 * How sakala-api counts (GetProjectMetricsAction): Docker's restarts of a crashed container, plus
+	 * one per replica for every Restart a member asked for. Waking and recovering a replica start
+	 * the container again without adding to the count.
+	 */
 	restartsNote:
-		'Restart container selama berjalan, misalnya karena crash. Container yang dinyalakan lagi (bangun dari tidur, restart, atau replika dipulihkan) mulai menghitung dari nol.',
+		'Berapa kali container dinyalakan ulang, dijumlah dari semua replika: oleh Docker setelah crash, dan setiap kali kamu menekan Restart (satu per replika). Bangun dari tidur dan replika yang dipulihkan tidak dihitung. Setelah restart, CPU dan memori dicatat dari container yang baru menyala.',
 	limitSince: 'Garis batas mulai dari saat jumlah replika itu berlaku.',
 	/**
 	 * The readout under a chart shows one point: the newest, or the one under the cursor. It names
