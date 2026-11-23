@@ -341,11 +341,15 @@ export function getDeployErrorMessage(error: unknown, fallback: string): string 
  */
 export const REDEPLOY_COPY = {
 	action: 'Redeploy',
+	/** While auto-deploy is paused after a rollback: Redeploy leaves the rolled-back version. */
+	pausedAction: 'Redeploy commit terbaru',
 	busy: 'Menjalankan...',
 	firstDeploy: 'Deploy sekarang',
 	otherDeploymentRunning: 'Sedang men-deploy',
 	/** The menu button's name. It leaves out "redeploy", so the Redeploy button keeps its own name. */
 	menuLabel: 'Pilihan cara build',
+	/** The same menu once it also holds Restart. */
+	menuLabelWithRestart: 'Pilihan build dan restart',
 	reuse: {
 		label: 'Redeploy',
 		description:
@@ -364,7 +368,10 @@ export const REDEPLOY_REQUIRED_COPY = {
 	settings:
 		'Proyek ini perlu redeploy: ada perubahan yang belum dipakai aplikasi yang sedang berjalan. Redeploy supaya perubahannya berlaku.',
 	action: 'Redeploy sekarang',
-	busy: 'Menjalankan...'
+	busy: 'Menjalankan...',
+	/** After the notice, while auto-deploy is paused: the live version is a rollback. */
+	paused: (branch: string) =>
+		`Auto-deploy sedang dijeda setelah rollback, jadi Redeploy men-deploy commit terbaru di ${branch} dan menggantikan versi rollback.`
 } as const;
 
 /**

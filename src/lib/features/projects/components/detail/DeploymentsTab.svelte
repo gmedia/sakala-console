@@ -1,5 +1,21 @@
 <script lang="ts">
-	import { createDeploymentsQuery, createSkippedPushesQuery } from '../../queries';
+	import {
+		createDeploymentsQuery,
+		createProjectQuery,
+		createRecentDeploymentsQuery,
+		createSkippedPushesQuery
+	} from '../../queries';
+	import RollbackDialog from '$lib/features/deployments/components/RollbackDialog.svelte';
+	import {
+		getHistoryTriggerNote,
+		isServingDeployment
+	} from '$lib/features/deployments/history-presentation';
+	import { createDeploymentQuery } from '$lib/features/deployments/queries';
+	import { getRollbackPlan } from '$lib/features/deployments/rollback';
+	import { useDeploymentRollback } from '$lib/features/deployments/use-deployment-rollback.svelte';
+	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
+	import { cn } from '$lib/utils/cn';
+	import { historyHeaderColumns } from '../../history-grid';
 	import {
 		groupSkippedPushes,
 		SKIPPED_PUSHES_PER_PAGE,
@@ -70,6 +86,42 @@
 			Array.isArray(skippedPushesQuery.data?.data) ? skippedPushesQuery.data.data : []
 		)
 	);
+
+	// The layout reads the project already, so this shares its cache.
+	const projectQuery = createProjectQuery(() => projectId);
+	const project = $derived(projectQuery.data);
+	const workspaceType = $derived(project?.workspace?.type);
+	const access = useProjectAccess(() => project);
+	// Only someone who may deploy rolls back; the API decides which deployments qualify.
+	const mayRollback = $derived(Boolean(project) && !access.readOnly);
+	const withActions = $derived(
+		mayRollback && deployments.some((deployment) => deployment.rollback_target)
+	);
+
+	const rollback = useDeploymentRollback(() => projectId);
+	// What serves now, for the comparison: on this page, in the header's list, or read once.
+	const recentQuery = createRecentDeploymentsQuery(() => projectId);
+	const activeId = $derived(project?.active_deployment_id ?? null);
+	const activeListed = $derived(
+		activeId
+			? [...deployments, ...(recentQuery.data?.data ?? [])].find(
+					(deployment) => deployment.id === activeId
+				)
+			: undefined
+	);
+	const activeQuery = createDeploymentQuery(
+		() => projectId,
+		() => (rollback.target && activeId && !activeListed ? activeId : '')
+	);
+	const rollbackPlan = $derived.by(() => {
+		const target = rollback.target
+			? deployments.find((deployment) => deployment.id === rollback.target?.id)
+			: undefined;
+		if (!target || !project) return null;
+		const active = activeListed ?? activeQuery.data?.data;
+		const serving = active && isServingDeployment(active, project.runtime_status) ? active : null;
+		return getRollbackPlan(target, serving, project);
+	});
 </script>
 
 <div class="flex w-full flex-col gap-4">
@@ -143,7 +195,10 @@
 		<div class="surface-card @container overflow-hidden">
 			<div
 				aria-hidden="true"
-				class="hidden gap-x-3 border-b border-border px-4 py-2 text-xs text-muted @3xl:grid @3xl:grid-cols-[6.5rem_2.5rem_minmax(0,1fr)_4.5rem_5rem_6.5rem_6.5rem]"
+				class={cn(
+					'hidden gap-x-3 border-b border-border px-4 py-2 text-xs text-muted @3xl:grid',
+					historyHeaderColumns(withActions)
+				)}
 			>
 				<span>Status</span>
 				<span>Nomor</span>
@@ -152,13 +207,24 @@
 				<span>Branch</span>
 				<span>Waktu</span>
 				<span class="text-right">Durasi</span>
+				{#if withActions}
+					<span></span>
+				{/if}
 			</div>
 			<ul class="divide-y divide-border">
 				{#each deployments as deployment (deployment.id)}
 					{#each skippedByDeployment.get(deployment.id) ?? [] as skip (skip.delivery_id)}
-						<SkippedPushRow {skip} />
+						<SkippedPushRow {skip} {withActions} />
 					{/each}
-					<DeploymentRow {deployment} />
+					<DeploymentRow
+						{deployment}
+						{withActions}
+						serving={isServingDeployment(deployment, project?.runtime_status)}
+						triggerNote={getHistoryTriggerNote(deployment, workspaceType)}
+						onRollback={mayRollback && deployment.rollback_target
+							? () => rollback.open({ id: deployment.id, sequence: deployment.sequence })
+							: undefined}
+					/>
 				{/each}
 			</ul>
 		</div>
@@ -166,3 +232,11 @@
 		<Pagination {currentPage} {totalPages} onPageChange={(next) => (currentPage = next)} />
 	{/if}
 </div>
+
+<RollbackDialog
+	plan={rollbackPlan}
+	isLoading={rollback.isPending}
+	error={rollback.errorMessage}
+	onConfirm={rollback.confirm}
+	onClose={rollback.close}
+/>

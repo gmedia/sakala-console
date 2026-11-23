@@ -2,8 +2,10 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { Project } from '$lib/features/projects/type';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import AutoDeployPausedBanner from './AutoDeployPausedBanner.svelte';
 	import ProjectStatusNotice from './ProjectStatusNotice.svelte';
 	import RedeployButton from './RedeployButton.svelte';
+	import RestartProjectDialog from './RestartProjectDialog.svelte';
 	import ArrowSquareOut from 'phosphor-svelte/lib/ArrowSquareOut';
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
@@ -16,6 +18,8 @@
 	import { useProjectLiveStatus } from '$lib/features/projects/detail/use-project-live-status.svelte';
 	import { useProjectRedeploy } from '$lib/features/projects/detail/use-project-redeploy.svelte';
 	import { useProjectWake } from '$lib/features/projects/detail/use-project-wake.svelte';
+	import { useProjectRestart } from '$lib/features/projects/detail/use-project-restart.svelte';
+	import { RESTART_COPY } from '$lib/features/projects/restart';
 	import { useProjectIdleWindow } from '$lib/features/projects/detail/use-project-idle-window.svelte';
 	import {
 		getPortDisplay,
@@ -44,6 +48,10 @@
 	);
 	const redeploy = useProjectRedeploy(() => project);
 	const wake = useProjectWake(() => project);
+	const restart = useProjectRestart(
+		() => project,
+		() => live.restartOutcome
+	);
 
 	const header = $derived(live.header);
 	const publicUrl = $derived(getProjectPublicUrl(project));
@@ -52,12 +60,22 @@
 	const isBusy = $derived(redeploy.isProcessing || header.redeployBusy);
 	const hasFacts = $derived(header.kind !== 'not_deployed' && header.kind !== 'failed');
 
+	const autoDeployPause = $derived(project.auto_deploy_pause ?? null);
+	// While paused, the live version is a rollback, and Redeploy replaces it with the branch's newest.
 	const redeployLabel = $derived(
 		header.redeployBusy
 			? REDEPLOY_COPY.otherDeploymentRunning
 			: header.kind === 'not_deployed'
 				? REDEPLOY_COPY.firstDeploy
-				: REDEPLOY_COPY.action
+				: autoDeployPause
+					? REDEPLOY_COPY.pausedAction
+					: REDEPLOY_COPY.action
+	);
+	// In the Redeploy menu while it runs or crash-loops, and while a restart waits for its node.
+	const restartOption = $derived(
+		restart.available || restart.pending
+			? { pending: restart.pending, onSelect: restart.openDialog }
+			: null
 	);
 	// A full build is only a choice next to a live image; without one, every redeploy builds.
 	const canForceBuild = $derived(
@@ -89,6 +107,11 @@
 				{#if header.activity}
 					<Badge tone={header.activity.variant}>
 						<span data-testid="project-header-activity">{header.activity.label}</span>
+					</Badge>
+				{/if}
+				{#if restart.pending}
+					<Badge tone="running">
+						<span data-testid="project-restart-pending">{RESTART_COPY.pending}</span>
 					</Badge>
 				{/if}
 				{#if header.replicaHealth}
@@ -207,6 +230,7 @@
 						busy={isBusy}
 						label={redeployLabel}
 						offerForceBuild={canForceBuild}
+						restart={restartOption}
 					/>
 				{/if}
 			</div>
@@ -230,6 +254,15 @@
 			class="rounded-control border border-error/30 bg-error-50 px-4 py-2.5 text-sm text-error-dark"
 		>
 			{wake.errorMessage}
+		</p>
+	{/if}
+
+	{#if restart.failureMessage}
+		<p
+			role="alert"
+			class="rounded-control border border-error/30 bg-error-50 px-4 py-2.5 text-sm text-error-dark"
+		>
+			{restart.failureMessage}
 		</p>
 	{/if}
 
@@ -262,4 +295,22 @@
 			{/if}
 		</ProjectStatusNotice>
 	{/if}
+
+	{#if autoDeployPause}
+		<AutoDeployPausedBanner
+			{project}
+			pause={autoDeployPause}
+			canResume={!access.readOnly}
+			workspaceName={project.workspace?.name}
+		/>
+	{/if}
 </div>
+
+<RestartProjectDialog
+	open={restart.dialogOpen}
+	crashed={project.runtime_status === 'crashed'}
+	isLoading={restart.isSubmitting}
+	error={restart.errorMessage}
+	onConfirm={restart.confirm}
+	onClose={restart.closeDialog}
+/>

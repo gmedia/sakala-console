@@ -125,6 +125,24 @@ describe('the fallback note', () => {
 		);
 		expect(segments.some((segment) => segment.deploymentId)).toBe(false);
 	});
+
+	it('says a rollback builds the old commit again, linking the image it planned to use', () => {
+		const segments = getFallbackNoteSegments(source, 'image_missing', { rollback: true });
+		expect(segmentsToText(segments)).toBe(
+			'Image #12 sudah tidak ada di server, jadi Sakala build ulang commit ini.'
+		);
+		expect(segments.find((segment) => segment.deploymentId)?.text).toBe('#12');
+	});
+
+	it('speaks of this version when the image source of a rollback was deleted', () => {
+		expect(
+			segmentsToText(
+				getFallbackNoteSegments({ deploymentId: null, sequence: null }, 'image_missing', {
+					rollback: true
+				})
+			)
+		).toBe('Image versi ini sudah tidak ada di server, jadi Sakala build ulang commit ini.');
+	});
 });
 
 describe('getReuseRowLabel', () => {

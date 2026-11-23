@@ -28,6 +28,10 @@ export const IMAGE_REUSE_COPY = {
 	noteLead: 'Image dari deployment',
 	noteSourceDeleted: 'Image dari deployment sebelumnya',
 	noteOutcome: 'jadi Sakala menjalankan build dari awal.',
+	/** A rollback that could not reuse its image builds the old commit again. */
+	rollbackNoteLead: 'Image',
+	rollbackNoteSourceDeleted: 'Image versi ini',
+	rollbackNoteOutcome: 'jadi Sakala build ulang commit ini.',
 	rowLabel: 'Tanpa build',
 	rowSource: 'image',
 	/** For a screen reader, which reads the dot as nothing or as a symbol. */
@@ -85,15 +89,29 @@ export function getReusedStepSegments(source: ImageSource): ImageSourceSegment[]
 	];
 }
 
-/** Says calmly why a planned reuse built after all: a fallback is normal, not a failure. */
+/**
+ * Says calmly why a planned reuse built after all: a fallback is normal, not a failure. A rollback
+ * says it builds the old commit again ("Image #3 sudah tidak ada di server, jadi Sakala build ulang
+ * commit ini.").
+ */
 export function getFallbackNoteSegments(
 	source: ImageSource,
-	reason: DeploymentBuildFallbackReason
+	reason: DeploymentBuildFallbackReason,
+	options: { rollback?: boolean } = {}
 ): ImageSourceSegment[] {
-	const tail = ` ${FALLBACK_REASON_COPY[reason]}, ${IMAGE_REUSE_COPY.noteOutcome}`;
+	const outcome = options.rollback
+		? IMAGE_REUSE_COPY.rollbackNoteOutcome
+		: IMAGE_REUSE_COPY.noteOutcome;
+	const tail = ` ${FALLBACK_REASON_COPY[reason]}, ${outcome}`;
 	const ref = sourceRef(source);
-	if (!ref) return [{ text: `${IMAGE_REUSE_COPY.noteSourceDeleted}${tail}` }];
-	return [{ text: `${IMAGE_REUSE_COPY.noteLead} ` }, ref, { text: tail }];
+	if (!ref) {
+		const lead = options.rollback
+			? IMAGE_REUSE_COPY.rollbackNoteSourceDeleted
+			: IMAGE_REUSE_COPY.noteSourceDeleted;
+		return [{ text: `${lead}${tail}` }];
+	}
+	const lead = options.rollback ? IMAGE_REUSE_COPY.rollbackNoteLead : IMAGE_REUSE_COPY.noteLead;
+	return [{ text: `${lead} ` }, ref, { text: tail }];
 }
 
 export function segmentsToText(segments: readonly ImageSourceSegment[]): string {

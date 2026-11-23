@@ -3,13 +3,15 @@
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import { deriveDurationLabel } from '$lib/features/deployments/deployment-presentation';
 	import {
-		deriveDurationLabel,
-		getDeploymentTriggerLabel
-	} from '$lib/features/deployments/deployment-presentation';
+		describeDeploymentTrigger,
+		HISTORY_COPY,
+		isServingDeployment
+	} from '$lib/features/deployments/history-presentation';
 	import { getReuseRowLabel } from '$lib/features/deployments/image-reuse-presentation';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
-	import { createRecentDeploymentsQuery } from '../../queries';
+	import { createProjectQuery, createRecentDeploymentsQuery } from '../../queries';
 	import { getDeploymentBadge } from '../../presentation';
 	import type { Deployment } from '../../type';
 
@@ -22,6 +24,10 @@
 
 	// The header reads the same list, so this costs no request of its own.
 	const query = createRecentDeploymentsQuery(() => projectId);
+	// The layout reads the project already, so this shares its cache.
+	const projectQuery = createProjectQuery(() => projectId);
+	const runtimeStatus = $derived(projectQuery.data?.runtime_status);
+	const workspaceType = $derived(projectQuery.data?.workspace?.type);
 	const deployments = $derived(
 		[...(query.data?.data ?? [])].sort((a, b) => b.sequence - a.sequence).slice(0, SHOWN)
 	);
@@ -108,6 +114,7 @@
 						{@const badge = getDeploymentBadge(deployment.status)}
 						{@const time = duration(deployment)}
 						{@const reuse = getReuseRowLabel(deployment.build)}
+						{@const trigger = describeDeploymentTrigger(deployment, workspaceType)}
 						<tr data-testid="overview-deployment-row">
 							<td class="px-4 py-2.5 align-top sm:pl-6">
 								<a
@@ -117,7 +124,14 @@
 								>
 									{message(deployment)}
 								</a>
-								<span class="mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted">
+								<span
+									class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted"
+								>
+									{#if isServingDeployment(deployment, runtimeStatus)}
+										<span data-testid="overview-deployment-serving"
+											><Badge tone="success">{HISTORY_COPY.serving}</Badge></span
+										>
+									{/if}
 									<span class="font-mono tabular-nums">#{deployment.sequence}</span>
 									{#if shortSha(deployment)}
 										<span class="font-mono tabular-nums">{shortSha(deployment)}</span>
@@ -127,7 +141,7 @@
 											>{reuse.label}</span
 										>
 									{/if}
-									<span class="@xl:hidden">{getDeploymentTriggerLabel(deployment.trigger)}</span>
+									<span class="@xl:hidden">{trigger}</span>
 									{#if deployment.created_at}
 										<time
 											class="@xl:hidden"
@@ -144,8 +158,11 @@
 									<span class="mt-0.5 block text-xs text-muted tabular-nums">{time}</span>
 								{/if}
 							</td>
-							<td class="hidden px-4 py-2.5 align-top text-foreground @xl:table-cell">
-								{getDeploymentTriggerLabel(deployment.trigger)}
+							<td
+								class="hidden px-4 py-2.5 align-top text-foreground @xl:table-cell"
+								data-testid="overview-deployment-trigger"
+							>
+								{trigger}
 							</td>
 							<td
 								class="hidden px-4 py-2.5 align-top whitespace-nowrap text-foreground sm:pr-6 @xl:table-cell"

@@ -67,6 +67,17 @@ type ProjectReplicaFields = Partial<
 	>
 >;
 
+/**
+ * Added by the API with rollback and user restart, so an older one leaves them out. `null`: auto-deploy
+ * is not paused, and no restart is waiting for its node.
+ */
+type ProjectRollbackFields = Partial<
+	Pick<components['schemas']['ProjectResource'], 'auto_deploy_pause' | 'restart'>
+>;
+export type AutoDeployPause = NonNullable<
+	components['schemas']['ProjectResource']['auto_deploy_pause']
+>;
+
 /** Added by the API with the release command, so an older one leaves it out. */
 type ProjectReleaseFields = Partial<
 	Pick<components['schemas']['ProjectResource'], 'release_command'>
@@ -109,6 +120,11 @@ type DeploymentContractFields = Pick<
 
 /** Added by the API with image reuse, so an older one leaves it out. */
 type DeploymentBuildFields = Partial<Pick<components['schemas']['DeploymentResource'], 'build'>>;
+
+/** Added by the API with rollback and `triggered_by`, so an older one leaves them out. */
+type DeploymentRollbackFields = Partial<
+	Pick<components['schemas']['DeploymentResource'], 'triggered_by' | 'rollback' | 'rollback_target'>
+>;
 
 export type { RuntimeStatus };
 
@@ -168,7 +184,8 @@ export interface Project
 		ProjectPlacementFields,
 		ProjectDatabaseFields,
 		ProjectLatestDeploymentFields,
-		ProjectVariableChangesFields {}
+		ProjectVariableChangesFields,
+		ProjectRollbackFields {}
 
 /** `id` is an integer (an auto-increment key), and the routes take it as one. */
 export type EnvironmentVariable = components['schemas']['EnvironmentVariableResource'];
@@ -209,7 +226,11 @@ export interface DeploymentBase {
 }
 
 export interface Deployment
-	extends DeploymentBase, DeploymentContractFields, DeploymentBuildFields {}
+	extends
+		DeploymentBase,
+		DeploymentContractFields,
+		DeploymentBuildFields,
+		DeploymentRollbackFields {}
 
 export type DeploymentFilter = '7_days' | '30_days' | 'all';
 
@@ -234,8 +255,12 @@ export interface PaginatedDeployments {
 	meta: PaginationMeta;
 }
 
-/** A push auto-deploy skipped because it only changed files of other projects in the monorepo (sakala-api #181). */
+/**
+ * A push auto-deploy skipped: it only changed files of other projects in the monorepo (sakala-api
+ * #181), or auto-deploy was paused after a rollback.
+ */
 export type SkippedPush = components['schemas']['SkippedPushResource'];
+export type SkippedPushReason = SkippedPush['reason'];
 
 export interface GetSkippedPushesParams {
 	/** ISO 8601; only pushes skipped at or after it. */

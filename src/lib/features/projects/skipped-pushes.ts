@@ -1,4 +1,27 @@
-import type { Deployment, SkippedPush } from './type';
+import type { Deployment, SkippedPush, SkippedPushReason } from './type';
+
+/** Why a push did not deploy (`reason` of a skipped push). */
+export const SKIPPED_PUSH_REASONS = {
+	noChangesInRootDirectory: 'no_changes_in_root_directory',
+	autoDeployPaused: 'auto_deploy_paused'
+} as const satisfies Record<string, SkippedPushReason>;
+
+export const SKIPPED_PUSH_COPY = {
+	skippedStatus: 'Dilewati',
+	heldStatus: 'Ditahan',
+	skippedQuestion: 'Kenapa push ini dilewati?',
+	heldQuestion: 'Kenapa push ini tidak di-deploy?',
+	heldTitle: 'Ditahan — auto-deploy sedang dijeda',
+	heldReason: (sha: string) =>
+		`Push ini (commit ${sha}) tidak di-deploy karena auto-deploy sedang dijeda setelah rollback, supaya versi rollback tidak tertimpa.`,
+	heldNext: (branch: string) =>
+		`Redeploy men-deploy commit terbaru di ${branch}. Kalau auto-deploy dinyalakan lagi, push berikutnya langsung di-deploy; push yang sudah ditahan tidak di-deploy sendiri.`,
+	heldFiles: (count: number) => `${count} file berubah:`
+} as const;
+
+export function isHeldPush(skip: Pick<SkippedPush, 'reason'>): boolean {
+	return skip.reason === SKIPPED_PUSH_REASONS.autoDeployPaused;
+}
 
 /** The API's page cap; one history page of six deployments rarely has more skipped pushes behind it. */
 export const SKIPPED_PUSHES_PER_PAGE = 100;
@@ -46,12 +69,15 @@ export function groupSkippedPushes(
 	return groups;
 }
 
-export function skippedPushTitle(skip: Pick<SkippedPush, 'root_directory'>): string {
+export function skippedPushTitle(skip: Pick<SkippedPush, 'root_directory' | 'reason'>): string {
+	if (isHeldPush(skip)) return SKIPPED_PUSH_COPY.heldTitle;
 	return `Dilewati — tidak ada perubahan di ${skip.root_directory}`;
 }
 
 /** "3 file berubah" plus the files the API sent; the rest is a count, never invented. */
-export function skippedPushFiles(skip: Pick<SkippedPush, 'changed_path_count' | 'example_paths'>): {
+export function skippedPushFiles(
+	skip: Pick<SkippedPush, 'changed_path_count' | 'example_paths' | 'reason'>
+): {
 	summary: string;
 	paths: string[];
 	more: string | null;
@@ -59,7 +85,9 @@ export function skippedPushFiles(skip: Pick<SkippedPush, 'changed_path_count' | 
 	const rest = skip.changed_path_count - skip.example_paths.length;
 
 	return {
-		summary: `${skip.changed_path_count} file berubah, semuanya di folder proyek lain:`,
+		summary: isHeldPush(skip)
+			? SKIPPED_PUSH_COPY.heldFiles(skip.changed_path_count)
+			: `${skip.changed_path_count} file berubah, semuanya di folder proyek lain:`,
 		paths: skip.example_paths,
 		more: rest > 0 ? `dan ${rest} file lainnya` : null
 	};
