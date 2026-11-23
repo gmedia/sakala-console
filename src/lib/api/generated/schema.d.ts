@@ -712,6 +712,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/deployments/{deployment}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Roll back to a deployment
+         * @description Creates a deployment (`trigger: rollback`) with this deployment's commit and recorded settings, the project's
+         *     current variables, and its image when the node still has it (otherwise it builds that commit). Pauses auto-deploy
+         *     when it was on. Answers 201 with the new deployment; with the same `Idempotency-Key` again, the same one. 409
+         *     `DEPLOYMENT_NOT_ROLLBACK_TARGET` with `reason` when this deployment cannot be gone back to, and every error of
+         *     creating a deployment otherwise.
+         */
+        post: operations["v1.app.projects.deployments.rollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/deployments/failures": {
         parameters: {
             query?: never;
@@ -1547,6 +1571,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart the live containers
+         * @description Answers 202 with the RestartProject command: the node restarts the containers of the active deployment without a
+         *     build and without a new deployment; code and variables stay the same. While it is open, the project's `restart`
+         *     is non-null. Same rights as deploying; a member of a suspended project gets 409 `PROJECT_SUSPENDED`. With the
+         *     same `Idempotency-Key` again, the same command.
+         */
+        post: operations["v1.app.projects.restart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/projects": {
         parameters: {
             query?: never;
@@ -2259,7 +2306,7 @@ export interface components {
                 /** @enum {string} */
                 status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
                 /** @enum {string} */
-                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready";
+                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "rollback";
                 branch: string;
                 commit_sha: string | null;
                 commit_message: string | null;
@@ -3112,6 +3159,15 @@ export interface components {
                 privacy_notice_version: string;
             };
         };
+        /**
+         * AutoDeployPauseReason
+         * @description Why auto-deploy of a project is paused (`auto_deploy_pause.reason` of ProjectResource). Not stored: a rollback is the only thing that pauses it.
+         *     | |
+         *     |---|
+         *     | `rollback` <br/> A rollback went back to an earlier version; a push would undo it. |
+         * @enum {string}
+         */
+        AutoDeployPauseReason: "rollback";
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** @description An OAuth-only account has nothing to confirm with yet. */
@@ -3360,6 +3416,17 @@ export interface components {
          */
         DatabaseStatus: "provisioning" | "ready" | "failed" | "deleting" | "deleted" | "locked";
         /**
+         * DeploymentActorKind
+         * @description Who asked for a deployment, as `triggered_by.kind` of DeploymentResource (DeploymentTrigger::actorKind()).
+         *     | |
+         *     |---|
+         *     | `user` <br/> A member, by hand: deploy, redeploy, or rollback. |
+         *     | `github_push` <br/> A push to the project's branch on GitHub (auto-deploy). |
+         *     | `system` <br/> Sakala itself, for example after a database password rotation. |
+         * @enum {string}
+         */
+        DeploymentActorKind: "user" | "github_push" | "system";
+        /**
          * DeploymentBuildFallbackReason
          * @description Why the agent built a deployment that was planned to reuse an image, from the `reason` of its `deployment.image.reuse_skipped` event. The first four values match the agent's; `ImageUnavailable` stands for any reason this API does not know, so a newer agent never leaves the field empty.
          *     | |
@@ -3420,7 +3487,30 @@ export interface components {
             /** @enum {string} */
             status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
             /** @enum {string} */
-            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "rollback";
+            /**
+             * @description Who asked for the deployment. `user`: the member (`name` is their current name; both null once the
+             *     account is deleted). `github_push`: the pusher's GitHub name (`name` null for older deployments,
+             *     `user_id` always null). `system`: Sakala itself, both null.
+             */
+            triggered_by: {
+                kind: components["schemas"]["DeploymentActorKind"];
+                name: string | null;
+                user_id: number | null;
+            };
+            /** @description Only for `trigger = rollback`: the deployment it went back to. Both values null once that one is deleted. */
+            rollback: {
+                target_deployment_id: string | null;
+                target_sequence: number | null;
+            } | null;
+            /**
+             * @description Non-null when the project can be rolled back to this deployment now: it succeeded, is not the active one,
+             *     has a commit, ran the project's current branch, and the project is not suspended. `image_expected` is
+             *     true when the node is expected to still hold its image, so the rollback builds nothing.
+             */
+            rollback_target: {
+                image_expected: boolean;
+            } | null;
             commit_sha: string | null;
             commit_message: string | null;
             image_reference: string | null;
@@ -3568,7 +3658,7 @@ export interface components {
              * @description `manual`, `webhook`, or another `DeploymentTrigger`.
              * @enum {string}
              */
-            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "rollback";
             agent_node_id: string | null;
             /** @description Who asked for the deployment; null for an account deleted since. */
             requested_by: {
@@ -4082,7 +4172,28 @@ export interface components {
             /** @description Run once per deployment before the new version takes traffic, for example database migrations. */
             release_command: string | null;
             root_directory: string | null;
+            /** @description True when a push to the branch deploys now. False while paused after a rollback (see `auto_deploy_pause`). */
             auto_deploy: boolean;
+            /**
+             * @description Non-null only while auto-deploy is paused after a rollback. `deployment_id` and `deployment_sequence` name
+             *     the rollback that paused it (null once deleted); `held_push_count` is how many pushes were recorded with
+             *     reason `auto_deploy_paused` since `paused_at`. `PATCH` with `auto_deploy` (true or false) clears it.
+             */
+            auto_deploy_pause: {
+                paused_at: string;
+                reason: components["schemas"]["AutoDeployPauseReason"];
+                deployment_id: string | null;
+                deployment_sequence: number | null;
+                held_push_count: number;
+            } | null;
+            /**
+             * @description Non-null while a restart a member asked for is queued or running on the node; null once it succeeded,
+             *     failed, or expired. `requested_at` is when it was asked for.
+             */
+            restart: {
+                requested_at: string;
+                status: components["schemas"]["ProjectRestartState"];
+            } | null;
             /**
              * @description True while the serving deployment was created with another deploy-relevant configuration: branch, port,
              *     build configuration, replicas, environment variables, or the attached database (attaching, detaching, and a
@@ -4186,6 +4297,17 @@ export interface components {
             created_at: string | null;
             updated_at: string | null;
         };
+        /**
+         * ProjectRestartState
+         * @description Where a member's restart (RestartProject) stands: `restart.status` of ProjectResource while it is open, and `restart.outcome` of the `deployment.updated` broadcast once the node answered.
+         *     | |
+         *     |---|
+         *     | `pending` <br/> Queued or running on the node. |
+         *     | `succeeded` <br/> The node restarted the containers. |
+         *     | `failed` <br/> The node could not restart them, or the command expired. |
+         * @enum {string}
+         */
+        ProjectRestartState: "pending" | "succeeded" | "failed";
         /**
          * ProjectStatus
          * @enum {string}
@@ -4339,20 +4461,27 @@ export interface components {
             /** @description The GitHub delivery (X-GitHub-Delivery) that was skipped; one record per delivery and project. */
             delivery_id: string;
             /**
-             * @description Why the push did not deploy. The only value: `no_changes_in_root_directory`.
-             * @constant
+             * @description Why the push did not deploy: `no_changes_in_root_directory` (it only changed other projects' folders) or
+             *     `auto_deploy_paused` (auto-deploy is paused after a rollback; the push is held).
+             * @enum {string}
              */
-            reason: "no_changes_in_root_directory";
+            reason: "no_changes_in_root_directory" | "auto_deploy_paused";
             /** @description The pushed commit (`after`), 40 hexadecimal characters. */
             commit_sha: string;
             /** @description First line of the head commit's message, at most 500 characters; null without one. */
             commit_message: string | null;
             branch: string;
-            /** @description The project's root directory when the push arrived, normalized (`apps/web`, never empty). */
+            /**
+             * @description The project's root directory when the push arrived, normalized (`apps/web`). Never empty for
+             *     `no_changes_in_root_directory`; `""` for `auto_deploy_paused` on a project without one.
+             */
             root_directory: string;
-            /** @description Distinct files the push changed. */
+            /**
+             * @description Distinct files the push changed. At least 1 for `no_changes_in_root_directory`; 0 for `auto_deploy_paused`
+             *     when the payload may not list every file (a force push, a new branch, an empty commit, ...).
+             */
             changed_path_count: number;
-            /** @description Up to 5 of those files, sorted; all of them belong to other projects. */
+            /** @description Up to 5 of those files, sorted. For `no_changes_in_root_directory` all of them belong to other projects. */
             example_paths: string[];
             /** @description The project's newest deployment when the push arrived: the history shows the skip right above it. */
             after_deployment_id: string;
@@ -5015,6 +5144,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.account.destroy": {
@@ -5040,6 +5181,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.agent.index": {
@@ -5100,6 +5253,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.agent.store": {
@@ -5129,6 +5294,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.agent.show": {
@@ -5157,6 +5334,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.agent.rotate": {
@@ -5190,6 +5379,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.agent.revoke": {
@@ -5223,6 +5424,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "agent.commands": {
@@ -5282,6 +5495,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "agent.command": {
@@ -5311,6 +5536,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.agent.agent.index": {
@@ -5883,6 +6120,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.options": {
@@ -5902,6 +6151,18 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["AuthOptionsResource"];
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
                     };
                 };
             };
@@ -5928,6 +6189,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.index": {
@@ -5956,6 +6229,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.store": {
@@ -6083,6 +6368,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.show": {
@@ -6113,6 +6410,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.destroy": {
@@ -6173,6 +6482,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.update": {
@@ -6208,6 +6529,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.credentials": {
@@ -6239,6 +6572,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             409: components["responses"]["DatabaseNotReadyException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.rotate-password": {
@@ -6304,6 +6649,18 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.extensions.store": {
@@ -6340,6 +6697,18 @@ export interface operations {
             404: components["responses"]["ModelNotFoundException"];
             409: components["responses"]["DatabaseNotReadyException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.attachments.store": {
@@ -6436,6 +6805,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.databases.attachments.destroy": {
@@ -6464,6 +6845,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.deployments.index": {
@@ -6523,6 +6916,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.deployments.store": {
@@ -6626,6 +7031,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
             503: components["responses"]["GithubUnavailable"];
         };
     };
@@ -6657,6 +7074,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.deployment.deployment.events": {
@@ -6707,6 +7136,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.deployment.deployment.logs": {
@@ -6758,6 +7199,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.deployments.cancel": {
@@ -6799,6 +7252,147 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.deployments.rollback": {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Unique key used to safely retry a rollback request.
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The deployment ID */
+                deployment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DeploymentResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DeploymentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The deployment cannot be rolled back to; `reason` says why.
+             *
+             *     The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
+             *
+             *     The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The deployment cannot be rolled back to; `reason` says why.
+                         * @enum {string}
+                         */
+                        code: "DEPLOYMENT_NOT_ROLLBACK_TARGET";
+                        /**
+                         * @description `not_succeeded`, `already_active`, `no_commit`, `branch_changed`, or `settings_unavailable` (no recorded settings).
+                         * @enum {string}
+                         */
+                        reason: "not_succeeded" | "already_active" | "no_commit" | "branch_changed" | "settings_unavailable";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_ENDPOINT_UNAVAILABLE";
+                        database: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "DATABASE_NOT_READY";
+                        status: string;
+                    };
+                };
+            };
+            /**
+             * @description The workspace reached its build rate limit
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian, with when to try again. */
+                        message: string;
+                        /**
+                         * @description The workspace created as many deployments in the rolling hour as its limit allows. Every deployment builds, whatever its status.
+                         * @enum {string}
+                         */
+                        code: "BUILD_RATE_LIMIT_EXCEEDED";
+                        /** @description Deployments the workspace may create per rolling hour. */
+                        limit: number;
+                        /** @description Deployments of the workspace counted in the rolling hour, deleted projects included. Can exceed `limit` after an admin lowered it. */
+                        current: number;
+                        /** @description Seconds until the window frees a slot; at least 1. */
+                        retry_after_seconds: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+            503: components["responses"]["GithubUnavailable"];
         };
     };
     "deployment.failures": {
@@ -6861,6 +7455,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "deployment.failureSummary": {
@@ -6890,6 +7496,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.deployment.show": {
@@ -6918,6 +7536,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.deployment.events": {
@@ -6966,6 +7596,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.deployment.logs": {
@@ -7015,6 +7657,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.domain-preview": {
@@ -7042,6 +7696,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "edge.index": {
@@ -7066,6 +7732,18 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "edge.v1.routes.index": {
@@ -7091,6 +7769,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
             };
         };
     };
@@ -7121,6 +7811,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.environment-variables.index": {
@@ -7149,6 +7851,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.environment-variables.store": {
@@ -7182,6 +7896,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.environment-variables.destroy": {
@@ -7208,6 +7934,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.environment-variables.update": {
@@ -7243,6 +7981,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.environment-variables.value": {
@@ -7273,6 +8023,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.feedback.store": {
@@ -7302,6 +8064,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "feedback.index": {
@@ -7359,6 +8133,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "feedback.update": {
@@ -7392,6 +8178,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.github.installations.index": {
@@ -7415,6 +8213,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.github.installations.repositories.index": {
@@ -7487,6 +8297,18 @@ export interface operations {
             };
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.github.installations.repositories.branches.index": {
@@ -7531,6 +8353,18 @@ export interface operations {
             };
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.github.repositories.validate": {
@@ -7559,6 +8393,18 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
             503: components["responses"]["GithubUnavailable"];
         };
     };
@@ -7586,6 +8432,18 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
             503: components["responses"]["GithubUnavailable"];
         };
     };
@@ -7631,6 +8489,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.legal-acceptance": {
@@ -7660,6 +8530,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "limitProfile.index": {
@@ -7714,6 +8596,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "limitProfile.store": {
@@ -7743,6 +8637,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "limitProfile.show": {
@@ -7771,6 +8677,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "limitProfile.destroy": {
@@ -7799,6 +8717,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "limitProfile.update": {
@@ -7828,6 +8758,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.login": {
@@ -7855,6 +8797,18 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.logout": {
@@ -7874,6 +8828,18 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.notifications.index": {
@@ -7928,6 +8894,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.notifications.unread-count": {
@@ -7951,6 +8929,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.notifications.read-all": {
@@ -7970,6 +8960,18 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.notifications.read": {
@@ -7995,6 +8997,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.notification-preferences.show": {
@@ -8018,6 +9032,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.notification-preferences.update": {
@@ -8047,6 +9073,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.public.notifications.unsubscribe.show": {
@@ -8064,6 +9102,18 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
             };
         };
     };
@@ -8121,6 +9171,18 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.onboarding.source": {
@@ -8150,6 +9212,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.onboarding.profile": {
@@ -8179,6 +9253,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.onboarding.complete": {
@@ -8202,6 +9288,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "admin.overview": {
@@ -8231,6 +9329,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.password.forgot": {
@@ -8258,6 +9368,18 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.password.reset": {
@@ -8281,6 +9403,18 @@ export interface operations {
                 content?: never;
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.password.update": {
@@ -8310,6 +9444,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.pilot-limits.show": {
@@ -8338,6 +9484,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "admin.pilotValidationMetrics": {
@@ -8366,6 +9524,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.profile.update": {
@@ -8395,6 +9565,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.profile.avatar.destroy": {
@@ -8418,6 +9600,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.index": {
@@ -8475,6 +9669,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.store": {
@@ -8504,6 +9710,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.show": {
@@ -8532,6 +9750,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.update": {
@@ -8565,6 +9795,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projects.destroy": {
@@ -8590,6 +9832,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.inspection": {
@@ -8619,6 +9873,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             409: components["responses"]["ProjectWakeConflict"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.wake": {
@@ -8648,6 +9914,117 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             409: components["responses"]["ProjectWakeConflict"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.restart": {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Unique key used to safely retry a restart request.
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The node restarts the containers. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectControlResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The project has no running or crashed live deployment to restart.
+             *
+             *     A deployment of the project is queued or running, or a restart, stop, sleep, or wake has not finished.
+             *
+             *     The project cannot be woken now
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project has no running or crashed live deployment to restart.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_NOT_RUNNING";
+                        /**
+                         * @description The current `runtime_status`.
+                         * @enum {string}
+                         */
+                        runtime_status: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description A deployment of the project is queued or running, or a restart, stop, sleep, or wake has not finished.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_RUNTIME_BUSY";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description `PROJECT_WAKE_LIMIT_EXCEEDED`: the replicas of the project would take the workspace past its limit of running containers. `PROJECT_NOT_SLEEPING`: only a sleeping project can be woken. `PROJECT_SUSPENDED`: an admin suspended the project. The public wake only answers `PROJECT_WAKE_LIMIT_EXCEEDED`.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_WAKE_LIMIT_EXCEEDED" | "PROJECT_NOT_SLEEPING" | "PROJECT_SUSPENDED";
+                        /** @description The workspace limit of running containers. Only with `PROJECT_WAKE_LIMIT_EXCEEDED`, and never on the public wake. */
+                        limit?: number;
+                        /** @description Containers the other projects of the workspace run now, every replica counted. Same presence as `limit`. */
+                        current?: number;
+                        /** @description Containers the wake would start: every replica of the sleeping deployment. Same presence as `limit`. */
+                        requested?: number;
+                        /** @description The current `runtime_status`. Only with `PROJECT_NOT_SLEEPING`. */
+                        runtime_status?: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.project.index": {
@@ -8710,6 +10087,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.project.show": {
@@ -8738,6 +10127,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projectControl.stop": {
@@ -8777,6 +10178,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projectControl.suspend": {
@@ -8816,6 +10229,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projectControl.unsuspend": {
@@ -8855,6 +10280,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "projectControl.reconcile": {
@@ -8894,6 +10331,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.projects.metrics": {
@@ -8928,6 +10377,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.public.projects.wake": {
@@ -8948,6 +10409,18 @@ export interface operations {
                 content?: never;
             };
             409: components["responses"]["ProjectWakeConflict"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.regions.index": {
@@ -8971,6 +10444,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.register": {
@@ -8998,6 +10483,18 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.auth.email.verification-notification": {
@@ -9025,6 +10522,18 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.status": {
@@ -9044,6 +10553,18 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["ServiceStatusResource"];
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
                     };
                 };
             };
@@ -9110,6 +10631,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "admin.usageSignals": {
@@ -9138,6 +10671,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "user.index": {
@@ -9196,6 +10741,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "user.show": {
@@ -9224,6 +10781,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "user.updateRole": {
@@ -9257,6 +10826,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "user.updateTeamLimit": {
@@ -9290,6 +10871,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "user.assignLimitProfile": {
@@ -9323,6 +10916,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.index": {
@@ -9346,6 +10951,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.store": {
@@ -9375,6 +10992,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.show": {
@@ -9403,6 +11032,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.destroy": {
@@ -9428,6 +11069,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.update": {
@@ -9461,6 +11114,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.leave": {
@@ -9486,6 +11151,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.workspace.index": {
@@ -9544,6 +11221,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.admin.workspace.show": {
@@ -9572,6 +11261,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "workspace.assignLimitProfile": {
@@ -9605,6 +11306,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.invitations.index": {
@@ -9633,6 +11346,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.invitations.store": {
@@ -9666,6 +11391,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.invitations.destroy": {
@@ -9693,6 +11430,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspace-invitations.index": {
@@ -9716,6 +11465,18 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspace-invitations.show": {
@@ -9751,6 +11512,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspace-invitations.accept": {
@@ -9784,6 +11557,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspace-invitations.decline": {
@@ -9814,6 +11599,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.members.index": {
@@ -9842,6 +11639,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.members.destroy": {
@@ -9869,6 +11678,18 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
     "v1.app.workspaces.members.update": {
@@ -9904,6 +11725,18 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
         };
     };
 }
