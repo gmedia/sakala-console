@@ -57,7 +57,7 @@ describe('LimitProfileDialog', () => {
 			.element(link)
 			.toHaveAttribute(
 				'href',
-				`/admin/limit-profiles?create=1&return_to=%2Fadmin%2Fworkspaces%2F${WORKSPACE}`
+				`/admin/limit-profiles/new?return_to=%2Fadmin%2Fworkspaces%2F${WORKSPACE}`
 			);
 		await expect.element(link).toHaveFocus();
 		// Nothing to choose, so nothing to confirm and no reason to write.

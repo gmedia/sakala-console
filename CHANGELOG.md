@@ -4,6 +4,19 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Changed
+
+- Limit profiles are created and edited on their own page instead of a 512 px dialog that opened scrolled to its last field. `/admin/limit-profiles/new` and `/admin/limit-profiles/{id}` show one column: what the profile applies to, Nama (focused when the page opens), then three groups: Kapasitas workspace (projects, running containers, running deployments), Sumber daya per proyek (memory, CPU), and Opsional (builds per hour, idle sleep, max replicas), closed unless it holds a value or a value in it is refused. Alasan comes last, and Batal and Buat profil (or Simpan perubahan) stay in view at the bottom. The list's "Buat profil" and "Ubah" are links to these pages; the assign dialog's "Buat profil batas" and older `?create=1&return_to=` links open the new page and still return to the workspace or user with the new profile chosen. Editing reads the profile with `GET admin/limit-profiles/{id}`.
+- The admin workspace page names member roles the way members see them: Pemilik, Anggota, Pengamat (was Owner, Member, Viewer).
+
+### Added
+
+- A Build/jam column in the limit profiles table. An empty value reads "Bawaan" (follows the server setting) there and in Tidur otomatis (was "Ikut bawaan server"), and the Tidur otomatis column is headed "Tidur", so the ten columns and the actions fit at 1440 px.
+
+### Fixed
+
+- The Build per jam help said the API did not enforce the limit yet. It now says what sakala-api counts: deployments that build an image in the workspace in the last 60 minutes, failed ones included, not redeploys that reuse the image, and that empty follows the server default (20 unless changed).
+
 ## [0.11.0] - 2026-11-20
 
 ### Added

@@ -1,0 +1,412 @@
+<script lang="ts">
+	// Links here are resolve() output, some with a query string added, which the rule cannot follow.
+	/* eslint-disable svelte/no-navigation-without-resolve */
+	import { tick } from 'svelte';
+	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { toast } from 'svelte-sonner';
+	import CaretDown from 'phosphor-svelte/lib/CaretDown';
+	import Button from '$lib/components/ui/Button.svelte';
+	import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
+	import AdminPageHeader from '../AdminPageHeader.svelte';
+	import AdminError from '../AdminError.svelte';
+	import { createAdminWorkspaceQuery, createLimitProfileQuery } from '../../queries';
+	import { createSaveLimitProfileMutation } from '../../mutations';
+	import { formatNumber } from '../../format';
+	import { ASSIGN_PROFILE_PARAM, parseProfileReturn, RETURN_TO_PARAM } from '../../return-to';
+	import { profilePrefill, type ProfilePrefill } from '../../profile-defaults';
+	import {
+		emptyProfileValues,
+		hasOptionalValue,
+		invalidProfileLabels,
+		PROFILE_GROUPS,
+		PROFILE_NUMBER_FIELDS,
+		profileFieldProblem,
+		profilePayload,
+		profileValuesFrom,
+		rawProfileValue,
+		type ProfileFieldGroup,
+		type ProfileNumberValues
+	} from '../../limit-profile-form';
+	import { REASON_HINT, REASON_MAX, reasonProblem } from '../../reason';
+
+	/** Null creates a profile; an id edits that one. */
+	let { profileId }: { profileId: string | null } = $props();
+
+	const uid = $props.id();
+	const isNew = $derived(profileId === null);
+	const listHref = resolve('/admin/limit-profiles');
+
+	const profileQuery = createLimitProfileQuery(
+		() => profileId ?? '',
+		() => profileId !== null
+	);
+	const saveMutation = createSaveLimitProfileMutation();
+
+	// Opened from an assign dialog: once the profile exists, go back to that workspace or user with
+	// the new profile chosen.
+	const returnTarget = $derived(
+		isNew ? parseProfileReturn(page.url.searchParams.get(RETURN_TO_PARAM)) : null
+	);
+	// The workspace a profile is being made for reports the live team default in its quota.
+	const returnWorkspace = createAdminWorkspaceQuery(
+		() => (returnTarget?.kind === 'workspaces' ? returnTarget.id : ''),
+		() => returnTarget?.kind === 'workspaces'
+	);
+
+	let name = $state('');
+	let values = $state<ProfileNumberValues>(emptyProfileValues());
+	let reason = $state('');
+	/** Which numbers a new profile started from, said in the form so nobody takes them for a rule. */
+	let prefill = $state<ProfilePrefill['source'] | null>(null);
+	/** Null until someone opens or closes Opsional; until then it is open when it holds a value. */
+	let optionalOpen = $state<boolean | null>(null);
+	let attempted = $state(false);
+	let saveError = $state<unknown>(null);
+	let loaded = false;
+	let numbersEdited = false;
+	let submitting = false;
+
+	let nameInput = $state<HTMLInputElement | null>(null);
+	let formEl = $state<HTMLFormElement | null>(null);
+
+	function applyPrefill(next: ProfilePrefill) {
+		for (const [key, value] of Object.entries(next.numbers)) {
+			values[key as keyof ProfileNumberValues] = String(value);
+		}
+		prefill = next.source;
+	}
+
+	// Fill the form once: from the profile when editing, from the team default when creating.
+	$effect(() => {
+		if (loaded) return;
+		if (isNew) {
+			applyPrefill(profilePrefill(returnWorkspace.data));
+		} else if (profileQuery.data) {
+			name = profileQuery.data.name;
+			values = profileValuesFrom(profileQuery.data);
+		} else {
+			return;
+		}
+		loaded = true;
+		// Start where the form starts, not at the reason at its end.
+		void tick().then(() => nameInput?.focus());
+	});
+
+	// The live default may arrive after the form opened; take it while no number was changed.
+	$effect(() => {
+		const live = profilePrefill(returnWorkspace.data);
+		if (isNew && prefill === 'documented' && live.source === 'workspace' && !numbersEdited) {
+			applyPrefill(live);
+		}
+	});
+
+	const fieldError = (key: string) => getFieldError(saveError, key);
+	const nameProblem = $derived(name.trim() ? null : 'Nama belum diisi.');
+	const nameError = $derived(fieldError('name') ?? (attempted ? nameProblem : null));
+	const invalidLabels = $derived(invalidProfileLabels(name, values));
+	const optionalHasError = $derived(
+		PROFILE_NUMBER_FIELDS.some(
+			(field) =>
+				field.group === 'optional' &&
+				(Boolean(fieldError(field.key)) ||
+					(rawProfileValue(values, field.key) !== '' && profileFieldProblem(field, values)))
+		)
+	);
+	const optionalVisible = $derived(optionalHasError || (optionalOpen ?? hasOptionalValue(values)));
+
+	const reasonTooLong = $derived(reason.length > REASON_MAX);
+	const currentReasonProblem = $derived(reasonProblem(reason));
+	const reasonError = $derived(
+		(reasonTooLong || attempted ? currentReasonProblem : null) ?? fieldError('reason')
+	);
+	// The button stays enabled (a disabled one cannot say why); this says why it stopped.
+	const blockedText = $derived.by(() => {
+		if (!attempted) return null;
+		const sentences = [
+			invalidLabels.length ? `Periksa isian yang ditandai: ${invalidLabels.join(', ')}.` : null,
+			currentReasonProblem ? (reasonTooLong ? 'Pendekkan alasannya.' : 'Isi alasan dulu.') : null
+		].filter(Boolean);
+		return sentences.length ? `Belum bisa disimpan. ${sentences.join(' ')}` : null;
+	});
+	const generalError = $derived(
+		saveError &&
+			!(
+				saveError instanceof ApiError &&
+				saveError.isValidationError &&
+				Object.keys(saveError.errors).length
+			)
+			? getErrorMessage(saveError, 'Profil belum tersimpan. Coba lagi.')
+			: null
+	);
+
+	const title = $derived(isNew ? 'Buat profil batas' : 'Ubah profil batas');
+	const consequence = $derived(
+		!isNew
+			? 'Batas baru langsung berlaku untuk semua workspace yang memakai profil ini. Yang sudah terlewati tidak dibatalkan.'
+			: returnTarget
+				? `Profil baru belum dipakai siapa pun. Setelah dibuat, kamu kembali ke ${returnTarget.kind === 'workspaces' ? 'workspace' : 'pengguna'} tadi untuk memasangnya.`
+				: 'Profil baru belum dipakai siapa pun sampai kamu memasangnya ke workspace.'
+	);
+	const backHref = $derived(
+		returnTarget
+			? returnTarget.kind === 'workspaces'
+				? resolve(`/admin/workspaces/${returnTarget.id}`)
+				: resolve(`/admin/users/${returnTarget.id}`)
+			: listHref
+	);
+
+	async function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		if (submitting) return;
+		attempted = true;
+		saveError = null;
+		if (invalidLabels.length || currentReasonProblem) {
+			await tick();
+			formEl?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			return;
+		}
+
+		submitting = true;
+		const fields = profilePayload(name, values);
+		try {
+			const saved = await saveMutation.mutateAsync({
+				id: profileId,
+				fields,
+				reason: reason.trim()
+			});
+			if (returnTarget) {
+				toast.success(`Profil ${fields.name} dibuat. Tulis alasan lalu simpan untuk memasangnya.`);
+				await goto(`${backHref}?${ASSIGN_PROFILE_PARAM}=${encodeURIComponent(saved.id)}`);
+				return;
+			}
+			toast.success(isNew ? `Profil ${fields.name} dibuat.` : `Profil ${fields.name} diperbarui.`);
+			await goto(listHref);
+		} catch (error) {
+			saveError = error;
+			await tick();
+			formEl?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+		} finally {
+			submitting = false;
+		}
+	}
+
+	const groupFields = (group: ProfileFieldGroup) =>
+		PROFILE_NUMBER_FIELDS.filter((field) => field.group === group);
+</script>
+
+{#snippet numberField(field: (typeof PROFILE_NUMBER_FIELDS)[number])}
+	{@const problem =
+		rawProfileValue(values, field.key) || attempted ? profileFieldProblem(field, values) : null}
+	{@const message = fieldError(field.key) ?? problem}
+	<div class="space-y-1.5">
+		<label for={`profile-${field.key}`} class="block text-sm font-medium">
+			{field.label}
+			<span class="font-normal text-foreground/70">{field.optional ? '(opsional)' : '(wajib)'}</span
+			>
+		</label>
+		<input
+			id={`profile-${field.key}`}
+			type="number"
+			inputmode="numeric"
+			min={field.min}
+			max={field.max}
+			class="control-input max-w-60 tabular-nums"
+			bind:value={values[field.key]}
+			required={!field.optional}
+			oninput={() => {
+				numbersEdited = true;
+				// Emptying the last optional value must not fold the group away under the cursor.
+				if (field.optional) optionalOpen = true;
+			}}
+			aria-invalid={message ? 'true' : undefined}
+			aria-describedby={`profile-${field.key}-hint`}
+		/>
+		<p
+			id={`profile-${field.key}-hint`}
+			class="text-xs {message ? 'text-error-base' : 'text-foreground/70'}"
+		>
+			{message ?? field.hint}
+		</p>
+	</div>
+{/snippet}
+
+<AdminPageHeader
+	{title}
+	documentTitle={profileQuery.data ? `${title}: ${profileQuery.data.name}` : title}
+	description={isNew ? consequence : undefined}
+	crumbs={[
+		{ label: 'Profil batas', href: listHref },
+		{ label: isNew ? 'Profil baru' : (profileQuery.data?.name ?? 'Ubah') }
+	]}
+/>
+
+{#if !isNew && profileQuery.isError}
+	<AdminError
+		error={profileQuery.error}
+		what="profil batas"
+		onRetry={() => profileQuery.refetch()}
+	/>
+{:else if !isNew && !profileQuery.data}
+	<div class="max-w-reading space-y-4" role="status" aria-label="Memuat profil batas">
+		<div class="skeleton h-16 w-full"></div>
+		<div class="skeleton h-64 w-full"></div>
+	</div>
+{:else}
+	<form
+		bind:this={formEl}
+		class="flex max-w-reading flex-col gap-6"
+		novalidate
+		aria-label={title}
+		onsubmit={handleSubmit}
+	>
+		<!-- Editing changes every workspace on the profile at once, so the page says which and how many. -->
+		{#if !isNew && profileQuery.data}
+			<div class="rounded-control border border-border bg-surface px-4 py-3">
+				<p class="text-xs text-muted">Berlaku untuk</p>
+				<p class="text-sm font-semibold wrap-anywhere text-foreground">
+					Profil {profileQuery.data.name}, dipakai {formatNumber(
+						profileQuery.data.workspaces_count ?? 0
+					)} workspace
+				</p>
+				<p class="mt-1 text-sm text-foreground">{consequence}</p>
+			</div>
+		{/if}
+
+		<div class="space-y-1.5">
+			<label for="profile-name" class="block text-sm font-medium">
+				Nama <span class="font-normal text-foreground/70">(wajib)</span>
+			</label>
+			<input
+				id="profile-name"
+				bind:this={nameInput}
+				class="control-input"
+				bind:value={name}
+				maxlength="100"
+				autocomplete="off"
+				aria-invalid={nameError ? 'true' : undefined}
+				aria-describedby="profile-name-hint"
+			/>
+			<p
+				id="profile-name-hint"
+				class="text-xs {nameError ? 'text-error-base' : 'text-foreground/70'}"
+			>
+				{nameError ?? 'Unik, paling panjang 100 karakter. Misalnya Pilot, Kelas, atau Magang.'}
+			</p>
+		</div>
+
+		{#if prefill}
+			<p class="rounded-control border border-border bg-surface px-3 py-2 text-sm">
+				{prefill === 'workspace'
+					? 'Angka di bawah sudah diisi dengan batas Default tim yang berlaku di workspace tadi. Ubah yang perlu.'
+					: 'Angka di bawah sudah diisi dengan batas default tim bawaan Sakala. Server bisa memakai angka lain lewat konfigurasi, jadi ubah yang perlu.'}
+			</p>
+		{/if}
+
+		{#each PROFILE_GROUPS as group (group.id)}
+			<section
+				aria-labelledby="{uid}-{group.id}"
+				class="surface-card flex flex-col gap-5 p-4 sm:p-6"
+				data-testid="profile-group-{group.id}"
+			>
+				{#if group.id === 'optional'}
+					<div>
+						<h2 id="{uid}-{group.id}" class="font-sans text-base font-semibold text-foreground">
+							<button
+								type="button"
+								class="flex min-h-control-lg w-full cursor-pointer items-center justify-between gap-2 rounded-control text-left lg:min-h-control-md"
+								aria-expanded={optionalVisible}
+								aria-controls="{uid}-{group.id}-fields"
+								onclick={() => (optionalOpen = !optionalVisible)}
+							>
+								<span>{group.title}</span>
+								<CaretDown
+									size={16}
+									class={optionalVisible ? 'shrink-0 rotate-180' : 'shrink-0'}
+									aria-hidden="true"
+								/>
+							</button>
+						</h2>
+						<p class="text-sm text-foreground/70">{group.lead}</p>
+					</div>
+					<div id="{uid}-{group.id}-fields" class="flex flex-col gap-5" hidden={!optionalVisible}>
+						{#each groupFields(group.id) as field (field.key)}
+							{@render numberField(field)}
+						{/each}
+					</div>
+				{:else}
+					<div>
+						<h2 id="{uid}-{group.id}" class="font-sans text-base font-semibold text-foreground">
+							{group.title}
+						</h2>
+						<p class="mt-1 text-sm text-foreground/70">{group.lead}</p>
+					</div>
+					{#each groupFields(group.id) as field (field.key)}
+						{@render numberField(field)}
+					{/each}
+				{/if}
+			</section>
+		{/each}
+
+		<div class="space-y-1.5">
+			<label for="{uid}-reason" class="block text-sm font-medium text-foreground">
+				Alasan <span class="font-normal text-foreground/70">(wajib)</span>
+			</label>
+			<p id="{uid}-reason-help" class="text-xs text-foreground/70">{REASON_HINT}</p>
+			<textarea
+				id="{uid}-reason"
+				bind:value={reason}
+				rows="3"
+				required
+				aria-invalid={reasonError ? 'true' : undefined}
+				aria-describedby="{uid}-reason-help {uid}-reason-status"
+				class="control-input resize-y"></textarea>
+			<p id="{uid}-reason-status" class="flex justify-between gap-3 text-xs">
+				<span class="text-error-base">{reasonError ?? ''}</span>
+				<span class="shrink-0 {reasonTooLong ? 'text-error-base' : 'text-muted'}"
+					>{reason.length}/{REASON_MAX}</span
+				>
+			</p>
+		</div>
+
+		<!-- Stays in view while the form scrolls, so the way out and the way forward are always there. -->
+		<div
+			class="sticky bottom-0 -mx-1 flex flex-col gap-3 border-t border-border bg-background px-1 py-4"
+			data-testid="profile-form-footer"
+		>
+			{#if blockedText}
+				<p
+					id="{uid}-blocked"
+					class="rounded-control border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
+					role="alert"
+				>
+					{blockedText}
+				</p>
+			{/if}
+			{#if generalError}
+				<p
+					class="rounded-control border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
+					role="alert"
+				>
+					{generalError}
+				</p>
+			{/if}
+			<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+				<Button href={backHref} variant="secondary">Batal</Button>
+				<Button
+					type="submit"
+					disabled={saveMutation.isPending}
+					aria-busy={saveMutation.isPending}
+					aria-describedby={blockedText ? `${uid}-blocked` : undefined}
+				>
+					{#if saveMutation.isPending}
+						Menyimpan...
+					{:else}
+						{isNew ? 'Buat profil' : 'Simpan perubahan'}
+					{/if}
+				</Button>
+			</div>
+		</div>
+	</form>
+{/if}

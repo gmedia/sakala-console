@@ -16,5 +16,8 @@ export function parseProfileReturn(value: string | null): ProfileReturnTarget | 
 	return { kind: match[1] as ProfileReturnTarget['kind'], id: match[2] };
 }
 
+/** Query parameter on the profile pages that names the page to go back to. */
+export const RETURN_TO_PARAM = 'return_to';
+
 /** Query parameter that carries a freshly created profile back to its assign dialog. */
 export const ASSIGN_PROFILE_PARAM = 'limit_profile';

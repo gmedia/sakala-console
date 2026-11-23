@@ -151,6 +151,8 @@ export const ADMIN_ROUTES = [
 	['admin-workspaces', '/admin/workspaces'],
 	['admin-workspace', `/admin/workspaces/${ids.workspace}`],
 	['admin-limit-profiles', '/admin/limit-profiles'],
+	['admin-limit-profile-new', '/admin/limit-profiles/new'],
+	['admin-limit-profile-edit', `/admin/limit-profiles/${ids.limitProfile}`],
 	['admin-projects', '/admin/projects'],
 	['admin-project', `/admin/projects/${ids.project}`],
 	['admin-project-suspended', `/admin/projects/${ids.suspendedProject}`],

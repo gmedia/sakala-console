@@ -68,6 +68,7 @@ export const queryKeys = {
 		workspaces: (params: QueryParams) => ['admin', 'workspaces', params] as const,
 		workspace: (id: string) => ['admin', 'workspace', id] as const,
 		limitProfiles: (params: QueryParams) => ['admin', 'limit-profiles', params] as const,
+		limitProfile: (id: string) => ['admin', 'limit-profile', id] as const,
 		projects: (params: QueryParams) => ['admin', 'projects', params] as const,
 		project: (id: string) => ['admin', 'project', id] as const,
 		failures: (params: QueryParams) => ['admin', 'failures', params] as const,

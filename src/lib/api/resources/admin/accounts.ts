@@ -241,6 +241,11 @@ export async function listLimitProfiles(params: QueryParams) {
 	return parseLimitProfiles(await apiRequest<unknown>(LIMIT_PROFILES, { params }));
 }
 
+/** One profile, for its edit page. 404 for an unknown id. */
+export async function getLimitProfile(id: string) {
+	return parseLimitProfile(await apiRequest<unknown>(`${LIMIT_PROFILES}/${id}`));
+}
+
 export async function createLimitProfile(body: WithReason & LimitProfileFields) {
 	return parseLimitProfile(
 		await apiRequest<unknown>(LIMIT_PROFILES, { method: 'POST', json: body })
