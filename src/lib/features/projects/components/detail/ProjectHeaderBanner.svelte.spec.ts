@@ -5,6 +5,8 @@ import { toast } from 'svelte-sonner';
 import { PROJECT_WAKE_LIMIT_EXCEEDED } from '$lib/api/errors';
 import { resetRateLimit } from '$lib/api/rate-limit';
 import { realtimeState } from '$lib/realtime/connection-state.svelte';
+import { FILE_STORAGE_GUIDE_URL } from '$lib/config/project';
+import { FILE_STORAGE_COPY } from '$lib/features/projects/file-storage';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import {
 	baseProject,
@@ -137,6 +139,36 @@ describe('ProjectHeaderBanner, a sleeping project', () => {
 			.element(page.getByTestId('project-public-url'))
 			.toHaveAttribute('href', baseProject.public_url);
 		await expect.element(page.getByRole('button', { name: 'Bangunkan' })).toBeEnabled();
+	});
+
+	it('adds that files inside the container do not survive the sleep, with the guide', async () => {
+		project = {
+			...sleepingProject,
+			stack: { builder: 'dockerfile', provider: 'php', framework: 'laravel', package_manager: null }
+		};
+		await renderBanner();
+
+		const clause = page.getByTestId('sleeping-file-note');
+		await expect.element(clause).toHaveTextContent(FILE_STORAGE_COPY.sleeping);
+		await expect
+			.element(clause.getByRole('link', { name: /Panduan penyimpanan file/ }))
+			.toHaveAttribute('href', `${FILE_STORAGE_GUIDE_URL}#laravel`);
+	});
+
+	it('leaves the file clause out for a static site, which keeps no files of its own', async () => {
+		project = {
+			...sleepingProject,
+			variable_changes: {
+				requires_build: true,
+				reason: 'static_site',
+				build_time_prefixes: [],
+				build_time_keys: []
+			}
+		};
+		await renderBanner();
+
+		await expect.element(page.getByText('Tidur', { exact: true })).toBeVisible();
+		await expect.element(page.getByTestId('sleeping-file-note')).not.toBeInTheDocument();
 	});
 
 	it('Bangunkan asks the API once, says so, and shows Live when the node reports', async () => {
