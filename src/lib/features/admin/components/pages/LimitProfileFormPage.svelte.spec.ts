@@ -132,6 +132,8 @@ describe('creating a limit profile', () => {
 			max_replicas: null,
 			max_databases: null,
 			max_database_storage_mb: null,
+			max_buckets: null,
+			max_bucket_storage_mb: null,
 			default_region: null,
 			reason: 'Pilot magang'
 		});
@@ -197,6 +199,8 @@ describe('creating a limit profile', () => {
 			max_replicas: null,
 			max_databases: null,
 			max_database_storage_mb: null,
+			max_buckets: null,
+			max_bucket_storage_mb: null,
 			default_region: null,
 			reason: 'Pilot fakultas'
 		});
@@ -423,6 +427,29 @@ describe('databases and region in a limit profile', () => {
 		await userEvent.type(databases(), '1001');
 
 		await expect.element(databases()).toHaveAccessibleDescription('Bilangan bulat 0 sampai 1.000.');
+	});
+
+	it('sends bucket limits, and says the server opens none unless told to', async () => {
+		await renderNew();
+		await optionalToggle().click();
+		const buckets = field('Bucket (opsional)');
+		await expect
+			.element(buckets)
+			.toHaveAccessibleDescription(
+				/0 berarti workspace ini tidak bisa membuat bucket.*\(0 kalau tidak diubah/
+			);
+
+		await userEvent.type(nameField(), 'Pilot bucket');
+		await userEvent.type(buckets, '2');
+		await userEvent.type(field('Penyimpanan bucket (MB) (opsional)'), '1024');
+		await userEvent.type(page.getByLabelText('Alasan'), 'Pilot penyimpanan file');
+		await submit().click();
+
+		await expect.poll(() => vi.mocked(createLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(createLimitProfile).mock.calls[0][0]).toMatchObject({
+			max_buckets: 2,
+			max_bucket_storage_mb: 1024
+		});
 	});
 
 	it('opens Opsional for a saved region, and keeps one no node reports anymore', async () => {
