@@ -28,7 +28,7 @@ const MAX_API_MESSAGE_LENGTH = 500;
 const GITHUB_RATE_LIMITED = 'GITHUB_RATE_LIMITED';
 
 /** A 503 that explains itself: this deployment cannot send email, so the API's words matter. */
-const EMAIL_DELIVERY_UNAVAILABLE = 'EMAIL_DELIVERY_UNAVAILABLE';
+export const EMAIL_DELIVERY_UNAVAILABLE = 'EMAIL_DELIVERY_UNAVAILABLE';
 
 /** Terms changed or were never accepted. Creating and deploying wait until they are. */
 export const LEGAL_ACCEPTANCE_REQUIRED = 'LEGAL_ACCEPTANCE_REQUIRED';
