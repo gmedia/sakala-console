@@ -336,7 +336,7 @@ describe('deriveProjectHeaderState', () => {
 		expect(state.notice).toEqual({
 			tone: 'sleeping',
 			message:
-				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka.'
+				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka, biasanya dalam kurang dari satu menit.'
 		});
 	});
 
