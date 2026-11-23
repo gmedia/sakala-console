@@ -139,6 +139,31 @@ describe('docker/entrypoint.sh', () => {
 		expect(container.stderr).toContain('realtime off');
 	});
 
+	it('passes the site links of a self-hosted installation to the browser', () => {
+		const links = {
+			PUBLIC_DOCS_URL: 'https://docs.example.com/sakala',
+			PUBLIC_TERMS_URL: 'https://example.com/legal?doc=terms&lang=id',
+			PUBLIC_ACCEPTABLE_USE_URL: 'https://example.com/legal#aup',
+			PUBLIC_PRIVACY_URL: 'https://example.com/privacy',
+			PUBLIC_ABUSE_EMAIL: 'ops+abuse@example.com'
+		};
+		const container = startContainer(links);
+
+		expect(container.status, container.stderr).toBe(0);
+		expect(browserConfig(container.read('runtime-config.js'))).toEqual({ ...builtWith, ...links });
+		// Links are navigations, so the policy keeps the built origins.
+		expect(policyOf(container.read('security-headers.caddy'))).toBe(
+			policyOf(readFileSync(join(root, 'security-headers.caddy'), 'utf8'))
+		);
+	});
+
+	it('passes an empty site link through, which brings back the hosted one', () => {
+		const container = startContainer({ PUBLIC_PRIVACY_URL: '' });
+
+		expect(container.status, container.stderr).toBe(0);
+		expect(browserConfig(container.read('runtime-config.js')).PUBLIC_PRIVACY_URL).toBe('');
+	});
+
 	it.each([
 		['PUBLIC_API_URL', 'ftp://api.example.com', /http:\/\/ or https:\/\//],
 		['PUBLIC_API_URL', 'javascript:alert(1)', /http:\/\/ or https:\/\//],
@@ -150,7 +175,15 @@ describe('docker/entrypoint.sh', () => {
 		['PUBLIC_REVERB_HOST', 'x"; script-src *', /host name/],
 		['PUBLIC_REVERB_PORT', 'abc', /port/],
 		['PUBLIC_REVERB_SCHEME', 'wss', /http or https/],
-		['PUBLIC_REVERB_KEY', 'a key', /letters, digits/]
+		['PUBLIC_REVERB_KEY', 'a key', /letters, digits/],
+		['PUBLIC_DOCS_URL', 'https://docs.example.com/?page=', /not allowed/],
+		['PUBLIC_DOCS_URL', 'docs.example.com', /http:\/\/ or https:\/\//],
+		['PUBLIC_TERMS_URL', 'javascript:alert', /http:\/\/ or https:\/\//],
+		['PUBLIC_PRIVACY_URL', 'https://example.com/"};alert(1);//', /not allowed/],
+		['PUBLIC_ACCEPTABLE_USE_URL', 'https://exa mple.com', /not allowed/],
+		['PUBLIC_ABUSE_EMAIL', 'ops', /email address/],
+		['PUBLIC_ABUSE_EMAIL', 'a@b@example.com', /email address/],
+		['PUBLIC_ABUSE_EMAIL', 'ops@example.com"', /email address/]
 	])('refuses to start with %s=%j', (key, value, message) => {
 		const container = startContainer({ [key]: value });
 		expect(container.status).toBe(1);

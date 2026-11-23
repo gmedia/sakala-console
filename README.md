@@ -69,6 +69,18 @@ Image yang sudah jadi, termasuk yang terbit di `ghcr.io`, bisa diarahkan ke inst
 | `PUBLIC_REVERB_SCHEME` | `http` atau `https`                                                 | `https`                   |
 | `PUBLIC_REVERB_KEY`    | app key publik Reverb (`REVERB_APP_KEY`); kosong mematikan realtime | `isi-app-key-publik`      |
 
+Lima variabel berikut menentukan ke mana console menautkan dokumen yang tidak ia terbitkan sendiri. Semuanya opsional dan hanya dibaca dari environment container, bukan saat build, jadi `.env` lokal tidak mengubahnya. Kalau tidak diisi, dikosongkan, atau tidak valid, console memakai tautan bawaan layanan hosted. Instalasi self-host perlu mengisinya dengan dokumen milik operatornya sendiri.
+
+| Variabel                    | Isi                                                                                                                  | Bawaan                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `PUBLIC_DOCS_URL`           | URL dasar dokumentasi, tanpa `?` atau `#`. Halaman panduan ditambahkan di belakangnya, misalnya `/deploy-gagal#kode` | `https://sakala.dev/docs`             |
+| `PUBLIC_TERMS_URL`          | URL lengkap Syarat Layanan; boleh memakai `?` dan `#`                                                                | `https://sakala.dev/syarat`           |
+| `PUBLIC_ACCEPTABLE_USE_URL` | URL lengkap Kebijakan Penggunaan Wajar; boleh memakai `?` dan `#`                                                    | `https://sakala.dev/penggunaan-wajar` |
+| `PUBLIC_PRIVACY_URL`        | URL lengkap Pemberitahuan Privasi; boleh memakai `?` dan `#`                                                         | `https://sakala.dev/privasi`          |
+| `PUBLIC_ABUSE_EMAIL`        | alamat email untuk banding proyek yang ditangguhkan                                                                  | `abuse@sakala.dev`                    |
+
+Dokumentasi di `PUBLIC_DOCS_URL` diharapkan punya struktur halaman yang sama dengan docs sakala-landing (`deploy-pertama`, `deploy-gagal`, `penyimpanan-file`, `perintah-rilis`, `proyek/roadmap`), karena console menautkan halaman dan anchor itu secara langsung. Daftarnya ada di `DOCS_PAGES` pada `src/lib/config/site-links.ts`.
+
 ```bash
 docker run --rm -p 8080:8080 \
   -e PUBLIC_API_URL=https://api.example.com \

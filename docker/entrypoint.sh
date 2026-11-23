@@ -4,15 +4,19 @@
 #
 # The image is built with one set of public values (PUBLIC_API_URL, PUBLIC_APP_URL,
 # PUBLIC_REVERB_*), which docker/security-headers.mjs records in build.env. Any of those names set
-# in the container's environment replaces the built value. This script then writes two files that
-# docker/Caddyfile serves:
+# in the container's environment replaces the built value. The site links (PUBLIC_DOCS_URL,
+# PUBLIC_TERMS_URL, PUBLIC_ACCEPTABLE_USE_URL, PUBLIC_PRIVACY_URL, PUBLIC_ABUSE_EMAIL) have no built
+# value: the console reads them only from here, and falls back to the hosted links.
+#
+# This script then writes two files that docker/Caddyfile serves:
 #
 #   runtime-config.js        loaded by src/app.html before the app starts (src/lib/config/runtime.ts)
 #   security-headers.caddy   the Content-Security-Policy, naming the API and Reverb origins in use
 #
 # With none of those names set, both files are the ones the image was built with, so an image whose
 # container sets nothing behaves exactly as before. Setting a name to an empty value counts as
-# setting it; an empty PUBLIC_REVERB_KEY switches realtime off.
+# setting it; an empty PUBLIC_REVERB_KEY switches realtime off, and an empty site link brings back
+# the hosted one (src/lib/config/site-links.ts).
 #
 # Every value is checked before it reaches the browser or the policy. A bad value stops the
 # container with a message instead of serving a console that cannot reach its API.
@@ -24,7 +28,8 @@ runtime_dir=${SAKALA_CONSOLE_RUNTIME_DIR:-/run/sakala-console}
 default_config=${SAKALA_CONSOLE_DEFAULT_CONFIG:-/srv/runtime-config.js}
 default_headers=${SAKALA_CONSOLE_DEFAULT_HEADERS:-/etc/caddy/security-headers.caddy}
 
-keys='PUBLIC_API_URL PUBLIC_APP_URL PUBLIC_REVERB_HOST PUBLIC_REVERB_PORT PUBLIC_REVERB_SCHEME PUBLIC_REVERB_KEY'
+keys='PUBLIC_API_URL PUBLIC_APP_URL PUBLIC_REVERB_HOST PUBLIC_REVERB_PORT PUBLIC_REVERB_SCHEME PUBLIC_REVERB_KEY
+PUBLIC_DOCS_URL PUBLIC_TERMS_URL PUBLIC_ACCEPTABLE_USE_URL PUBLIC_PRIVACY_URL PUBLIC_ABUSE_EMAIL'
 
 fail() {
     printf 'sakala-console: %s\n' "$1" >&2
@@ -100,6 +105,23 @@ check_url() {
     esac
 }
 
+# A link a person follows, such as a legal document, which may carry a query or a fragment. The
+# characters stay JSON-safe: no quotes, backslashes, or spaces.
+check_link() {
+    case $2 in
+        *[!A-Za-z0-9._~:/%?#=\&+-]*) fail "$1 contains a character that is not allowed in this setting: $2" ;;
+    esac
+    check_url "$1" "${2%%[?#]*}"
+}
+
+check_email() {
+    case $2 in
+        *[!A-Za-z0-9._%+@-]* | *@*@*) fail "$1 must be one email address, got: $2" ;;
+        ?*@?*.?*) ;;
+        *) fail "$1 must be one email address, got: $2" ;;
+    esac
+}
+
 mkdir -p "$runtime_dir"
 
 overridden=
@@ -131,6 +153,9 @@ for key in $keys; do
                 api_origin=$origin
                 ;;
             PUBLIC_APP_URL) check_url "$key" "$value" ;;
+            PUBLIC_DOCS_URL) check_url "$key" "$value" ;;
+            PUBLIC_TERMS_URL | PUBLIC_ACCEPTABLE_USE_URL | PUBLIC_PRIVACY_URL) check_link "$key" "$value" ;;
+            PUBLIC_ABUSE_EMAIL) check_email "$key" "$value" ;;
             PUBLIC_REVERB_HOST) check_host "$key" "$value" ;;
             PUBLIC_REVERB_PORT) check_port "$key" "$value" ;;
             PUBLIC_REVERB_SCHEME)

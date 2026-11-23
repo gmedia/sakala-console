@@ -16,8 +16,8 @@ export const AUTO_DEPLOY_UNAVAILABLE_HELP =
 
 export const RELEASE_COMMAND_LABEL = 'Release command';
 
-/** sakala-landing's guide to the release command, the one the setting's help points at. */
-export const RELEASE_COMMAND_DOCS_URL = 'https://sakala.dev/docs/perintah-rilis';
+// Built from the docs base the installation names; see src/lib/config/site-links.ts.
+export { RELEASE_COMMAND_DOCS_URL } from '$lib/config/project';
 
 /** What sakala-api's stack detection calls a Laravel project. */
 export const LARAVEL_FRAMEWORK = 'laravel';

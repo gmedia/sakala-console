@@ -96,7 +96,11 @@ function* scriptElements(parent) {
 export const API_ORIGIN_PLACEHOLDER = '__SAKALA_API_ORIGIN__';
 export const REVERB_ORIGIN_PLACEHOLDER = '__SAKALA_REVERB_ORIGIN__';
 
-/** The public values docker/entrypoint.sh may override; nothing else from the env file is kept. */
+/**
+ * The public values docker/entrypoint.sh may override; nothing else from the env file is kept. The
+ * site links (PUBLIC_DOCS_URL and the rest, src/lib/config/site-links.ts) are not here: the build
+ * does not read them, so there is no built value to keep.
+ */
 export const PUBLIC_KEYS = [
 	'PUBLIC_API_URL',
 	'PUBLIC_APP_URL',
