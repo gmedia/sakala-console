@@ -20,10 +20,9 @@
 	import LastUsedBadge from '$lib/features/auth/components/LastUsedBadge.svelte';
 	import ResendVerification from '$lib/features/auth/components/ResendVerification.svelte';
 	import AuthOptionsSkeleton from '$lib/features/auth/components/AuthOptionsSkeleton.svelte';
-	import EmailDeliveryNotice from '$lib/features/auth/components/EmailDeliveryNotice.svelte';
 	import {
+		LOGIN_PASSWORD_RESET_UNAVAILABLE,
 		loginMethodLayout,
-		loginUnavailableMessage,
 		resolveAuthAvailability,
 		type OAuthProviderId
 	} from '$lib/features/auth/availability';
@@ -263,6 +262,11 @@
 			>
 				Lupa kata sandi?
 			</a>
+		{:else if availability.emailDeliveryOff}
+			<!-- Where the reset link would be: the only part of logging in that needs email. -->
+			<p class="text-xs text-foreground/70" data-testid="password-reset-unavailable">
+				{LOGIN_PASSWORD_RESET_UNAVAILABLE}
+			</p>
 		{/if}
 
 		<Button type="submit" size="lg" disabled={loginMutation.isPending} class="w-full">
@@ -295,10 +299,6 @@
 			>
 				Sesi kamu berakhir, silakan masuk lagi.
 			</p>
-		{/if}
-
-		{#if availability.emailDeliveryOff}
-			<EmailDeliveryNotice message={loginUnavailableMessage(availability)} />
 		{/if}
 
 		{#if errors.general}

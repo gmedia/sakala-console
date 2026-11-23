@@ -219,7 +219,13 @@
 	<title>{pageTitle('Daftar')}</title>
 </svelte:head>
 
-<AuthSplitLayout title="Daftar" description="Dari repository ke URL publik." mode="register">
+<!-- The consent field or the line under the buttons links the privacy notice, so the footer does not. -->
+<AuthSplitLayout
+	title="Daftar"
+	description="Dari repository ke URL publik."
+	mode="register"
+	privacyLinkInBody={!availability.isLoading && !isRegistered}
+>
 	<div class="space-y-6">
 		{#if availability.emailDeliveryOff}
 			<EmailDeliveryNotice message={registrationUnavailableMessage(availability)} />

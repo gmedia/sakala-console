@@ -9,10 +9,15 @@
 		title: string;
 		description?: string;
 		mode?: 'login' | 'register';
+		/**
+		 * The page links the Pemberitahuan Privasi itself, next to where data is entered, so the
+		 * footer does not name it a second time.
+		 */
+		privacyLinkInBody?: boolean;
 		children: Snippet;
 	};
 
-	let { title, description, mode = 'login', children }: Props = $props();
+	let { title, description, mode = 'login', privacyLinkInBody = false, children }: Props = $props();
 </script>
 
 <main
@@ -37,7 +42,9 @@
 			>
 				<LegalLink href={LEGAL_LINKS.terms}>Syarat Layanan</LegalLink>
 				<LegalLink href={LEGAL_LINKS.acceptableUse}>Penggunaan Wajar</LegalLink>
-				<LegalLink href={LEGAL_LINKS.privacy}>Privasi</LegalLink>
+				{#if !privacyLinkInBody}
+					<LegalLink href={LEGAL_LINKS.privacy}>Privasi</LegalLink>
+				{/if}
 			</p>
 		</div>
 	</div>

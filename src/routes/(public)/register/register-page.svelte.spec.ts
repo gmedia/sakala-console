@@ -199,6 +199,19 @@ describe('consent on the register form', () => {
 		expect(page.getByRole('checkbox').all()).toHaveLength(1);
 	});
 
+	it('links the privacy notice once, with email registration on or off', async () => {
+		for (const delivery of [true, false]) {
+			vi.mocked(getAuthOptions).mockResolvedValue(options(delivery));
+			const { unmount } = await renderPage();
+
+			await expect.element(provider('GitHub')).toBeVisible();
+			const links = page.getByRole('link', { name: /Privasi/ });
+			await expect.element(links).toHaveAttribute('href', 'https://sakala.dev/privasi');
+			expect(links.all()).toHaveLength(1);
+			unmount();
+		}
+	});
+
 	it('no longer says Sakala has no written terms', async () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(true));
 		await renderPage();

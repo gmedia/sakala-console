@@ -87,9 +87,13 @@ export function registrationUnavailableMessage(availability: AuthAvailability): 
 	return `Pendaftaran lewat email belum tersedia. ${next}`;
 }
 
-export function loginUnavailableMessage(availability: AuthAvailability): string {
-	return `${registrationUnavailableMessage(availability)} Kalau akunmu sudah terverifikasi, kamu tetap bisa masuk dengan email dan kata sandi.`;
-}
+/**
+ * The login page's one line about email delivery, where "Lupa kata sandi?" would be. Logging in
+ * with a password needs no email; only a reset does. It names no provider: an account made with a
+ * password cannot sign in through GitHub or Google with the same email.
+ */
+export const LOGIN_PASSWORD_RESET_UNAVAILABLE =
+	'Reset kata sandi lewat email belum tersedia. Kalau lupa kata sandi, hubungi admin Sakala.';
 
 export function passwordResetUnavailableMessage(availability: AuthAvailability): string {
 	const next = nextStep(availability, 'Hubungi admin Sakala kalau kamu butuh bantuan.');
