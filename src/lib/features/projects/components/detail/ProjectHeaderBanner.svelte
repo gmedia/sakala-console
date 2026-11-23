@@ -19,6 +19,11 @@
 	import { useProjectWake } from '$lib/features/projects/detail/use-project-wake.svelte';
 	import { useProjectRestart } from '$lib/features/projects/detail/use-project-restart.svelte';
 	import { RESTART_COPY } from '$lib/features/projects/restart';
+	import {
+		FILE_STORAGE_COPY,
+		projectFileStorageGuideUrl
+	} from '$lib/features/projects/file-storage';
+	import FileStorageGuideLink from '../project/FileStorageGuideLink.svelte';
 	import { useProjectIdleWindow } from '$lib/features/projects/detail/use-project-idle-window.svelte';
 	import {
 		getPortDisplay,
@@ -87,6 +92,8 @@
 	);
 
 	const suspensionReason = $derived(project.suspension?.reason ?? null);
+	// A static site keeps no files of its own, so the clause would only worry its owner.
+	const showSleepingFileNote = $derived(header.kind === 'sleeping' && !servesStaticFiles(project));
 
 	let isCopied = $state(false);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -299,6 +306,11 @@
 						href={`mailto:${ABUSE_EMAIL}`}
 						class="font-medium text-primary-dark underline underline-offset-2">{ABUSE_EMAIL}</a
 					>.
+				</p>
+			{:else if showSleepingFileNote}
+				<p class="text-muted" data-testid="sleeping-file-note">
+					{FILE_STORAGE_COPY.sleeping}
+					<FileStorageGuideLink href={projectFileStorageGuideUrl(project.stack)} />
 				</p>
 			{/if}
 		</ProjectStatusNotice>

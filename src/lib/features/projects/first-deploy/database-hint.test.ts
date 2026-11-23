@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { databaseEngineNote, databaseSignalsSentence, ENGINE_NOTES } from './database-hint';
+import { FILE_STORAGE_GUIDE_URL } from '$lib/config/project';
+import {
+	databaseEngineGuideUrl,
+	databaseEngineNote,
+	databaseSignalsSentence,
+	ENGINE_NOTES
+} from './database-hint';
 
 const signal = (kind: string, file: string, name: string | null) => ({ kind, file, name });
 
@@ -67,17 +73,24 @@ describe('databaseEngineNote', () => {
 		expect(databaseEngineNote('mysql', { laravel: false, ...reachable })).toBe(ENGINE_NOTES.mysql);
 	});
 
-	it('warns that SQLite data is lost on every deploy, and points at a Sakala database', () => {
+	it('warns that SQLite data is lost on sleep, restart, and deploy, and points at a Sakala database', () => {
 		const note = databaseEngineNote('sqlite', { laravel: true, sakalaDatabase: true });
-		expect(note).toContain('hilang setiap kali deploy');
+		expect(note).toContain('hilang saat proyek tidur, di-restart, atau di-deploy ulang');
 		expect(note).toContain('Database dari Sakala');
 	});
 
 	it('does not suggest a Sakala database the workspace cannot get', () => {
 		const note = databaseEngineNote('sqlite', { laravel: true, sakalaDatabase: false });
 		expect(note).toBe(ENGINE_NOTES.sqliteWithoutSakalaDatabase);
-		expect(note).toContain('hilang setiap kali deploy');
+		expect(note).toContain('hilang saat proyek tidur, di-restart, atau di-deploy ulang');
 		expect(note).not.toContain('Sakala menyimpan');
+	});
+
+	it('links the SQLite section of the file storage guide, and nothing for other engines', () => {
+		expect(databaseEngineGuideUrl('sqlite')).toBe(`${FILE_STORAGE_GUIDE_URL}#berkas-sqlite`);
+		expect(databaseEngineGuideUrl('mysql')).toBeNull();
+		expect(databaseEngineGuideUrl('postgresql')).toBeNull();
+		expect(databaseEngineGuideUrl('unknown')).toBeNull();
 	});
 
 	it('says nothing for PostgreSQL or an unknown engine', () => {

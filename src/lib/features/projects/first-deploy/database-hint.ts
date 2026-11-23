@@ -1,3 +1,4 @@
+import { FILE_STORAGE_GUIDE_ANCHORS, fileStorageGuideUrl } from '$lib/config/project';
 import type { DatabaseHintEngine, DatabaseHintSignal } from '../type';
 
 /**
@@ -59,13 +60,13 @@ export const ENGINE_NOTES = {
 	mysql:
 		'Sakala menyediakan PostgreSQL, bukan MySQL. Aplikasimu perlu driver PostgreSQL, dan query yang khusus MySQL mungkin perlu diubah.',
 	sqlite:
-		'Data SQLite tersimpan di file di dalam container, dan file itu hilang setiap kali deploy. Database dari Sakala menyimpan datanya tetap ada.',
+		'Data SQLite tersimpan di file di dalam container, dan file itu hilang saat proyek tidur, di-restart, atau di-deploy ulang. Database dari Sakala menyimpan datanya tetap ada.',
 	/**
 	 * When this workspace cannot get a Sakala database now (none offered, or no quota left, which
 	 * is the production default), the note does not point at an option that is disabled.
 	 */
 	sqliteWithoutSakalaDatabase:
-		'Data SQLite tersimpan di file di dalam container, dan file itu hilang setiap kali deploy. Kalau datanya perlu tetap ada, simpan di database di luar container, lalu isi alamat koneksinya sebagai environment variable.'
+		'Data SQLite tersimpan di file di dalam container, dan file itu hilang saat proyek tidur, di-restart, atau di-deploy ulang. Kalau datanya perlu tetap ada, simpan di database di luar container, lalu isi alamat koneksinya sebagai environment variable.'
 } as const;
 
 /**
@@ -82,4 +83,9 @@ export function databaseEngineNote(
 		return sakalaDatabase ? ENGINE_NOTES.sqlite : ENGINE_NOTES.sqliteWithoutSakalaDatabase;
 	}
 	return null;
+}
+
+/** The guide's section behind an engine note, for SQLite: why the file goes, and where data can live. */
+export function databaseEngineGuideUrl(engine: DatabaseHintEngine): string | null {
+	return engine === 'sqlite' ? fileStorageGuideUrl(FILE_STORAGE_GUIDE_ANCHORS.sqlite) : null;
 }

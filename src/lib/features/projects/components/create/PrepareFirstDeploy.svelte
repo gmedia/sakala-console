@@ -1,10 +1,13 @@
 <script lang="ts">
+	import InfoIcon from 'phosphor-svelte/lib/InfoIcon';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EnvSuggestionList from '../../env-suggestions/EnvSuggestionList.svelte';
 	import { SUGGESTION_COPY } from '../../env-suggestions/presentation';
+	import { FILE_STORAGE_COPY } from '../../file-storage';
 	import { WAITING_COPY } from '../../first-deploy/deploy-when-ready';
 	import type { FirstDeploySetup } from '../../first-deploy/use-first-deploy-setup.svelte';
 	import DatabaseChoiceCard from './DatabaseChoiceCard.svelte';
+	import FileStorageGuideLink from '../project/FileStorageGuideLink.svelte';
 	import EnvFailureList from './EnvFailureList.svelte';
 
 	/**
@@ -18,6 +21,7 @@
 
 	const busy = $derived(setup.phase === 'running');
 	const suggestions = $derived(setup.suggestions);
+	const fileStorage = $derived(setup.fileStorageNote);
 	const showVariables = $derived(
 		suggestions !== null && (suggestions.rows.length > 0 || suggestions.alreadySet.length > 0)
 	);
@@ -80,5 +84,19 @@
 				truncated={setup.truncated}
 			/>
 		</section>
+	{/if}
+
+	{#if fileStorage}
+		<!-- Advice, not an error: last before "Deploy sekarang", where it costs no decision. -->
+		<div
+			class="flex items-start gap-2 rounded-control bg-primary/8 p-3 text-sm text-primary-dark"
+			data-testid="file-storage-note"
+		>
+			<InfoIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+			<div class="flex min-w-0 flex-col gap-1">
+				<p>{FILE_STORAGE_COPY.note}</p>
+				<FileStorageGuideLink href={fileStorage.guideUrl} />
+			</div>
+		</div>
 	{/if}
 </div>

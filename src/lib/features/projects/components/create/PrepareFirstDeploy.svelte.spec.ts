@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { apiRequest } from '$lib/api/client';
 import { QUOTA_COPY } from '$lib/features/databases/presentation';
+import { FILE_STORAGE_GUIDE_URL } from '$lib/config/project';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
+import { FILE_STORAGE_COPY } from '../../file-storage';
 import FirstDeployStepTestHost from './FirstDeployStepTestHost.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
@@ -176,21 +178,25 @@ describe('Persiapan, the database card', () => {
 		};
 		await renderStep();
 
-		await expect
-			.element(page.getByTestId('database-engine-note'))
-			.toHaveTextContent(/PostgreSQL, bukan MySQL.*DB_CONNECTION=pgsql/);
+		const note = page.getByTestId('database-engine-note');
+		await expect.element(note).toHaveTextContent(/PostgreSQL, bukan MySQL.*DB_CONNECTION=pgsql/);
+		await expect.element(note.getByRole('link')).not.toBeInTheDocument();
 	});
 
-	it('warns that SQLite data is lost on deploy, even with no database chosen', async () => {
+	it('warns that SQLite data is lost on sleep and deploy, even with no database chosen', async () => {
 		project = {
 			...baseProject,
 			inspection: { ...baseProject.inspection, database_hint: hint({ engine: 'sqlite' }) }
 		};
 		await renderStep({ pilotLimits: limits({ available: false }) });
 
+		const note = page.getByTestId('database-engine-note');
 		await expect
-			.element(page.getByTestId('database-engine-note'))
-			.toHaveTextContent(/hilang setiap kali deploy/);
+			.element(note)
+			.toHaveTextContent(/hilang saat proyek tidur, di-restart, atau di-deploy ulang/);
+		await expect
+			.element(note.getByRole('link', { name: /Panduan penyimpanan file/ }))
+			.toHaveAttribute('href', `${FILE_STORAGE_GUIDE_URL}#berkas-sqlite`);
 	});
 
 	it('does not suggest a Sakala database to a workspace without quota or one to use', async () => {
@@ -201,7 +207,7 @@ describe('Persiapan, the database card', () => {
 		await renderStep({ pilotLimits: limits({ used: 0, max: 0 }) });
 
 		const note = page.getByTestId('database-engine-note');
-		await expect.element(note).toHaveTextContent(/hilang setiap kali deploy/);
+		await expect.element(note).toHaveTextContent(/hilang saat proyek tidur/);
 		await expect.element(note).toHaveTextContent(/database di luar container/);
 		await expect.element(note).not.toHaveTextContent(/Database dari Sakala/);
 	});
@@ -315,6 +321,48 @@ describe('Persiapan, the variables', () => {
 			})
 		);
 		expect(posted.some((call) => call.path.endsWith('/deployments'))).toBe(false);
+	});
+});
+
+describe('Persiapan, files the app keeps itself', () => {
+	const withEntries = (...keys: string[]) => ({
+		...baseProject.inspection,
+		env_example: {
+			...baseProject.inspection.env_example,
+			entries: [
+				...baseProject.inspection.env_example.entries,
+				...keys.map((key) => ({ key, example_value: null }))
+			]
+		}
+	});
+
+	it('tells a Laravel app where uploads go, linking the Laravel section, as a calm note', async () => {
+		project = { ...baseProject, stack: { ...baseProject.stack, framework: 'laravel' } };
+		await renderStep();
+
+		const note = page.getByTestId('file-storage-note');
+		await expect.element(note).toHaveTextContent(FILE_STORAGE_COPY.note);
+		await expect.element(note).not.toHaveAttribute('role');
+		const link = note.getByRole('link', { name: /Panduan penyimpanan file/ });
+		await expect.element(link).toHaveAttribute('href', `${FILE_STORAGE_GUIDE_URL}#laravel`);
+		await expect.element(link).toHaveAttribute('target', '_blank');
+		expect(posted).toEqual([]);
+	});
+
+	it('links the Node section for a Node app with an upload folder in .env.example', async () => {
+		project = { ...baseProject, inspection: withEntries('UPLOAD_DIR') };
+		await renderStep();
+
+		await expect
+			.element(page.getByTestId('file-storage-note').getByRole('link'))
+			.toHaveAttribute('href', `${FILE_STORAGE_GUIDE_URL}#node`);
+	});
+
+	it('says nothing when nothing suggests the app keeps files', async () => {
+		await renderStep();
+
+		await expect.element(page.getByTestId('prepare-first-deploy')).toBeVisible();
+		await expect.element(page.getByTestId('file-storage-note')).not.toBeInTheDocument();
 	});
 });
 

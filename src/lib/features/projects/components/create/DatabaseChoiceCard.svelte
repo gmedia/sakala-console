@@ -12,6 +12,7 @@
 		RELEASE_COMMAND_SHORT_HELP
 	} from '../../build-help';
 	import { DATABASE_CHOICE_COPY, DATABASE_OPTIONS } from '../../first-deploy/database-choice';
+	import FileStorageGuideLink from '../project/FileStorageGuideLink.svelte';
 	import type { FirstDeploySetup } from '../../first-deploy/use-first-deploy-setup.svelte';
 
 	/**
@@ -169,13 +170,18 @@
 		</fieldset>
 
 		{#if showEngineNote}
-			<p
+			<div
 				class="flex items-start gap-2 rounded-control bg-primary/8 p-3 text-sm text-primary-dark"
 				data-testid="database-engine-note"
 			>
 				<InfoIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-				<span>{setup.engineNote}</span>
-			</p>
+				<div class="flex min-w-0 flex-col gap-1">
+					<p>{setup.engineNote}</p>
+					{#if setup.engineNoteGuideUrl}
+						<FileStorageGuideLink href={setup.engineNoteGuideUrl} />
+					{/if}
+				</div>
+			</div>
 		{/if}
 
 		{#if chosen}
