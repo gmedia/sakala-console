@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { settingsHref } from '$lib/features/settings/tabs';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import { resolve } from '$app/paths';
 	import UserIcon from 'phosphor-svelte/lib/User';
 	import { tick } from 'svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
@@ -128,9 +128,7 @@
 	}
 </script>
 
-<div class="max-w-reading space-y-8 pb-12">
-	<p class="text-sm text-muted">Info dasar akun kamu di Sakala.</p>
-
+<div class="space-y-6">
 	<form class="surface-card space-y-8 p-6" onsubmit={handleSave} novalidate>
 		<div class="flex items-center gap-6">
 			<button
@@ -183,10 +181,17 @@
 		<div>
 			<h2 class="font-sans text-base font-semibold text-foreground">Detail akun</h2>
 			<p class="mt-0.5 text-xs text-muted">
-				Email diganti lewat
-				<a href={resolve('/settings')} class="font-semibold text-primary-dark hover:underline">
-					Pengaturan
-				</a>.
+				Ganti email di tab
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
+				<a
+					href={settingsHref('account')}
+					data-sveltekit-replacestate
+					data-sveltekit-noscroll
+					class="font-semibold text-primary-dark hover:underline"
+				>
+					Akun dan keamanan</a
+				>.
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			</p>
 		</div>
 

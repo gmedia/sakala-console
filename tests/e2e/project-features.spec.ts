@@ -22,6 +22,44 @@ test.describe('project settings: build configuration', () => {
 		await expect(page.getByLabel('Port')).toHaveAccessibleDescription(/Sekarang 3000/);
 	});
 
+	test('groups the form in Umum, Build dan start, and a closed Lanjutan, with links to each', async ({
+		page
+	}) => {
+		await mockProjectApi(page);
+		await page.goto(SETTINGS_URL);
+
+		const sections = page.getByRole('navigation', { name: 'Bagian pengaturan' });
+		await expect(sections.getByRole('link')).toHaveText([
+			'Umum',
+			'Build dan start',
+			'Lanjutan',
+			'Zona berbahaya'
+		]);
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+			'Umum',
+			'Build dan start',
+			'Lanjutan',
+			'Zona berbahaya'
+		]);
+		await expect(page.getByRole('button', { name: 'Lanjutan' })).toHaveAttribute(
+			'aria-expanded',
+			'false'
+		);
+		await expect(page.getByLabel('Release command')).toBeHidden();
+		// Empty build fields say what happens, instead of an example that looks like a value.
+		await expect(page.getByLabel('Build command')).toHaveAttribute(
+			'placeholder',
+			'Dideteksi otomatis'
+		);
+
+		await sections.getByRole('link', { name: 'Lanjutan' }).click();
+		await expect(page).toHaveURL(new RegExp(`${SETTINGS_URL}#lanjutan$`));
+		await expect(page.getByLabel('Release command')).toBeVisible();
+
+		await sections.getByRole('link', { name: 'Zona berbahaya' }).click();
+		await expect(page.getByRole('button', { name: 'Hapus proyek' })).toBeInViewport();
+	});
+
 	test('saves only the fields that changed, and null clears one', async ({ page }) => {
 		const updates: unknown[] = [];
 		await mockProjectApi(page, {

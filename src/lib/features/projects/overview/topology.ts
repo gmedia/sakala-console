@@ -10,7 +10,8 @@ import {
 	getProjectPublicUrl,
 	getPublicUrlLabel,
 	type ProjectHeaderKind,
-	type ProjectHeaderState
+	type ProjectHeaderState,
+	WAKE_ESTIMATE
 } from '../presentation';
 import { MIN_REPLICAS, replicasOf } from '../replicas';
 import type { Project, ProjectDatabase } from '../type';
@@ -209,7 +210,7 @@ function sentenceReplicas(cells: ReplicaCells): string {
 function appExplanation(kind: ProjectHeaderKind, beforeFirst: boolean): string | null {
 	switch (kind) {
 		case 'sleeping':
-			return 'Aplikasi sedang tidur karena tidak ada pengunjung. Kunjungan pertama membangunkannya, jadi pengunjung itu menunggu sebentar.';
+			return `Aplikasi sedang tidur karena tidak ada pengunjung. Kunjungan pertama membangunkannya, jadi pengunjung itu menunggu sebentar, biasanya ${WAKE_ESTIMATE}.`;
 		case 'deploying':
 			return beforeFirst
 				? 'Deploy pertama sedang berjalan.'
@@ -571,7 +572,7 @@ function pathSentence(kind: ProjectHeaderKind, beforeFirst: boolean, facts: Sent
 	}
 	switch (kind) {
 		case 'sleeping':
-			return `${visit}, tempat aplikasi sedang tidur. Kunjungan pertama membangunkannya, jadi pengunjung itu menunggu sebentar.`;
+			return `${visit}, tempat aplikasi sedang tidur. Kunjungan pertama membangunkannya, jadi pengunjung itu menunggu sebentar, biasanya ${WAKE_ESTIMATE}.`;
 		case 'crashed':
 			return `${visit}, tempat aplikasi terus berhenti dan dimulai ulang, jadi alamatnya kadang tidak bisa dibuka.`;
 		case 'stopped':

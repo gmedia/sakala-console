@@ -14,6 +14,7 @@
 	import { useActiveWorkspace } from '../access.svelte';
 	import {
 		createDeleteWorkspaceMutation,
+		createInviteMutation,
 		createLeaveWorkspaceMutation,
 		createRevokeInvitationMutation
 	} from '../mutations';
@@ -79,6 +80,7 @@
 	let lastTrigger: HTMLElement | null = null;
 
 	const revokeMutation = createRevokeInvitationMutation(() => workspaceId);
+	const resendMutation = createInviteMutation(() => workspaceId);
 	const leaveMutation = createLeaveWorkspaceMutation();
 	const deleteMutation = createDeleteWorkspaceMutation();
 
@@ -112,6 +114,32 @@
 
 	const isExpired = (invitation: WorkspaceInvitation) =>
 		new Date(invitation.expires_at).getTime() <= Date.now();
+	const hasExpired = $derived(invitations.some(isExpired));
+
+	/** The invitation being sent again, for its button's state. */
+	let resendingId = $state<string | null>(null);
+
+	// Inviting the same address again is how the API renews an invitation: a new link and expiry,
+	// with the same role, and the old one closed. Nobody has to type the address again.
+	async function handleResend(invitation: WorkspaceInvitation) {
+		if (resendingId) return;
+		resendingId = invitation.id;
+		try {
+			const renewed = await resendMutation.mutateAsync({
+				email: invitation.email,
+				role: invitation.role
+			});
+			toast.success(
+				`Undangan baru dikirim ke ${renewed.email}, berlaku sampai ${formatDate(renewed.expires_at)}.`
+			);
+		} catch (error) {
+			toast.error(
+				workspaceErrorMessage(error, `Undangan untuk ${invitation.email} belum terkirim.`)
+			);
+		} finally {
+			resendingId = null;
+		}
+	}
 
 	async function handleRevoke() {
 		if (busy || !revokeTarget) return;
@@ -390,21 +418,37 @@
 								{#if expired}
 									<Badge tone="warning">Kedaluwarsa</Badge>
 								{/if}
-								<Button
-									variant="secondary"
-									size="sm"
-									aria-label={`Batalkan undangan untuk ${invitation.email}`}
-									onclick={(event) => openRevoke(event, invitation)}
-								>
-									{expired ? 'Hapus' : 'Batalkan'}
-								</Button>
+								<div class="flex gap-2">
+									{#if expired}
+										<Button
+											variant="secondary"
+											size="sm"
+											disabled={resendingId !== null}
+											aria-busy={resendingId === invitation.id}
+											aria-label={`Kirim ulang undangan untuk ${invitation.email}`}
+											onclick={() => handleResend(invitation)}
+										>
+											{resendingId === invitation.id ? 'Mengirim...' : 'Kirim ulang'}
+										</Button>
+									{/if}
+									<Button
+										variant={expired ? 'ghost' : 'secondary'}
+										size="sm"
+										aria-label={`${expired ? 'Hapus' : 'Batalkan'} undangan untuk ${invitation.email}`}
+										onclick={(event) => openRevoke(event, invitation)}
+									>
+										{expired ? 'Hapus' : 'Batalkan'}
+									</Button>
+								</div>
 							</li>
 						{/each}
 					</ul>
-					<p class="text-xs text-muted">
-						Undangan yang kedaluwarsa tidak bisa dipakai. Undang emailnya lagi untuk mengirim tautan
-						baru.
-					</p>
+					{#if hasExpired}
+						<p class="text-xs text-muted">
+							Tautan undangan yang kedaluwarsa tidak bisa dipakai lagi. Kirim ulang membuat tautan
+							baru untuk email dan peran yang sama.
+						</p>
+					{/if}
 				{/if}
 			</section>
 
@@ -463,7 +507,12 @@
 	</div>
 
 	{#if isOwner}
-		<InviteMemberDialog bind:open={inviteOpen} {workspaceId} workspaceName={workspace.name} />
+		<InviteMemberDialog
+			bind:open={inviteOpen}
+			{workspaceId}
+			workspaceName={workspace.name}
+			memberEmails={members.map((member) => member.user.email)}
+		/>
 		<ChangeRoleDialog
 			bind:open={roleOpen}
 			{workspaceId}

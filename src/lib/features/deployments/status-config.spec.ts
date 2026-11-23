@@ -218,6 +218,15 @@ describe('getStatusDisplay - contract fields', () => {
 		expect(display.desc).not.toMatch(/\d|perkiraan|sebentar/i);
 	});
 
+	it('explains waiting for the project analysis, which the deployment starts after by itself', () => {
+		const display = getStatusDisplay({ status: 'running', queueState: 'waiting_for_inspection' });
+
+		expect(display.title).toBe('Menunggu analisis proyek');
+		expect(display.desc).toContain('port aplikasimu');
+		expect(display.desc).toContain('mulai sendiri');
+		expect(display.bannerBgClass).toBe('bg-queued-soft');
+	});
+
 	it('says a cancel is on its way rather than still running', () => {
 		expect(getStatusDisplay({ status: 'running', cancelRequested: true }).title).toBe(
 			'Deployment sedang dibatalkan'

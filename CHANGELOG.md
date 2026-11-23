@@ -4,6 +4,18 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- Invite several people at once. The "Undang anggota" field takes one or more addresses separated by commas, spaces, or new lines, so a column pasted from a spreadsheet works. After a paste the dialog lists what will be left out, with the address named: a malformed one ("gita@kampus belum berupa alamat email lengkap, misalnya nama@kampus.ac.id.") and one that is already a member of the team, checked against the member list. The button counts the rest ("Kirim 3 undangan") and sends them one by one with the same role, showing "Mengirim 2 dari 3...". When everything went out the dialog closes with "3 undangan terkirim."; otherwise it stays open with what was sent and one line per address that was not, and keeps only the addresses worth fixing in the field. A rate limit (`429`) stops the rest and says how many were not sent and when to try again. Each address is still one `POST /workspaces/{id}/invitations`, so no API change is needed; the pending list is refreshed once at the end.
+- "Kirim ulang" on an expired invitation. It invites the same address with the same role again, which the API turns into a new link and expiry and closes the old invitation, and confirms with "Undangan baru dikirim ke …, berlaku sampai …". "Hapus" stays as the quieter second action.
+
+### Changed
+
+- Project settings are grouped. Links at the top jump to four sections: Umum (name, branch, auto-deploy, subdomain), Build dan start (root directory, port, build and start command, "Kosong berarti dideteksi otomatis dari repository."), Lanjutan (release command and replicas), and Zona berbahaya at the bottom (was "Zona bahaya"). Lanjutan starts closed unless it holds a value (a release command, more than one replica), opens when one of its fields is refused, and opens by itself when a link lands on `#releaseCommand`, `#replicas`, or `#lanjutan`, so the overview's next steps still reach the field. Empty fields show "Dideteksi otomatis", "Root repository", or "Tidak ada" instead of example values that looked filled in; the examples moved into the help text. One save button stays at the bottom.
+- One page for the account. Pengaturan has three tabs, Profil (first and the default), Akun dan keamanan, and Notifikasi, as links that can be bookmarked (`/settings?tab=profile|account|notifications`). `/profile` redirects to the Profil tab, the account menu has one "Pengaturan" entry instead of "Lihat profil" and "Pengaturan", and the profile's email note links to Akun dan keamanan. Links that are about the account itself ("Unduh data atau hapus akun" on the legal acceptance screen, signing in again before deleting the account) open Akun dan keamanan.
+- Replicas that are not available say who can change that: "Replika belum aktif untuk workspace ini. Admin Sakala bisa mengaktifkannya lewat profil batas workspace."
+- The invite dialog opens with the cursor in the email field instead of on the send button.
+
 ## [0.11.0] - 2026-11-20
 
 ### Added

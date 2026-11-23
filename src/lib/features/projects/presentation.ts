@@ -242,6 +242,9 @@ function describeRunningDeployment(deployment: HeaderDeployment | null): string 
 
 	const name = `Deployment #${deployment.sequence}`;
 	if (deployment.cancel_requested_at) return `${name} sedang dibatalkan.`;
+	if (deployment.queue_state === 'waiting_for_inspection') {
+		return `${name} menunggu analisis proyek selesai, lalu mulai sendiri.`;
+	}
 	if (deployment.queue_state === 'waiting_for_node') {
 		return `${name} mengantre karena belum ada server Sakala yang siap. Deployment ini tetap mengantre sampai ada server yang siap.`;
 	}
@@ -254,18 +257,26 @@ export type ProjectHeaderOptions = {
 	idleSleepMinutes?: number | null;
 };
 
+/**
+ * How long a wake usually takes. The page a sleeping project's domain shows says
+ * the same words (`WAKE_ESTIMATE` in sakala-agent), so owners and visitors read
+ * one number. Recorded wakes, from the request to the app being ready: 3 to 11 s
+ * in production and 5 to 35 s on staging (19 to 23 Nov 2026).
+ */
+export const WAKE_ESTIMATE = 'kurang dari satu menit';
+
 /** Neutral on purpose: sleeping is what a quiet project does, not something that went wrong. */
 export function getSleepingNotice(idleSleepMinutes?: number | null): string {
 	const why = idleSleepMinutes
 		? `tidak ada pengunjung selama ${decimal.format(idleSleepMinutes)} menit`
 		: 'lama tidak ada pengunjung';
-	return `Proyek ini sedang tidur karena ${why}. Ini normal: proyek menyala lagi saat URL-nya dibuka.`;
+	return `Proyek ini sedang tidur karena ${why}. Ini normal: proyek menyala lagi saat URL-nya dibuka, biasanya dalam ${WAKE_ESTIMATE}.`;
 }
 
 export const PROJECT_WAKE_COPY = {
 	action: 'Bangunkan',
 	busy: 'Membangunkan...',
-	requested: 'Proyek sedang dibangunkan. Statusnya berubah jadi Live begitu aplikasinya siap.',
+	requested: `Proyek sedang dibangunkan, biasanya dalam ${WAKE_ESTIMATE}. Statusnya berubah jadi Live begitu aplikasinya siap.`,
 	failed: 'Proyek belum berhasil dibangunkan. Silakan coba lagi.',
 	suspended: 'Proyek ini ditangguhkan admin Sakala, jadi belum bisa dibangunkan.'
 } as const;
@@ -593,6 +604,7 @@ export function getDeploymentCardNote(
 			: 'Gagal, lihat detail untuk penyebabnya';
 	}
 	if (deployment.cancel_requested_at) return 'Sedang dibatalkan';
+	if (deployment.queue_state === 'waiting_for_inspection') return 'Menunggu analisis proyek';
 	if (deployment.queue_state === 'waiting_for_node') return 'Menunggu server siap';
 	if (ACTIVE_DEPLOYMENT_STATUSES.includes(status)) {
 		return `Tahap: ${getDeploymentStatusLabel(status)}`;

@@ -3554,7 +3554,7 @@ export interface components {
             is_active: boolean;
             cancel_requested_at: string | null;
             /** @enum {string|null} */
-            queue_state: "assigned" | "waiting_for_node" | null;
+            queue_state: "assigned" | "waiting_for_node" | "waiting_for_inspection" | null;
             started_at: string | null;
             finished_at: string | null;
             cancelled_at: string | null;

@@ -63,13 +63,13 @@ Onboarding adalah satu layar sambutan tanpa isian. "Buat proyek pertama" memangg
 
 Formulir daftar punya satu kotak centang wajib, dengan teks yang tertulis di `sakala-api/docs/AUTHENTICATION.md`. Console mengirim `accept_terms` bersama `terms_version` dan `acceptable_use_version` dari `GET auth/options`, yaitu versi yang benar-benar ditampilkan. Pemberitahuan Privasi hanya ditautkan, tanpa kotak, karena tidak disetujui. Kalau versinya tidak bisa dibaca, formulir tidak bisa dikirim dan menawarkan "Coba lagi".
 
-Saat `GET auth/user` menjawab `legal_acceptance_required: true`, misalnya setelah login pertama lewat GitHub atau setelah versi berganti, `AuthGuard` menampilkan `LegalAcceptanceScreen` sebelum app dan sebelum onboarding, lalu memanggil `POST auth/legal-acceptance`. `/settings` tetap terbuka, supaya orang bisa mengunduh data dan menghapus akun tanpa harus setuju dulu. Versi yang ditolak `422` berarti dokumennya baru saja berubah: kotaknya dikosongkan dan options dibaca ulang.
+Saat `GET auth/user` menjawab `legal_acceptance_required: true`, misalnya setelah login pertama lewat GitHub atau setelah versi berganti, `AuthGuard` menampilkan `LegalAcceptanceScreen` sebelum app dan sebelum onboarding, lalu memanggil `POST auth/legal-acceptance`. `/settings` tetap terbuka, supaya orang bisa mengunduh data dan menghapus akun tanpa harus setuju dulu; tautan di layar itu membuka tab Akun dan keamanan (`/settings?tab=account`). Versi yang ditolak `422` berarti dokumennya baru saja berubah: kotaknya dikosongkan dan options dibaca ulang.
 
 Kalau dokumen berganti saat session berjalan, API menjawab `403 LEGAL_ACCEPTANCE_REQUIRED`. `reportApiError()` membaca ulang user, dan layar persetujuan muncul sendiri.
 
 ### Hapus Akun dan Unduh Data
 
-`DeleteAccountSection` di tab akun memanggil `DELETE auth/account` dengan email yang diketik ulang, ditambah `current_password` kalau akunnya punya kata sandi. `403 REAUTHENTICATION_REQUIRED` menampilkan tombol masuk ulang per provider yang aktif, dengan `return_url` ke `/settings`. Akun admin tidak ditawari tombolnya, karena API menjawab `409 ADMIN_ACCOUNT_CANNOT_BE_DELETED`. Masa simpan yang disebut dialog berasal dari `deleted_project_retention_days` di `GET app/pilot-limits`.
+`DeleteAccountSection` di tab Akun dan keamanan memanggil `DELETE auth/account` dengan email yang diketik ulang, ditambah `current_password` kalau akunnya punya kata sandi. `403 REAUTHENTICATION_REQUIRED` menampilkan tombol masuk ulang per provider yang aktif, dengan `return_url` ke `/settings?tab=account`. Akun admin tidak ditawari tombolnya, karena API menjawab `409 ADMIN_ACCOUNT_CANNOT_BE_DELETED`. Masa simpan yang disebut dialog berasal dari `deleted_project_retention_days` di `GET app/pilot-limits`.
 
 `GET auth/account/export` punya rate limit sendiri, jadi request-nya memakai `separateRateLimit`. Dengan begitu `429` di sini tidak menghentikan semua read yang lain, dan sebaliknya.
 
