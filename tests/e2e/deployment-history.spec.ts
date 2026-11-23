@@ -500,6 +500,28 @@ test('a project that never went live has no serving version', async ({ page }) =
 	await expect(page.getByTestId('deployment-row-serving')).toHaveCount(0);
 });
 
+test('a queued rollback waiting for the project analysis says both', async ({ page }) => {
+	const waiting = deployment(10, {
+		status: 'queued',
+		trigger: 'rollback',
+		queue_state: 'waiting_for_inspection',
+		started_at: null,
+		finished_at: null,
+		commit_sha: keptImage.commit_sha,
+		commit_message: keptImage.commit_message,
+		rollback: { target_deployment_id: keptImage.id, target_sequence: 7 }
+	});
+	await open(page, HISTORY_URL, { deployments: [waiting, ...history] });
+	const row = rows(page).first();
+	await expect(row.getByTestId('deployment-row-trigger')).toHaveText('Rollback ke #7');
+	await expect(row).toContainText('Menunggu analisis proyek');
+	await expect(row.getByTestId('deployment-row-serving')).toHaveCount(0);
+	// The version that still serves keeps its mark while the rollback waits.
+	await expect(page.getByTestId('deployment-row-serving')).toHaveCount(1);
+	// Restart waits too: the Redeploy menu is busy while a deployment is open.
+	await expect(page.getByRole('button', { name: 'Pilihan build dan restart' })).toBeDisabled();
+});
+
 test('a crashed project marks no version as serving', async ({ page }) => {
 	await open(page, HISTORY_URL, { project: { runtime_status: 'crashed' } });
 	await expect(rows(page)).toHaveCount(5);
