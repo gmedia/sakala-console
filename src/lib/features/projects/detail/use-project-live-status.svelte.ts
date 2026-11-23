@@ -14,6 +14,7 @@ import {
 	projectKeys,
 	requestProjectRefresh
 } from '../queries';
+import { parseRestartOutcome, type RestartOutcome } from '../restart';
 import type { Deployment, PaginatedDeployments, Project } from '../type';
 
 type DeploymentUpdatedPayload = {
@@ -62,6 +63,9 @@ export function useProjectLiveStatus(
 		lastSeen = seen;
 	});
 
+	// The newest restart end heard on the channel. The project only says one is open.
+	let restartOutcome = $state<RestartOutcome | null>(null);
+
 	let guard = new SequenceGuard();
 	$effect(() => {
 		void channelDeploymentId;
@@ -77,6 +81,9 @@ export function useProjectLiveStatus(
 				status
 			} = payload as DeploymentUpdatedPayload;
 			if (typeof sequence === 'number' && !guard.accept(sequence)) return;
+
+			const restartEnd = parseRestartOutcome(payload);
+			if (restartEnd) restartOutcome = restartEnd;
 
 			const nextStatus = typeof runtimeStatus === 'string' ? toRuntimeStatus(runtimeStatus) : null;
 			if (nextStatus) {
@@ -113,6 +120,10 @@ export function useProjectLiveStatus(
 	return {
 		get header() {
 			return header;
+		},
+		/** How the newest restart heard on the channel ended. */
+		get restartOutcome() {
+			return restartOutcome;
 		}
 	};
 }
