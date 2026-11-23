@@ -41,6 +41,10 @@ export const queryKeys = {
 		databases: (workspaceId: string) => ['workspaces', 'databases', workspaceId] as const,
 		database: (workspaceId: string, databaseId: string) =>
 			['workspaces', 'databases', workspaceId, databaseId] as const,
+		/** One workspace's buckets, with the detail keys under it, like databases. */
+		buckets: (workspaceId: string) => ['workspaces', 'buckets', workspaceId] as const,
+		bucket: (workspaceId: string, bucketId: string) =>
+			['workspaces', 'buckets', workspaceId, bucketId] as const,
 		/** Under `pilot-limits`, so invalidating that prefix still refreshes every workspace's limits. */
 		limits: (workspaceId: string | null) => ['pilot-limits', workspaceId ?? 'personal'] as const
 	},
@@ -99,7 +103,7 @@ export function workspaceIdOfQueryKey(key: QueryKey): string | null {
 	const [root, kind, scope] = key;
 	if (
 		root === 'workspaces' &&
-		(kind === 'members' || kind === 'invitations' || kind === 'databases')
+		(kind === 'members' || kind === 'invitations' || kind === 'databases' || kind === 'buckets')
 	) {
 		return typeof scope === 'string' && scope ? scope : null;
 	}

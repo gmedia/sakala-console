@@ -11,7 +11,12 @@
 	import { createRedeployMutation } from '$lib/features/projects/mutations';
 	import { getDeployErrorMessage } from '$lib/features/projects/presentation';
 	import { createProjectQuery } from '$lib/features/projects/queries';
-	import { ROTATION_COPY, rotationProjectState } from '../presentation';
+	import {
+		ATTACHED_REDEPLOY_SKIPPED_REASONS,
+		ROTATION_COPY,
+		rotationProjectState,
+		type RotationRowCopy
+	} from '../presentation';
 	import { projectDeploymentHref, projectHref } from '../routes';
 
 	type Props = {
@@ -19,9 +24,18 @@
 		/** The API's outcome for this project, when the rotation asked for redeploys. */
 		redeploy: DatabaseRotationRedeploy | undefined;
 		canManage: boolean;
+		copy?: RotationRowCopy;
+		/** Why a redeploy was skipped, by `skipped_reason`. */
+		skippedReasons?: Record<string, string>;
 	};
 
-	let { project, redeploy, canManage }: Props = $props();
+	let {
+		project,
+		redeploy,
+		canManage,
+		copy = ROTATION_COPY,
+		skippedReasons = ATTACHED_REDEPLOY_SKIPPED_REASONS
+	}: Props = $props();
 
 	const projectQuery = createProjectQuery(() => project.id);
 	const redeployMutation = createRedeployMutation();
@@ -32,7 +46,7 @@
 
 	const outcome = $derived.by(() => {
 		if (startedDeploymentId) return { kind: 'queued' as const, deploymentId: startedDeploymentId };
-		return rotationProjectState(redeploy, projectQuery.data);
+		return rotationProjectState(redeploy, projectQuery.data, skippedReasons);
 	});
 
 	async function startRedeploy() {
@@ -43,7 +57,7 @@
 			const deployment = await redeployMutation.mutateAsync({ projectId: project.id, branch });
 			startedDeploymentId = deployment.id;
 		} catch (error) {
-			redeployError = getDeployErrorMessage(error, ROTATION_COPY.redeployFailed);
+			redeployError = getDeployErrorMessage(error, copy.redeployFailed);
 		}
 	}
 </script>
@@ -64,16 +78,16 @@
 						class="mt-0.5 shrink-0 animate-spin text-primary-dark motion-reduce:animate-none"
 						aria-hidden="true"
 					/>
-					{ROTATION_COPY.rowQueued}
+					{copy.rowQueued}
 				{:else if outcome.kind === 'done'}
 					<CheckCircle size={16} class="mt-0.5 shrink-0 text-success-dark" aria-hidden="true" />
-					{ROTATION_COPY.rowDone}
+					{copy.rowDone}
 				{:else if outcome.kind === 'first_deploy'}
 					<Info size={16} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
-					{ROTATION_COPY.rowFirstDeploy}
+					{copy.rowFirstDeploy}
 				{:else if outcome.kind === 'needs_redeploy'}
 					<WarningCircle size={16} class="mt-0.5 shrink-0 text-warning-dark" aria-hidden="true" />
-					{ROTATION_COPY.rowNeedsRedeploy}
+					{copy.rowNeedsRedeploy}
 				{:else}
 					<span class="text-muted">Memuat status proyek...</span>
 				{/if}
@@ -84,7 +98,7 @@
 				href={projectDeploymentHref(project.id, outcome.deploymentId)}
 				class="inline-flex min-h-6 shrink-0 items-center text-sm font-medium text-primary-dark underline underline-offset-2"
 			>
-				{ROTATION_COPY.viewDeployment}<span class="sr-only">: {project.name}</span>
+				{copy.viewDeployment}<span class="sr-only">: {project.name}</span>
 			</a>
 		{:else if outcome.kind === 'needs_redeploy' && canManage}
 			<Button
@@ -92,10 +106,10 @@
 				size="sm"
 				onclick={startRedeploy}
 				disabled={redeployMutation.isPending || !projectQuery.data}
-				aria-label={`${ROTATION_COPY.redeploy} ${project.name}`}
+				aria-label={`${copy.redeploy} ${project.name}`}
 			>
 				<ArrowsClockwise size={16} aria-hidden="true" />
-				{redeployMutation.isPending ? ROTATION_COPY.redeploying : ROTATION_COPY.redeploy}
+				{redeployMutation.isPending ? copy.redeploying : copy.redeploy}
 			</Button>
 		{/if}
 	</div>

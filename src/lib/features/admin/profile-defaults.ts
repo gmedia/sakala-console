@@ -22,6 +22,14 @@ export const MAX_REPLICAS_RANGE = { min: MIN_REPLICAS, max: 10 } as const;
 export const MAX_DATABASES_RANGE = { min: 0, max: 1000 } as const;
 export const MAX_DATABASE_STORAGE_MB_RANGE = { min: 0, max: 1024 * 1024 } as const;
 
+/**
+ * The ranges sakala-api accepts for the bucket limits (StoreLimitProfileRequest,
+ * `LimitProfile::MAX_BUCKETS_CEILING`, and 1,048,576 MB for storage). `0` allows none; empty
+ * follows the server's setting.
+ */
+export const MAX_BUCKETS_RANGE = { min: 0, max: 100 } as const;
+export const MAX_BUCKET_STORAGE_MB_RANGE = { min: 0, max: 1024 * 1024 } as const;
+
 export type ProfileNumbers = Pick<
 	LimitProfile,
 	| 'max_projects'

@@ -11,6 +11,7 @@
 	import { createProjectQuery } from '$lib/features/projects/queries';
 	import ProjectAvatar from '$lib/features/projects/components/project/ProjectAvatar.svelte';
 	import { useDatabaseRoute } from '$lib/features/databases/route-state.svelte';
+	import { useBucketRoute } from '$lib/features/buckets/route-state.svelte';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -29,6 +30,7 @@
 
 	// A database page names its database after "Database /", like a project page does.
 	const databaseRoute = useDatabaseRoute();
+	const bucketRoute = useBucketRoute();
 
 	// The one page heading. Pages below it do not repeat it.
 	const pageTitle = $derived.by(() => {
@@ -40,6 +42,7 @@
 		if (path.startsWith('/workspace-invitations')) return 'Undangan workspace';
 		if (path.startsWith('/workspaces')) return 'Workspace';
 		if (path.startsWith('/databases')) return 'Database';
+		if (path.startsWith('/buckets')) return 'Bucket';
 		return 'Proyek';
 	});
 </script>
@@ -93,6 +96,14 @@
 					<span class="font-medium text-muted" aria-hidden="true">/</span>
 					<span class="line-clamp-2 min-w-0 font-mono wrap-anywhere text-foreground"
 						>{databaseRoute.name ?? '...'}</span
+					>
+				{:else if bucketRoute.bucketId}
+					<a href={resolve('/buckets')} class="font-medium text-muted hover:text-foreground">
+						Bucket
+					</a>
+					<span class="font-medium text-muted" aria-hidden="true">/</span>
+					<span class="line-clamp-2 min-w-0 font-mono wrap-anywhere text-foreground"
+						>{bucketRoute.name ?? '...'}</span
 					>
 				{:else}
 					<span class="text-foreground">{pageTitle}</span>

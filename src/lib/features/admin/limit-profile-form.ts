@@ -2,6 +2,8 @@ import type { LimitProfile, LimitProfileFields } from '$lib/api/resources/admin/
 import { formatNumber } from './format';
 import {
 	IDLE_SLEEP_MINUTES_RANGE,
+	MAX_BUCKET_STORAGE_MB_RANGE,
+	MAX_BUCKETS_RANGE,
 	MAX_DATABASE_STORAGE_MB_RANGE,
 	MAX_DATABASES_RANGE,
 	MAX_REPLICAS_RANGE
@@ -26,7 +28,7 @@ export const PROFILE_GROUPS: readonly { id: ProfileFieldGroup; title: string; le
 	{
 		id: 'optional',
 		title: 'Opsional',
-		lead: 'Build per jam, tidur otomatis, replika, database, dan region. Kosong berarti ikut bawaan server.'
+		lead: 'Build per jam, tidur otomatis, replika, database, bucket, dan region. Kosong berarti ikut bawaan server.'
 	}
 ];
 
@@ -53,6 +55,14 @@ export const SERVER_DEFAULT_BUILDS_PER_HOUR = 20;
  */
 export const SERVER_DEFAULT_MAX_DATABASES = 2;
 export const SERVER_DEFAULT_DATABASE_STORAGE_MB = 512;
+
+/**
+ * sakala-api `PilotRuntimeLimitService::DEFAULT_MAX_BUCKETS` and `DEFAULT_MAX_BUCKET_STORAGE_MB`:
+ * 0 and 0 unless the server sets `SAKALA_BUCKET_DEFAULT_MAX_COUNT` or
+ * `SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`, because bucket quotas commit real disk.
+ */
+export const SERVER_DEFAULT_MAX_BUCKETS = 0;
+export const SERVER_DEFAULT_BUCKET_STORAGE_MB = 0;
 
 /** Managed databases are a limited pilot; the help says so instead of promising them. */
 const DATABASE_PILOT_NOTE =
@@ -140,6 +150,22 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_DATABASE_STORAGE_MB_RANGE,
 		hint: `Total ukuran semua database terkelola di workspace. Selama pemakaian mencapai batas ini, database workspace dikunci sampai ukurannya turun lagi; 0 berarti semuanya dikunci. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_DATABASE_STORAGE_MB)} MB kalau tidak diubah).`,
+		optional: true
+	},
+	{
+		key: 'max_buckets',
+		label: 'Bucket',
+		group: 'optional',
+		...MAX_BUCKETS_RANGE,
+		hint: `Bucket S3 terkelola per workspace. 0 berarti workspace ini tidak bisa membuat bucket. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_BUCKETS} kalau tidak diubah, jadi bucket dibuka per workspace).`,
+		optional: true
+	},
+	{
+		key: 'max_bucket_storage_mb',
+		label: 'Penyimpanan bucket (MB)',
+		group: 'optional',
+		...MAX_BUCKET_STORAGE_MB_RANGE,
+		hint: `Jumlah kuota semua bucket di workspace, dipesan di disk server saat bucket dibuat. Menurunkannya tidak mengecilkan bucket yang ada, hanya menahan bucket baru dan kenaikan kuota; 0 berarti tidak ada bucket baru. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_BUCKET_STORAGE_MB)} MB kalau tidak diubah).`,
 		optional: true
 	}
 ];

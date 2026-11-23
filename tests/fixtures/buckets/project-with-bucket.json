@@ -1,0 +1,99 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a2090a-4841-7bdf-8ec2-7e3d7114dd0f",
+			"name": "toko-kopi-web",
+			"slug": "toko-kopi-web",
+			"repository_provider": "github",
+			"thumbnail_url": null,
+			"repository_url": "https://github.com/sakala-demo/voluptas-ut-vel",
+			"repository_full_name": "sakala-demo/voluptas-ut-vel",
+			"repository_source": "public_url",
+			"github_installation_id": null,
+			"github_repository_id": null,
+			"branch": "main",
+			"default_domain": "voluptas-ut-vel.run.sakala.localhost",
+			"public_url": "http://voluptas-ut-vel.run.sakala.localhost",
+			"status": "draft",
+			"runtime_status": "running",
+			"suspension": null,
+			"detected_port": null,
+			"configured_port": null,
+			"effective_port": 3000,
+			"serving_port": null,
+			"replicas": 1,
+			"max_replicas": 1,
+			"serving_replicas": 1,
+			"replicas_ready": null,
+			"region": null,
+			"build_command": null,
+			"start_command": null,
+			"release_command": null,
+			"root_directory": null,
+			"auto_deploy": false,
+			"auto_deploy_pause": null,
+			"restart": null,
+			"redeploy_required": true,
+			"active_deployment_id": "01a2090a-484d-7b33-8d10-705c8108210b",
+			"latest_deployment": {
+				"id": "01a2090a-484d-7b33-8d10-705c8108210b",
+				"sequence": 1,
+				"status": "succeeded",
+				"branch": "main",
+				"commit_sha": "b1c2d3e4f5a6978877869504a3b2c1d0e9f8a7b6",
+				"commit_message": "feat: live version",
+				"created_at": "2026-11-23T15:33:18+00:00",
+				"finished_at": null
+			},
+			"preview_status": "unavailable",
+			"inspection": null,
+			"stack": null,
+			"inspection_error_code": null,
+			"variable_changes": {
+				"requires_build": true,
+				"reason": "unknown_stack",
+				"build_time_prefixes": [
+					"NEXT_PUBLIC_",
+					"NUXT_PUBLIC_",
+					"VITE_",
+					"REACT_APP_",
+					"VUE_APP_",
+					"GATSBY_",
+					"EXPO_PUBLIC_",
+					"PUBLIC_",
+					"RAILPACK_"
+				],
+				"build_time_keys": ["NODE_ENV"]
+			},
+			"last_deployed_at": null,
+			"databases": [],
+			"buckets": [
+				{
+					"id": "01a2090a-47d8-7e8b-9405-3b998e967490",
+					"name": "unggahan-toko",
+					"status": "ready",
+					"region": "jkt",
+					"variables": [
+						"AWS_ENDPOINT_URL_S3",
+						"AWS_ENDPOINT",
+						"AWS_USE_PATH_STYLE_ENDPOINT",
+						"AWS_REGION",
+						"AWS_BUCKET",
+						"AWS_ACCESS_KEY_ID",
+						"AWS_SECRET_ACCESS_KEY"
+					],
+					"overridden_variables": ["AWS_DEFAULT_REGION"]
+				}
+			],
+			"workspace": {
+				"id": "01a2090a-4772-7d89-be84-57319403fc03",
+				"name": "UD Kuswandari Tbk",
+				"slug": "team-21448",
+				"type": "team"
+			},
+			"created_at": "2026-11-23T15:33:18+00:00",
+			"updated_at": "2026-11-23T15:33:18+00:00"
+		}
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Bucket ini masih dipasang ke proyek. Lepas dulu dari semua proyek, lalu hapus.",
+		"code": "BUCKET_IN_USE",
+		"projects": [
+			{
+				"id": "01a2090a-4841-7bdf-8ec2-7e3d7114dd0f",
+				"name": "toko-kopi-web",
+				"slug": "toko-kopi-web"
+			}
+		]
+	}
+}

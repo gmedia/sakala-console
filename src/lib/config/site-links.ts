@@ -38,6 +38,7 @@ export const DOCS_PAGES = {
 	firstDeploy: 'deploy-pertama',
 	deployFailure: 'deploy-gagal',
 	fileStorage: 'penyimpanan-file',
+	managedBuckets: 'bucket-terkelola',
 	releaseCommand: 'perintah-rilis',
 	roadmap: 'proyek/roadmap'
 } as const;

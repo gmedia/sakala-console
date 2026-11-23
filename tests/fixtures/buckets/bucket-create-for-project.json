@@ -1,0 +1,27 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a2090a-4c16-7995-aef2-16b32ab30256",
+			"name": "situs-baru",
+			"status": "provisioning",
+			"region": "jkt",
+			"quota_mb": 20,
+			"pending_quota_mb": null,
+			"size_bytes": null,
+			"usage_checked_at": null,
+			"projects": [
+				{
+					"id": "01a2090a-4bf9-7a39-9a40-7c0750e3d57f",
+					"name": "situs-baru",
+					"slug": "situs-baru"
+				}
+			],
+			"connection": null,
+			"last_failure": null,
+			"key_rotation": null,
+			"created_at": "2026-11-23T15:33:19+00:00",
+			"updated_at": "2026-11-23T15:33:19+00:00"
+		}
+	}
+}

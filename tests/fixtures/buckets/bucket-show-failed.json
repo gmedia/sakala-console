@@ -1,0 +1,27 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a2090a-4b00-7ab4-9ccf-8543b9571410",
+			"name": "gagal",
+			"status": "failed",
+			"region": "jkt",
+			"quota_mb": 10,
+			"pending_quota_mb": null,
+			"size_bytes": null,
+			"usage_checked_at": null,
+			"projects": [],
+			"connection": null,
+			"last_failure": {
+				"command": "CreateBucket",
+				"code": "bucket_capacity_exceeded",
+				"user_fixable": false,
+				"summary": "Server penyimpanan tidak punya cukup ruang untuk kuota ini. Coba kuota yang lebih kecil, atau hubungi operator Sakala.",
+				"failed_at": "2026-11-23T15:33:19+00:00"
+			},
+			"key_rotation": null,
+			"created_at": "2026-11-23T15:33:19+00:00",
+			"updated_at": "2026-11-23T15:33:19+00:00"
+		}
+	}
+}

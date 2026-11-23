@@ -4,6 +4,14 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- Managed S3 buckets (ADR-021, requires gmedia/sakala-api#204). `/buckets` lists the workspace's private buckets with status, usage against each bucket's own quota, attached projects, and region, under a quota card that separates what is allocated from the workspace's bucket storage from what is used. "Buat bucket" takes a name, a quota in MB (prefilled with the server default capped at what is left), and a region. The bucket page mirrors the database page: status and creation steps, a derived "Penuh" badge, attach and detach with redeploy notices, the connection (public endpoint, S3 region, bucket, access key ID, path-style) for every member, the secret key and a copyable `.env` block for owners only (audited, never cached, dropped on Sembunyikan, rotation, and navigation), key rotation with optional redeploy of attached projects and per-project outcomes, an `unknown` rotation state, quota change with a warning below current usage, rename, and delete with the name typed, blocked while attached.
+- The Bucket menu appears only for a workspace opened for buckets (bucket quota above 0) or one that already holds a bucket. A workspace without quota sees "Workspace ini belum bisa membuat bucket" at `/buckets`; an installation without a storage server says so.
+- The project Variabel tab lists the injected `AWS_*` variables with hidden values, marks the ones a project variable overrides ("Menimpa bucket", with a stronger warning for the key pair), and offers "Tambahkan FILESYSTEM_DISK=s3" to a Laravel project. A project without a bucket gets a quiet "Buat bucket untuk proyek ini" there and in the sleeping file note, only when its workspace can still create one; the bucket is created with `project_id`, attached in the same step.
+- "Bucket" and "Penyimpanan bucket (MB)" in a limit profile's Opsional group (0 to 100 and 0 to 1,048,576; the server default is 0 for both).
+- The deployment trigger `bucket_key_rotated` reads "Redeploy setelah ganti secret key bucket", and redeploy skip reasons `bucket_key_rotating`, `bucket_not_ready`, `bucket_endpoint_unavailable`, and `database_not_ready` have their own text.
+
 ## [0.12.1] - 2026-11-23
 
 ### Added

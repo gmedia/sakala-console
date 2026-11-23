@@ -18,6 +18,8 @@ Schema workspace diuji terhadap respons asli sakala-api di `tests/fixtures/works
 
 Schema database diuji dengan cara yang sama terhadap `tests/fixtures/databases`, lewat `src/lib/testing/database-fixtures.ts`. `errorFromDatabaseFixture()` ikut membawa field tambahan penolakan (`limit`, `projects`, `database_region`) ke `ApiError.details`. Mock e2e `tests/e2e/fixtures/databases.ts` memakai fixture yang sama dan menyimpan perubahan di memori, jadi buat, pasang, lepas, dan hapus terlihat di baca berikutnya seperti di API.
 
+Schema bucket diuji dengan cara yang sama terhadap `tests/fixtures/buckets`, lewat `src/lib/testing/bucket-fixtures.ts`. Fixture itu diambil dari branch gmedia/sakala-api#204 lewat test Pest sekali jalan yang tidak di-commit ke API, termasuk penolakan dengan field tambahannya (`limit`, `limit_mb`, `current_mb`, `requested_mb`, `bucket`). Mock e2e `tests/e2e/fixtures/buckets.ts` memakai fixture yang sama dan menyimpan perubahan di memori.
+
 ## Component
 
 Gunakan Vitest Browser + Playwright untuk behavior component yang membutuhkan DOM. Jangan menguji detail class visual yang mudah berubah; uji role, label, state, dan interaction.
@@ -37,6 +39,8 @@ CI memasang Chromium sekali, lalu menjalankan unit, component, build, dan E2E te
 `tests/e2e/runtime-config.spec.ts` mengganti `/runtime-config.js` dan memastikan bundle hasil build memanggil API yang disebut di sana. Entrypoint container diuji tanpa Docker di `src/lib/config/entrypoint.spec.ts`, dan terhadap image sungguhan lewat `tests/container/runtime-config.sh` (butuh Docker, tidak dijalankan CI; tambahkan `BROWSER=1` untuk cek Chromium). Skrip yang sama memastikan file yang tidak ada di bawah `/_app/` dijawab `404` tanpa `text/html`, sementara deep link tetap mendapat `index.html` dengan `Cache-Control: no-cache`.
 
 `tests/e2e/databases.spec.ts` menjalankan perjalanan database: daftar dan status, buat (termasuk penolakan kuota), pasang dan lepas, hapus yang diblokir, kredensial per peran, rotasi password, extension, sisi proyek, dan audit DOM di 320 dan 1280 px. Screenshot untuk PR ditulis kalau `DATABASE_SCREENSHOTS` berisi folder tujuan, misalnya `DATABASE_SCREENSHOTS=/tmp/console-databases-screens pnpm test:e2e tests/e2e/databases.spec.ts`; tanpa itu test screenshot dilewati.
+
+`tests/e2e/buckets.spec.ts` menjalankan perjalanan bucket: kapan menu Bucket muncul (API tanpa bucket, kuota 0, server tanpa penyimpanan), daftar dan kuota, buat (juga dari proyek dengan `project_id`), pasang, secret key per peran, rotasi dengan redeploy dan status `unknown`, ubah kuota, lepas lalu hapus, tab Variabel, dan audit DOM di 320 dan 1280 px. Screenshot ditulis kalau `BUCKET_SCREENSHOTS` berisi folder tujuan.
 
 `tests/e2e/admin.spec.ts` menjalankan perjalanan utama area admin terhadap `tests/e2e/fixtures/admin.ts`, mock yang menyajikan respons asli API dari `tests/fixtures/admin`, termasuk penolakan untuk akun bukan admin. Spec yang sama mengukur semua halaman admin di 320 dan 1280 px dengan `auditDom`.
 

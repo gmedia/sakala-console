@@ -9,6 +9,7 @@
 	import { cn } from '$lib/utils/cn';
 	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
 	import DatabaseIcon from 'phosphor-svelte/lib/Database';
+	import ArchiveIcon from 'phosphor-svelte/lib/Archive';
 	import BookOpenText from 'phosphor-svelte/lib/BookOpenText';
 	import ChatCircleText from 'phosphor-svelte/lib/ChatCircleText';
 	import UserIcon from 'phosphor-svelte/lib/User';
@@ -27,6 +28,10 @@
 	import { useLogout } from '$lib/features/auth/mutations';
 	import { feedbackPath } from '$lib/features/feedback/context';
 	import { isAdmin } from '$lib/features/admin/access';
+	import { BUCKET_COPY, bucketsInUse } from '$lib/features/buckets/presentation';
+	import { useActiveWorkspace } from '$lib/features/workspaces/access.svelte';
+	import { limitsWorkspaceId } from '$lib/features/workspaces/presentation';
+	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
 
 	type Props = {
 		isMobileOpen?: boolean;
@@ -54,10 +59,20 @@
 		isExternal?: boolean;
 	};
 
+	// Bucket appears only for a workspace opened for buckets, or one that holds one already: most
+	// workspaces never need it, so it stays out of their way (progressive disclosure).
+	const workspaces = useActiveWorkspace();
+	const limitsQuery = createWorkspaceLimitsQuery(
+		() => limitsWorkspaceId(workspaces.active),
+		() => ({ enabled: Boolean(workspaces.active) })
+	);
+	const showBuckets = $derived(bucketsInUse(limitsQuery.data));
+
 	// Feedback opens from the project or deployment on screen, and the form lets the user remove it.
 	const navigation: readonly NavItem[] = $derived([
 		{ href: '/projects', label: 'Proyek', icon: SquaresFour },
 		{ href: '/databases', label: 'Database', icon: DatabaseIcon },
+		...(showBuckets ? [{ href: '/buckets', label: BUCKET_COPY.nav, icon: ArchiveIcon }] : []),
 		{
 			href: feedbackPath('/feedback', {
 				projectId: page.params.id,

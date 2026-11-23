@@ -1,0 +1,212 @@
+<script lang="ts">
+	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
+	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
+	import { toast } from 'svelte-sonner';
+	import type { Bucket } from '$lib/api/resources/buckets';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import type { BucketAccess } from '../access';
+	import { createRotateBucketKeyMutation } from '../mutations';
+	import RotationProjectRow from '$lib/features/databases/components/RotationProjectRow.svelte';
+	import {
+		KEY_ROTATION_COPY,
+		KEY_ROTATION_ROW_COPY,
+		KEY_ROTATION_SKIPPED_REASONS,
+		bucketErrorMessage,
+		isOnNode,
+		keyRotationView
+	} from '../presentation';
+
+	type Props = {
+		bucket: Bucket;
+		workspaceId: string;
+		access: BucketAccess;
+		/** Called once a rotation is requested, so a secret shown on the page is dropped. */
+		onRequested?: () => void;
+	};
+
+	let { bucket, workspaceId, access, onRequested }: Props = $props();
+
+	const rotateMutation = createRotateBucketKeyMutation();
+
+	let open = $state(false);
+	let redeployAttached = $state(true);
+	let error = $state<string | null>(null);
+	let trigger = $state<HTMLElement | null>(null);
+
+	const onNode = $derived(isOnNode(bucket));
+	const view = $derived(keyRotationView(bucket));
+	const hasProjects = $derived(bucket.projects.length > 0);
+
+	function openDialog() {
+		error = null;
+		redeployAttached = true;
+		open = true;
+	}
+
+	async function rotate() {
+		error = null;
+		try {
+			await rotateMutation.mutateAsync({
+				workspaceId,
+				bucketId: bucket.id,
+				redeployAttached: hasProjects && redeployAttached
+			});
+			open = false;
+			toast.success(KEY_ROTATION_COPY.requested);
+			onRequested?.();
+		} catch (caught) {
+			error = bucketErrorMessage(
+				caught,
+				'rotate',
+				'Secret key belum diganti. Muat ulang halaman, lalu ganti lagi.'
+			);
+		}
+	}
+</script>
+
+<div class="flex flex-col gap-3 border-t border-border pt-4" data-testid="key-rotation">
+	{#if access.canManage}
+		<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
+			<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
+				<h3 class="text-sm font-semibold text-foreground">{KEY_ROTATION_COPY.title}</h3>
+				<p class="text-sm text-muted">{KEY_ROTATION_COPY.lead}</p>
+			</div>
+			<Button
+				variant="secondary"
+				size="sm"
+				bind:ref={trigger}
+				disabled={!onNode || view?.state === 'pending'}
+				onclick={openDialog}
+				data-testid="rotate-bucket-key"
+			>
+				<ArrowsClockwise size={16} aria-hidden="true" />
+				{KEY_ROTATION_COPY.action}
+			</Button>
+		</div>
+	{/if}
+
+	<!-- Polite, so the change from pending to done is heard without moving focus. -->
+	<div class="flex flex-col gap-3" aria-live="polite">
+		{#if view?.state === 'pending'}
+			<p
+				class="flex items-start gap-2 rounded-control border border-border bg-background-soft px-4 py-3 text-sm text-foreground"
+				data-testid="key-rotation-pending"
+			>
+				<CircleNotch
+					size={16}
+					class="mt-0.5 shrink-0 animate-spin text-primary-dark motion-reduce:animate-none"
+					aria-hidden="true"
+				/>
+				{KEY_ROTATION_COPY.pending}
+			</p>
+		{:else if view?.state === 'failed'}
+			<p
+				class="rounded-control border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground"
+				data-testid="key-rotation-failed"
+			>
+				{KEY_ROTATION_COPY.failedPrefix}
+				{view.summary ?? ''}
+			</p>
+		{:else if view?.state === 'unknown'}
+			<p
+				class="rounded-control border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground"
+				data-testid="key-rotation-unknown"
+			>
+				{access.canManage ? KEY_ROTATION_COPY.unknown : KEY_ROTATION_COPY.unknownNoAccess}
+			</p>
+		{:else if view?.state === 'completed'}
+			<div class="flex flex-col gap-2" data-testid="key-rotation-completed">
+				<p class="flex items-start gap-2 text-sm font-medium text-foreground">
+					<CheckCircle size={16} class="mt-0.5 shrink-0 text-success-dark" aria-hidden="true" />
+					{view.completedText}
+				</p>
+				{#if view.queueing}
+					<p
+						class="flex items-start gap-2 text-sm text-foreground"
+						data-testid="key-rotation-queueing"
+					>
+						<CircleNotch
+							size={16}
+							class="mt-0.5 shrink-0 animate-spin text-primary-dark motion-reduce:animate-none"
+							aria-hidden="true"
+						/>
+						{KEY_ROTATION_COPY.queueing}
+					</p>
+				{:else if hasProjects}
+					<ul
+						class="flex flex-col divide-y divide-border rounded-control border border-border"
+						aria-label="Proyek terpasang setelah ganti secret key"
+					>
+						{#each bucket.projects as project (project.id)}
+							<RotationProjectRow
+								{project}
+								redeploy={view.redeploys.get(project.id)}
+								canManage={access.canManage}
+								copy={KEY_ROTATION_ROW_COPY}
+								skippedReasons={KEY_ROTATION_SKIPPED_REASONS}
+							/>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		{/if}
+	</div>
+</div>
+
+{#if access.canManage}
+	<Dialog
+		bind:open
+		title={KEY_ROTATION_COPY.dialogTitle}
+		confirmLabel={rotateMutation.isPending
+			? KEY_ROTATION_COPY.dialogBusy
+			: KEY_ROTATION_COPY.dialogConfirm}
+		loading={rotateMutation.isPending}
+		returnFocus={() => trigger}
+		onConfirm={rotate}
+		class="max-w-lg"
+	>
+		<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="rotate-key-dialog">
+			<p>
+				Server penyimpanan membuat secret key baru untuk <span
+					class="font-mono font-medium wrap-anywhere">{bucket.name}</span
+				>. Access key ID tetap sama. {KEY_ROTATION_COPY.rotateBody}
+			</p>
+			{#if hasProjects}
+				<p>
+					{KEY_ROTATION_COPY.dialogApps}
+					<span class="font-medium wrap-anywhere"
+						>{bucket.projects.map((project) => project.name).join(', ')}</span
+					>.
+				</p>
+				<label
+					for="rotate-key-redeploy-attached"
+					class="flex cursor-pointer items-start gap-3 rounded-control border border-border px-4 py-3"
+				>
+					<input
+						id="rotate-key-redeploy-attached"
+						type="checkbox"
+						bind:checked={redeployAttached}
+						aria-describedby="rotate-key-redeploy-hint"
+						class="mt-0.5 size-5 shrink-0 cursor-pointer"
+						data-testid="rotate-key-redeploy-attached"
+					/>
+					<span class="flex flex-col gap-1">
+						<span class="font-medium">{KEY_ROTATION_COPY.autoRedeploy}</span>
+						<span id="rotate-key-redeploy-hint" class="text-muted">
+							{redeployAttached
+								? KEY_ROTATION_COPY.autoRedeployHint
+								: KEY_ROTATION_COPY.manualRedeploy}
+						</span>
+					</span>
+				</label>
+			{:else}
+				<p>{KEY_ROTATION_COPY.dialogNoProjects}</p>
+			{/if}
+			{#if error}
+				<p role="alert" class="text-error-dark">{error}</p>
+			{/if}
+		</div>
+	</Dialog>
+{/if}

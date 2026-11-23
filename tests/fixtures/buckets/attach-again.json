@@ -1,0 +1,15 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"bucket_id": "01a2090a-47d8-7e8b-9405-3b998e967490",
+			"project": {
+				"id": "01a2090a-4841-7bdf-8ec2-7e3d7114dd0f",
+				"name": "toko-kopi-web",
+				"slug": "toko-kopi-web"
+			},
+			"redeploy_required": true,
+			"attached_at": "2026-11-23T15:33:18+00:00"
+		}
+	}
+}

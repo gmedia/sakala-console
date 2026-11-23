@@ -2207,6 +2207,1369 @@
                 }
             }
         },
+        "/v1/app/workspaces/{workspace}/buckets": {
+            "get": {
+                "operationId": "v1.app.workspaces.buckets.index",
+                "summary": "The workspace's buckets, newest first. Deleted ones are gone; quotas and usage are in `GET app/pilot-limits`",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `BucketResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BucketResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.workspaces.buckets.store",
+                "summary": "Create a private bucket. It is `provisioning` until the storage node creates it; its quota is reserved from the\nworkspace's bucket storage at once. With `project_id` it is attached to that project in the same step. Needs\nthe current legal terms accepted (`LEGAL_ACCEPTANCE_REQUIRED`)",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreBucketRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`BucketResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "A bucket for a project (`project_id`) is refused while no storage node can take a new bucket (`buckets.available` in `GET app/pilot-limits` is false).\n\nThe project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.\n\nNo storage node is allowed work in the region (`region`), or anywhere when `region` is null.\n\nNo storage node of the region has room for the quota right now. Try a smaller quota or later.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "A bucket for a project (`project_id`) is refused while no storage node can take a new bucket (`buckets.available` in `GET app/pilot-limits` is false).",
+                                                    "enum": [
+                                                        "BUCKET_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.",
+                                                    "enum": [
+                                                        "PROJECT_BUCKET_ALREADY_ATTACHED"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No storage node is allowed work in the region (`region`), or anywhere when `region` is null.",
+                                                    "enum": [
+                                                        "BUCKET_REGION_UNAVAILABLE"
+                                                    ]
+                                                },
+                                                "region": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "region"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No storage node of the region has room for the quota right now. Try a smaller quota or later.",
+                                                    "enum": [
+                                                        "BUCKET_CAPACITY_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The workspace holds as many buckets as its limit allows (`limit`, `current`). `limit` 0 means the workspace may not create buckets yet.\n\nThe bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The workspace holds as many buckets as its limit allows (`limit`, `current`). `limit` 0 means the workspace may not create buckets yet.",
+                                                    "enum": [
+                                                        "BUCKET_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer"
+                                                },
+                                                "current": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.",
+                                                    "enum": [
+                                                        "BUCKET_STORAGE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "current_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "requested_mb": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit_mb",
+                                                "current_mb",
+                                                "requested_mb"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/buckets/{bucket}": {
+            "get": {
+                "operationId": "v1.app.workspaces.buckets.show",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`BucketResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.app.workspaces.buckets.update",
+                "summary": "Rename the bucket and/or change its quota. `200` for a rename only or an unchanged quota; `202` when a quota\nchange was sent to the storage node (`pending_quota_mb`). The name on the node never changes",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBucketRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Renamed, or the quota is unchanged.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.\n\nNo storage node of the region has room for the quota right now. Try a smaller quota or later.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "BUCKET_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "BUCKET_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No storage node of the region has room for the quota right now. Try a smaller quota or later.",
+                                                    "enum": [
+                                                        "BUCKET_CAPACITY_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.",
+                                                    "enum": [
+                                                        "BUCKET_STORAGE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "current_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "requested_mb": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit_mb",
+                                                "current_mb",
+                                                "requested_mb"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "202": {
+                        "description": "A quota change is on its way to the storage node.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.workspaces.buckets.destroy",
+                "summary": "Delete the bucket with every object in it. Answers `202` with `status: deleting`; it is gone once the storage\nnode deletes it. `204` when a bucket still `provisioning` was removed before any node started creating it.\nOnly a bucket without attached projects can be deleted. Backups keep the files for up to 14 days",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "The storage node is deleting the bucket.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "The bucket was removed before a node started creating it.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The bucket is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.\n\nThe storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.",
+                                                    "enum": [
+                                                        "BUCKET_IN_USE"
+                                                    ]
+                                                },
+                                                "projects": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "projects"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "BUCKET_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/buckets/{bucket}/credentials": {
+            "get": {
+                "operationId": "v1.app.workspaces.buckets.credentials",
+                "summary": "The bucket's key with its secret and the variables attached projects receive. Owners and admins only, recorded\nin the audit trail before it is sent, never cached. The key works from the internet. `409 BUCKET_KEY_ROTATING`\nwhile a rotation reached the node and the node has not confirmed which secret works",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`BucketCredentialsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketCredentialsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "BUCKET_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                                                    "enum": [
+                                                        "BUCKET_KEY_ROTATING"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/buckets/{bucket}/rotate-key": {
+            "post": {
+                "operationId": "v1.app.workspaces.buckets.rotate-key",
+                "summary": "Ask the storage node for a new secret access key; the access key ID stays. Answers `202` with\n`key_rotation.status: pending`. The node switches at once, so running applications lose access until they are\nredeployed. Once the node reports, attached projects show `redeploy_required`, and with `redeploy_attached` the\nAPI redeploys the attached projects that have a live deployment (`key_rotation.redeploys`)",
+                "tags": [
+                    "Bucket"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RotateBucketKeyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "`BucketResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "BUCKET_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "BUCKET_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/buckets/{bucket}/attachments/{project}": {
+            "post": {
+                "operationId": "v1.app.workspaces.buckets.attachments.store",
+                "summary": "Attach the bucket to the project. `201`, or `200` when it already was. The project's next deployment receives\n`AWS_ENDPOINT_URL_S3`, `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`, `AWS_DEFAULT_REGION`, `AWS_REGION`,\n`AWS_BUCKET`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`, except those the project sets itself",
+                "tags": [
+                    "BucketAttachment"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The bucket already was attached.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketAttachmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "An admin locked the bucket, so it cannot be attached to a project.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "An admin locked the bucket, so it cannot be attached to a project.",
+                                                    "enum": [
+                                                        "BUCKET_LOCKED"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "BUCKET_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.",
+                                                    "enum": [
+                                                        "PROJECT_BUCKET_ALREADY_ATTACHED"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "201": {
+                        "description": "The bucket is attached.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BucketAttachmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.workspaces.buckets.attachments.destroy",
+                "summary": "Detach the bucket from the project. The files stay; the project's next deployment no longer receives the\nbucket variables. `404` when the bucket is not attached to the project",
+                "tags": [
+                    "BucketAttachment"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true,
+                        "description": "The bucket ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/user": {
             "get": {
                 "operationId": "v1.auth.user",
@@ -3900,7 +5263,7 @@
                         }
                     },
                     "409": {
-                        "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                        "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3954,6 +5317,84 @@
                                                 "message",
                                                 "code",
                                                 "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.",
+                                                    "enum": [
+                                                        "BUCKET_ENDPOINT_UNAVAILABLE"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "BUCKET_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                                                    "enum": [
+                                                        "BUCKET_KEY_ROTATING"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
                                             ]
                                         }
                                     ]
@@ -4589,7 +6030,7 @@
                         }
                     },
                     "409": {
-                        "description": "The deployment cannot be rolled back to; `reason` says why.\n\nThe node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                        "description": "The deployment cannot be rolled back to; `reason` says why.\n\nThe node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4675,6 +6116,84 @@
                                                 "message",
                                                 "code",
                                                 "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.",
+                                                    "enum": [
+                                                        "BUCKET_ENDPOINT_UNAVAILABLE"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "BUCKET_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                                                    "enum": [
+                                                        "BUCKET_KEY_ROTATING"
+                                                    ]
+                                                },
+                                                "bucket": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "bucket"
                                             ]
                                         }
                                     ]
@@ -8833,7 +10352,7 @@
         "/v1/app/pilot-limits": {
             "get": {
                 "operationId": "v1.app.pilot-limits.show",
-                "summary": "Quotas, usage, and runtime maximums of one workspace: the one named by\n`workspace_id`, or the caller's personal workspace, plus whether this\ninstallation offers managed databases right now (`databases.available`)",
+                "summary": "Quotas, usage, and runtime maximums of one workspace: the one named by\n`workspace_id`, or the caller's personal workspace, plus whether this\ninstallation offers managed databases (`databases.available`) and\nbuckets (`buckets.available`) right now",
                 "tags": [
                     "PilotLimits"
                 ],
@@ -13800,6 +15319,7 @@
                                         "system",
                                         "database_password_rotated",
                                         "database_ready",
+                                        "bucket_key_rotated",
                                         "rollback"
                                     ]
                                 },
@@ -14041,7 +15561,13 @@
                             "RotateDatabasePassword",
                             "LockDatabase",
                             "UnlockDatabase",
-                            "InstallDatabaseExtension"
+                            "InstallDatabaseExtension",
+                            "CreateBucket",
+                            "DeleteBucket",
+                            "RotateBucketKey",
+                            "SetBucketQuota",
+                            "LockBucket",
+                            "UnlockBucket"
                         ]
                     },
                     "status": {
@@ -15705,7 +17231,13 @@
                             "RotateDatabasePassword",
                             "LockDatabase",
                             "UnlockDatabase",
-                            "InstallDatabaseExtension"
+                            "InstallDatabaseExtension",
+                            "CreateBucket",
+                            "DeleteBucket",
+                            "RotateBucketKey",
+                            "SetBucketQuota",
+                            "LockBucket",
+                            "UnlockBucket"
                         ]
                     },
                     "status": {
@@ -15788,7 +17320,13 @@
                     "RotateDatabasePassword",
                     "LockDatabase",
                     "UnlockDatabase",
-                    "InstallDatabaseExtension"
+                    "InstallDatabaseExtension",
+                    "CreateBucket",
+                    "DeleteBucket",
+                    "RotateBucketKey",
+                    "SetBucketQuota",
+                    "LockBucket",
+                    "UnlockBucket"
                 ],
                 "title": "AgentCommandType"
             },
@@ -15900,6 +17438,11 @@
                                     "databases": {
                                         "type": "integer",
                                         "description": "Additive within protocol revision 4, sent with `databases`.",
+                                        "minimum": 0
+                                    },
+                                    "buckets": {
+                                        "type": "integer",
+                                        "description": "Additive within protocol revision 4, sent with `buckets`.",
                                         "minimum": 0
                                     }
                                 }
@@ -16248,6 +17791,51 @@
                                         "name": {
                                             "type": "string",
                                             "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+                                        },
+                                        "size_bytes": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 1125899906842624
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "size_bytes"
+                                    ]
+                                },
+                                "maxItems": 1000
+                            },
+                            "object_storage": {
+                                "type": "object",
+                                "description": "Optional and additive within protocol revision 4, from nodes with\nthe `managed-s3` capability (ADR-021): the public S3 endpoint,\nits signing region, the MB the node may allocate to bucket\nquotas, and the usage of every managed bucket it hosts. Strict\nlike the database fields: a malformed value rejects the heartbeat.",
+                                "properties": {
+                                    "endpoint": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "region": {
+                                        "type": "string",
+                                        "maxLength": 32
+                                    },
+                                    "capacity_mb": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "available": {
+                                        "type": "boolean",
+                                        "description": "False while the agent cannot read the instance; the node then\nreports `degraded` and gets no new bucket first."
+                                    }
+                                }
+                            },
+                            "buckets": {
+                                "type": "array",
+                                "description": "Only on a heartbeat right after a fresh usage reading (at most\nonce a minute): absence means no new reading, never zero.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "pattern": "^b-[a-z0-9]{16,40}$"
                                         },
                                         "size_bytes": {
                                             "type": "integer",
@@ -16676,7 +18264,13 @@
                                     "RotateDatabasePassword",
                                     "LockDatabase",
                                     "UnlockDatabase",
-                                    "InstallDatabaseExtension"
+                                    "InstallDatabaseExtension",
+                                    "CreateBucket",
+                                    "DeleteBucket",
+                                    "RotateBucketKey",
+                                    "SetBucketQuota",
+                                    "LockBucket",
+                                    "UnlockBucket"
                                 ]
                             },
                             "status": {
@@ -17056,6 +18650,366 @@
                     "rollback"
                 ],
                 "title": "AutoDeployPauseReason"
+            },
+            "BucketAttachmentResource": {
+                "type": "object",
+                "properties": {
+                    "bucket_id": {
+                        "type": "string"
+                    },
+                    "project": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "redeploy_required": {
+                        "type": "boolean",
+                        "description": "True while the project's serving deployment lacks the bucket variables. Deploy again to apply them."
+                    },
+                    "attached_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "bucket_id",
+                    "project",
+                    "redeploy_required",
+                    "attached_at"
+                ],
+                "title": "BucketAttachmentResource"
+            },
+            "BucketCredentialsResource": {
+                "type": "object",
+                "properties": {
+                    "endpoint": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Public S3 endpoint, for example `https://s3.sakala.app`; `null` until the storage node reports it."
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "S3 signing region, for example `us-east-1`; `null` until the storage node reports it."
+                    },
+                    "bucket": {
+                        "type": "string",
+                        "description": "Bucket name on the storage node (`AWS_BUCKET`)."
+                    },
+                    "access_key_id": {
+                        "type": "string"
+                    },
+                    "secret_access_key": {
+                        "type": "string"
+                    },
+                    "path_style": {
+                        "type": "boolean",
+                        "description": "Always `true`: the endpoint serves path-style requests only."
+                    },
+                    "variables": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Exactly the variables an attached project receives, in this order: `AWS_ENDPOINT_URL_S3`,\n`AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`, `AWS_DEFAULT_REGION`, `AWS_REGION`, `AWS_BUCKET`,\n`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`. `null` until the storage node reports its endpoint.",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "endpoint",
+                    "region",
+                    "bucket",
+                    "access_key_id",
+                    "secret_access_key",
+                    "path_style",
+                    "variables"
+                ],
+                "title": "BucketCredentialsResource"
+            },
+            "BucketKeyRotationStatus": {
+                "type": "string",
+                "description": "Where the newest key rotation of a managed bucket stands, read from its RotateBucketKey command.\n| |\n|---|\n| `pending` <br/> Waiting for or running on the storage node. The stored secret is still the old one. |\n| `completed` <br/> The node switched to the new secret: the old one no longer signs requests. |\n| `failed` <br/> The node failed it definitively. The old secret still works. |\n| `unknown` <br/> The node could not tell whether the new secret took effect, and the API stopped resending it after CredentialRotation::MAX_UNCERTAIN_ATTEMPTS. Neither secret is known to work; a new rotation settles it. |",
+                "enum": [
+                    "pending",
+                    "completed",
+                    "failed",
+                    "unknown"
+                ],
+                "title": "BucketKeyRotationStatus"
+            },
+            "BucketResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "`provisioning` until the storage node creates it, then `ready`. `locked` while an admin locked it: its\nkey is disabled, so applications cannot read or write and presigned URLs stop working. `failed` when\ncreation failed; `deleting` while the node deletes it. A deleted bucket is gone from the API.\n| |\n|---|\n| `provisioning` <br/> CreateBucket is waiting for or running on the storage node. |\n| `ready` <br/> Created on the node; its key reads and writes. |\n| `failed` <br/> CreateBucket failed or expired. Delete it and create another. |\n| `deleting` <br/> DeleteBucket is waiting for or running on the storage node. |\n| `locked` <br/> An admin locked the bucket (abuse): its key is disabled, so the application cannot read or write, and presigned URLs stop working. There is no quota lock: the node's hard quota refuses writes instead. |\n| `deleted` <br/> Deleted on the node. The row is soft deleted at the same moment. |",
+                        "$ref": "#/components/schemas/BucketStatus"
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Sakala region of the storage node, not the S3 signing region (see `connection.region`); `null` when that node has none."
+                    },
+                    "quota_mb": {
+                        "type": "integer",
+                        "description": "Hard quota in MB the node applies, or will apply once creation finishes."
+                    },
+                    "pending_quota_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "The quota of a change on its way to the node, in MB; `null` when none is open."
+                    },
+                    "size_bytes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Usage from the storage node's last report, in bytes; `null` until it reports one."
+                    },
+                    "usage_checked_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When that usage was reported."
+                    },
+                    "projects": {
+                        "type": "array",
+                        "description": "Projects the bucket is attached to, ordered by name. Each receives the bucket variables from its next\ndeployment.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "slug": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "slug"
+                            ]
+                        }
+                    },
+                    "connection": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "How applications reach the bucket, without the secret: `endpoint` (the public S3 endpoint, the value of\n`AWS_ENDPOINT_URL_S3` and `AWS_ENDPOINT`), `region` (the S3 signing region, `AWS_DEFAULT_REGION` and\n`AWS_REGION`), `bucket` (`AWS_BUCKET`), `access_key_id` (`AWS_ACCESS_KEY_ID`), and `path_style`, always\n`true`. Visible to every member, viewers included: none of it is secret. `null` unless the status is\n`ready` or `locked` and the node has reported its endpoint.",
+                        "properties": {
+                            "endpoint": {
+                                "type": "string"
+                            },
+                            "region": {
+                                "type": "string"
+                            },
+                            "bucket": {
+                                "type": "string"
+                            },
+                            "access_key_id": {
+                                "type": "string"
+                            },
+                            "path_style": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "endpoint",
+                            "region",
+                            "bucket",
+                            "access_key_id",
+                            "path_style"
+                        ]
+                    },
+                    "last_failure": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Set while the newest request to the storage node for this bucket failed or expired: `command` (the\nagent command type), `code` (from the agent, such as `bucket_capacity_exceeded` or\n`bucket_admin_unavailable`, or the control plane's `command_lease_expired`), `user_fixable` (always\n`false` in this version), `summary` in Indonesian, and `failed_at`. `null` otherwise, including once a\nlater request succeeds or is on its way.",
+                        "properties": {
+                            "command": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "user_fixable": {
+                                "type": "boolean"
+                            },
+                            "summary": {
+                                "type": "string"
+                            },
+                            "failed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "command",
+                            "code",
+                            "user_fixable",
+                            "summary",
+                            "failed_at"
+                        ]
+                    },
+                    "key_rotation": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "The newest key rotation; `null` when the key was never rotated. `status` is `pending` while the storage\nnode has not reported, `completed` once only the new secret works, and `failed` when the node failed it\ndefinitively (the old secret still works; see `last_failure`), and `unknown` when the node could not\nconfirm the outcome and a resend of the same secret did not complete either: neither secret is known to\nwork, deployments and credentials answer `409 BUCKET_KEY_ROTATING`, and a new rotation or\n`buckets:reconcile` settles it. While the outcome is unconfirmed the API resends the same new\nsecret and the status stays `pending`. The node switches as soon\nas it runs the request, so a `pending` rotation can already have cut off the old secret. The access key\nID never changes. `requested_at` is when it was asked for, `completed_at` and `failed_at` are set only\nin their status. `redeploy_attached` is what the request asked for. `redeploys` is `null` until the API\nhas queued the redeploys after completion (and always without `redeploy_attached`), then one item per\nproject attached at that moment: `deployment_id` of the queued deployment (trigger\n`bucket_key_rotated`), or `skipped_reason` when none was queued: `no_active_deployment`,\n`requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`, `active_deployment_limit`,\n`active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`,\n`bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "completed",
+                                    "failed",
+                                    "unknown"
+                                ]
+                            },
+                            "requested_at": {
+                                "type": "string"
+                            },
+                            "completed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "failed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "redeploy_attached": {
+                                "type": "boolean"
+                            },
+                            "redeploys": {
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "project_id": {
+                                            "type": "string"
+                                        },
+                                        "deployment_id": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "skipped_reason": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "project_id",
+                                        "deployment_id",
+                                        "skipped_reason"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "status",
+                            "requested_at",
+                            "completed_at",
+                            "failed_at",
+                            "redeploy_attached",
+                            "redeploys"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "region",
+                    "quota_mb",
+                    "pending_quota_mb",
+                    "size_bytes",
+                    "usage_checked_at",
+                    "projects",
+                    "connection",
+                    "last_failure",
+                    "key_rotation",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "BucketResource"
+            },
+            "BucketStatus": {
+                "type": "string",
+                "description": "Lifecycle of a managed bucket (ADR-021). Agent command results move it; the API never assumes a node did something it did not report.\n| |\n|---|\n| `provisioning` <br/> CreateBucket is waiting for or running on the storage node. |\n| `ready` <br/> Created on the node; its key reads and writes. |\n| `failed` <br/> CreateBucket failed or expired. Delete it and create another. |\n| `deleting` <br/> DeleteBucket is waiting for or running on the storage node. |\n| `locked` <br/> An admin locked the bucket (abuse): its key is disabled, so the application cannot read or write, and presigned URLs stop working. There is no quota lock: the node's hard quota refuses writes instead. |\n| `deleted` <br/> Deleted on the node. The row is soft deleted at the same moment. |",
+                "enum": [
+                    "provisioning",
+                    "ready",
+                    "failed",
+                    "deleting",
+                    "locked",
+                    "deleted"
+                ],
+                "title": "BucketStatus"
             },
             "ChangePasswordRequest": {
                 "type": "object",
@@ -17779,7 +19733,7 @@
                             "object",
                             "null"
                         ],
-                        "description": "The newest password rotation; `null` when the password was never rotated. `status` is `pending` while\nthe database node has not reported, `completed` once the new password is the only one that connects,\nand `failed` when the node failed it or did not finish in time (the old password still works; see\n`last_failure`). The node switches as soon as it runs the request, so a `pending` rotation can\nalready have cut off the old password. `requested_at` is when it was asked for, `completed_at` and\n`failed_at` are set only in their status. `redeploy_attached` is what the request asked for.\n`redeploys` is `null` until the API has queued the redeploys after completion (and always without\n`redeploy_attached`), then one item per project attached at that moment: `deployment_id` of the queued\ndeployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:\n`no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,\n`active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `release_command_unsupported`, or `failed`.",
+                        "description": "The newest password rotation; `null` when the password was never rotated. `status` is `pending` while\nthe database node has not reported, `completed` once the new password is the only one that connects,\nand `failed` when the node failed it or did not finish in time (the old password still works; see\n`last_failure`). The node switches as soon as it runs the request, so a `pending` rotation can\nalready have cut off the old password. `requested_at` is when it was asked for, `completed_at` and\n`failed_at` are set only in their status. `redeploy_attached` is what the request asked for.\n`redeploys` is `null` until the API has queued the redeploys after completion (and always without\n`redeploy_attached`), then one item per project attached at that moment: `deployment_id` of the queued\ndeployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:\n`no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,\n`active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`, `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.",
                         "properties": {
                             "status": {
                                 "type": "string",
@@ -18055,6 +20009,7 @@
                             "system",
                             "database_password_rotated",
                             "database_ready",
+                            "bucket_key_rotated",
                             "rollback"
                         ]
                     },
@@ -18739,6 +20694,7 @@
                             "system",
                             "database_password_rotated",
                             "database_ready",
+                            "bucket_key_rotated",
                             "rollback"
                         ]
                     },
@@ -19540,6 +21496,20 @@
                         ],
                         "description": "Total size of the workspace's managed databases, in MB. `null` follows the global\n`SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none."
                     },
+                    "max_buckets": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Managed buckets the workspace may hold. `null` follows the global `SAKALA_BUCKET_DEFAULT_MAX_COUNT`;\n`0` allows none."
+                    },
+                    "max_bucket_storage_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "MB the quotas of the workspace's buckets may reserve together. `null` follows the global\n`SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases."
+                    },
                     "workspaces_count": {
                         "type": [
                             "integer",
@@ -19574,6 +21544,8 @@
                     "default_region",
                     "max_databases",
                     "max_database_storage_mb",
+                    "max_buckets",
+                    "max_bucket_storage_mb",
                     "created_at",
                     "updated_at"
                 ],
@@ -19860,6 +21832,26 @@
                             "current_database_storage_bytes": {
                                 "type": "integer",
                                 "description": "Size of the workspace's managed databases from the database node's last report, in bytes."
+                            },
+                            "max_buckets": {
+                                "type": "integer",
+                                "description": "Managed buckets the workspace may hold, from its limit profile or the global setting; `0` allows none."
+                            },
+                            "current_buckets_count": {
+                                "type": "integer",
+                                "description": "Managed buckets that count towards `max_buckets`: every live one except those whose creation failed."
+                            },
+                            "max_bucket_storage_mb": {
+                                "type": "integer",
+                                "description": "MB the quotas of the workspace's buckets may reserve together, from its limit profile or the global\nsetting. `0` refuses new buckets and quota increases; existing buckets keep their quotas."
+                            },
+                            "current_bucket_storage_mb": {
+                                "type": "integer",
+                                "description": "MB the workspace's buckets reserve now: the sum of their quotas, a pending increase included.\nAllocated, not used; see `current_bucket_usage_bytes`."
+                            },
+                            "current_bucket_usage_bytes": {
+                                "type": "integer",
+                                "description": "Usage of the workspace's buckets from the storage nodes' last reports, in bytes; a bucket never measured counts 0."
                             }
                         },
                         "required": [
@@ -19875,7 +21867,12 @@
                             "max_databases",
                             "current_databases_count",
                             "max_database_storage_mb",
-                            "current_database_storage_bytes"
+                            "current_database_storage_bytes",
+                            "max_buckets",
+                            "current_buckets_count",
+                            "max_bucket_storage_mb",
+                            "current_bucket_storage_mb",
+                            "current_bucket_usage_bytes"
                         ]
                     },
                     "runtime_defaults": {
@@ -19976,6 +21973,23 @@
                         "required": [
                             "available"
                         ]
+                    },
+                    "buckets": {
+                        "type": "object",
+                        "description": "Managed S3 buckets on this installation (ADR-021). `available` is true while at least one online node\nwith the `managed-s3` capability may receive new buckets, has reported its object storage, and did not\nreport it down. `default_quota_mb` is the quota of a bucket created without `quota_mb`, before it is\ncapped at what the workspace has left. Absent on an API without buckets.",
+                        "properties": {
+                            "available": {
+                                "type": "boolean"
+                            },
+                            "default_quota_mb": {
+                                "type": "integer",
+                                "const": 0
+                            }
+                        },
+                        "required": [
+                            "available",
+                            "default_quota_mb"
+                        ]
                     }
                 },
                 "required": [
@@ -19988,7 +22002,8 @@
                     "log_bounds",
                     "deleted_project_retention_days",
                     "project_idle_sleep_minutes",
-                    "databases"
+                    "databases",
+                    "buckets"
                 ],
                 "title": "PilotLimitsResource"
             },
@@ -20076,7 +22091,13 @@
                                     "RotateDatabasePassword",
                                     "LockDatabase",
                                     "UnlockDatabase",
-                                    "InstallDatabaseExtension"
+                                    "InstallDatabaseExtension",
+                                    "CreateBucket",
+                                    "DeleteBucket",
+                                    "RotateBucketKey",
+                                    "SetBucketQuota",
+                                    "LockBucket",
+                                    "UnlockBucket"
                                 ]
                             },
                             "status": {
@@ -20151,7 +22172,7 @@
                     },
                     "series": {
                         "type": "object",
-                        "description": "Summed across replicas. Each series has a point for every step with data, oldest first; a step without\ndata has no point, so consecutive `t` more than `step_seconds` apart are a gap. `t` is the start of the\nstep (ISO 8601, UTC). All series share the same `t` values.",
+                        "description": "Summed across replicas. Each series has a point for every step with data, oldest first; a step without\ndata has no point, so consecutive `t` more than `step_seconds` apart are a gap. `t` is the start of the\nstep (ISO 8601, UTC). The series share the same `t` values, except that `restarts` also has a point for\na step without data in which a restart happened.",
                         "properties": {
                             "cpu_percent": {
                                 "type": "array",
@@ -20227,7 +22248,7 @@
                             },
                             "restarts": {
                                 "type": "array",
-                                "description": "Container restarts in the step, summed across replicas.",
+                                "description": "Container restarts in the step, summed across replicas. A step without data still has a point\nhere when a restart happened in it, so a restart is never lost to a gap.",
                                 "items": {
                                     "type": "object",
                                     "properties": {
@@ -20567,7 +22588,7 @@
                     },
                     "redeploy_required": {
                         "type": "boolean",
-                        "description": "True while the serving deployment was created with another deploy-relevant configuration: branch, port,\nbuild configuration, replicas, environment variables, or the attached database (attaching, detaching, and a\nrotated password). Changing a value back makes it false again."
+                        "description": "True while the serving deployment was created with another deploy-relevant configuration: branch, port,\nbuild configuration, replicas, environment variables, or the attached database or bucket (attaching,\ndetaching, and a rotated password or key). Changing a value back makes it false again."
                     },
                     "active_deployment_id": {
                         "type": [
@@ -20983,6 +23004,50 @@
                             ]
                         }
                     },
+                    "buckets": {
+                        "type": "array",
+                        "description": "The managed bucket attached to the project, as a list of at most one: a project uses one bucket at a\ntime. Its variables reach the next deployment; see each item's `variables`.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "region": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "variables": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "overridden_variables": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "status",
+                                "region",
+                                "variables",
+                                "overridden_variables"
+                            ]
+                        }
+                    },
                     "workspace": {
                         "type": [
                             "object",
@@ -21070,6 +23135,7 @@
                     "variable_changes",
                     "last_deployed_at",
                     "databases",
+                    "buckets",
                     "workspace",
                     "created_at",
                     "updated_at"
@@ -21426,6 +23492,16 @@
                 ],
                 "title": "ResumeAgentNodeRequest"
             },
+            "RotateBucketKeyRequest": {
+                "type": "object",
+                "properties": {
+                    "redeploy_attached": {
+                        "type": "boolean",
+                        "description": "Redeploy every attached project that has a live deployment as soon as the node reports the new secret,\nas whoever asked for the rotation. Defaults to `false`."
+                    }
+                },
+                "title": "RotateBucketKeyRequest"
+            },
             "RotateDatabasePasswordRequest": {
                 "type": "object",
                 "properties": {
@@ -21605,6 +23681,49 @@
                 ],
                 "title": "StoreAgentRequest"
             },
+            "StoreBucketRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Name people see, unique among the workspace's live buckets. The bucket name on the storage node is\nrandom. Optional with `project_id`: the project's name, followed by ` 2`, ` 3`, ... when taken.",
+                        "maxLength": 100
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Sakala region of the storage node, for example `jkt`. `null` (the default) uses the project's region\nwith `project_id`, then the workspace's default region, then any region. A bucket of any region can be\nattached to any project of the workspace: the endpoint is public.",
+                        "maxLength": 32
+                    },
+                    "project_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid",
+                        "description": "A project of this workspace the caller may change, which has no bucket yet: the new bucket is attached\nto it at once, while it is still `provisioning`. Another workspace's project answers `404`."
+                    },
+                    "quota_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Hard quota in MB; uploads past it are refused. Reserved from the workspace's bucket storage at once.\n`null` (the default) uses `buckets.default_quota_mb` from `GET app/pilot-limits`, capped at what the\nworkspace has left.",
+                        "minimum": 1,
+                        "maximum": 1048576
+                    },
+                    "deploy_when_ready": {
+                        "type": "string",
+                        "description": "Not accepted in this version: a bucket never deploys its project by itself. Sending it answers `422`."
+                    }
+                },
+                "title": "StoreBucketRequest"
+            },
             "StoreDatabaseRequest": {
                 "type": "object",
                 "properties": {
@@ -21766,7 +23885,7 @@
                             "integer",
                             "null"
                         ],
-                        "description": "Reserved for the build rate limit; stored but not enforced yet.",
+                        "description": "Deployments that build an image a workspace may create in the rolling hour; redeploys that reuse the live image do not count. Null follows SAKALA_PROJECT_MAX_BUILDS_PER_HOUR (default 20).",
                         "minimum": 1,
                         "maximum": 1000
                     },
@@ -21811,6 +23930,24 @@
                             "null"
                         ],
                         "description": "Total size of the workspace's managed databases, in MB. `null` (the default) follows\n`SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none, so every database of the workspace is locked.",
+                        "minimum": 0,
+                        "maximum": 1048576
+                    },
+                    "max_buckets": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Managed buckets the workspace may hold. `null` (the default) follows `SAKALA_BUCKET_DEFAULT_MAX_COUNT`;\n`0` allows none.",
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "max_bucket_storage_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "MB the quotas of the workspace's buckets may reserve together. `null` (the default) follows\n`SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases. Lowering it never\nshrinks an existing bucket.",
                         "minimum": 0,
                         "maximum": 1048576
                     }
@@ -22111,6 +24248,23 @@
                     "nothing_to_wake"
                 ],
                 "title": "UnsuspendWakeOutcome"
+            },
+            "UpdateBucketRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "New name people see, unique among the workspace's live buckets. Never changes anything on the node.",
+                        "maxLength": 100
+                    },
+                    "quota_mb": {
+                        "type": "integer",
+                        "description": "New hard quota in MB. Needs a `ready` or `locked` bucket and no quota change on its way. An increase must\nfit the workspace's bucket storage and the storage node; a decrease below current usage is allowed, and\nuploads are refused until usage is under it.",
+                        "minimum": 1,
+                        "maximum": 1048576
+                    }
+                },
+                "title": "UpdateBucketRequest"
             },
             "UpdateDatabaseRequest": {
                 "type": "object",
@@ -22835,6 +24989,14 @@
                                 "type": "integer",
                                 "description": "Effective total managed database storage in MB, from the profile or the global setting. `0` allows none."
                             },
+                            "max_buckets": {
+                                "type": "integer",
+                                "description": "Effective managed buckets, from the profile or the global setting. `0` allows none."
+                            },
+                            "max_bucket_storage_mb": {
+                                "type": "integer",
+                                "description": "Effective MB the bucket quotas may reserve together, from the profile or the global setting. `0` allows no new allocation."
+                            },
                             "max_active_deployments_per_project": {
                                 "type": "integer",
                                 "description": "Global, the same for every workspace."
@@ -22851,6 +25013,8 @@
                             "max_replicas",
                             "max_databases",
                             "max_database_storage_mb",
+                            "max_buckets",
+                            "max_bucket_storage_mb",
                             "max_active_deployments_per_project"
                         ]
                     },
@@ -22874,6 +25038,18 @@
                             "database_storage_bytes": {
                                 "type": "integer",
                                 "description": "Reported size of the workspace's managed databases, in bytes."
+                            },
+                            "buckets": {
+                                "type": "integer",
+                                "description": "Managed buckets that count towards `max_buckets`."
+                            },
+                            "bucket_storage_mb": {
+                                "type": "integer",
+                                "description": "MB the workspace's bucket quotas reserve (allocated, not used)."
+                            },
+                            "bucket_usage_bytes": {
+                                "type": "integer",
+                                "description": "Reported usage of the workspace's buckets, in bytes."
                             }
                         },
                         "required": [
@@ -22881,7 +25057,10 @@
                             "active_containers",
                             "active_deployments",
                             "databases",
-                            "database_storage_bytes"
+                            "database_storage_bytes",
+                            "buckets",
+                            "bucket_storage_mb",
+                            "bucket_usage_bytes"
                         ]
                     }
                 },

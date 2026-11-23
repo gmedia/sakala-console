@@ -99,6 +99,15 @@ export type ProjectDatabase = Omit<GeneratedProjectDatabase, 'deploy_when_ready'
 };
 type ProjectDatabaseFields = { databases?: ProjectDatabase[] };
 
+/**
+ * The attached managed bucket (sakala-api #204), as a list of at most one. An older API leaves it
+ * out, which the Console reads as "no bucket feature".
+ */
+export type ProjectBucket = NonNullable<
+	components['schemas']['ProjectResource']['buckets']
+>[number];
+type ProjectBucketFields = { buckets?: ProjectBucket[] };
+
 /** The newest deployment, which the wizard reads after a reload instead of starting another. */
 type ProjectLatestDeploymentFields = Partial<
 	Pick<components['schemas']['ProjectResource'], 'latest_deployment'>
@@ -183,6 +192,7 @@ export interface Project
 		ProjectReleaseFields,
 		ProjectPlacementFields,
 		ProjectDatabaseFields,
+		ProjectBucketFields,
 		ProjectLatestDeploymentFields,
 		ProjectVariableChangesFields,
 		ProjectRollbackFields {}

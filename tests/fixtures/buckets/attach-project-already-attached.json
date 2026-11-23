@@ -1,0 +1,11 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Proyek ini sudah memakai bucket unggahan-toko. Lepas dulu bucket itu dari proyek, lalu pasang yang ini.",
+		"code": "PROJECT_BUCKET_ALREADY_ATTACHED",
+		"bucket": {
+			"id": "01a2090a-47d8-7e8b-9405-3b998e967490",
+			"name": "unggahan-toko"
+		}
+	}
+}

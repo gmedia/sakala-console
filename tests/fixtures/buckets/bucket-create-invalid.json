@@ -1,0 +1,10 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom nama wajib diisi saat proyek kosong. (dan 1 kesalahan lainnya)",
+		"errors": {
+			"name": ["Kolom nama wajib diisi saat proyek kosong."],
+			"quota_mb": ["Kolom quota mb harus bernilai 1 sampai 1048576."]
+		}
+	}
+}
