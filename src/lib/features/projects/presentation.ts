@@ -242,6 +242,9 @@ function describeRunningDeployment(deployment: HeaderDeployment | null): string 
 
 	const name = `Deployment #${deployment.sequence}`;
 	if (deployment.cancel_requested_at) return `${name} sedang dibatalkan.`;
+	if (deployment.queue_state === 'waiting_for_inspection') {
+		return `${name} menunggu analisis proyek selesai, lalu mulai sendiri.`;
+	}
 	if (deployment.queue_state === 'waiting_for_node') {
 		return `${name} mengantre karena belum ada server Sakala yang siap. Deployment ini tetap mengantre sampai ada server yang siap.`;
 	}
@@ -594,6 +597,7 @@ export function getDeploymentCardNote(
 			: 'Gagal, lihat detail untuk penyebabnya';
 	}
 	if (deployment.cancel_requested_at) return 'Sedang dibatalkan';
+	if (deployment.queue_state === 'waiting_for_inspection') return 'Menunggu analisis proyek';
 	if (deployment.queue_state === 'waiting_for_node') return 'Menunggu server siap';
 	if (ACTIVE_DEPLOYMENT_STATUSES.includes(status)) {
 		return `Tahap: ${getDeploymentStatusLabel(status)}`;

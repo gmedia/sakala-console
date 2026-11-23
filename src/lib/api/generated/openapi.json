@@ -15484,6 +15484,7 @@
                         "enum": [
                             "assigned",
                             "waiting_for_node",
+                            "waiting_for_inspection",
                             null
                         ]
                     },
