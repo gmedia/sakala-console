@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { TEAM, mockWorkspaceApi } from './fixtures/workspaces';
 
 const NEW_VERSION_TOAST = 'Versi baru Sakala sudah tersedia';
+/** CONNECTION_ERROR_COPY.title in src/lib/components/feedback/connection-copy.ts. */
+const CONNECTION_TOAST = 'Tidak dapat terhubung ke server';
 
 /** A value that only survives client-side navigation; a full page load clears it. */
 const markTab = (page: Page) =>
@@ -46,20 +48,50 @@ test.describe('a new Console version while a tab is open', () => {
 		expect(await tabMarker(page)).toBeNull();
 	});
 
-	test('a chunk that fails to load is announced the same way', async ({ page }) => {
+	test('a chunk that fails after a deploy is announced the same way', async ({ page }) => {
 		await mockWorkspaceApi(page, { persona: 'owner' });
+		let deployed = false;
+		await page.route('**/_app/version.json', (route) =>
+			deployed
+				? route.fulfill({ contentType: 'application/json', body: '{"version":"setelah-deploy"}' })
+				: route.fallback()
+		);
 		await page.goto(`/workspaces/${TEAM.id}`);
 		await expect(page.getByTestId('member-row')).toHaveCount(3);
 		await markTab(page);
 
 		// What Vite fires when a dynamic import of an old chunk fails after a deploy.
+		deployed = true;
 		await page.evaluate(() => window.dispatchEvent(new Event('vite:preloadError')));
-		await expect(page.getByText(NEW_VERSION_TOAST)).toBeVisible();
+		await expect(page.getByText(NEW_VERSION_TOAST)).toHaveCount(1);
+		await expect(page.getByText(CONNECTION_TOAST)).toHaveCount(0);
 		expect(await tabMarker(page)).toBe('sebelum');
 
 		await projectsLink(page).click();
 		await expect(page).toHaveURL(/\/projects$/);
 		await expect(page.getByRole('heading', { name: 'Tugas Pribadi' })).toBeVisible();
 		expect(await tabMarker(page)).toBeNull();
+	});
+
+	test('a chunk that fails while offline is a connection problem, not a new version', async ({
+		page
+	}) => {
+		await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto(`/workspaces/${TEAM.id}`);
+		await expect(page.getByTestId('member-row')).toHaveCount(3);
+		await markTab(page);
+
+		// Offline: the version check cannot reach the server either.
+		await page.route('**/_app/version.json', (route) => route.abort('internetdisconnected'));
+		await page.evaluate(() => window.dispatchEvent(new Event('vite:preloadError')));
+		await expect(page.getByText(CONNECTION_TOAST)).toBeVisible();
+		await expect(page.getByText(NEW_VERSION_TOAST)).toHaveCount(0);
+
+		// Nothing forces a full page load once the connection is back.
+		await page.unroute('**/_app/version.json');
+		await projectsLink(page).click();
+		await expect(page).toHaveURL(/\/projects$/);
+		await expect(page.getByRole('heading', { name: 'Tugas Pribadi' })).toBeVisible();
+		expect(await tabMarker(page)).toBe('sebelum');
 	});
 });
