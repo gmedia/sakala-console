@@ -221,6 +221,15 @@ describe('redeployStartedMessage', () => {
 		);
 	});
 
+	it("calls a project's first deployment a deploy, not a redeploy", () => {
+		expect(redeployStartedMessage({ sequence: 1, status: 'queued' })).toBe(
+			'Deploy masuk antrean sebagai deployment #1.'
+		);
+		expect(redeployStartedMessage({ sequence: 1, status: 'cloning' })).toBe(
+			'Deploy dimulai sebagai deployment #1.'
+		);
+	});
+
 	it('says one that already left the queue has started', () => {
 		expect(redeployStartedMessage({ sequence: 13, status: 'cloning' })).toBe(
 			'Redeploy dimulai sebagai deployment #13.'
