@@ -68,7 +68,7 @@ describe('replicas in the workspace limits', () => {
 
 	it('says replicas are not available at one', () => {
 		expect(workspaceReplicasSummary({ quotas: { ...quotas, max_replicas: 1 } })).toBe(
-			'Replika belum aktif untuk workspace ini.'
+			'Replika belum aktif untuk workspace ini. Admin Sakala bisa mengaktifkannya lewat profil batas workspace.'
 		);
 	});
 

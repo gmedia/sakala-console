@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { settingsHref } from '$lib/features/settings/tabs';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import {
 		ApiError,
@@ -173,12 +174,12 @@
 	{#if needsReauthentication}
 		<div class="mt-3 flex flex-wrap gap-2">
 			{#if providers?.github}
-				<Button variant="secondary" onclick={() => redirectToGithubAuth('/settings')}>
+				<Button variant="secondary" onclick={() => redirectToGithubAuth(settingsHref('account'))}>
 					Masuk ulang lewat GitHub
 				</Button>
 			{/if}
 			{#if providers?.google}
-				<Button variant="secondary" onclick={() => redirectToGoogleAuth('/settings')}>
+				<Button variant="secondary" onclick={() => redirectToGoogleAuth(settingsHref('account'))}>
 					Masuk ulang lewat Google
 				</Button>
 			{/if}

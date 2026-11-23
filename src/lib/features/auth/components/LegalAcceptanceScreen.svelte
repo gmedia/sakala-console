@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { resolve } from '$app/paths';
 	import { getErrorMessage } from '$lib/api/errors';
 	import { queryKeys } from '$lib/api/query-keys';
 	import Button from '$lib/components/ui/Button.svelte';
+	import { settingsHref } from '$lib/features/settings/tabs';
 	import { pageTitle } from '$lib/utils/page-title';
 	import {
 		CONSENT_REQUIRED_MESSAGE,
@@ -95,12 +95,14 @@
 
 		<!-- Nobody has to agree first in order to leave: the API keeps both of these open. -->
 		<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
+			<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
 			<a
-				href={resolve('/settings')}
+				href={settingsHref('account')}
 				class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
 			>
 				Unduh data atau hapus akun
 			</a>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			<Button variant="link" disabled={logout.isPending} onclick={() => logout.mutate()}>
 				Keluar
 			</Button>

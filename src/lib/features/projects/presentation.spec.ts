@@ -234,6 +234,14 @@ describe('deriveProjectHeaderState', () => {
 		expect(state.notice?.message).toContain('Versi sebelumnya masih melayani');
 	});
 
+	it('says a deployment waits for the project analysis', () => {
+		const state = deriveProjectHeaderState(live, [
+			attempt('queued', 2, { queue_state: 'waiting_for_inspection' })
+		]);
+
+		expect(state.notice?.message).toContain('Deployment #2 menunggu analisis proyek selesai');
+	});
+
 	it('deploying on top of a live version keeps the URL', () => {
 		const state = deriveProjectHeaderState(
 			{ status: 'active', runtime_status: 'deploying', active_deployment_id: 'dep_1' },
@@ -336,7 +344,7 @@ describe('deriveProjectHeaderState', () => {
 		expect(state.notice).toEqual({
 			tone: 'sleeping',
 			message:
-				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka.'
+				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka, biasanya dalam kurang dari satu menit.'
 		});
 	});
 
@@ -451,6 +459,15 @@ describe('deployment card copy', () => {
 			'Gagal di tahap Mengecek aplikasi'
 		);
 		expect(getDeploymentCardNote({ ...base, status: 'failed' })).not.toContain('Build');
+	});
+
+	it('says which wait a queued deployment is in', () => {
+		expect(
+			getDeploymentCardNote({ ...base, status: 'queued', queue_state: 'waiting_for_inspection' })
+		).toBe('Menunggu analisis proyek');
+		expect(
+			getDeploymentCardNote({ ...base, status: 'queued', queue_state: 'waiting_for_node' })
+		).toBe('Menunggu server siap');
 	});
 
 	it('leaves a finished deployment to its duration', () => {

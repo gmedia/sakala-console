@@ -163,7 +163,7 @@ export const deploymentSchema = z.object({
 	agent_node_id: z.string().nullable(),
 	is_active: z.boolean(),
 	cancel_requested_at: z.string().nullable(),
-	queue_state: decorative(z.enum(['assigned', 'waiting_for_node'])),
+	queue_state: decorative(z.enum(['assigned', 'waiting_for_node', 'waiting_for_inspection'])),
 	started_at: z.string().nullable(),
 	finished_at: z.string().nullable(),
 	cancelled_at: z.string().nullable(),

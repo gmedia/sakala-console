@@ -54,7 +54,7 @@ export function getDeploymentStageLabel(stage: DeploymentStage): string {
 export type ServingState =
 	'live' | 'unconfirmed' | 'superseded' | 'not_serving' | 'crash_looping' | 'sleeping';
 
-export type QueueState = 'assigned' | 'waiting_for_node';
+export type QueueState = 'assigned' | 'waiting_for_node' | 'waiting_for_inspection';
 
 export interface StatusDisplayInput {
 	status: BannerStatus;
@@ -282,6 +282,13 @@ function getRunningMessage(
 		return {
 			title: 'Deployment sedang dibatalkan',
 			desc: 'Permintaan batal sudah terkirim. Server perlu menghentikan prosesnya dulu, jadi statusnya berubah setelah itu selesai.'
+		};
+	}
+	// The API holds the deployment until the project's analysis reports the port it runs on.
+	if (queueState === 'waiting_for_inspection') {
+		return {
+			title: 'Menunggu analisis proyek',
+			desc: 'Sakala sedang membaca repository untuk tahu port aplikasimu. Deployment mulai sendiri setelah analisis selesai, biasanya dalam satu menit. Kamu boleh meninggalkan halaman ini.'
 		};
 	}
 	if (queueState === 'waiting_for_node') {

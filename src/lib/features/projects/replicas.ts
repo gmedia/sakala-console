@@ -11,7 +11,8 @@ export const MIN_REPLICAS = 1;
 export const REPLICAS_COPY = {
 	label: 'Replika',
 	help: 'Replika menjalankan beberapa salinan aplikasimu dan membagi pengunjung di antaranya. Cocok untuk aplikasi stateless: file atau sesi yang disimpan di disk container tidak ikut terbagi. Perubahan berlaku pada deploy berikutnya.',
-	unavailable: 'Replika belum aktif untuk workspace ini.'
+	unavailable:
+		'Replika belum aktif untuk workspace ini. Admin Sakala bisa mengaktifkannya lewat profil batas workspace.'
 } as const;
 
 /** The most replicas the project may run, `1` from an API that does not report it. */

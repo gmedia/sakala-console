@@ -19,6 +19,8 @@ test.describe('replicas', () => {
 		});
 
 		await page.goto(`/projects/${PROJECT_ID}/settings`);
+		// Replicas sit in Lanjutan, closed while the project runs the default one.
+		await page.getByRole('button', { name: 'Lanjutan' }).click();
 		const field = page.getByRole('spinbutton', { name: 'Replika' });
 		await expect(field).toHaveValue('1');
 

@@ -15,6 +15,8 @@ import {
 	type WorkspaceRole
 } from '$lib/api/resources/workspaces';
 import { forgetWorkspace } from './forget';
+import { inviteEach } from './invite-addresses';
+import { workspaceErrorMessage } from './presentation';
 
 /*
  * A membership change can move projects in or out of view and change what the caller may do,
@@ -84,6 +86,35 @@ export function createInviteMutation(workspaceId: () => string) {
 		mutationFn: (payload: { email: string; role: WorkspaceRole }) =>
 			inviteToWorkspace(workspaceId(), payload),
 		onSuccess: () =>
+			client.invalidateQueries({ queryKey: queryKeys.workspaces.invitations(workspaceId()) })
+	}));
+}
+
+/**
+ * Invites several addresses with one role, one request each, as the API takes them. It resolves
+ * with what happened to each address instead of failing on the first refusal, and refreshes the
+ * pending list once at the end rather than after every address.
+ */
+export function createInviteManyMutation(workspaceId: () => string) {
+	const client = useQueryClient();
+	return createMutation(() => ({
+		mutationFn: ({
+			emails,
+			role,
+			onProgress
+		}: {
+			emails: readonly string[];
+			role: WorkspaceRole;
+			onProgress?: (done: number) => void;
+		}) =>
+			inviteEach(
+				emails,
+				role,
+				(payload) => inviteToWorkspace(workspaceId(), payload),
+				(error) => workspaceErrorMessage(error, 'Undangan belum terkirim.'),
+				onProgress
+			),
+		onSettled: () =>
 			client.invalidateQueries({ queryKey: queryKeys.workspaces.invitations(workspaceId()) })
 	}));
 }

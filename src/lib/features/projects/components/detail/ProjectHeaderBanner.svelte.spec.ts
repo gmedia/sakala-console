@@ -131,7 +131,7 @@ describe('ProjectHeaderBanner, a sleeping project', () => {
 		await expect
 			.element(page.getByRole('status'))
 			.toHaveTextContent(
-				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka.'
+				'Proyek ini sedang tidur karena tidak ada pengunjung selama 30 menit. Ini normal: proyek menyala lagi saat URL-nya dibuka, biasanya dalam kurang dari satu menit.'
 			);
 		await expect
 			.element(page.getByTestId('project-public-url'))

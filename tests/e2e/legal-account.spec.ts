@@ -114,7 +114,7 @@ test.describe('accepting the terms', () => {
 		await page.goto('/projects');
 		await page.getByRole('link', { name: 'Unduh data atau hapus akun' }).click();
 
-		await expect(page).toHaveURL(/\/settings$/);
+		await expect(page).toHaveURL(/\/settings\?tab=account$/);
 		await expect(page.getByRole('button', { name: 'Unduh data saya' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Hapus akun saya' })).toBeVisible();
 	});
@@ -166,7 +166,7 @@ test.describe('deleting the account', () => {
 			return route.fulfill({ status: 204 });
 		});
 
-		await page.goto('/settings');
+		await page.goto('/settings?tab=account');
 		await page.getByRole('button', { name: 'Hapus akun saya' }).click();
 
 		const dialog = page.getByRole('dialog', { name: /Hapus akunmu/ });
@@ -190,7 +190,7 @@ test.describe('deleting the account', () => {
 			json(route, { data: [], meta: { current_page: 1, last_page: 1, total: 0 } })
 		);
 
-		await page.goto('/settings');
+		await page.goto('/settings?tab=account');
 
 		await expect(page.getByTestId('delete-account-admin')).toContainText('Minta maintainer lain');
 		await expect(page.getByRole('button', { name: 'Hapus akun saya' })).toHaveCount(0);
@@ -213,7 +213,7 @@ test.describe('downloading my data', () => {
 		);
 		await page.route('**/api/v1/auth/account/export', (route) => json(route, { data: exported }));
 
-		await page.goto('/settings');
+		await page.goto('/settings?tab=account');
 		const downloading = page.waitForEvent('download');
 		await page.getByRole('button', { name: 'Unduh data saya' }).click();
 		const download = await downloading;
@@ -239,7 +239,7 @@ test.describe('downloading my data', () => {
 			})
 		);
 
-		await page.goto('/settings');
+		await page.goto('/settings?tab=account');
 		await page.getByRole('button', { name: 'Unduh data saya' }).click();
 
 		await expect(page.getByRole('alert')).toContainText('terlalu sering diunduh');
