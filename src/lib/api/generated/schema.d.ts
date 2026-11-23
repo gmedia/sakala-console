@@ -474,6 +474,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/workspaces/{workspace}/buckets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's buckets, newest first. Deleted ones are gone; quotas and usage are in `GET app/pilot-limits` */
+        get: operations["v1.app.workspaces.buckets.index"];
+        put?: never;
+        /**
+         * Create a private bucket. It is `provisioning` until the storage node creates it; its quota is reserved from the
+         *     workspace's bucket storage at once. With `project_id` it is attached to that project in the same step. Needs
+         *     the current legal terms accepted (`LEGAL_ACCEPTANCE_REQUIRED`)
+         */
+        post: operations["v1.app.workspaces.buckets.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/buckets/{bucket}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1.app.workspaces.buckets.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete the bucket with every object in it. Answers `202` with `status: deleting`; it is gone once the storage
+         *     node deletes it. `204` when a bucket still `provisioning` was removed before any node started creating it.
+         *     Only a bucket without attached projects can be deleted. Backups keep the files for up to 14 days
+         */
+        delete: operations["v1.app.workspaces.buckets.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename the bucket and/or change its quota. `200` for a rename only or an unchanged quota; `202` when a quota
+         *     change was sent to the storage node (`pending_quota_mb`). The name on the node never changes
+         */
+        patch: operations["v1.app.workspaces.buckets.update"];
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/buckets/{bucket}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The bucket's key with its secret and the variables attached projects receive. Owners and admins only, recorded
+         *     in the audit trail before it is sent, never cached. The key works from the internet. `409 BUCKET_KEY_ROTATING`
+         *     while a rotation reached the node and the node has not confirmed which secret works
+         */
+        get: operations["v1.app.workspaces.buckets.credentials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/buckets/{bucket}/rotate-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the storage node for a new secret access key; the access key ID stays. Answers `202` with
+         *     `key_rotation.status: pending`. The node switches at once, so running applications lose access until they are
+         *     redeployed. Once the node reports, attached projects show `redeploy_required`, and with `redeploy_attached` the
+         *     API redeploys the attached projects that have a live deployment (`key_rotation.redeploys`)
+         */
+        post: operations["v1.app.workspaces.buckets.rotate-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/workspaces/{workspace}/buckets/{bucket}/attachments/{project}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach the bucket to the project. `201`, or `200` when it already was. The project's next deployment receives
+         *     `AWS_ENDPOINT_URL_S3`, `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`, `AWS_DEFAULT_REGION`, `AWS_REGION`,
+         *     `AWS_BUCKET`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`, except those the project sets itself
+         */
+        post: operations["v1.app.workspaces.buckets.attachments.store"];
+        /**
+         * Detach the bucket from the project. The files stay; the project's next deployment no longer receives the
+         *     bucket variables. `404` when the bucket is not attached to the project
+         */
+        delete: operations["v1.app.workspaces.buckets.attachments.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/user": {
         parameters: {
             query?: never;
@@ -1432,7 +1547,8 @@ export interface paths {
         /**
          * Quotas, usage, and runtime maximums of one workspace: the one named by
          *     `workspace_id`, or the caller's personal workspace, plus whether this
-         *     installation offers managed databases right now (`databases.available`)
+         *     installation offers managed databases (`databases.available`) and
+         *     buckets (`buckets.available`) right now
          */
         get: operations["v1.app.pilot-limits.show"];
         put?: never;
@@ -2306,7 +2422,7 @@ export interface components {
                 /** @enum {string} */
                 status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
                 /** @enum {string} */
-                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "rollback";
+                trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "bucket_key_rotated" | "rollback";
                 branch: string;
                 commit_sha: string | null;
                 commit_message: string | null;
@@ -2350,7 +2466,7 @@ export interface components {
              * @description An `AgentCommandType`, for example `DeployProject`, `StopProject`, `CleanupRuntime`.
              * @enum {string}
              */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
             /**
              * @description `Pending`, `Claimed`, `Running`, `Succeeded`, `Failed`, `Cancelled`, or `Expired`.
              * @enum {string}
@@ -2794,7 +2910,7 @@ export interface components {
         AgentCommandResource: {
             id: string;
             /** @enum {string} */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
             /** @enum {string} */
             status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             project_id: string | null;
@@ -2813,7 +2929,7 @@ export interface components {
          * @description Command types shared with sakala-agent protocol revision 4. Case order and values must match `sakala-agent-protocol::CommandType` exactly.
          * @enum {string}
          */
-        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
+        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
         /** AgentHeartbeatRequest */
         AgentHeartbeatRequest: {
             /** @enum {string} */
@@ -2852,6 +2968,8 @@ export interface components {
                     metrics?: number;
                     /** @description Additive within protocol revision 4, sent with `databases`. */
                     databases?: number;
+                    /** @description Additive within protocol revision 4, sent with `buckets`. */
+                    buckets?: number;
                 };
                 resources: {
                     cpu_total: number | null;
@@ -2974,6 +3092,31 @@ export interface components {
                     name: string;
                     size_bytes: number;
                 }[];
+                /**
+                 * @description Optional and additive within protocol revision 4, from nodes with
+                 *     the `managed-s3` capability (ADR-021): the public S3 endpoint,
+                 *     its signing region, the MB the node may allocate to bucket
+                 *     quotas, and the usage of every managed bucket it hosts. Strict
+                 *     like the database fields: a malformed value rejects the heartbeat.
+                 */
+                object_storage?: {
+                    endpoint?: string;
+                    region?: string;
+                    capacity_mb?: number;
+                    /**
+                     * @description False while the agent cannot read the instance; the node then
+                     *     reports `degraded` and gets no new bucket first.
+                     */
+                    available?: boolean;
+                };
+                /**
+                 * @description Only on a heartbeat right after a fresh usage reading (at most
+                 *     once a minute): absence means no new reading, never zero.
+                 */
+                buckets?: {
+                    name: string;
+                    size_bytes: number;
+                }[];
                 disk_pressure: {
                     state: string;
                     minimum_workspace_free_bytes: number;
@@ -3062,7 +3205,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             };
@@ -3168,6 +3311,165 @@ export interface components {
          * @enum {string}
          */
         AutoDeployPauseReason: "rollback";
+        /** BucketAttachmentResource */
+        BucketAttachmentResource: {
+            bucket_id: string;
+            project: {
+                id: string;
+                name: string;
+                slug: string;
+            };
+            /** @description True while the project's serving deployment lacks the bucket variables. Deploy again to apply them. */
+            redeploy_required: boolean;
+            attached_at: string | null;
+        };
+        /** BucketCredentialsResource */
+        BucketCredentialsResource: {
+            /** @description Public S3 endpoint, for example `https://s3.sakala.app`; `null` until the storage node reports it. */
+            endpoint: string | null;
+            /** @description S3 signing region, for example `us-east-1`; `null` until the storage node reports it. */
+            region: string | null;
+            /** @description Bucket name on the storage node (`AWS_BUCKET`). */
+            bucket: string;
+            access_key_id: string;
+            secret_access_key: string;
+            /** @description Always `true`: the endpoint serves path-style requests only. */
+            path_style: boolean;
+            /**
+             * @description Exactly the variables an attached project receives, in this order: `AWS_ENDPOINT_URL_S3`,
+             *     `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`, `AWS_DEFAULT_REGION`, `AWS_REGION`, `AWS_BUCKET`,
+             *     `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`. `null` until the storage node reports its endpoint.
+             */
+            variables: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * BucketKeyRotationStatus
+         * @description Where the newest key rotation of a managed bucket stands, read from its RotateBucketKey command.
+         *     | |
+         *     |---|
+         *     | `pending` <br/> Waiting for or running on the storage node. The stored secret is still the old one. |
+         *     | `completed` <br/> The node switched to the new secret: the old one no longer signs requests. |
+         *     | `failed` <br/> The node failed it definitively. The old secret still works. |
+         *     | `unknown` <br/> The node could not tell whether the new secret took effect, and the API stopped resending it after CredentialRotation::MAX_UNCERTAIN_ATTEMPTS. Neither secret is known to work; a new rotation settles it. |
+         * @enum {string}
+         */
+        BucketKeyRotationStatus: "pending" | "completed" | "failed" | "unknown";
+        /** BucketResource */
+        BucketResource: {
+            id: string;
+            name: string;
+            /**
+             * @description `provisioning` until the storage node creates it, then `ready`. `locked` while an admin locked it: its
+             *     key is disabled, so applications cannot read or write and presigned URLs stop working. `failed` when
+             *     creation failed; `deleting` while the node deletes it. A deleted bucket is gone from the API.
+             *     | |
+             *     |---|
+             *     | `provisioning` <br/> CreateBucket is waiting for or running on the storage node. |
+             *     | `ready` <br/> Created on the node; its key reads and writes. |
+             *     | `failed` <br/> CreateBucket failed or expired. Delete it and create another. |
+             *     | `deleting` <br/> DeleteBucket is waiting for or running on the storage node. |
+             *     | `locked` <br/> An admin locked the bucket (abuse): its key is disabled, so the application cannot read or write, and presigned URLs stop working. There is no quota lock: the node's hard quota refuses writes instead. |
+             *     | `deleted` <br/> Deleted on the node. The row is soft deleted at the same moment. |
+             */
+            status: components["schemas"]["BucketStatus"];
+            /** @description Sakala region of the storage node, not the S3 signing region (see `connection.region`); `null` when that node has none. */
+            region: string | null;
+            /** @description Hard quota in MB the node applies, or will apply once creation finishes. */
+            quota_mb: number;
+            /** @description The quota of a change on its way to the node, in MB; `null` when none is open. */
+            pending_quota_mb: number | null;
+            /** @description Usage from the storage node's last report, in bytes; `null` until it reports one. */
+            size_bytes: number | null;
+            /** @description When that usage was reported. */
+            usage_checked_at: string | null;
+            /**
+             * @description Projects the bucket is attached to, ordered by name. Each receives the bucket variables from its next
+             *     deployment.
+             */
+            projects: {
+                id: string;
+                name: string;
+                slug: string;
+            }[];
+            /**
+             * @description How applications reach the bucket, without the secret: `endpoint` (the public S3 endpoint, the value of
+             *     `AWS_ENDPOINT_URL_S3` and `AWS_ENDPOINT`), `region` (the S3 signing region, `AWS_DEFAULT_REGION` and
+             *     `AWS_REGION`), `bucket` (`AWS_BUCKET`), `access_key_id` (`AWS_ACCESS_KEY_ID`), and `path_style`, always
+             *     `true`. Visible to every member, viewers included: none of it is secret. `null` unless the status is
+             *     `ready` or `locked` and the node has reported its endpoint.
+             */
+            connection: {
+                endpoint: string;
+                region: string;
+                bucket: string;
+                access_key_id: string;
+                path_style: boolean;
+            } | null;
+            /**
+             * @description Set while the newest request to the storage node for this bucket failed or expired: `command` (the
+             *     agent command type), `code` (from the agent, such as `bucket_capacity_exceeded` or
+             *     `bucket_admin_unavailable`, or the control plane's `command_lease_expired`), `user_fixable` (always
+             *     `false` in this version), `summary` in Indonesian, and `failed_at`. `null` otherwise, including once a
+             *     later request succeeds or is on its way.
+             */
+            last_failure: {
+                command: string;
+                code: string;
+                user_fixable: boolean;
+                summary: string;
+                failed_at: string | null;
+            } | null;
+            /**
+             * @description The newest key rotation; `null` when the key was never rotated. `status` is `pending` while the storage
+             *     node has not reported, `completed` once only the new secret works, and `failed` when the node failed it
+             *     definitively (the old secret still works; see `last_failure`), and `unknown` when the node could not
+             *     confirm the outcome and a resend of the same secret did not complete either: neither secret is known to
+             *     work, deployments and credentials answer `409 BUCKET_KEY_ROTATING`, and a new rotation or
+             *     `buckets:reconcile` settles it. While the outcome is unconfirmed the API resends the same new
+             *     secret and the status stays `pending`. The node switches as soon
+             *     as it runs the request, so a `pending` rotation can already have cut off the old secret. The access key
+             *     ID never changes. `requested_at` is when it was asked for, `completed_at` and `failed_at` are set only
+             *     in their status. `redeploy_attached` is what the request asked for. `redeploys` is `null` until the API
+             *     has queued the redeploys after completion (and always without `redeploy_attached`), then one item per
+             *     project attached at that moment: `deployment_id` of the queued deployment (trigger
+             *     `bucket_key_rotated`), or `skipped_reason` when none was queued: `no_active_deployment`,
+             *     `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`, `active_deployment_limit`,
+             *     `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,
+             *     `database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`,
+             *     `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.
+             */
+            key_rotation: {
+                /** @enum {string} */
+                status: "pending" | "completed" | "failed" | "unknown";
+                requested_at: string;
+                completed_at: string | null;
+                failed_at: string | null;
+                redeploy_attached: boolean;
+                redeploys: {
+                    project_id: string;
+                    deployment_id: string | null;
+                    skipped_reason: string | null;
+                }[] | null;
+            } | null;
+            created_at: string | null;
+            updated_at: string | null;
+        };
+        /**
+         * BucketStatus
+         * @description Lifecycle of a managed bucket (ADR-021). Agent command results move it; the API never assumes a node did something it did not report.
+         *     | |
+         *     |---|
+         *     | `provisioning` <br/> CreateBucket is waiting for or running on the storage node. |
+         *     | `ready` <br/> Created on the node; its key reads and writes. |
+         *     | `failed` <br/> CreateBucket failed or expired. Delete it and create another. |
+         *     | `deleting` <br/> DeleteBucket is waiting for or running on the storage node. |
+         *     | `locked` <br/> An admin locked the bucket (abuse): its key is disabled, so the application cannot read or write, and presigned URLs stop working. There is no quota lock: the node's hard quota refuses writes instead. |
+         *     | `deleted` <br/> Deleted on the node. The row is soft deleted at the same moment. |
+         * @enum {string}
+         */
+        BucketStatus: "provisioning" | "ready" | "failed" | "deleting" | "locked" | "deleted";
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** @description An OAuth-only account has nothing to confirm with yet. */
@@ -3383,7 +3685,7 @@ export interface components {
              *     deployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:
              *     `no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,
              *     `active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,
-             *     `database_endpoint_unavailable`, `release_command_unsupported`, or `failed`.
+             *     `database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`, `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.
              */
             password_rotation: {
                 /** @enum {string} */
@@ -3487,7 +3789,7 @@ export interface components {
             /** @enum {string} */
             status: "queued" | "cloning" | "analyzing" | "building" | "deploying" | "routing" | "health_checking" | "succeeded" | "failed" | "cancelled";
             /** @enum {string} */
-            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "rollback";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "bucket_key_rotated" | "rollback";
             /**
              * @description Who asked for the deployment. `user`: the member (`name` is their current name; both null once the
              *     account is deleted). `github_push`: the pusher's GitHub name (`name` null for older deployments,
@@ -3658,7 +3960,7 @@ export interface components {
              * @description `manual`, `webhook`, or another `DeploymentTrigger`.
              * @enum {string}
              */
-            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "rollback";
+            trigger: "manual" | "redeploy" | "webhook" | "system" | "database_password_rotated" | "database_ready" | "bucket_key_rotated" | "rollback";
             agent_node_id: string | null;
             /** @description Who asked for the deployment; null for an account deleted since. */
             requested_by: {
@@ -3871,6 +4173,16 @@ export interface components {
              *     `SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none.
              */
             max_database_storage_mb: number | null;
+            /**
+             * @description Managed buckets the workspace may hold. `null` follows the global `SAKALA_BUCKET_DEFAULT_MAX_COUNT`;
+             *     `0` allows none.
+             */
+            max_buckets: number | null;
+            /**
+             * @description MB the quotas of the workspace's buckets may reserve together. `null` follows the global
+             *     `SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases.
+             */
+            max_bucket_storage_mb: number | null;
             /** @description Workspaces running under this profile. A profile is deleted only at zero. */
             workspaces_count?: number | null;
             created_at: string | null;
@@ -3979,6 +4291,22 @@ export interface components {
                 max_database_storage_mb: number;
                 /** @description Size of the workspace's managed databases from the database node's last report, in bytes. */
                 current_database_storage_bytes: number;
+                /** @description Managed buckets the workspace may hold, from its limit profile or the global setting; `0` allows none. */
+                max_buckets: number;
+                /** @description Managed buckets that count towards `max_buckets`: every live one except those whose creation failed. */
+                current_buckets_count: number;
+                /**
+                 * @description MB the quotas of the workspace's buckets may reserve together, from its limit profile or the global
+                 *     setting. `0` refuses new buckets and quota increases; existing buckets keep their quotas.
+                 */
+                max_bucket_storage_mb: number;
+                /**
+                 * @description MB the workspace's buckets reserve now: the sum of their quotas, a pending increase included.
+                 *     Allocated, not used; see `current_bucket_usage_bytes`.
+                 */
+                current_bucket_storage_mb: number;
+                /** @description Usage of the workspace's buckets from the storage nodes' last reports, in bytes; a bucket never measured counts 0. */
+                current_bucket_usage_bytes: number;
             };
             runtime_defaults: {
                 memory_mb: number;
@@ -4016,6 +4344,17 @@ export interface components {
             databases: {
                 available: boolean;
             };
+            /**
+             * @description Managed S3 buckets on this installation (ADR-021). `available` is true while at least one online node
+             *     with the `managed-s3` capability may receive new buckets, has reported its object storage, and did not
+             *     report it down. `default_quota_mb` is the quota of a bucket created without `quota_mb`, before it is
+             *     capped at what the workspace has left. Absent on an API without buckets.
+             */
+            buckets: {
+                available: boolean;
+                /** @constant */
+                default_quota_mb: 0;
+            };
         };
         /** PilotValidationMetricsResource */
         PilotValidationMetricsResource: {
@@ -4038,7 +4377,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             } | null;
@@ -4062,7 +4401,8 @@ export interface components {
             /**
              * @description Summed across replicas. Each series has a point for every step with data, oldest first; a step without
              *     data has no point, so consecutive `t` more than `step_seconds` apart are a gap. `t` is the start of the
-             *     step (ISO 8601, UTC). All series share the same `t` values.
+             *     step (ISO 8601, UTC). The series share the same `t` values, except that `restarts` also has a point for
+             *     a step without data in which a restart happened.
              */
             series: {
                 /**
@@ -4090,7 +4430,10 @@ export interface components {
                     t: string;
                     count: number;
                 }[];
-                /** @description Container restarts in the step, summed across replicas. */
+                /**
+                 * @description Container restarts in the step, summed across replicas. A step without data still has a point
+                 *     here when a restart happened in it, so a restart is never lost to a gap.
+                 */
                 restarts: {
                     t: string;
                     count: number;
@@ -4196,8 +4539,8 @@ export interface components {
             } | null;
             /**
              * @description True while the serving deployment was created with another deploy-relevant configuration: branch, port,
-             *     build configuration, replicas, environment variables, or the attached database (attaching, detaching, and a
-             *     rotated password). Changing a value back makes it false again.
+             *     build configuration, replicas, environment variables, or the attached database or bucket (attaching,
+             *     detaching, and a rotated password or key). Changing a value back makes it false again.
              */
             redeploy_required: boolean;
             active_deployment_id: string | null;
@@ -4285,6 +4628,18 @@ export interface components {
                     deployment_id: string | null;
                     skipped_reason: string | null;
                 } | null;
+            }[];
+            /**
+             * @description The managed bucket attached to the project, as a list of at most one: a project uses one bucket at a
+             *     time. Its variables reach the next deployment; see each item's `variables`.
+             */
+            buckets: {
+                id: string;
+                name: string;
+                status: string;
+                region: string | null;
+                variables: string[];
+                overridden_variables: string[];
             }[];
             /** @description The workspace that owns the project. Null only for a project that is being purged. */
             workspace: {
@@ -4422,6 +4777,14 @@ export interface components {
         ResumeAgentNodeRequest: {
             reason: string;
         };
+        /** RotateBucketKeyRequest */
+        RotateBucketKeyRequest: {
+            /**
+             * @description Redeploy every attached project that has a live deployment as soon as the node reports the new secret,
+             *     as whoever asked for the rotation. Defaults to `false`.
+             */
+            redeploy_attached?: boolean;
+        };
         /** RotateDatabasePasswordRequest */
         RotateDatabasePasswordRequest: {
             /**
@@ -4503,6 +4866,34 @@ export interface components {
             name: string;
             description?: string | null;
         };
+        /** StoreBucketRequest */
+        StoreBucketRequest: {
+            /**
+             * @description Name people see, unique among the workspace's live buckets. The bucket name on the storage node is
+             *     random. Optional with `project_id`: the project's name, followed by ` 2`, ` 3`, ... when taken.
+             */
+            name?: string | null;
+            /**
+             * @description Sakala region of the storage node, for example `jkt`. `null` (the default) uses the project's region
+             *     with `project_id`, then the workspace's default region, then any region. A bucket of any region can be
+             *     attached to any project of the workspace: the endpoint is public.
+             */
+            region?: string | null;
+            /**
+             * Format: uuid
+             * @description A project of this workspace the caller may change, which has no bucket yet: the new bucket is attached
+             *     to it at once, while it is still `provisioning`. Another workspace's project answers `404`.
+             */
+            project_id?: string | null;
+            /**
+             * @description Hard quota in MB; uploads past it are refused. Reserved from the workspace's bucket storage at once.
+             *     `null` (the default) uses `buckets.default_quota_mb` from `GET app/pilot-limits`, capped at what the
+             *     workspace has left.
+             */
+            quota_mb?: number | null;
+            /** @description Not accepted in this version: a bucket never deploys its project by itself. Sending it answers `422`. */
+            deploy_when_ready?: string;
+        };
         /** StoreDatabaseRequest */
         StoreDatabaseRequest: {
             /**
@@ -4566,7 +4957,7 @@ export interface components {
             max_memory_mb: number;
             /** @description Per project, in thousandths of a CPU. */
             max_cpu_millis: number;
-            /** @description Reserved for the build rate limit; stored but not enforced yet. */
+            /** @description Deployments that build an image a workspace may create in the rolling hour; redeploys that reuse the live image do not count. Null follows SAKALA_PROJECT_MAX_BUILDS_PER_HOUR (default 20). */
             max_builds_per_hour?: number | null;
             /**
              * @description Minutes without a request before a project sleeps, up to a week. `0` never puts the workspace's
@@ -4593,6 +4984,17 @@ export interface components {
              *     `SAKALA_DATABASE_DEFAULT_MAX_STORAGE_MB`; `0` allows none, so every database of the workspace is locked.
              */
             max_database_storage_mb?: number | null;
+            /**
+             * @description Managed buckets the workspace may hold. `null` (the default) follows `SAKALA_BUCKET_DEFAULT_MAX_COUNT`;
+             *     `0` allows none.
+             */
+            max_buckets?: number | null;
+            /**
+             * @description MB the quotas of the workspace's buckets may reserve together. `null` (the default) follows
+             *     `SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases. Lowering it never
+             *     shrinks an existing bucket.
+             */
+            max_bucket_storage_mb?: number | null;
         };
         /** StoreOnboardingProfileRequest */
         StoreOnboardingProfileRequest: {
@@ -4699,6 +5101,17 @@ export interface components {
          * @enum {string}
          */
         UnsuspendWakeOutcome: "requested" | "container_limit_reached" | "node_cannot_wake" | "nothing_to_wake";
+        /** UpdateBucketRequest */
+        UpdateBucketRequest: {
+            /** @description New name people see, unique among the workspace's live buckets. Never changes anything on the node. */
+            name?: string;
+            /**
+             * @description New hard quota in MB. Needs a `ready` or `locked` bucket and no quota change on its way. An increase must
+             *     fit the workspace's bucket storage and the storage node; a decrease below current usage is allowed, and
+             *     uploads are refused until usage is under it.
+             */
+            quota_mb?: number;
+        };
         /** UpdateDatabaseRequest */
         UpdateDatabaseRequest: {
             /** @description New name people see, unique among the workspace's databases. */
@@ -4933,6 +5346,10 @@ export interface components {
                 max_databases: number;
                 /** @description Effective total managed database storage in MB, from the profile or the global setting. `0` allows none. */
                 max_database_storage_mb: number;
+                /** @description Effective managed buckets, from the profile or the global setting. `0` allows none. */
+                max_buckets: number;
+                /** @description Effective MB the bucket quotas may reserve together, from the profile or the global setting. `0` allows no new allocation. */
+                max_bucket_storage_mb: number;
                 /** @description Global, the same for every workspace. */
                 max_active_deployments_per_project: number;
             };
@@ -4945,6 +5362,12 @@ export interface components {
                 databases: number;
                 /** @description Reported size of the workspace's managed databases, in bytes. */
                 database_storage_bytes: number;
+                /** @description Managed buckets that count towards `max_buckets`. */
+                buckets: number;
+                /** @description MB the workspace's bucket quotas reserve (allocated, not used). */
+                bucket_storage_mb: number;
+                /** @description Reported usage of the workspace's buckets, in bytes. */
+                bucket_usage_bytes: number;
             };
         };
         /** WorkspaceResource */
@@ -6168,6 +6591,721 @@ export interface operations {
             };
         };
     };
+    "v1.app.workspaces.buckets.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `BucketResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StoreBucketRequest"];
+            };
+        };
+        responses: {
+            /** @description `BucketResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description A bucket for a project (`project_id`) is refused while no storage node can take a new bucket (`buckets.available` in `GET app/pilot-limits` is false).
+             *
+             *     The project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.
+             *
+             *     No storage node is allowed work in the region (`region`), or anywhere when `region` is null.
+             *
+             *     No storage node of the region has room for the quota right now. Try a smaller quota or later.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description A bucket for a project (`project_id`) is refused while no storage node can take a new bucket (`buckets.available` in `GET app/pilot-limits` is false).
+                         * @enum {string}
+                         */
+                        code: "BUCKET_UNAVAILABLE";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_BUCKET_ALREADY_ATTACHED";
+                        bucket: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description No storage node is allowed work in the region (`region`), or anywhere when `region` is null.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_REGION_UNAVAILABLE";
+                        region: string | null;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description No storage node of the region has room for the quota right now. Try a smaller quota or later.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_CAPACITY_UNAVAILABLE";
+                    };
+                };
+            };
+            /**
+             * @description The workspace holds as many buckets as its limit allows (`limit`, `current`). `limit` 0 means the workspace may not create buckets yet.
+             *
+             *     The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The workspace holds as many buckets as its limit allows (`limit`, `current`). `limit` 0 means the workspace may not create buckets yet.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_LIMIT_EXCEEDED";
+                        limit: number;
+                        current: number;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_STORAGE_LIMIT_EXCEEDED";
+                        limit_mb: number;
+                        current_mb: number;
+                        requested_mb: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `BucketResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The storage node is deleting the bucket. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"];
+                    };
+                };
+            };
+            /** @description The bucket was removed before a node started creating it. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The bucket is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.
+             *
+             *     The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_IN_USE";
+                        projects: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_BUSY";
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateBucketRequest"];
+            };
+        };
+        responses: {
+            /** @description Renamed, or the quota is unchanged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"];
+                    };
+                };
+            };
+            /** @description A quota change is on its way to the storage node. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.
+             *
+             *     No storage node of the region has room for the quota right now. Try a smaller quota or later.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_BUSY";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description No storage node of the region has room for the quota right now. Try a smaller quota or later.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_CAPACITY_UNAVAILABLE";
+                    };
+                };
+            };
+            /**
+             * @description The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket quota would push the MB reserved by the workspace's buckets above its storage limit. `limit_mb` is the limit, `current_mb` what the other buckets reserve (without this one), `requested_mb` the quota asked for.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_STORAGE_LIMIT_EXCEEDED";
+                        limit_mb: number;
+                        current_mb: number;
+                        requested_mb: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `BucketCredentialsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketCredentialsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_KEY_ROTATING";
+                        bucket: string[];
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.rotate-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RotateBucketKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description `BucketResource` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The storage node is still working on an earlier request for this bucket (creating it, rotating its key, or changing its quota). Safe to retry once it finishes.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_BUSY";
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.attachments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The bucket already was attached. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketAttachmentResource"];
+                    };
+                };
+            };
+            /** @description The bucket is attached. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BucketAttachmentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description An admin locked the bucket, so it cannot be attached to a project.
+             *
+             *     The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description An admin locked the bucket, so it cannot be attached to a project.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_LOCKED";
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The project already uses another bucket, named in `bucket` (`id`, `name`). A project uses one bucket at a time.
+                         * @enum {string}
+                         */
+                        code: "PROJECT_BUCKET_ALREADY_ATTACHED";
+                        bucket: string[];
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.workspaces.buckets.attachments.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID */
+                workspace: string;
+                /** @description The bucket ID */
+                bucket: string;
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     "v1.auth.user": {
         parameters: {
             query?: never;
@@ -6970,6 +8108,12 @@ export interface operations {
              * @description The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
              *
              *     The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.
+             *
+             *     The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.
              */
             409: {
                 headers: {
@@ -6994,6 +8138,33 @@ export interface operations {
                          */
                         code: "DATABASE_NOT_READY";
                         status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_ENDPOINT_UNAVAILABLE";
+                        bucket: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_KEY_ROTATING";
+                        bucket: string[];
                     };
                 };
             };
@@ -7306,6 +8477,12 @@ export interface operations {
              *     The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.
              *
              *     The database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.
+             *
+             *     The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+             *
+             *     The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.
              */
             409: {
                 headers: {
@@ -7343,6 +8520,33 @@ export interface operations {
                          */
                         code: "DATABASE_NOT_READY";
                         status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_ENDPOINT_UNAVAILABLE";
+                        bucket: string[];
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_NOT_READY";
+                        status: string;
+                    } | {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.
+                         * @enum {string}
+                         */
+                        code: "BUCKET_KEY_ROTATING";
+                        bucket: string[];
                     };
                 };
             };
