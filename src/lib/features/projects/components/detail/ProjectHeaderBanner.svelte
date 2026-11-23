@@ -35,7 +35,14 @@
 		servesStaticFiles
 	} from '$lib/features/projects/presentation';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
-	import { ROLE_LABELS, workspaceLabel } from '$lib/features/workspaces/presentation';
+	import {
+		limitsWorkspaceId,
+		ROLE_LABELS,
+		workspaceLabel
+	} from '$lib/features/workspaces/presentation';
+	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
+	import { canOfferProjectBucket } from '$lib/features/buckets/presentation';
+	import CreateProjectBucketLink from '$lib/features/buckets/components/CreateProjectBucketLink.svelte';
 
 	type Props = {
 		project: Project;
@@ -94,6 +101,19 @@
 	const suspensionReason = $derived(project.suspension?.reason ?? null);
 	// A static site keeps no files of its own, so the clause would only worry its owner.
 	const showSleepingFileNote = $derived(header.kind === 'sleeping' && !servesStaticFiles(project));
+	// Beside that note, a way out when the workspace is opened for buckets and the project has none.
+	const bucketLimitsQuery = createWorkspaceLimitsQuery(
+		() => limitsWorkspaceId(project.workspace),
+		() => ({
+			enabled: showSleepingFileNote && !access.readOnly && project.buckets?.length === 0
+		})
+	);
+	const offerBucket = $derived(
+		showSleepingFileNote &&
+			!access.readOnly &&
+			project.buckets?.length === 0 &&
+			canOfferProjectBucket(bucketLimitsQuery.data)
+	);
 
 	let isCopied = $state(false);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -310,7 +330,14 @@
 			{:else if showSleepingFileNote}
 				<p class="text-muted" data-testid="sleeping-file-note">
 					{FILE_STORAGE_COPY.sleeping}
-					<FileStorageGuideLink href={projectFileStorageGuideUrl(project.stack)} />
+					{#if offerBucket}
+						<span class="flex flex-wrap gap-x-4 gap-y-1">
+							<FileStorageGuideLink href={projectFileStorageGuideUrl(project.stack)} />
+							<CreateProjectBucketLink projectId={project.id} />
+						</span>
+					{:else}
+						<FileStorageGuideLink href={projectFileStorageGuideUrl(project.stack)} />
+					{/if}
 				</p>
 			{/if}
 		</ProjectStatusNotice>

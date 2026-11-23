@@ -55,6 +55,18 @@ export function fileStorageGuideUrl(anchor?: FileStorageGuideAnchor | null): str
 	return docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.fileStorage, anchor);
 }
 
+/**
+ * sakala-landing's `src/content/docs/bucket-terkelola.md` (ADR-021): what a managed bucket gives,
+ * the injected variables, presigned URLs, rotation, limits, and backup. `meminta-kuota` is its
+ * section on opening buckets for a workspace.
+ */
+export const BUCKET_GUIDE_ANCHORS = { requestQuota: 'meminta-kuota', laravel: 'laravel' } as const;
+export type BucketGuideAnchor = (typeof BUCKET_GUIDE_ANCHORS)[keyof typeof BUCKET_GUIDE_ANCHORS];
+
+export function bucketGuideUrl(anchor?: BucketGuideAnchor | null): string {
+	return docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.managedBuckets, anchor);
+}
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = siteLinks.abuseEmail;
 

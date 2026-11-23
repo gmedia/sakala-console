@@ -11,6 +11,7 @@ const triggerLabels: Record<string, string> = {
 	system: 'System',
 	database_password_rotated: 'Redeploy setelah ganti password database',
 	database_ready: 'Deploy pertama setelah database siap',
+	bucket_key_rotated: 'Redeploy setelah ganti secret key bucket',
 	rollback: 'Rollback'
 };
 

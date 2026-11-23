@@ -38,6 +38,8 @@
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import ProjectDatabaseVariables from '$lib/features/databases/components/ProjectDatabaseVariables.svelte';
 	import { overriddenNames } from '$lib/features/databases/project-variables';
+	import ProjectBucketVariables from '$lib/features/buckets/components/ProjectBucketVariables.svelte';
+	import { overriddenBucketNames } from '$lib/features/buckets/project-variables';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -52,6 +54,9 @@
 
 	// Project variables that take the place of a value from the attached database.
 	const overridesDatabase = $derived(overriddenNames(projectQuery.data?.databases));
+	// And the ones that take the place of a value from the attached bucket.
+	const overridesBucket = $derived(overriddenBucketNames(projectQuery.data?.buckets));
+	const projectKeys = $derived(query.data ? new Set(query.data.map((env) => env.key)) : undefined);
 
 	// Local State
 	let revealedValues = $state<Record<number, string>>({});
@@ -501,6 +506,12 @@
 										data-testid="env-overrides-database">Menimpa database</span
 									>
 								{/if}
+								{#if overridesBucket.has(env.key)}
+									<span
+										class="text-xs font-medium text-warning-dark"
+										data-testid="env-overrides-bucket">Menimpa bucket</span
+									>
+								{/if}
 							</span>
 
 							<span
@@ -820,6 +831,7 @@
 
 	{#if projectQuery.data}
 		<ProjectDatabaseVariables project={projectQuery.data} readOnly={access.readOnly} />
+		<ProjectBucketVariables project={projectQuery.data} readOnly={access.readOnly} {projectKeys} />
 	{/if}
 
 	<!-- Said beside the import's save button, for the keys it is about to save. -->

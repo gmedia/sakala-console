@@ -431,8 +431,25 @@ export const ROTATION_COPY = {
 	redeployFailed: 'Redeploy belum bisa dijalankan. Muat ulang halaman, lalu tekan Redeploy lagi.'
 } as const;
 
-/** Why the API queued no redeploy for a project, in words; `no_active_deployment` has its own row. */
-const SKIPPED_REASONS: Record<string, string> = {
+/** A rotation row's words. Buckets pass their own, which name the secret key instead of the password. */
+export type RotationRowCopy = Record<
+	| 'rowQueued'
+	| 'rowDone'
+	| 'rowFirstDeploy'
+	| 'rowNeedsRedeploy'
+	| 'viewDeployment'
+	| 'redeploy'
+	| 'redeploying'
+	| 'redeployFailed',
+	string
+>;
+
+/**
+ * Why the API queued no redeploy for a project, in words; `no_active_deployment` has its own row.
+ * Shared with bucket key rotations (AttachedRedeploySkipReason in sakala-api), which replace the
+ * one reason that names the password.
+ */
+export const ATTACHED_REDEPLOY_SKIPPED_REASONS: Record<string, string> = {
 	requester_cannot_deploy:
 		'Redeploy otomatis dilewati karena akun yang mengganti password tidak lagi bisa men-deploy proyek ini.',
 	legal_acceptance_required:
@@ -448,7 +465,13 @@ const SKIPPED_REASONS: Record<string, string> = {
 	database_endpoint_unavailable:
 		'Redeploy otomatis dilewati karena server database belum melaporkan alamatnya.',
 	release_command_unsupported:
-		'Redeploy otomatis dilewati karena servernya belum bisa menjalankan release command.'
+		'Redeploy otomatis dilewati karena servernya belum bisa menjalankan release command.',
+	database_not_ready: 'Redeploy otomatis dilewati karena database proyek ini belum siap dipakai.',
+	bucket_not_ready: 'Redeploy otomatis dilewati karena bucket proyek ini belum siap dipakai.',
+	bucket_endpoint_unavailable:
+		'Redeploy otomatis dilewati karena server penyimpanan belum melaporkan alamatnya.',
+	bucket_key_rotating:
+		'Redeploy otomatis dilewati karena secret key bucket proyek ini sedang diganti. Redeploy lagi setelah penggantiannya selesai.'
 };
 
 const SKIPPED_FALLBACK = 'Redeploy otomatis belum bisa dijalankan untuk proyek ini.';
@@ -467,12 +490,16 @@ const dayFormat = new Intl.DateTimeFormat('id-ID', {
 });
 
 /** `Password sudah diganti pukul 16.02`, with the date for another day. */
-export function rotationCompletedText(completedAt: string, now: Date = new Date()): string {
+export function rotationCompletedText(
+	completedAt: string,
+	now: Date = new Date(),
+	subject = 'Password'
+): string {
 	const time = new Date(completedAt);
 	const clock = clockFormat.format(time);
 	return time.toDateString() === now.toDateString()
-		? `Password sudah diganti pukul ${clock}.`
-		: `Password terakhir diganti ${dayFormat.format(time)} pukul ${clock}.`;
+		? `${subject} sudah diganti pukul ${clock}.`
+		: `${subject} terakhir diganti ${dayFormat.format(time)} pukul ${clock}.`;
 }
 
 export type RotationView =
@@ -520,7 +547,8 @@ export type RotationProjectState =
 
 export function rotationProjectState(
 	redeploy: DatabaseRotationRedeploy | undefined,
-	project: { active_deployment_id: string | null; redeploy_required: boolean } | undefined
+	project: { active_deployment_id: string | null; redeploy_required: boolean } | undefined,
+	skippedReasons: Record<string, string> = ATTACHED_REDEPLOY_SKIPPED_REASONS
 ): RotationProjectState {
 	if (redeploy?.deployment_id) {
 		// Once the queued deployment serves, the project runs with the new password.
@@ -535,7 +563,7 @@ export function rotationProjectState(
 	const skipped = redeploy?.skipped_reason;
 	return {
 		kind: 'needs_redeploy',
-		reason: skipped ? (SKIPPED_REASONS[skipped] ?? SKIPPED_FALLBACK) : null
+		reason: skipped ? (skippedReasons[skipped] ?? SKIPPED_FALLBACK) : null
 	};
 }
 
