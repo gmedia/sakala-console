@@ -241,3 +241,40 @@ describe('ProjectHeaderBanner, replica health', () => {
 		expect(badgeOf()).toContain('text-warning');
 	});
 });
+
+describe('ProjectHeaderBanner, the facts row', () => {
+	const live = { ...baseProject, runtime_status: 'running' };
+
+	it('shows the port of an app that listens on one', async () => {
+		project = { ...live };
+		await renderBanner();
+
+		await expect.element(page.getByTestId('project-header-port')).toBeVisible();
+	});
+
+	it('leaves the port out for a static site, which has none of its own', async () => {
+		project = {
+			...live,
+			variable_changes: {
+				requires_build: true,
+				reason: 'static_site',
+				build_time_prefixes: [],
+				build_time_keys: []
+			}
+		};
+		await renderBanner();
+
+		await expect.element(page.getByText('Deploy terakhir')).toBeVisible();
+		await expect.element(page.getByTestId('project-header-port')).not.toBeInTheDocument();
+	});
+
+	it('names the last deploy with the time the project list shows', async () => {
+		const lastDeployed = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+		project = { ...live, last_deployed_at: lastDeployed };
+		await renderBanner();
+
+		await expect
+			.element(page.getByText('2 menit yang lalu', { exact: true }))
+			.toHaveAttribute('datetime', lastDeployed);
+	});
+});

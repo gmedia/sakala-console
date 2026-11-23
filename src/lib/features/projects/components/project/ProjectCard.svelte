@@ -5,12 +5,13 @@
 	import { resolve } from '$app/paths';
 	import type { Project } from '$lib/api/resources/projects';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
-	import { formatDate, formatRelativeTime } from '$lib/utils/date';
+	import { formatDate } from '$lib/utils/date';
 	import {
 		getFrameworkLabel,
 		getProjectPublicUrl,
 		getPublicUrlLabel,
-		isListedProjectUrlReachable
+		isListedProjectUrlReachable,
+		lastDeployTime
 	} from '../../presentation';
 	import { workspaceLabel } from '$lib/features/workspaces/presentation';
 	import ProjectAvatar from './ProjectAvatar.svelte';
@@ -27,7 +28,8 @@
 	// A project that serves nothing has an address, and showing it as a link would promise a site.
 	// A sleeping one wakes when the link is opened, so it keeps the link, like its header does.
 	const showUrl = $derived(isListedProjectUrlReachable(project));
-	const lastActivityAt = $derived(latest?.created_at ?? project.last_deployed_at);
+	// The same time the project header shows: when the live version went up.
+	const lastDeploy = $derived(lastDeployTime(project));
 </script>
 
 <!-- The whole card opens the project, through a link stretched over it. The URL sits above that. -->
@@ -104,15 +106,15 @@
 
 	<div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
 		<RuntimeStatusBadge runtimeStatus={project.runtime_status} suspension={project.suspension} />
-		{#if lastActivityAt}
+		{#if lastDeploy}
 			<time
-				datetime={lastActivityAt}
-				title={formatDate(lastActivityAt)}
+				datetime={lastDeploy.at}
+				title={formatDate(lastDeploy.at)}
 				class="text-xs whitespace-nowrap text-muted"
 			>
-				Deploy {formatRelativeTime(lastActivityAt).toLowerCase()}
+				Deploy {lastDeploy.label.toLowerCase()}
 			</time>
-		{:else}
+		{:else if !latest}
 			<span class="text-xs whitespace-nowrap text-muted">Belum pernah deploy</span>
 		{/if}
 	</div>

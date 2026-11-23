@@ -18,6 +18,7 @@ import {
 } from '$lib/api/resources/project-deploy-refusals';
 import { getDeploymentStatusLabel } from '$lib/features/deployments/status-config';
 import { CONNECTION_ERROR_COPY } from '$lib/components/feedback/connection-copy';
+import { formatRelativeTime } from '$lib/utils/date';
 import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
@@ -713,6 +714,31 @@ export function formatPilotRuntime(limits: Pick<PilotLimits, 'runtime_defaults' 
 	const { memory_mb: memory, cpu_millis: cpu } = limits.runtime_defaults;
 	const buildMinutes = decimal.format(limits.timeouts.build_timeout_seconds / 60);
 	return `Selama pilot, aplikasi berjalan dengan memori ${memory} MB dan CPU ${decimal.format(cpu / 1000)} vCPU, dan build dibatasi ${buildMinutes} menit.`;
+}
+
+/**
+ * Whether Sakala serves the project as files, without a process of its own listening on a port: the
+ * API's verdict (`variable_changes.reason`), or a monorepo package served from its output folder.
+ * Such a project's port is Sakala's file server, so it is not shown as the app's.
+ */
+export function servesStaticFiles(project: Pick<Project, 'variable_changes' | 'stack'>): boolean {
+	return (
+		project.variable_changes?.reason === VARIABLE_BUILD_REASONS.staticSite ||
+		Boolean(project.stack?.monorepo?.static_output_directory)
+	);
+}
+
+/**
+ * When the live version of a project went up: `last_deployed_at`, which the API sets when a
+ * deployment succeeds. The project header and the project card both read it through here, so they
+ * never name the same deploy with two times (the latest deployment started minutes earlier).
+ */
+export function lastDeployTime(
+	project: Pick<Project, 'last_deployed_at'>,
+	now: number = Date.now()
+): { at: string; label: string } | null {
+	const at = project.last_deployed_at;
+	return at ? { at, label: formatRelativeTime(at, now) } : null;
 }
 
 /**

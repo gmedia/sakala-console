@@ -14,7 +14,6 @@
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
 	import { ABUSE_EMAIL } from '$lib/config/project';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
-	import { formatRelativeTime } from '$lib/utils/date';
 	import { useProjectLiveStatus } from '$lib/features/projects/detail/use-project-live-status.svelte';
 	import { useProjectRedeploy } from '$lib/features/projects/detail/use-project-redeploy.svelte';
 	import { useProjectWake } from '$lib/features/projects/detail/use-project-wake.svelte';
@@ -25,8 +24,10 @@
 		getPortDisplay,
 		getProjectPublicUrl,
 		getPublicUrlLabel,
+		lastDeployTime,
 		PROJECT_WAKE_COPY,
-		REDEPLOY_COPY
+		REDEPLOY_COPY,
+		servesStaticFiles
 	} from '$lib/features/projects/presentation';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import { ROLE_LABELS, workspaceLabel } from '$lib/features/workspaces/presentation';
@@ -56,6 +57,9 @@
 	const header = $derived(live.header);
 	const publicUrl = $derived(getProjectPublicUrl(project));
 	const port = $derived(getPortDisplay(project));
+	// A static site has no port of its own: the number would be Sakala's file server.
+	const showPort = $derived(!servesStaticFiles(project));
+	const lastDeploy = $derived(lastDeployTime(project));
 	const showUrl = $derived(header.serving || header.showUrl === true);
 	const isBusy = $derived(redeploy.isProcessing || header.redeployBusy);
 	const hasFacts = $derived(header.kind !== 'not_deployed' && header.kind !== 'failed');
@@ -182,21 +186,25 @@
 					</div>
 				{/if}
 				{#if hasFacts}
-					<div class="flex items-baseline gap-1.5">
-						<dt>Port</dt>
-						<dd class="text-foreground tabular-nums">
-							<span>{port.current}</span>
-							{#if port.next !== null}
-								<span class="text-xs text-muted">({port.next} berlaku di deploy berikutnya)</span>
-							{/if}
-						</dd>
-					</div>
+					{#if showPort}
+						<div class="flex items-baseline gap-1.5" data-testid="project-header-port">
+							<dt>Port</dt>
+							<dd class="text-foreground tabular-nums">
+								<span>{port.current}</span>
+								{#if port.next !== null}
+									<span class="text-xs text-muted">({port.next} berlaku di deploy berikutnya)</span>
+								{/if}
+							</dd>
+						</div>
+					{/if}
 					<div class="flex items-baseline gap-1.5">
 						<dt>Deploy terakhir</dt>
 						<dd class="text-foreground">
-							{project.last_deployed_at
-								? formatRelativeTime(project.last_deployed_at)
-								: 'Belum pernah'}
+							{#if lastDeploy}
+								<time datetime={lastDeploy.at}>{lastDeploy.label}</time>
+							{:else}
+								Belum pernah
+							{/if}
 						</dd>
 					</div>
 				{/if}
