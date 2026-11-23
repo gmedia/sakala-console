@@ -113,7 +113,8 @@
 					isLogoutModalOpen = false;
 					return;
 				}
-				logoutErrorMessage = 'Gagal keluar akun. Silakan coba lagi.';
+				logoutErrorMessage =
+					'Kamu belum keluar, jadi sesimu masih aktif. Tekan Keluar sekali lagi.';
 			}
 		});
 	}

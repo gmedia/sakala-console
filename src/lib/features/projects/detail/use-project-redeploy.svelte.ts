@@ -3,7 +3,7 @@ import { toast } from 'svelte-sonner';
 import { resolveRoute } from '$app/paths';
 import { getErrorMessage } from '$lib/api/errors';
 import { createRedeployMutation, createUpdateProjectMutation } from '../mutations';
-import { getDeployErrorMessage } from '../presentation';
+import { getDeployErrorMessage, REDEPLOY_COPY } from '../presentation';
 import type { Project, RedeployOptions } from '../type';
 import { getProjectDetailContext } from './projectDetailState.svelte';
 import { executeRedeployFlow, redeployStartedMessage } from './redeploy';
@@ -48,10 +48,7 @@ export function useProjectRedeploy(project: () => Pick<Project, 'id' | 'branch'>
 							);
 						},
 						onError: (error) => {
-							errorMessage = getDeployErrorMessage(
-								error,
-								'Redeploy belum berhasil dijalankan. Silakan coba lagi.'
-							);
+							errorMessage = getDeployErrorMessage(error, REDEPLOY_COPY.failed);
 						},
 						onSettled: () => {
 							submitting = false;
@@ -62,7 +59,7 @@ export function useProjectRedeploy(project: () => Pick<Project, 'id' | 'branch'>
 		} catch (error) {
 			errorMessage = getErrorMessage(
 				error,
-				'Perubahan pengaturan belum tersimpan, jadi redeploy tidak dijalankan. Silakan coba lagi.'
+				'Perubahan pengaturan belum tersimpan, jadi redeploy tidak dijalankan. Periksa isian di tab Pengaturan, lalu tekan Redeploy lagi.'
 			);
 			submitting = false;
 		}

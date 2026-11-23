@@ -38,7 +38,9 @@ describe('saveEnvVars', () => {
 
 		const [failure] = await saveEnvVars([first], { save });
 
-		expect(failure.message).toBe('Variabel APP_ENV belum tersimpan. Silakan coba lagi.');
+		expect(failure.message).toBe(
+			'Variabel APP_ENV belum tersimpan. Muat ulang halaman, lalu simpan lagi.'
+		);
 	});
 
 	it('stops when the session is gone, because the login redirect takes over', async () => {

@@ -148,7 +148,9 @@ describe('GITHUB_RATE_LIMITED', () => {
 		const error = apiErrorFromResponse(503, { apiMessage: 'Service Unavailable' });
 
 		expect(error.isGithubRateLimited).toBe(false);
-		expect(error.message).toBe('Terjadi kesalahan pada server. Silakan coba lagi nanti.');
+		expect(error.message).toBe(
+			'Server Sakala sedang bermasalah, jadi permintaan ini belum diproses. Tunggu beberapa menit, lalu ulangi.'
+		);
 	});
 });
 

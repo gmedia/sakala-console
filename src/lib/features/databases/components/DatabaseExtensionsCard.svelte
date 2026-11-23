@@ -46,7 +46,7 @@
 			error = databaseErrorMessage(
 				caught,
 				'extension',
-				'Extension belum bisa dipasang. Silakan coba lagi.'
+				'Extension belum terpasang. Muat ulang halaman, lalu pasang lagi.'
 			);
 		} finally {
 			pending = null;

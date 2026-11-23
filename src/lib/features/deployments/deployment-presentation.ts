@@ -69,7 +69,7 @@ export function getDeploymentErrorConfig(error: unknown): DeploymentErrorConfig 
 			return {
 				title: 'Server sedang bermasalah',
 				description:
-					'Terjadi masalah pada server saat mengambil data deployment. Silakan coba lagi. ',
+					'Server Sakala belum bisa mengirim data deployment ini. Tunggu sebentar, lalu tekan Coba lagi.',
 				showRetry: true
 			};
 		}

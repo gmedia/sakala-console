@@ -146,7 +146,7 @@
 			onError: (error) => {
 				cancelError = getErrorMessage(
 					error,
-					'Deployment belum bisa dibatalkan. Silakan coba lagi.'
+					'Deployment belum bisa dibatalkan. Tunggu beberapa detik, lalu tekan Batalkan deployment lagi.'
 				);
 			}
 		});

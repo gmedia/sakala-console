@@ -110,8 +110,8 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 	if (error instanceof ApiError) {
 		if (error.isUnauthenticated) {
 			return {
-				title: 'Sesi sudah tidak valid',
-				description: 'Sesi kamu sudah berakhir. Silakan masuk kembali untuk melihat proyek.',
+				title: 'Sesimu sudah berakhir',
+				description: 'Masuk lagi untuk melihat proyekmu.',
 				action: 'login'
 			};
 		}
@@ -119,7 +119,8 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 		if (error.isServerError) {
 			return {
 				title: 'Server sedang bermasalah',
-				description: 'Terjadi masalah pada server saat mengambil data proyek. Silakan coba lagi.',
+				description:
+					'Server Sakala belum bisa mengirim daftar proyek. Tunggu sebentar, lalu tekan Coba lagi.',
 				action: 'retry'
 			};
 		}
@@ -131,7 +132,8 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 
 	return {
 		title: 'Gagal memuat proyek',
-		description: 'Terjadi kendala saat mengambil data proyek. Silakan coba lagi.',
+		description:
+			'Daftar proyek belum bisa ditampilkan. Tekan Coba lagi, atau muat ulang halaman kalau tetap gagal.',
 		action: 'retry'
 	};
 }
@@ -277,7 +279,7 @@ export const PROJECT_WAKE_COPY = {
 	action: 'Bangunkan',
 	busy: 'Membangunkan...',
 	requested: `Proyek sedang dibangunkan, biasanya dalam ${WAKE_ESTIMATE}. Statusnya berubah jadi Live begitu aplikasinya siap.`,
-	failed: 'Proyek belum berhasil dibangunkan. Silakan coba lagi.',
+	failed: 'Proyek belum berhasil dibangunkan. Tunggu sebentar, lalu tekan Bangunkan lagi.',
 	suspended: 'Proyek ini ditangguhkan admin Sakala, jadi belum bisa dibangunkan.'
 } as const;
 
@@ -345,6 +347,8 @@ export const REDEPLOY_COPY = {
 	pausedAction: 'Redeploy commit terbaru',
 	busy: 'Menjalankan...',
 	firstDeploy: 'Deploy sekarang',
+	/** When a redeploy fails for a reason the API did not put in words. */
+	failed: 'Redeploy belum berhasil dijalankan. Muat ulang halaman, lalu tekan Redeploy lagi.',
 	otherDeploymentRunning: 'Sedang men-deploy',
 	/** The menu button's name. It leaves out "redeploy", so the Redeploy button keeps its own name. */
 	menuLabel: 'Pilihan cara build',

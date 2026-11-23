@@ -205,7 +205,9 @@ describe('mapCreateProjectErrors', () => {
 
 	it('tidak menampilkan pesan Error mentah ke user', () => {
 		const mapped = mapCreateProjectErrors(new Error('Network timeout'));
-		expect(mapped.general).toBe('Proyek belum berhasil dibuat. Silakan coba lagi.');
+		expect(mapped.general).toBe(
+			'Proyek belum berhasil dibuat. Muat ulang halaman, lalu buat proyeknya lagi.'
+		);
 	});
 
 	it('menampilkan pesan koneksi berbahasa Indonesia', () => {

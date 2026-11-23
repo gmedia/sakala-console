@@ -15,6 +15,7 @@ import {
 	getPortDisplay,
 	getActiveDeploymentLimitNotice,
 	getDeployErrorMessage,
+	REDEPLOY_COPY,
 	getProjectQuotaNotice,
 	getProjectWakeErrorMessage,
 	getSleepingNotice,
@@ -120,8 +121,8 @@ describe('getProjectListErrorPresentation', () => {
 		const error = apiErrorFromResponse(401);
 
 		expect(getProjectListErrorPresentation(error)).toEqual({
-			title: 'Sesi sudah tidak valid',
-			description: 'Sesi kamu sudah berakhir. Silakan masuk kembali untuk melihat proyek.',
+			title: 'Sesimu sudah berakhir',
+			description: 'Masuk lagi untuk melihat proyekmu.',
 			action: 'login'
 		});
 	});
@@ -142,7 +143,8 @@ describe('getProjectListErrorPresentation', () => {
 
 		expect(getProjectListErrorPresentation(error)).toEqual({
 			title: 'Server sedang bermasalah',
-			description: 'Terjadi masalah pada server saat mengambil data proyek. Silakan coba lagi.',
+			description:
+				'Server Sakala belum bisa mengirim daftar proyek. Tunggu sebentar, lalu tekan Coba lagi.',
 			action: 'retry'
 		});
 	});
@@ -701,7 +703,7 @@ describe('replicas in the project header', () => {
 describe('replica-aware refusals', () => {
 	const refusal = (status: number, code: string, details: Record<string, unknown> = {}) =>
 		apiErrorFromResponse(status, { code, apiMessage: 'Pesan dari API.', details });
-	const fallback = 'Redeploy belum berhasil dijalankan. Silakan coba lagi.';
+	const fallback = REDEPLOY_COPY.failed;
 
 	it('names the node maximum when the node runs fewer replicas than the setting', () => {
 		expect(

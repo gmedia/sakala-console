@@ -109,7 +109,7 @@
 			detachError = databaseErrorMessage(
 				error,
 				'detach',
-				'Database belum bisa dilepas. Silakan coba lagi.'
+				'Database belum terlepas dari proyek. Muat ulang halaman, lalu lepas lagi.'
 			);
 		}
 	}

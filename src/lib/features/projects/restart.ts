@@ -25,7 +25,7 @@ export const RESTART_COPY = {
 	requested:
 		'Restart diminta. Container dinyalakan ulang tanpa build, biasanya dalam beberapa detik.',
 	done: 'Restart selesai. Container sudah dinyalakan ulang.',
-	failed: 'Restart belum berhasil dijalankan. Silakan coba lagi.',
+	failed: 'Restart belum berhasil dijalankan. Muat ulang halaman, lalu tekan Restart lagi.',
 	failedOnNode:
 		'Server Sakala tidak berhasil menyalakan ulang container. Status di atas menunjukkan yang berjalan sekarang. Coba Restart lagi, atau Redeploy kalau masih gagal.',
 	notRunning:

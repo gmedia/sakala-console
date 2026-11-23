@@ -92,7 +92,7 @@
 			formError = databaseErrorMessage(
 				error,
 				'attach',
-				'Database belum bisa dipasang. Silakan coba lagi.'
+				'Database belum terpasang. Muat ulang halaman, lalu pasang lagi.'
 			);
 		}
 	}

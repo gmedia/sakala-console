@@ -39,7 +39,7 @@
 			revealError = databaseErrorMessage(
 				error,
 				'credentials',
-				'Kredensial belum bisa ditampilkan. Silakan coba lagi.'
+				'Kredensial belum bisa ditampilkan. Muat ulang halaman, lalu tampilkan lagi.'
 			);
 		}
 	}

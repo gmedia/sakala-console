@@ -81,7 +81,8 @@
 					errors.general = 'Email publik tidak ditemukan di akun Google kamu.';
 					break;
 				case 'google_invalid_state':
-					errors.general = 'Sesi login tidak valid. Silakan coba lagi.';
+					errors.general =
+						'Proses masuk dengan Google sudah kedaluwarsa atau dimulai dari tab lain. Tekan Masuk dengan Google sekali lagi dari halaman ini.';
 					break;
 				case 'google_provider_failure':
 					errors.general = 'Gagal terhubung dengan Google. Silakan coba beberapa saat lagi.';
@@ -96,13 +97,15 @@
 					errors.general = 'Email publik tidak ditemukan di akun GitHub kamu.';
 					break;
 				case 'github_invalid_state':
-					errors.general = 'Sesi login tidak valid. Silakan coba lagi.';
+					errors.general =
+						'Proses masuk dengan GitHub sudah kedaluwarsa atau dimulai dari tab lain. Tekan Masuk dengan GitHub sekali lagi dari halaman ini.';
 					break;
 				case 'github_provider_failure':
 					errors.general = 'Gagal terhubung dengan GitHub. Silakan coba beberapa saat lagi.';
 					break;
 				default:
-					errors.general = 'Terjadi kesalahan saat autentikasi. Silakan coba lagi.';
+					errors.general =
+						'Proses masuk belum selesai karena kendala yang belum dikenali. Pilih cara masuk sekali lagi di bawah.';
 			}
 		}
 	});
@@ -119,7 +122,7 @@
 			if (!email.trim()) {
 				errors.email = 'Kamu belum memasukkan email.';
 			} else if (!email.includes('@')) {
-				errors.email = 'Format email tidak valid.';
+				errors.email = 'Email perlu memakai tanda @, misalnya nama@contoh.com.';
 			} else {
 				errors.email = '';
 			}
@@ -145,7 +148,7 @@
 			errors.email = 'Kamu belum memasukkan email.';
 			isValid = false;
 		} else if (!email.includes('@')) {
-			errors.email = 'Format email tidak valid.';
+			errors.email = 'Email perlu memakai tanda @, misalnya nama@contoh.com.';
 			isValid = false;
 		}
 		if (!password) {
@@ -196,7 +199,8 @@
 			} else if (err instanceof NetworkError) {
 				errors.general = 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu.';
 			} else {
-				errors.general = 'Terjadi kesalahan saat masuk. Silakan coba lagi.';
+				errors.general =
+					'Masuk belum berhasil karena kendala di browser ini. Muat ulang halaman, lalu masuk lagi.';
 			}
 			await focusFirstError();
 		}

@@ -2,7 +2,7 @@ const SAFE_MESSAGES: Record<number, string> = {
 	401: 'Sesimu tidak ditemukan. Silakan masuk kembali.',
 	403: 'Kamu tidak memiliki akses untuk melakukan tindakan ini.',
 	419: 'Sesimu kedaluwarsa. Silakan muat ulang halaman dan coba lagi.',
-	422: 'Data yang dikirim tidak valid'
+	422: 'Sakala menolak data yang dikirim. Periksa isian di halaman ini, lalu kirim lagi.'
 };
 
 /** Statuses the API uses for business refusals (quota, limit, suspended) when no `code` is sent yet. */
@@ -243,8 +243,8 @@ function defaultMessage(status: number): string {
 	return (
 		SAFE_MESSAGES[status] ??
 		(status >= 500
-			? 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'
-			: 'Terjadi kesalahan. Silakan coba lagi.')
+			? 'Server Sakala sedang bermasalah, jadi permintaan ini belum diproses. Tunggu beberapa menit, lalu ulangi.'
+			: 'Sakala belum bisa memproses permintaan ini. Muat ulang halaman, lalu ulangi langkahnya.')
 	);
 }
 
