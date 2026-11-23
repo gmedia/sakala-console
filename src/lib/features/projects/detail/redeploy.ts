@@ -65,18 +65,23 @@ export async function executeRedeployFlow({
 	});
 }
 
+/** A project's deployments are numbered from one, so number one is its first deploy. */
+const FIRST_DEPLOYMENT_SEQUENCE = 1;
+
 /**
  * The toast after a redeploy is accepted. The page it opens shows the new deployment, but nothing
  * there announces that it started: `DeploymentLiveAnnouncement` only speaks when one finishes.
- * A planned reuse says so, since it is why this one will be quick.
+ * The first deployment of a project is a deploy, not a redeploy. A planned reuse says so, since it
+ * is why this one will be quick.
  */
 export function redeployStartedMessage(
 	deployment: Pick<Deployment, 'sequence' | 'status' | 'build'>
 ): string {
+	const action = deployment.sequence === FIRST_DEPLOYMENT_SEQUENCE ? 'Deploy' : 'Redeploy';
 	const started =
 		deployment.status === 'queued'
-			? `Redeploy masuk antrean sebagai deployment #${deployment.sequence}`
-			: `Redeploy dimulai sebagai deployment #${deployment.sequence}`;
+			? `${action} masuk antrean sebagai deployment #${deployment.sequence}`
+			: `${action} dimulai sebagai deployment #${deployment.sequence}`;
 	const reuse = getReuseRowLabel(deployment.build);
 	return reuse ? `${started}, ${reuse.accessible}.` : `${started}.`;
 }

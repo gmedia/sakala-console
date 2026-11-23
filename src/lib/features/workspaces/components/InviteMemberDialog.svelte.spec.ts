@@ -190,6 +190,30 @@ describe('InviteMemberDialog', () => {
 			await expect.element(email()).toHaveValue('b@kampus.test\nc@kampus.test');
 		});
 
+		it('stops after the first address when email cannot be sent, with one invitation message', async () => {
+			vi.mocked(inviteToWorkspace).mockRejectedValue(
+				apiErrorFromResponse(503, {
+					code: 'EMAIL_DELIVERY_UNAVAILABLE',
+					apiMessage:
+						'Sakala belum bisa mengirim email untuk saat ini, jadi pendaftaran, reset kata sandi, verifikasi, dan ganti email lewat email belum tersedia.'
+				})
+			);
+			await open();
+			await paste('a@kampus.test\nb@kampus.test\nc@kampus.test');
+			await dialog().getByRole('button', { name: 'Kirim 3 undangan' }).click();
+
+			const outcome = dialog().getByRole('alert');
+			await expect
+				.element(outcome)
+				.toHaveTextContent(
+					'3 alamat belum dikirim. Sakala sedang tidak bisa mengirim email, jadi undangan belum bisa dikirim.'
+				);
+			await expect.element(outcome).not.toHaveTextContent(/pendaftaran/);
+			expect(outcome.element().querySelectorAll('li')).toHaveLength(1);
+			expect(inviteToWorkspace).toHaveBeenCalledTimes(1);
+			await expect.element(email()).toHaveValue('a@kampus.test\nb@kampus.test\nc@kampus.test');
+		});
+
 		it('closes and says how many went out when every address was sent', async () => {
 			vi.mocked(inviteToWorkspace).mockResolvedValue(invitation);
 			await open();

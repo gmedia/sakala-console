@@ -38,7 +38,8 @@ export const ROLLBACK_COPY = {
 	autoDeployPaused:
 		'Auto-deploy dijeda sampai dinyalakan lagi, supaya push berikutnya tidak langsung menimpa versi ini. Push yang masuk tetap tercatat di Riwayat.',
 	started: (sequence: number) => `Rollback ke #${sequence} dimulai.`,
-	failed: 'Rollback belum berhasil dijalankan. Silakan coba lagi.',
+	failed:
+		'Rollback belum berhasil dijalankan. Muat ulang halaman, lalu jalankan rollback-nya lagi.',
 	suspended: 'Proyek ini ditangguhkan admin Sakala, jadi belum bisa di-rollback.',
 	refused: {
 		not_succeeded: (sequence: number) =>

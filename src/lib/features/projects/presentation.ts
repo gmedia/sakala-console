@@ -18,6 +18,7 @@ import {
 } from '$lib/api/resources/project-deploy-refusals';
 import { getDeploymentStatusLabel } from '$lib/features/deployments/status-config';
 import { CONNECTION_ERROR_COPY } from '$lib/components/feedback/connection-copy';
+import { formatRelativeTime } from '$lib/utils/date';
 import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
@@ -110,8 +111,8 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 	if (error instanceof ApiError) {
 		if (error.isUnauthenticated) {
 			return {
-				title: 'Sesi sudah tidak valid',
-				description: 'Sesi kamu sudah berakhir. Silakan masuk kembali untuk melihat proyek.',
+				title: 'Sesimu sudah berakhir',
+				description: 'Masuk lagi untuk melihat proyekmu.',
 				action: 'login'
 			};
 		}
@@ -119,7 +120,8 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 		if (error.isServerError) {
 			return {
 				title: 'Server sedang bermasalah',
-				description: 'Terjadi masalah pada server saat mengambil data proyek. Silakan coba lagi.',
+				description:
+					'Server Sakala belum bisa mengirim daftar proyek. Tunggu sebentar, lalu tekan Coba lagi.',
 				action: 'retry'
 			};
 		}
@@ -131,7 +133,8 @@ export function getProjectListErrorPresentation(error: unknown): ProjectListErro
 
 	return {
 		title: 'Gagal memuat proyek',
-		description: 'Terjadi kendala saat mengambil data proyek. Silakan coba lagi.',
+		description:
+			'Daftar proyek belum bisa ditampilkan. Tekan Coba lagi, atau muat ulang halaman kalau tetap gagal.',
 		action: 'retry'
 	};
 }
@@ -277,7 +280,7 @@ export const PROJECT_WAKE_COPY = {
 	action: 'Bangunkan',
 	busy: 'Membangunkan...',
 	requested: `Proyek sedang dibangunkan, biasanya dalam ${WAKE_ESTIMATE}. Statusnya berubah jadi Live begitu aplikasinya siap.`,
-	failed: 'Proyek belum berhasil dibangunkan. Silakan coba lagi.',
+	failed: 'Proyek belum berhasil dibangunkan. Tunggu sebentar, lalu tekan Bangunkan lagi.',
 	suspended: 'Proyek ini ditangguhkan admin Sakala, jadi belum bisa dibangunkan.'
 } as const;
 
@@ -345,6 +348,8 @@ export const REDEPLOY_COPY = {
 	pausedAction: 'Redeploy commit terbaru',
 	busy: 'Menjalankan...',
 	firstDeploy: 'Deploy sekarang',
+	/** When a redeploy fails for a reason the API did not put in words. */
+	failed: 'Redeploy belum berhasil dijalankan. Muat ulang halaman, lalu tekan Redeploy lagi.',
 	otherDeploymentRunning: 'Sedang men-deploy',
 	/** The menu button's name. It leaves out "redeploy", so the Redeploy button keeps its own name. */
 	menuLabel: 'Pilihan cara build',
@@ -709,6 +714,31 @@ export function formatPilotRuntime(limits: Pick<PilotLimits, 'runtime_defaults' 
 	const { memory_mb: memory, cpu_millis: cpu } = limits.runtime_defaults;
 	const buildMinutes = decimal.format(limits.timeouts.build_timeout_seconds / 60);
 	return `Selama pilot, aplikasi berjalan dengan memori ${memory} MB dan CPU ${decimal.format(cpu / 1000)} vCPU, dan build dibatasi ${buildMinutes} menit.`;
+}
+
+/**
+ * Whether Sakala serves the project as files, without a process of its own listening on a port: the
+ * API's verdict (`variable_changes.reason`), or a monorepo package served from its output folder.
+ * Such a project's port is Sakala's file server, so it is not shown as the app's.
+ */
+export function servesStaticFiles(project: Pick<Project, 'variable_changes' | 'stack'>): boolean {
+	return (
+		project.variable_changes?.reason === VARIABLE_BUILD_REASONS.staticSite ||
+		Boolean(project.stack?.monorepo?.static_output_directory)
+	);
+}
+
+/**
+ * When the live version of a project went up: `last_deployed_at`, which the API sets when a
+ * deployment succeeds. The project header and the project card both read it through here, so they
+ * never name the same deploy with two times (the latest deployment started minutes earlier).
+ */
+export function lastDeployTime(
+	project: Pick<Project, 'last_deployed_at'>,
+	now: number = Date.now()
+): { at: string; label: string } | null {
+	const at = project.last_deployed_at;
+	return at ? { at, label: formatRelativeTime(at, now) } : null;
 }
 
 /**

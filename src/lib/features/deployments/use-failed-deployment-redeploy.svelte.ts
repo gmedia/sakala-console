@@ -6,10 +6,8 @@ import {
 	redeployStartedMessage
 } from '$lib/features/projects/detail/redeploy';
 import { createRedeployMutation } from '$lib/features/projects/mutations';
-import { getDeployErrorMessage } from '$lib/features/projects/presentation';
+import { getDeployErrorMessage, REDEPLOY_COPY } from '$lib/features/projects/presentation';
 import type { RedeployOptions } from '$lib/features/projects/type';
-
-const REDEPLOY_FALLBACK_ERROR = 'Redeploy belum berhasil dijalankan. Silakan coba lagi.';
 
 /**
  * Redeploys from the deployment detail page. The API requires the project's current branch, which
@@ -44,7 +42,7 @@ export function useFailedDeploymentRedeploy(project: () => { id: string; branch?
 						);
 					},
 					onError: (error) => {
-						errorMessage = getDeployErrorMessage(error, REDEPLOY_FALLBACK_ERROR);
+						errorMessage = getDeployErrorMessage(error, REDEPLOY_COPY.failed);
 					},
 					onSettled: () => {
 						submitting = false;

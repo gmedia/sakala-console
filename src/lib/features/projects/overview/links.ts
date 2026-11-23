@@ -12,7 +12,7 @@ function deploymentsHref(projectId: string): string {
 }
 
 /** The Variabel tab; an anchor such as `isi-dari-env-example` opens that part of it. */
-function variablesHref(projectId: string, anchor?: string): string {
+export function variablesHref(projectId: string, anchor?: string): string {
 	const base = resolveRoute('/(app)/projects/[id]/environments', { id: projectId });
 	return anchor ? `${base}#${anchor}` : base;
 }

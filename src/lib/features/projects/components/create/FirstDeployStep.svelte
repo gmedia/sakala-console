@@ -122,7 +122,7 @@
 			onError: (error) => {
 				inspectError = getErrorMessage(
 					error,
-					'Deteksi ulang belum bisa dimulai. Silakan coba lagi.'
+					'Deteksi ulang belum bisa dimulai. Tunggu sebentar, lalu tekan Deteksi ulang lagi.'
 				);
 			},
 			onSettled: () => {
@@ -170,7 +170,7 @@
 			.catch((error) => {
 				deployError = getErrorMessage(
 					error,
-					'Deploy belum berhasil dijalankan. Silakan coba lagi.'
+					'Deploy belum berhasil dijalankan. Muat ulang halaman, lalu tekan Deploy sekarang lagi.'
 				);
 			})
 			.finally(() => {

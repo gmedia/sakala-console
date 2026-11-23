@@ -1,4 +1,4 @@
-import { ApiError } from '$lib/api/errors';
+import { ApiError, EMAIL_DELIVERY_UNAVAILABLE, NetworkError } from '$lib/api/errors';
 import type { WorkspaceRole } from '$lib/api/resources/workspaces';
 
 /**
@@ -21,7 +21,13 @@ export const INVITE_COPY = {
 	malformed: (email: string) =>
 		`${email} belum berupa alamat email lengkap, misalnya nama@kampus.ac.id.`,
 	member: (email: string) => `${email} sudah menjadi anggota workspace ini.`,
-	notSent: (count: number, reason: string) => `${count} alamat belum dikirim. ${reason}`
+	notSent: (count: number, reason: string) => `${count} alamat belum dikirim. ${reason}`,
+	/**
+	 * The API's own text for EMAIL_DELIVERY_UNAVAILABLE is about registering and resetting a
+	 * password; an invitation needs its own words.
+	 */
+	emailUnavailable:
+		'Sakala sedang tidak bisa mengirim email, jadi undangan belum bisa dikirim. Alamatnya tetap di kolom ini untuk dikirim nanti.'
 } as const;
 
 export type ParsedAddresses = {
@@ -69,17 +75,36 @@ export type InviteOutcome = {
 	stopReason: string | null;
 };
 
-/** Refusals that would answer every remaining address the same way. */
+/**
+ * Failures that would answer every remaining address the same way: a rate limit, lost permission
+ * or session, email that cannot be sent, a server error, or no connection. Sending the rest would
+ * only repeat the same error once per address.
+ */
 function stopsTheRest(error: unknown): boolean {
+	if (error instanceof NetworkError) return true;
 	return (
 		error instanceof ApiError &&
-		(error.isRateLimited || error.isForbidden || error.isUnauthenticated)
+		(error.isRateLimited ||
+			error.isForbidden ||
+			error.isUnauthenticated ||
+			error.isCsrfExpired ||
+			error.isServerError ||
+			error.code === EMAIL_DELIVERY_UNAVAILABLE)
 	);
+}
+
+/** Why an invitation was not sent, in the words of inviting rather than of registering. */
+export function describeInviteError(error: unknown, fallback: (error: unknown) => string): string {
+	if (error instanceof ApiError && error.code === EMAIL_DELIVERY_UNAVAILABLE) {
+		return INVITE_COPY.emailUnavailable;
+	}
+	return fallback(error);
 }
 
 /**
  * Invites the addresses one after another with the same role, the way the API takes them, and
- * reports what happened to each. One refused address does not stop the others; a rate limit does.
+ * reports what happened to each. One refused address does not stop the others; a failure that
+ * would refuse them all (see `stopsTheRest`) does, at the first address.
  */
 export async function inviteEach(
 	emails: readonly string[],

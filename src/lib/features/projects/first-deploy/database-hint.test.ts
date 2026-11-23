@@ -59,17 +59,30 @@ describe('databaseSignalsSentence', () => {
 
 describe('databaseEngineNote', () => {
 	it('is honest that MySQL apps get PostgreSQL, naming what Laravel needs', () => {
-		expect(databaseEngineNote('mysql', { laravel: true })).toBe(ENGINE_NOTES.mysqlLaravel);
+		const reachable = { sakalaDatabase: true };
+		expect(databaseEngineNote('mysql', { laravel: true, ...reachable })).toBe(
+			ENGINE_NOTES.mysqlLaravel
+		);
 		expect(ENGINE_NOTES.mysqlLaravel).toContain('DB_CONNECTION=pgsql');
-		expect(databaseEngineNote('mysql', { laravel: false })).toBe(ENGINE_NOTES.mysql);
+		expect(databaseEngineNote('mysql', { laravel: false, ...reachable })).toBe(ENGINE_NOTES.mysql);
 	});
 
-	it('warns that SQLite data is lost on every deploy', () => {
-		expect(databaseEngineNote('sqlite', { laravel: true })).toContain('hilang setiap kali deploy');
+	it('warns that SQLite data is lost on every deploy, and points at a Sakala database', () => {
+		const note = databaseEngineNote('sqlite', { laravel: true, sakalaDatabase: true });
+		expect(note).toContain('hilang setiap kali deploy');
+		expect(note).toContain('Database dari Sakala');
+	});
+
+	it('does not suggest a Sakala database the workspace cannot get', () => {
+		const note = databaseEngineNote('sqlite', { laravel: true, sakalaDatabase: false });
+		expect(note).toBe(ENGINE_NOTES.sqliteWithoutSakalaDatabase);
+		expect(note).toContain('hilang setiap kali deploy');
+		expect(note).not.toContain('Sakala menyimpan');
 	});
 
 	it('says nothing for PostgreSQL or an unknown engine', () => {
-		expect(databaseEngineNote('postgresql', { laravel: false })).toBeNull();
-		expect(databaseEngineNote('unknown', { laravel: false })).toBeNull();
+		const context = { laravel: false, sakalaDatabase: true };
+		expect(databaseEngineNote('postgresql', context)).toBeNull();
+		expect(databaseEngineNote('unknown', context)).toBeNull();
 	});
 });

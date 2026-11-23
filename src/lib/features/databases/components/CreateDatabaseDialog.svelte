@@ -104,7 +104,11 @@
 			if (!nameError) {
 				formError =
 					getFieldError(error, 'region') ??
-					databaseErrorMessage(error, 'create', 'Database belum bisa dibuat. Silakan coba lagi.');
+					databaseErrorMessage(
+						error,
+						'create',
+						'Database belum dibuat. Muat ulang halaman, lalu buat lagi.'
+					);
 			}
 		} finally {
 			submitting = false;

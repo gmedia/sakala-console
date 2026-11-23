@@ -60,7 +60,7 @@
 			case 'github_email_unavailable':
 				return 'Email publik tidak ditemukan di akun GitHub kamu.';
 			case 'github_invalid_state':
-				return 'Sesi login tidak valid. Silakan coba lagi.';
+				return 'Proses masuk dengan GitHub sudah kedaluwarsa atau dimulai dari tab lain. Kembali ke halaman masuk, lalu tekan Masuk dengan GitHub sekali lagi.';
 			case 'github_provider_failure':
 				return 'Gagal terhubung dengan GitHub. Silakan coba beberapa saat lagi.';
 			default:
@@ -108,7 +108,7 @@
 		description={userQuery.error instanceof NetworkError
 			? 'Gagal terhubung ke server. Periksa koneksi internet kamu dan coba verifikasi ulang.'
 			: isRetryableError
-				? 'Sesi tidak dapat diverifikasi karena kendala sementara. Silakan coba lagi.'
+				? 'Sakala belum bisa memastikan sesimu karena kendala sementara. Tunggu beberapa detik, lalu tekan Coba lagi.'
 				: 'Sesi tidak dapat diverifikasi atau telah kedaluwarsa. Silakan masuk ulang.'}
 		focusHeading
 	>

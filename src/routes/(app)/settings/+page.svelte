@@ -18,14 +18,14 @@
 	<p class="text-sm text-muted">Kelola profil, email, kata sandi, dan notifikasi akunmu.</p>
 
 	<div class="grid grid-cols-1 gap-8 md:grid-cols-12">
-		<!-- Links, so a tab can be bookmarked or opened from elsewhere (`/profile` opens Profil). -->
+		<!-- Links, so a tab can be bookmarked or opened from elsewhere (`/profile` opens Profil). Each
+		     switch is its own history entry, so Back returns to the tab before instead of leaving. -->
 		<nav aria-label="Bagian pengaturan akun" class="space-y-1 md:col-span-3">
 			{#each SETTINGS_TABS as tab (tab.id)}
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
 				<a
 					href={settingsHref(tab.id)}
 					aria-current={activeTab === tab.id ? 'page' : undefined}
-					data-sveltekit-replacestate
 					data-sveltekit-noscroll
 					data-sveltekit-keepfocus
 					class={cn(

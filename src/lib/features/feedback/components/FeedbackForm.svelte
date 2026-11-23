@@ -96,7 +96,7 @@
 					}
 					formError = getErrorMessage(
 						error,
-						'Masukanmu belum terkirim, dan tulisannya masih ada di form. Silakan coba lagi.'
+						'Masukanmu belum terkirim, tetapi tulisannya masih ada di form. Tunggu sebentar, lalu tekan Kirim masukan lagi.'
 					);
 				},
 				onSettled: () => {

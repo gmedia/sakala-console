@@ -46,7 +46,9 @@ test.describe('email delivery is off (the state of staging and production today)
 		await mockOptions(page, false);
 
 		await page.goto('/login');
-		await expect(page.getByText('Pendaftaran lewat email belum tersedia')).toBeVisible();
+		// One short line where the reset link would be; registration is the register page's news.
+		await expect(page.getByText('Reset kata sandi lewat email belum tersedia')).toBeVisible();
+		await expect(page.getByText('Pendaftaran lewat email belum tersedia')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Masuk dengan Google' })).toHaveCount(0);
 
 		// The password form is on the page from the start; no button opens it.

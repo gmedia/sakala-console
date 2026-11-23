@@ -5,6 +5,7 @@ import { getAuthOptions } from '$lib/api/resources/auth';
 import { apiErrorFromResponse } from '$lib/api/errors';
 import { login } from '$lib/api/resources/auth';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
+import { LOGIN_PASSWORD_RESET_UNAVAILABLE } from '$lib/features/auth/availability';
 import { noteSessionEnded, rememberSession } from '$lib/features/auth/session-notice';
 import LoginPage from './+page.svelte';
 
@@ -67,9 +68,11 @@ describe('login page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
 		await renderPage();
 
+		await expect.element(page.getByText(LOGIN_PASSWORD_RESET_UNAVAILABLE)).toBeVisible();
+		// Registration is the register page's business; the login page does not lead with it.
 		await expect
-			.element(page.getByText('Pendaftaran lewat email belum tersedia. Masuk lewat GitHub dulu.'))
-			.toBeVisible();
+			.element(page.getByText('Pendaftaran lewat email belum tersedia'))
+			.not.toBeInTheDocument();
 		await expect.element(provider('GitHub')).toBeVisible();
 		await expect.element(passwordField()).toBeVisible();
 		await expect.element(provider('Google')).not.toBeInTheDocument();
@@ -79,7 +82,7 @@ describe('login page and email delivery', () => {
 		vi.mocked(getAuthOptions).mockResolvedValue(options(false));
 		await renderPage('?method=email');
 
-		await expect.element(page.getByText('Pendaftaran lewat email belum tersedia')).toBeVisible();
+		await expect.element(page.getByText(LOGIN_PASSWORD_RESET_UNAVAILABLE)).toBeVisible();
 		await expect.element(page.getByLabelText('Kata sandi', { exact: true })).toBeVisible();
 		await expect.element(forgotLink()).not.toBeInTheDocument();
 	});

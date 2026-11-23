@@ -12,7 +12,8 @@ export const AUTO_DEPLOY_PAUSE_COPY = {
 	resuming: 'Menyalakan...',
 	resumed: (branch: string) =>
 		`Auto-deploy menyala lagi. Push berikutnya ke ${branch} langsung di-deploy.`,
-	resumeFailed: 'Auto-deploy belum berhasil dinyalakan lagi. Silakan coba lagi.',
+	resumeFailed:
+		'Auto-deploy masih dijeda karena permintaan menyalakannya belum berhasil. Muat ulang halaman, lalu nyalakan sekali lagi.',
 	askOwner: (workspace: string) =>
 		`Pemilik atau anggota workspace ${workspace} bisa menyalakannya lagi.`,
 	rollbackLink: (sequence: number) => `Lihat deployment #${sequence}`

@@ -59,15 +59,27 @@ export const ENGINE_NOTES = {
 	mysql:
 		'Sakala menyediakan PostgreSQL, bukan MySQL. Aplikasimu perlu driver PostgreSQL, dan query yang khusus MySQL mungkin perlu diubah.',
 	sqlite:
-		'Data SQLite tersimpan di file di dalam container, dan file itu hilang setiap kali deploy. Database dari Sakala menyimpan datanya tetap ada.'
+		'Data SQLite tersimpan di file di dalam container, dan file itu hilang setiap kali deploy. Database dari Sakala menyimpan datanya tetap ada.',
+	/**
+	 * When this workspace cannot get a Sakala database now (none offered, or no quota left, which
+	 * is the production default), the note does not point at an option that is disabled.
+	 */
+	sqliteWithoutSakalaDatabase:
+		'Data SQLite tersimpan di file di dalam container, dan file itu hilang setiap kali deploy. Kalau datanya perlu tetap ada, simpan di database di luar container, lalu isi alamat koneksinya sebagai environment variable.'
 } as const;
 
-/** An honest note when the app was written for another engine than the PostgreSQL Sakala offers. */
+/**
+ * An honest note when the app was written for another engine than the PostgreSQL Sakala offers.
+ * `sakalaDatabase` says whether this project can get a Sakala database now: a new one can be
+ * made, or the workspace has one it can use.
+ */
 export function databaseEngineNote(
 	engine: DatabaseHintEngine,
-	{ laravel }: { laravel: boolean }
+	{ laravel, sakalaDatabase }: { laravel: boolean; sakalaDatabase: boolean }
 ): string | null {
 	if (engine === 'mysql') return laravel ? ENGINE_NOTES.mysqlLaravel : ENGINE_NOTES.mysql;
-	if (engine === 'sqlite') return ENGINE_NOTES.sqlite;
+	if (engine === 'sqlite') {
+		return sakalaDatabase ? ENGINE_NOTES.sqlite : ENGINE_NOTES.sqliteWithoutSakalaDatabase;
+	}
 	return null;
 }

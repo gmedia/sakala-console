@@ -15,7 +15,7 @@ import {
 	type WorkspaceRole
 } from '$lib/api/resources/workspaces';
 import { forgetWorkspace } from './forget';
-import { inviteEach } from './invite-addresses';
+import { describeInviteError, inviteEach } from './invite-addresses';
 import { workspaceErrorMessage } from './presentation';
 
 /*
@@ -111,7 +111,10 @@ export function createInviteManyMutation(workspaceId: () => string) {
 				emails,
 				role,
 				(payload) => inviteToWorkspace(workspaceId(), payload),
-				(error) => workspaceErrorMessage(error, 'Undangan belum terkirim.'),
+				(error) =>
+					describeInviteError(error, (other) =>
+						workspaceErrorMessage(other, 'Undangan belum terkirim.')
+					),
 				onProgress
 			),
 		onSettled: () =>

@@ -24,13 +24,17 @@ const DATABASE_DEAD_ENDS: readonly string[] = [
 ];
 
 export const FIRST_DEPLOY_ERROR_COPY = {
-	releaseCommand: 'Release command belum tersimpan, jadi deploy belum dimulai. Silakan coba lagi.',
-	createDatabase: 'Database belum bisa dibuat. Silakan coba lagi.',
-	attachDatabase: 'Database belum bisa dipasang ke proyek ini. Silakan coba lagi.',
+	releaseCommand:
+		'Release command belum tersimpan, jadi deploy belum dimulai. Tekan Deploy sekarang sekali lagi.',
+	createDatabase:
+		'Database belum bisa dibuat, jadi deploy belum dimulai. Tekan Deploy sekarang sekali lagi, atau pilih Tanpa database.',
+	attachDatabase:
+		'Database belum bisa dipasang ke proyek ini, jadi deploy belum dimulai. Tekan Deploy sekarang sekali lagi, atau pilih Tanpa database.',
 	unavailable:
 		'Server database Sakala sedang tidak bisa menerima database baru. Deploy tanpa database dulu, lalu pasang database dari halaman Database nanti.',
-	deploy: 'Deploy belum berhasil dijalankan. Silakan coba lagi.',
-	variables: 'Variabel belum tersimpan, jadi deploy belum dimulai. Silakan coba lagi.',
+	deploy: 'Deploy belum berhasil dijalankan. Tekan Deploy sekarang sekali lagi.',
+	variables:
+		'Variabel belum tersimpan, jadi deploy belum dimulai. Tekan Deploy sekarang sekali lagi.',
 	databaseNotReady: (status: string) =>
 		`Database proyek ini belum siap (status ${status}), jadi deploy belum bisa dimulai. Tunggu sampai siap, atau lepas database-nya dari halaman Database.`
 } as const;

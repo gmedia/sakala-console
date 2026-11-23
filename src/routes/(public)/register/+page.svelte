@@ -80,7 +80,7 @@
 			if (!email.trim()) {
 				errors.email = 'Kamu belum memasukkan email.';
 			} else if (!email.includes('@')) {
-				errors.email = 'Format email tidak valid.';
+				errors.email = 'Email perlu memakai tanda @, misalnya nama@contoh.com.';
 			} else {
 				errors.email = '';
 			}
@@ -143,7 +143,7 @@
 			errors.email = 'Kamu belum memasukkan email.';
 			isValid = false;
 		} else if (!email.includes('@')) {
-			errors.email = 'Format email tidak valid.';
+			errors.email = 'Email perlu memakai tanda @, misalnya nama@contoh.com.';
 			isValid = false;
 		}
 
@@ -209,7 +209,8 @@
 			} else if (err instanceof Error) {
 				errors.general = err.message;
 			} else {
-				errors.general = 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.';
+				errors.general =
+					'Pendaftaran belum terkirim karena kendala di browser ini. Muat ulang halaman, lalu daftar lagi.';
 			}
 		}
 	}
@@ -219,7 +220,13 @@
 	<title>{pageTitle('Daftar')}</title>
 </svelte:head>
 
-<AuthSplitLayout title="Daftar" description="Dari repository ke URL publik." mode="register">
+<!-- The consent field or the line under the buttons links the privacy notice, so the footer does not. -->
+<AuthSplitLayout
+	title="Daftar"
+	description="Dari repository ke URL publik."
+	mode="register"
+	privacyLinkInBody={!availability.isLoading && !isRegistered}
+>
 	<div class="space-y-6">
 		{#if availability.emailDeliveryOff}
 			<EmailDeliveryNotice message={registrationUnavailableMessage(availability)} />

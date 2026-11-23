@@ -25,7 +25,7 @@ export const createProjectFormSchema = z.object({
 				.string()
 				.trim()
 				.min(1, 'URL repository wajib diisi')
-				.url('Format URL tidak valid')
+				.url('Tulis URL lengkap yang diawali https://, misalnya https://github.com/user/repo')
 				.regex(
 					/^https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+(\.git)?$/,
 					'URL harus berupa repository GitHub publik (contoh: https://github.com/user/repo)'
@@ -157,5 +157,10 @@ export function mapCreateProjectErrors(error: unknown): CreateProjectFieldErrors
 		return { general: INACTIVE_INSTALLATION_MESSAGE };
 	}
 
-	return { general: getErrorMessage(error, 'Proyek belum berhasil dibuat. Silakan coba lagi.') };
+	return {
+		general: getErrorMessage(
+			error,
+			'Proyek belum berhasil dibuat. Muat ulang halaman, lalu buat proyeknya lagi.'
+		)
+	};
 }

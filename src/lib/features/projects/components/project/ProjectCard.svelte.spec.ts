@@ -170,6 +170,47 @@ describe('ProjectCard — last deployment', () => {
 		await expect.element(time).toHaveAttribute('title', formatDate(lastDeployed));
 	});
 
+	test('uses the time the live version went up, like the project header, not when the latest started', async () => {
+		const started = new Date(Date.now() - 4 * 60 * 1000).toISOString();
+		const lastDeployed = new Date(Date.now() - 20 * 1000).toISOString();
+		await render(ProjectCard, {
+			...baseProject,
+			last_deployed_at: lastDeployed,
+			latest_deployment: {
+				id: 'dep_2',
+				sequence: 2,
+				status: 'succeeded',
+				branch: 'main',
+				commit_sha: null,
+				commit_message: null,
+				created_at: started,
+				finished_at: lastDeployed
+			}
+		});
+
+		await expect.element(page.getByText('Deploy baru saja', { exact: true })).toBeVisible();
+	});
+
+	test('says nothing about a deploy time while the first deployment has not gone live', async () => {
+		await render(ProjectCard, {
+			...baseProject,
+			last_deployed_at: null,
+			latest_deployment: {
+				id: 'dep_1',
+				sequence: 1,
+				status: 'failed',
+				branch: 'main',
+				commit_sha: null,
+				commit_message: null,
+				created_at: new Date().toISOString(),
+				finished_at: null
+			}
+		});
+
+		await expect.element(page.getByText('Belum pernah deploy')).not.toBeInTheDocument();
+		await expect.element(page.getByText(/^Deploy /)).not.toBeInTheDocument();
+	});
+
 	test('menampilkan "Belum pernah deploy" ketika last_deployed_at null', async () => {
 		await render(ProjectCard, {
 			...baseProject,

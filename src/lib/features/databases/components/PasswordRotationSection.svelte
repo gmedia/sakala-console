@@ -53,7 +53,7 @@
 			error = databaseErrorMessage(
 				caught,
 				'rotate',
-				'Password belum bisa diganti. Silakan coba lagi.'
+				'Password database belum diganti. Muat ulang halaman, lalu ganti lagi.'
 			);
 		}
 	}

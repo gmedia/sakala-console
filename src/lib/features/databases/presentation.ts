@@ -428,7 +428,7 @@ export const ROTATION_COPY = {
 	viewDeployment: 'Lihat deployment',
 	redeploy: 'Redeploy',
 	redeploying: 'Menjalankan...',
-	redeployFailed: 'Redeploy belum bisa dijalankan. Silakan coba lagi.'
+	redeployFailed: 'Redeploy belum bisa dijalankan. Muat ulang halaman, lalu tekan Redeploy lagi.'
 } as const;
 
 /** Why the API queued no redeploy for a project, in words; `no_active_deployment` has its own row. */

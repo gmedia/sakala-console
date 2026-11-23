@@ -59,9 +59,11 @@
 	<title>{pageTitle('Persetujuan')}</title>
 </svelte:head>
 
+<!-- The consent field links the privacy notice, so the footer does not repeat it. -->
 <AuthSplitLayout
 	title="Satu langkah lagi"
 	description="Sebelum memakai Sakala, baca dan setujui dokumen berikut."
+	privacyLinkInBody={Boolean(legal)}
 >
 	<div class="space-y-6">
 		{#if options.isPending}

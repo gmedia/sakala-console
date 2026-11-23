@@ -48,7 +48,7 @@ test.describe('GitHub rate limit (GITHUB_RATE_LIMITED)', () => {
 		await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
 
 		await expect(page.getByText(SHOWN)).toBeVisible();
-		await expect(page.getByText('Terjadi kesalahan pada server')).toHaveCount(0);
+		await expect(page.getByText('Server Sakala sedang bermasalah')).toHaveCount(0);
 	});
 
 	test('the branch list says so, and keeps the default branch', async ({ page }) => {

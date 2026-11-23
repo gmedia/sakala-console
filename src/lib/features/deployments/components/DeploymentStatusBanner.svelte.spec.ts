@@ -146,3 +146,48 @@ describe('a failed release command', () => {
 			.toBeVisible();
 	});
 });
+
+describe('a failed deployment', () => {
+	const failed = {
+		status: 'failed' as const,
+		failedStepLabel: 'Mengecek aplikasi',
+		failureCategory: 'app',
+		failureSummary: 'Aplikasi berjalan, tetapi tidak menerima koneksi.',
+		userFixable: true,
+		recoveryHint: 'Dengarkan di 0.0.0.0 dan baca port dari PORT.'
+	};
+
+	it('links a code the guide explains to its heading, in a new tab', async () => {
+		await render(DeploymentStatusBanner, { ...failed, failureCode: 'runtime_app_not_listening' });
+
+		const link = page.getByRole('link', { name: /Baca penjelasan kode ini/ });
+		await expect
+			.element(link)
+			.toHaveAttribute('href', 'https://sakala.dev/docs/deploy-gagal#runtime_app_not_listening');
+		await expect.element(link).toHaveAttribute('target', '_blank');
+	});
+
+	it('gives no link for a code the guide does not cover', async () => {
+		await render(DeploymentStatusBanner, { ...failed, failureCode: 'something_new' });
+
+		await expect.element(page.getByText('something_new')).toBeVisible();
+		await expect.element(page.getByTestId('failure-docs-link')).not.toBeInTheDocument();
+	});
+
+	it('names the variables from .env.example that are not set, with the way to set them', async () => {
+		await render(DeploymentStatusBanner, {
+			...failed,
+			failureCode: 'runtime_app_not_listening',
+			missingEnvVariables: {
+				sentence: '.env.example di repository-mu menyebut 1 variabel yang belum ada: APP_KEY.',
+				action: 'Isi di tab Variabel',
+				href: '/projects/p-1/environments#isi-dari-env-example'
+			}
+		});
+
+		await expect.element(page.getByTestId('missing-env-variables')).toHaveTextContent('APP_KEY');
+		await expect
+			.element(page.getByRole('link', { name: 'Isi di tab Variabel' }))
+			.toHaveAttribute('href', '/projects/p-1/environments#isi-dari-env-example');
+	});
+});

@@ -1366,7 +1366,7 @@ test.describe('env form', () => {
 		const dialog = page.getByRole('dialog');
 		await dialog.getByRole('button', { name: 'Hapus variabel' }).click();
 
-		await expect(dialog.getByRole('alert')).toContainText('Terjadi kesalahan pada server');
+		await expect(dialog.getByRole('alert')).toContainText('Server Sakala sedang bermasalah');
 		await expect(dialog).not.toContainText('rahasia');
 	});
 
@@ -1384,7 +1384,7 @@ test.describe('env form', () => {
 
 		await page.getByRole('button', { name: 'Tampilkan nilai APP_ENV' }).click();
 
-		await expect(page.getByRole('alert')).toContainText('Terjadi kesalahan pada server');
+		await expect(page.getByRole('alert')).toContainText('Server Sakala sedang bermasalah');
 		expect(dialogs).toBe(0);
 	});
 });

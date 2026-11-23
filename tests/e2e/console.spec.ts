@@ -615,7 +615,9 @@ test.describe('Projects list page', () => {
 		await expect(page.getByText('Server sedang bermasalah')).toBeVisible();
 
 		await expect(
-			page.getByText('Terjadi masalah pada server saat mengambil data proyek. Silakan coba lagi.')
+			page.getByText(
+				'Server Sakala belum bisa mengirim daftar proyek. Tunggu sebentar, lalu tekan Coba lagi.'
+			)
 		).toBeVisible();
 
 		await page.getByRole('button', { name: /coba lagi/i }).click();
@@ -846,6 +848,10 @@ test.describe('Projects list page', () => {
 		await expect(logoutDialog.getByRole('button', { name: 'Coba lagi' })).toBeVisible({
 			timeout: 5_000
 		});
-		await expect(logoutDialog.getByText('Gagal keluar akun. Silakan coba lagi.')).toBeVisible();
+		await expect(
+			logoutDialog.getByText(
+				'Kamu belum keluar, jadi sesimu masih aktif. Tekan Keluar sekali lagi.'
+			)
+		).toBeVisible();
 	});
 });

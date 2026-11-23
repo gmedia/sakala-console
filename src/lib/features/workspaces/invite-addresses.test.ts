@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { apiErrorFromResponse } from '$lib/api/errors';
-import { ALREADY_MEMBER_CODE, inviteEach, parseInviteAddresses } from './invite-addresses';
+import { apiErrorFromResponse, NetworkError } from '$lib/api/errors';
+import {
+	ALREADY_MEMBER_CODE,
+	describeInviteError,
+	INVITE_COPY,
+	inviteEach,
+	parseInviteAddresses
+} from './invite-addresses';
 
 const describeError = (error: unknown) => (error instanceof Error ? error.message : 'gagal');
 
@@ -110,5 +116,42 @@ describe('inviteEach', () => {
 		expect(outcome.sent).toEqual(['a@x.id']);
 		expect(outcome.notSent).toEqual(['b@x.id', 'c@x.id']);
 		expect(outcome.stopReason).toBe(limited.message);
+	});
+
+	it.each([
+		['email delivery is off', apiErrorFromResponse(503, { code: 'EMAIL_DELIVERY_UNAVAILABLE' })],
+		['the server fails', apiErrorFromResponse(500)],
+		['the browser is offline', new NetworkError()]
+	])(
+		'stops at the first address when %s, since the rest would fail the same way',
+		async (_, error) => {
+			const invite = vi.fn().mockRejectedValue(error);
+
+			const outcome = await inviteEach(
+				['a@x.id', 'b@x.id', 'c@x.id'],
+				'member',
+				invite,
+				describeError
+			);
+
+			expect(invite).toHaveBeenCalledTimes(1);
+			expect(outcome.failed).toEqual([]);
+			expect(outcome.notSent).toEqual(['a@x.id', 'b@x.id', 'c@x.id']);
+		}
+	);
+});
+
+describe('describeInviteError', () => {
+	it('speaks of the invitation when email cannot be sent, not of registering', () => {
+		const error = apiErrorFromResponse(503, {
+			code: 'EMAIL_DELIVERY_UNAVAILABLE',
+			apiMessage: 'Sakala belum bisa mengirim email untuk saat ini, jadi pendaftaran ...'
+		});
+
+		expect(describeInviteError(error, describeError)).toBe(INVITE_COPY.emailUnavailable);
+	});
+
+	it('leaves every other error to the fallback', () => {
+		expect(describeInviteError(apiErrorFromResponse(403), () => 'izin')).toBe('izin');
 	});
 });

@@ -110,7 +110,10 @@
 		} catch (error) {
 			revealErrors.set(
 				id,
-				getErrorMessage(error, 'Nilai variabel belum bisa diambil. Silakan coba lagi.')
+				getErrorMessage(
+					error,
+					'Nilai variabel belum bisa diambil. Muat ulang halaman, lalu tampilkan lagi.'
+				)
 			);
 		} finally {
 			loadingRevealIds.delete(id);
@@ -200,7 +203,10 @@
 						valueError = err.errors.value?.[0] ?? '';
 						if (keyError || valueError) return;
 					}
-					formError = getErrorMessage(err, 'Variabel belum bisa disimpan. Silakan coba lagi.');
+					formError = getErrorMessage(
+						err,
+						'Variabel belum tersimpan. Muat ulang halaman, lalu simpan lagi.'
+					);
 				},
 				onSettled: () => {
 					saving = false;
@@ -277,7 +283,10 @@
 						editValueError = err.errors.value?.[0] ?? '';
 						if (editValueError) return;
 					}
-					editFormError = getErrorMessage(err, 'Perubahan belum bisa disimpan. Silakan coba lagi.');
+					editFormError = getErrorMessage(
+						err,
+						'Perubahan variabel belum tersimpan. Muat ulang halaman, lalu simpan lagi.'
+					);
 				},
 				onSettled: () => {
 					updating = false;
@@ -321,7 +330,10 @@
 					toast.success(`Variabel ${envKey} dihapus.`);
 				},
 				onError: (err) => {
-					deleteError = getErrorMessage(err, 'Variabel belum bisa dihapus. Silakan coba lagi.');
+					deleteError = getErrorMessage(
+						err,
+						'Variabel belum terhapus. Muat ulang halaman, lalu hapus lagi.'
+					);
 				},
 				onSettled: () => {
 					deleting = false;
@@ -428,7 +440,10 @@
 			toast.success(`${saved} variabel disimpan. Redeploy supaya aplikasimu membacanya.`);
 			void closeImport();
 		} catch (error) {
-			importError = getErrorMessage(error, 'Variabel belum bisa disimpan. Silakan coba lagi.');
+			importError = getErrorMessage(
+				error,
+				'Variabel belum tersimpan. Muat ulang halaman, lalu simpan lagi.'
+			);
 		} finally {
 			importing = false;
 		}

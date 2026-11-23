@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	loginMethodLayout,
-	loginUnavailableMessage,
+	LOGIN_PASSWORD_RESET_UNAVAILABLE,
 	oauthProviders,
 	passwordResetUnavailableMessage,
 	registerOffersEmail,
@@ -117,9 +117,9 @@ describe('the unavailable messages', () => {
 		expect(passwordResetUnavailableMessage(none)).not.toContain('GitHub');
 	});
 
-	it('tell a verified account that password login still works', () => {
-		const message = loginUnavailableMessage(resolveAuthAvailability(options(false)));
-
-		expect(message).toContain('tetap bisa masuk dengan email dan kata sandi');
+	it('keep the login line about the reset only, without registration or a provider', () => {
+		expect(LOGIN_PASSWORD_RESET_UNAVAILABLE).toContain('Reset kata sandi');
+		expect(LOGIN_PASSWORD_RESET_UNAVAILABLE).not.toContain('Pendaftaran');
+		expect(LOGIN_PASSWORD_RESET_UNAVAILABLE).not.toContain('GitHub');
 	});
 });

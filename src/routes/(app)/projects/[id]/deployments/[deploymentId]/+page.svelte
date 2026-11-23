@@ -25,7 +25,16 @@
 	import { createCancelDeploymentMutation } from '$lib/features/deployments/mutations';
 	import { feedbackPath } from '$lib/features/feedback/context';
 	import { deriveProjectHeaderState } from '$lib/features/projects/presentation';
-	import { createRecentDeploymentsQuery } from '$lib/features/projects/queries';
+	import {
+		createEnvironmentVariablesQuery,
+		createRecentDeploymentsQuery
+	} from '$lib/features/projects/queries';
+	import {
+		MISSING_ENV_STAGE,
+		missingEnvVariablesNote
+	} from '$lib/features/deployments/missing-env-variables';
+	import { variablesHref } from '$lib/features/projects/overview/links';
+	import { VARIABLES_ANCHORS } from '$lib/features/projects/settings-anchors';
 	import DeploymentStatusBanner from '$lib/features/deployments/components/DeploymentStatusBanner.svelte';
 	import DeploymentInfoRow from '$lib/features/deployments/components/DeploymentInfoRow.svelte';
 	import DeploymentTimeline from '$lib/features/deployments/components/DeploymentTimeline.svelte';
@@ -55,6 +64,28 @@
 	const projectState = $derived(
 		detail.project
 			? deriveProjectHeaderState(detail.project, recentDeployments.data?.data ?? [])
+			: null
+	);
+	// A failure at "Mengecek aplikasi" often means the app stopped on a variable it reads at start, so
+	// the variables from .env.example that the project has not set yet are named under it. Viewers
+	// cannot read or set variables, so they are not asked.
+	const envExample = $derived(detail.project?.inspection?.env_example ?? null);
+	const failedAtHealthCheck = $derived(
+		detail.deployment?.status === 'failed' && detail.deployment.failure?.stage === MISSING_ENV_STAGE
+	);
+	const envQuery = createEnvironmentVariablesQuery(
+		() => page.params.id ?? '',
+		() => ({
+			enabled: failedAtHealthCheck && !access.readOnly && Boolean(envExample?.entries.length)
+		})
+	);
+	const missingEnvVariables = $derived(
+		failedAtHealthCheck && envExample && envQuery.data
+			? missingEnvVariablesNote(envExample, {
+					existingKeys: envQuery.data.map((env) => env.key),
+					databaseProvided: (detail.project?.databases?.length ?? 0) > 0,
+					href: variablesHref(page.params.id ?? '', VARIABLES_ANCHORS.envExample)
+				})
 			: null
 	);
 	const redeployBlockedReason = $derived.by(() => {
@@ -146,7 +177,7 @@
 			onError: (error) => {
 				cancelError = getErrorMessage(
 					error,
-					'Deployment belum bisa dibatalkan. Silakan coba lagi.'
+					'Deployment belum bisa dibatalkan. Tunggu beberapa detik, lalu tekan Batalkan deployment lagi.'
 				);
 			}
 		});
@@ -247,6 +278,7 @@
 			{projectHref}
 			onViewError={() => logPanel?.revealError()}
 			onCopySummary={copyFailureSummary}
+			{missingEnvVariables}
 			onRedeploy={projectState?.showRedeploy === false || access.readOnly
 				? undefined
 				: redeploy.trigger}

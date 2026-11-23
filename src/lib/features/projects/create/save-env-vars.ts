@@ -26,7 +26,10 @@ export async function saveEnvVars(
 			if (error instanceof ApiError && error.isUnauthenticated) throw error;
 			failures.push({
 				env,
-				message: getErrorMessage(error, `Variabel ${env.key} belum tersimpan. Silakan coba lagi.`),
+				message: getErrorMessage(
+					error,
+					`Variabel ${env.key} belum tersimpan. Muat ulang halaman, lalu simpan lagi.`
+				),
 				keyError: getFieldError(error, 'key'),
 				valueError: getFieldError(error, 'value')
 			});

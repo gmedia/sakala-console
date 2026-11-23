@@ -246,7 +246,10 @@
 						};
 						if (nameError || branchError || hasConfigErrors(configErrors)) return;
 					}
-					formError = getErrorMessage(error, 'Perubahan belum tersimpan. Silakan coba lagi.');
+					formError = getErrorMessage(
+						error,
+						'Perubahan pengaturan belum tersimpan. Muat ulang halaman, lalu simpan lagi.'
+					);
 				},
 				onSettled: () => {
 					saving = false;
@@ -276,7 +279,10 @@
 				goto(resolveRoute('/(app)/projects'));
 			},
 			onError: (error) => {
-				deleteError = getErrorMessage(error, 'Proyek belum bisa dihapus. Silakan coba lagi.');
+				deleteError = getErrorMessage(
+					error,
+					'Proyek belum terhapus. Muat ulang halaman, lalu hapus lagi.'
+				);
 			},
 			onSettled: () => {
 				deleting = false;

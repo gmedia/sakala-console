@@ -59,7 +59,11 @@
 		} catch (error) {
 			nameError =
 				getFieldError(error, 'name') ??
-				databaseErrorMessage(error, 'rename', 'Nama belum bisa diganti. Silakan coba lagi.');
+				databaseErrorMessage(
+					error,
+					'rename',
+					'Nama database belum diganti. Muat ulang halaman, lalu simpan lagi.'
+				);
 		}
 	}
 
@@ -82,7 +86,7 @@
 			deleteError = databaseErrorMessage(
 				error,
 				'delete',
-				'Database belum bisa dihapus. Silakan coba lagi.'
+				'Database belum terhapus. Muat ulang halaman, lalu hapus lagi.'
 			);
 		}
 	}
