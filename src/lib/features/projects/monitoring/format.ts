@@ -39,7 +39,14 @@ export const MONITORING_COPY = {
 		time: 'Titik'
 	},
 	newestPoint: (time: string) => `terbaru, ${time}`,
-	titles: { cpu: 'CPU', memory: 'Memori', replicas: 'Replika', restarts: 'Restart' }
+	titles: { cpu: 'CPU', memory: 'Memori', replicas: 'Replika', restarts: 'Restart' },
+	/** The successful deployments drawn on the charts, and their list for anyone not hovering. */
+	markers: {
+		title: 'Deployment berhasil di rentang ini',
+		key: 'Garis tegak di grafik menandai saat deployment selesai.',
+		manual: 'Deployment manual',
+		partial: (count: number) => `Penanda hanya mencakup ${count} deployment terbaru.`
+	}
 } as const;
 
 const percentFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 });
@@ -152,4 +159,14 @@ export function widenRangeLabel(range: MetricsRangeOption): string {
 export function freshnessNote(updatedAtMs: number, polls: boolean): string {
 	const time = shortTimeFormat.format(new Date(updatedAtMs));
 	return polls ? `Diperbarui pukul ${time}, dibaca ulang tiap menit.` : `Diperbarui pukul ${time}.`;
+}
+
+/** The note when the data starts after the window does: the chart's empty left is not a gap. */
+export function dataStartNote(seconds: number): string {
+	return `Data mulai ${formatPointTime(seconds)}.`;
+}
+
+/** `Deployment #12`, the way the history names one. */
+export function deploymentLabel(sequence: number): string {
+	return `Deployment #${sequence}`;
 }

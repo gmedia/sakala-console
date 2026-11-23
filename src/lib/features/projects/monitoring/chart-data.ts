@@ -182,3 +182,23 @@ export function hasNoMetrics(metrics: ProjectMetrics): boolean {
 	const { cpu_percent, memory_bytes, replicas, restarts } = metrics.series;
 	return [cpu_percent, memory_bytes, replicas, restarts].every((points) => points.length === 0);
 }
+
+/** The time of the oldest point in any series, in Unix seconds, or `null` without any point. */
+export function firstPointTime(metrics: ProjectMetrics): number | null {
+	const { cpu_percent, memory_bytes, replicas, restarts } = metrics.series;
+	const times = [cpu_percent, memory_bytes, replicas, restarts].flatMap((points) =>
+		points.map((point) => point.t)
+	);
+	return times.length > 0 ? Math.min(...times) : null;
+}
+
+/**
+ * When the data starts later than the window, so the empty left of the chart reads as "not yet
+ * recorded" instead of "nothing happened". Within the same gap tolerance as a missing bucket, the
+ * first point counts as the start of the window. `null` when the data fills the window.
+ */
+export function lateDataStart(metrics: ProjectMetrics, windowStart: number): number | null {
+	const first = firstPointTime(metrics);
+	if (first === null) return null;
+	return first - windowStart > metrics.step_seconds * GAP_TOLERANCE_STEPS ? first : null;
+}

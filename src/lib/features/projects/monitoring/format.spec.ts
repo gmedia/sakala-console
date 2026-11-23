@@ -3,6 +3,8 @@ import type { CountChart, MemoryChart, StatChart } from './chart-data';
 import {
 	MONITORING_COPY,
 	cpuSummary,
+	dataStartNote,
+	deploymentLabel,
 	emptyTitle,
 	formatBytes,
 	freshnessNote,
@@ -129,5 +131,14 @@ describe('page copy', () => {
 		const at = new Date(2026, 10, 18, 14, 5, 9).getTime();
 		expect(freshnessNote(at, true)).toBe('Diperbarui pukul 14.05, dibaca ulang tiap menit.');
 		expect(freshnessNote(at, false)).toBe('Diperbarui pukul 14.05.');
+	});
+
+	it('says when the data starts, in the time of the point under the cursor', () => {
+		const at = new Date(2026, 10, 23, 9, 55).getTime() / 1_000;
+		expect(dataStartNote(at)).toBe('Data mulai 23 Nov, 09.55.');
+	});
+
+	it('names a deployment the way the history does', () => {
+		expect(deploymentLabel(12)).toBe('Deployment #12');
 	});
 });

@@ -46,12 +46,39 @@ export const DEFAULT_METRICS_RANGE: ProjectMetricsRange = '24h';
 /** The query string parameter that keeps the range, so a view can be shared and walked back. */
 export const METRICS_RANGE_PARAM = 'range';
 
-/** The range in the query string, or the default for a missing or unknown one. */
-export function readMetricsRange(search: URLSearchParams): ProjectMetricsRange {
+/** The range in the query string, or `null` when none was picked: the page then picks one itself. */
+export function readMetricsRange(search: URLSearchParams): ProjectMetricsRange | null {
 	const value = search.get(METRICS_RANGE_PARAM);
+	return METRICS_RANGE_OPTIONS.find((option) => option.value === value)?.value ?? null;
+}
+
+/** A project's age in seconds, or `null` when its creation time is missing or unreadable. */
+export function projectAgeSeconds(createdAt: string | undefined, nowMs: number): number | null {
+	const created = createdAt ? Date.parse(createdAt) : Number.NaN;
+	return Number.isNaN(created) ? null : Math.max(0, (nowMs - created) / 1_000);
+}
+
+/**
+ * The range a page opens on when none was picked: the shortest one a project's whole life fits in,
+ * so a project made five minutes ago does not open on a day of empty chart. Never longer than the
+ * default, which an older project keeps.
+ */
+export function defaultMetricsRange(ageSeconds: number | null): ProjectMetricsRange {
+	const fallback = metricsRangeOption(DEFAULT_METRICS_RANGE);
+	if (ageSeconds === null) return fallback.value;
 	return (
-		METRICS_RANGE_OPTIONS.find((option) => option.value === value)?.value ?? DEFAULT_METRICS_RANGE
+		METRICS_RANGE_OPTIONS.find(
+			(option) => option.seconds <= fallback.seconds && ageSeconds <= option.seconds
+		)?.value ?? fallback.value
 	);
+}
+
+/** Whether a wider range can show more than this one: not for a project younger than the range. */
+export function rangeCoversProjectLife(
+	range: MetricsRangeOption,
+	ageSeconds: number | null
+): boolean {
+	return ageSeconds !== null && ageSeconds <= range.seconds;
 }
 
 export function metricsRangeOption(range: ProjectMetricsRange): MetricsRangeOption {
