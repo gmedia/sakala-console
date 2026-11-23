@@ -257,7 +257,7 @@ Database PostgreSQL terkelola milik workspace (ADR-020, bagian "Database" di `do
 
 ## Alasan Penangguhan
 
-Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding `abuse@sakala.dev` ada di `src/lib/config/project.ts`.
+Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding (`abuse@sakala.dev` di layanan hosted) diambil dari `PUBLIC_ABUSE_EMAIL` lewat `src/lib/config/project.ts`, jadi instalasi self-host bisa memakai alamatnya sendiri.
 
 ## Hemat Request
 

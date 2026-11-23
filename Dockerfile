@@ -59,8 +59,8 @@ ENV XDG_CONFIG_HOME=/config \
 
 EXPOSE 8080
 
-# Public settings (PUBLIC_API_URL, PUBLIC_APP_URL, PUBLIC_REVERB_*) set on the
-# container replace the built ones. See "Konfigurasi saat container start" in README.md.
+# Public settings (PUBLIC_API_URL, PUBLIC_APP_URL, PUBLIC_REVERB_*, and the site
+# links such as PUBLIC_DOCS_URL) set on the container replace the built ones. See "Konfigurasi saat container start" in README.md.
 ENTRYPOINT ["/usr/local/bin/console-entrypoint"]
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
 
