@@ -8,13 +8,26 @@ import {
 	personalWorkspace,
 	PROJECT_ID
 } from '../../../../../../tests/e2e/fixtures/project-detail';
-import { RELEASE_COMMAND_HELP, RELEASE_COMMAND_LABEL } from '../../build-help';
+import {
+	RELEASE_COMMAND_EXAMPLE,
+	RELEASE_COMMAND_HELP,
+	RELEASE_COMMAND_LABEL,
+	RELEASE_COMMAND_PLACEHOLDER
+} from '../../build-help';
 import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
 import { REPLICAS_COPY } from '../../replicas';
 import ProjectSettingsTab from './ProjectSettingsTab.svelte';
 
 vi.mock('$lib/config/public', () => ({ publicConfig: { apiUrl: 'http://api.test' } }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+const location = vi.hoisted(() => ({ hash: '' }));
+vi.mock('$app/state', () => ({
+	page: {
+		get url() {
+			return new URL(`http://app.test/projects/x/settings${location.hash}`);
+		}
+	}
+}));
 vi.mock('svelte-sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 type Body = Record<string, unknown>;
@@ -54,6 +67,12 @@ const renderTab = () =>
 	});
 const replicasField = () => page.getByRole('spinbutton', { name: REPLICAS_COPY.label });
 const save = () => page.getByRole('button', { name: 'Simpan perubahan' });
+const advancedToggle = () => page.getByRole('button', { name: 'Lanjutan' });
+/** Release command and replicas sit in Lanjutan, closed until opened when they hold no value. */
+async function openAdvanced() {
+	await advancedToggle().click();
+	await expect.element(advancedToggle()).toHaveAttribute('aria-expanded', 'true');
+}
 
 beforeEach(() => {
 	project = {
@@ -64,6 +83,7 @@ beforeEach(() => {
 		replicas_ready: 1
 	};
 	saved = [];
+	location.hash = '';
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => answer(new Request(input, init)))
@@ -78,6 +98,7 @@ afterEach(() => {
 describe('ProjectSettingsTab, replicas', () => {
 	it('offers 1 to the workspace maximum, with the explanation', async () => {
 		await renderTab();
+		await openAdvanced();
 
 		const field = replicasField();
 		await expect.element(field).toBeEnabled();
@@ -94,6 +115,7 @@ describe('ProjectSettingsTab, replicas', () => {
 	it('is disabled with the reason when the workspace allows one replica', async () => {
 		project = { ...project, max_replicas: 1 };
 		await renderTab();
+		await openAdvanced();
 
 		await expect.element(replicasField()).toBeDisabled();
 		await expect.element(replicasField()).toHaveAccessibleDescription(REPLICAS_COPY.unavailable);
@@ -101,6 +123,7 @@ describe('ProjectSettingsTab, replicas', () => {
 
 	it.each(['0', '5'])('refuses %s before sending', async (value) => {
 		await renderTab();
+		await openAdvanced();
 
 		await userEvent.fill(replicasField(), value);
 		await save().click();
@@ -114,6 +137,7 @@ describe('ProjectSettingsTab, replicas', () => {
 	it('saves the new setting alone, then says the project needs a redeploy', async () => {
 		await renderTab();
 		await expect.element(page.getByText(REDEPLOY_REQUIRED_COPY.settings)).not.toBeInTheDocument();
+		await openAdvanced();
 
 		await userEvent.fill(replicasField(), '3');
 		await save().click();
@@ -145,6 +169,7 @@ describe('ProjectSettingsTab, replicas', () => {
 			return answer(request);
 		});
 		await renderTab();
+		await openAdvanced();
 
 		await userEvent.fill(replicasField(), '2');
 		await save().click();
@@ -161,16 +186,23 @@ describe('ProjectSettingsTab, release command', () => {
 	const migrate = 'php artisan migrate --force';
 	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
 
-	it('explains when the command runs and what a failure does', async () => {
+	it('explains when the command runs and what a failure does, with the example in the help', async () => {
 		await renderTab();
+		await openAdvanced();
 
 		await expect.element(releaseField()).toHaveValue('');
-		await expect.element(releaseField()).toHaveAttribute('placeholder', migrate);
-		await expect.element(releaseField()).toHaveAccessibleDescription(RELEASE_COMMAND_HELP);
+		// An example in the field reads like a value that is already set.
+		await expect
+			.element(releaseField())
+			.toHaveAttribute('placeholder', RELEASE_COMMAND_PLACEHOLDER);
+		await expect
+			.element(releaseField())
+			.toHaveAccessibleDescription(`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`);
 	});
 
 	it('saves a new command alone, then says the project needs a redeploy', async () => {
 		await renderTab();
+		await openAdvanced();
 
 		await userEvent.fill(releaseField(), `  ${migrate} `);
 		await save().click();
@@ -197,6 +229,7 @@ describe('ProjectSettingsTab, release command', () => {
 
 	it('refuses a command over 1000 characters before sending', async () => {
 		await renderTab();
+		await openAdvanced();
 
 		await userEvent.fill(releaseField(), 'a'.repeat(1001));
 		await save().click();
@@ -220,6 +253,7 @@ describe('ProjectSettingsTab, release command', () => {
 			return answer(request);
 		});
 		await renderTab();
+		await openAdvanced();
 
 		await userEvent.fill(releaseField(), migrate);
 		await save().click();
@@ -247,5 +281,71 @@ describe('ProjectSettingsTab, release command', () => {
 
 		await expect.element(page.getByTestId('settings-read-only')).toHaveTextContent(migrate);
 		await expect.element(releaseField()).not.toBeInTheDocument();
+	});
+});
+
+describe('ProjectSettingsTab, sections', () => {
+	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
+
+	it('groups the form under Umum, Build dan start, and Lanjutan, with the danger zone last', async () => {
+		await renderTab();
+
+		const headings = page.getByRole('heading', { level: 2 });
+		await expect.element(headings.nth(0)).toHaveTextContent('Umum');
+		await expect.element(headings.nth(1)).toHaveTextContent('Build dan start');
+		await expect.element(headings.nth(2)).toHaveTextContent('Lanjutan');
+		await expect.element(headings.nth(3)).toHaveTextContent('Zona berbahaya');
+
+		const links = page.getByRole('navigation', { name: 'Bagian pengaturan' }).getByRole('link');
+		await expect.element(links.nth(0)).toHaveAttribute('href', '#umum');
+		await expect.element(links.nth(3)).toHaveAttribute('href', '#zona-berbahaya');
+	});
+
+	it('keeps Lanjutan closed while it holds nothing, and the link at the top opens it', async () => {
+		await renderTab();
+
+		await expect.element(advancedToggle()).toHaveAttribute('aria-expanded', 'false');
+		// Hidden fields are out of the accessibility tree too, so their role finds nothing.
+		await expect.element(releaseField()).not.toBeInTheDocument();
+		await expect.element(replicasField()).not.toBeInTheDocument();
+
+		await page
+			.getByRole('navigation', { name: 'Bagian pengaturan' })
+			.getByRole('link', { name: 'Lanjutan' })
+			.click();
+		await expect.element(releaseField()).toBeVisible();
+	});
+
+	it('opens Lanjutan by itself when a release command is saved', async () => {
+		project = { ...project, release_command: 'php artisan migrate --force' };
+		await renderTab();
+
+		await expect.element(advancedToggle()).toHaveAttribute('aria-expanded', 'true');
+		await expect.element(releaseField()).toBeVisible();
+	});
+
+	it('opens Lanjutan by itself when the project runs more than one replica', async () => {
+		project = { ...project, replicas: 2 };
+		await renderTab();
+
+		await expect.element(replicasField()).toBeVisible();
+	});
+
+	it('opens Lanjutan when a link lands on a field inside it', async () => {
+		location.hash = '#releaseCommand';
+		await renderTab();
+
+		await expect.element(releaseField()).toBeVisible();
+	});
+
+	it('does not fold away under the cursor once a saved command is emptied and saved', async () => {
+		project = { ...project, release_command: 'php artisan migrate --force' };
+		await renderTab();
+
+		await userEvent.clear(releaseField());
+		await save().click();
+
+		await expect.poll(() => saved).toEqual([{ release_command: null }]);
+		await expect.element(releaseField()).toBeVisible();
 	});
 });

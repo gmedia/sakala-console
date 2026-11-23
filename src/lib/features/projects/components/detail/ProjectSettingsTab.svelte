@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { resolveRoute } from '$app/paths';
+	import { page } from '$app/state';
+	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { ApiError, getErrorMessage } from '$lib/api/errors';
@@ -11,10 +14,16 @@
 	import {
 		AUTO_DEPLOY_HELP,
 		AUTO_DEPLOY_UNAVAILABLE_HELP,
+		BUILD_COMMAND_EXAMPLE,
 		BUILD_COMMAND_HELP,
+		DETECTED_PLACEHOLDER,
+		RELEASE_COMMAND_EXAMPLE,
 		RELEASE_COMMAND_HELP,
 		RELEASE_COMMAND_LABEL,
+		RELEASE_COMMAND_PLACEHOLDER,
 		ROOT_DIRECTORY_HELP,
+		ROOT_DIRECTORY_PLACEHOLDER,
+		START_COMMAND_EXAMPLE,
 		START_COMMAND_HELP
 	} from '../../build-help';
 	import { createRepositoryBranchesQuery, type BranchSource } from '../../githubQueries';
@@ -35,13 +44,18 @@
 		type ProjectConfigLimits
 	} from '../../detail/projectDetailState.svelte';
 	import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
-	import { maxReplicasOf, REPLICAS_COPY, replicasOf } from '../../replicas';
+	import { maxReplicasOf, MIN_REPLICAS, REPLICAS_COPY, replicasOf } from '../../replicas';
 	import BranchCombobox from '../create/BranchCombobox.svelte';
 	import DeleteProjectConfirmModal from './DeleteProjectConfirmModal.svelte';
 	import ProjectReplicasField from './ProjectReplicasField.svelte';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
-	import { SETTINGS_ANCHORS } from '../../settings-anchors';
+	import {
+		ADVANCED_ANCHORS,
+		SETTINGS_ANCHORS,
+		SETTINGS_SECTION_IDS as SECTION,
+		SETTINGS_SECTIONS
+	} from '../../settings-anchors';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -96,6 +110,36 @@
 
 	let configErrors = $state<ProjectConfigErrors>({});
 
+	/** The fields of the Lanjutan section, which changes rarely and can stop a deployment. */
+	const ADVANCED_FIELDS: readonly (keyof ProjectConfigDraft)[] = ['release_command', 'replicas'];
+	const hasAdvancedValue = (values: ProjectConfigDraft | null) =>
+		Boolean(values?.release_command.trim()) ||
+		Number(values?.replicas ?? MIN_REPLICAS) > MIN_REPLICAS;
+
+	/**
+	 * Null until someone opens or closes it. Until then it is open only when it already holds a
+	 * value, so a release command or extra replicas are never hidden from the person reading.
+	 */
+	let advancedOpen = $state<boolean | null>(null);
+	const hasAdvancedError = $derived(ADVANCED_FIELDS.some((field) => Boolean(configErrors[field])));
+	const advancedVisible = $derived(
+		hasAdvancedError ||
+			(advancedOpen ?? (hasAdvancedValue(originalConfig) || hasAdvancedValue(config)))
+	);
+
+	/** Not state: only the arrival at an anchor matters, not every refetch afterwards. */
+	let handledHash = '';
+	// Arriving at a field in Lanjutan (the overview's "Atur release command") opens it and scrolls
+	// there, which the browser could not do while the field was hidden. It is set once rather than
+	// derived from the hash, so following the link to another section does not fold it away again.
+	$effect(() => {
+		const target = page.url.hash.slice(1);
+		if (!projectQuery.data || !target || target === handledHash) return;
+		handledHash = target;
+		if (ADVANCED_ANCHORS.includes(target)) advancedOpen = true;
+		void tick().then(() => document.getElementById(target)?.scrollIntoView({ block: 'start' }));
+	});
+
 	let nameError = $state('');
 	let branchError = $state('');
 	let formError = $state('');
@@ -128,6 +172,8 @@
 		draft.setConfigDraft({ ...config, ...patch }, originalConfig, configLimits);
 		for (const field of Object.keys(patch) as (keyof ProjectConfigDraft)[]) {
 			configErrors[field] = undefined;
+			// Emptying a field must not fold the section away under the cursor.
+			if (ADVANCED_FIELDS.includes(field)) advancedOpen = true;
 		}
 		formError = '';
 		saveMessage = '';
@@ -290,140 +336,218 @@
 				/>
 			</div>
 		{/if}
-		<form onsubmit={handleSave} novalidate class="surface-card flex flex-col gap-5 p-4 sm:p-6">
-			<FormField
-				id="projectName"
-				label="Nama proyek"
-				placeholder="Nama proyek"
-				required
-				bind:value={() => name, setName}
-				error={nameError}
-			/>
+		<!-- One link per section, so a later section (Domain) is one more entry, not a new page. -->
+		<nav aria-label="Bagian pengaturan" data-testid="settings-sections">
+			<ul class="flex flex-wrap gap-x-1 gap-y-1">
+				{#each SETTINGS_SECTIONS as section (section.id)}
+					<li>
+						<a
+							href="#{section.id}"
+							class="inline-flex min-h-8 items-center rounded-control px-3 text-sm font-medium text-muted transition-colors hover:bg-background-soft hover:text-foreground"
+							onclick={() => {
+								if (section.id === SECTION.advanced) advancedOpen = true;
+							}}
+						>
+							{section.label}
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</nav>
 
-			<div class="space-y-1.5">
-				<label for="branch" class="block text-sm font-medium text-foreground">Branch</label>
-				{#key branchSource}
-					<BranchCombobox
-						id="branch"
-						value={branch}
-						branches={branchOptions}
-						loading={branchesQuery.isPending && branchSource !== null}
-						allowOther
-						invalid={Boolean(branchError)}
-						describedBy={branchError ? 'branch-error' : undefined}
-						onValueChange={setBranch}
+		<form onsubmit={handleSave} novalidate class="surface-card flex flex-col p-4 sm:p-6">
+			<section
+				id={SECTION.general}
+				aria-labelledby="{SECTION.general}-title"
+				class="flex scroll-mt-4 flex-col gap-5"
+			>
+				<h2 id="{SECTION.general}-title" class="font-sans text-base font-semibold text-foreground">
+					Umum
+				</h2>
+				<FormField
+					id="projectName"
+					label="Nama proyek"
+					placeholder="Nama proyek"
+					required
+					bind:value={() => name, setName}
+					error={nameError}
+				/>
+
+				<div class="space-y-1.5">
+					<label for="branch" class="block text-sm font-medium text-foreground">Branch</label>
+					{#key branchSource}
+						<BranchCombobox
+							id="branch"
+							value={branch}
+							branches={branchOptions}
+							loading={branchesQuery.isPending && branchSource !== null}
+							allowOther
+							invalid={Boolean(branchError)}
+							describedBy={branchError ? 'branch-error' : undefined}
+							onValueChange={setBranch}
+						/>
+					{/key}
+					{#if branchError}
+						<p id="branch-error" class="text-xs text-error-base">{branchError}</p>
+					{/if}
+				</div>
+
+				<!-- The overview's next steps link here, so the anchor id stays as it is. -->
+				<div id={SETTINGS_ANCHORS.autoDeploy} class="-my-3 scroll-mt-4">
+					<ToggleField
+						title="Auto-deploy"
+						description={isGithubInstallation ? AUTO_DEPLOY_HELP : AUTO_DEPLOY_UNAVAILABLE_HELP}
+						checked={isGithubInstallation && (config?.auto_deploy ?? false)}
+						disabled={!isGithubInstallation}
+						onToggle={() => updateConfig({ auto_deploy: !config?.auto_deploy })}
 					/>
-				{/key}
-				{#if branchError}
-					<p id="branch-error" class="text-xs text-error-base">{branchError}</p>
-				{/if}
-			</div>
+				</div>
 
-			<FormField
-				id="subdomain"
-				label="Subdomain, dibuat otomatis"
-				value={projectQuery.data.slug ?? ''}
-				disabled
-				inputClass="font-mono"
-			/>
-
-			{@render configField(
-				'rootDirectory',
-				'Root directory',
-				'root_directory',
-				'apps/web',
-				ROOT_DIRECTORY_HELP,
-				{ mono: true }
-			)}
-			{@render configField(
-				'port',
-				'Port',
-				'configured_port',
-				String(projectQuery.data.effective_port),
-				`Sekarang ${projectQuery.data.effective_port}. Aplikasimu harus mendengarkan di environment variable PORT.`,
-				{ numeric: true }
-			)}
-			{@render configField(
-				'buildCommand',
-				'Build command',
-				'build_command',
-				'npm run build',
-				BUILD_COMMAND_HELP,
-				{ mono: true }
-			)}
-			{@render configField(
-				'startCommand',
-				'Start command',
-				'start_command',
-				'npm start',
-				START_COMMAND_HELP,
-				{ mono: true }
-			)}
-			{@render configField(
-				SETTINGS_ANCHORS.releaseCommand,
-				RELEASE_COMMAND_LABEL,
-				'release_command',
-				'php artisan migrate --force',
-				RELEASE_COMMAND_HELP,
-				{ mono: true }
-			)}
-
-			{#if config && configLimits}
-				<ProjectReplicasField
-					value={config.replicas}
-					maxReplicas={configLimits.maxReplicas}
-					error={configErrors.replicas}
-					onValueChange={(value) => updateConfig({ replicas: value })}
+				<FormField
+					id="subdomain"
+					label="Subdomain, dibuat otomatis"
+					value={projectQuery.data.slug ?? ''}
+					disabled
+					inputClass="font-mono"
 				/>
-			{/if}
+			</section>
 
-			<!-- The overview's next steps link here, so the anchor id stays as it is. -->
-			<div id={SETTINGS_ANCHORS.autoDeploy} class="scroll-mt-4 border-t border-border">
-				<ToggleField
-					title="Auto-deploy"
-					description={isGithubInstallation ? AUTO_DEPLOY_HELP : AUTO_DEPLOY_UNAVAILABLE_HELP}
-					checked={isGithubInstallation && (config?.auto_deploy ?? false)}
-					disabled={!isGithubInstallation}
-					onToggle={() => updateConfig({ auto_deploy: !config?.auto_deploy })}
-				/>
-			</div>
+			<section
+				id={SECTION.build}
+				aria-labelledby="{SECTION.build}-title"
+				class="mt-6 flex scroll-mt-4 flex-col gap-5 border-t border-border pt-6"
+			>
+				<div>
+					<h2 id="{SECTION.build}-title" class="font-sans text-base font-semibold text-foreground">
+						Build dan start
+					</h2>
+					<p class="mt-1 text-sm text-foreground/70">
+						Kosong berarti dideteksi otomatis dari repository.
+					</p>
+				</div>
+				{@render configField(
+					'rootDirectory',
+					'Root directory',
+					'root_directory',
+					ROOT_DIRECTORY_PLACEHOLDER,
+					ROOT_DIRECTORY_HELP,
+					{ mono: true }
+				)}
+				{@render configField(
+					'port',
+					'Port',
+					'configured_port',
+					DETECTED_PLACEHOLDER,
+					`Sekarang ${projectQuery.data.effective_port}. Aplikasimu harus mendengarkan di environment variable PORT.`,
+					{ numeric: true }
+				)}
+				{@render configField(
+					'buildCommand',
+					'Build command',
+					'build_command',
+					DETECTED_PLACEHOLDER,
+					`${BUILD_COMMAND_HELP} ${BUILD_COMMAND_EXAMPLE}`,
+					{ mono: true }
+				)}
+				{@render configField(
+					'startCommand',
+					'Start command',
+					'start_command',
+					DETECTED_PLACEHOLDER,
+					`${START_COMMAND_HELP} ${START_COMMAND_EXAMPLE}`,
+					{ mono: true }
+				)}
+			</section>
 
-			<p class="text-xs text-foreground/70">
-				Branch, port, command, root directory, dan replika baru dipakai mulai deployment berikutnya.
-				<strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan yang belum
-				tersimpan.
-			</p>
-
-			<div class="flex flex-wrap items-center justify-end gap-3">
-				{#if formError}
-					<p role="alert" class="mr-auto text-sm text-error-dark">{formError}</p>
-				{/if}
-				<span role="status" class="text-sm text-foreground/70">{saveMessage}</span>
-				<Button
-					type="submit"
-					disabled={!draft.isDirty || updateMutation.isPending}
-					aria-busy={updateMutation.isPending}
-				>
-					{#if updateMutation.isPending}
-						<CircleNotch
+			<!-- Closed unless it holds a value: both fields are rare, and either can stop a deployment. -->
+			<section
+				id={SECTION.advanced}
+				aria-labelledby="{SECTION.advanced}-title"
+				class="mt-6 scroll-mt-4 border-t border-border pt-4"
+			>
+				<h2 id="{SECTION.advanced}-title" class="font-sans text-base font-semibold text-foreground">
+					<button
+						type="button"
+						class="flex min-h-control-lg w-full cursor-pointer items-center justify-between gap-2 rounded-control text-left lg:min-h-control-md"
+						aria-expanded={advancedVisible}
+						aria-controls="{SECTION.advanced}-fields"
+						onclick={() => (advancedOpen = !advancedVisible)}
+					>
+						<span>Lanjutan</span>
+						<CaretDown
 							size={16}
-							weight="bold"
-							class="animate-spin motion-reduce:animate-none"
+							class={advancedVisible ? 'shrink-0 rotate-180' : 'shrink-0'}
 							aria-hidden="true"
 						/>
+					</button>
+				</h2>
+				<p class="text-sm text-foreground/70">
+					{RELEASE_COMMAND_LABEL} dan replika. Jarang perlu diubah.
+				</p>
+				<div
+					id="{SECTION.advanced}-fields"
+					class="mt-5 flex flex-col gap-5"
+					hidden={!advancedVisible}
+				>
+					{@render configField(
+						SETTINGS_ANCHORS.releaseCommand,
+						RELEASE_COMMAND_LABEL,
+						'release_command',
+						RELEASE_COMMAND_PLACEHOLDER,
+						`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`,
+						{ mono: true }
+					)}
+
+					{#if config && configLimits}
+						<ProjectReplicasField
+							value={config.replicas}
+							maxReplicas={configLimits.maxReplicas}
+							error={configErrors.replicas}
+							onValueChange={(value) => updateConfig({ replicas: value })}
+						/>
 					{/if}
-					Simpan perubahan
-				</Button>
+				</div>
+			</section>
+
+			<div class="mt-6 flex flex-col gap-4 border-t border-border pt-6">
+				<p class="text-xs text-foreground/70">
+					Branch, port, command, root directory, dan replika baru dipakai mulai deployment
+					berikutnya. <strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan
+					yang belum tersimpan.
+				</p>
+
+				<div class="flex flex-wrap items-center justify-end gap-3">
+					{#if formError}
+						<p role="alert" class="mr-auto text-sm text-error-dark">{formError}</p>
+					{/if}
+					<span role="status" class="text-sm text-foreground/70">{saveMessage}</span>
+					<Button
+						type="submit"
+						disabled={!draft.isDirty || updateMutation.isPending}
+						aria-busy={updateMutation.isPending}
+					>
+						{#if updateMutation.isPending}
+							<CircleNotch
+								size={16}
+								weight="bold"
+								class="animate-spin motion-reduce:animate-none"
+								aria-hidden="true"
+							/>
+						{/if}
+						Simpan perubahan
+					</Button>
+				</div>
 			</div>
 		</form>
 
 		<section
+			id={SECTION.danger}
 			aria-labelledby="danger-zone-title"
-			class="flex w-full flex-col justify-between gap-4 rounded-card border border-error/40 bg-surface p-4 sm:flex-row sm:items-center sm:p-6"
+			class="flex w-full scroll-mt-4 flex-col justify-between gap-4 rounded-card border border-error/40 bg-surface p-4 sm:flex-row sm:items-center sm:p-6"
 		>
 			<div class="min-w-0">
 				<h2 id="danger-zone-title" class="font-sans text-base font-semibold text-foreground">
-					Zona bahaya
+					Zona berbahaya
 				</h2>
 				<p class="mt-1 text-sm text-foreground">
 					Menghapus proyek menghentikan aplikasinya dan tidak bisa dibatalkan.
