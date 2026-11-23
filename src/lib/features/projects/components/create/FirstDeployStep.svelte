@@ -455,9 +455,9 @@
 			</p>
 		{:else if waitedLong && !portSettled}
 			<p class="rounded-control border border-warning/40 bg-warning/10 p-3 text-sm">
-				Analisis masih berjalan, dan ini belum berarti gagal. Kamu tidak perlu menunggu hasilnya:
-				Sakala tetap memilih cara build saat deploy. Kalau repository-mu memakai Dockerfile dengan
-				port selain PORT, isi Port di Pengaturan proyek dulu.
+				Analisis masih berjalan, dan ini belum berarti gagal. Kamu boleh deploy sekarang:
+				deployment-nya menunggu analisis selesai supaya memakai port yang benar, lalu mulai sendiri.
+				Saran variabel dan database dari analisis tidak ditampilkan kalau kamu deploy sekarang.
 			</p>
 		{/if}
 

@@ -733,6 +733,14 @@ describe('new deployment contract', () => {
 		expect(data.failure).toEqual(failure);
 	});
 
+	it('keeps the queue state of a deployment that waits for the project analysis', () => {
+		const { data } = parseDeploymentResponse({
+			data: { ...validDeployment, status: 'queued', queue_state: 'waiting_for_inspection' }
+		});
+
+		expect(data.queue_state).toBe('waiting_for_inspection');
+	});
+
 	it('keeps the failure when its stage is outside the contract', () => {
 		const result = parseDeploymentResponse({
 			data: { ...validDeployment, failure: { ...failure, stage: 'somewhere' } }

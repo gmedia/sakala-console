@@ -54,11 +54,13 @@ describe('FirstDeployStep while inspection stays pending', () => {
 		await expect.element(page.getByRole('button', { name: 'Deploy sekarang' })).toBeDisabled();
 	});
 
-	it('offers Deploy once it took too long, and says when the port matters', async () => {
+	it('offers Deploy once it took too long, and says the deployment waits for the port', async () => {
 		await renderStep({ patienceMs: 20 });
 
-		await expect.element(page.getByText('tidak perlu menunggu hasilnya')).toBeVisible();
-		await expect.element(page.getByText(/Dockerfile dengan\s+port selain PORT/)).toBeVisible();
+		await expect.element(page.getByText('Kamu boleh deploy sekarang')).toBeVisible();
+		await expect
+			.element(page.getByText(/menunggu analisis selesai supaya memakai port/))
+			.toBeVisible();
 		const deploy = page.getByRole('button', { name: 'Deploy sekarang' });
 		await expect.element(deploy).toBeEnabled();
 
