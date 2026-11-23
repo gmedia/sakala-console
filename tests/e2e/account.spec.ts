@@ -593,6 +593,22 @@ test.describe('profile', () => {
 		await tabs.getByRole('link', { name: 'Akun dan keamanan' }).click();
 		await expect(page).toHaveURL(ACCOUNT_TAB);
 		await expect(page.getByLabel('Email baru')).toBeVisible();
+		await expect(tabs.getByRole('link', { name: 'Akun dan keamanan' })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+
+		// Back returns to the tab before, and Forward to the one after, without leaving the page.
+		await page.goBack();
+		await expect(page).toHaveURL('/settings?tab=profile');
+		await expect(tabs.getByRole('link', { name: 'Profil' })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+		await expect(page.getByLabel('Nama lengkap')).toHaveValue(user.name);
+		await page.goForward();
+		await expect(page).toHaveURL(ACCOUNT_TAB);
+		await expect(page.getByLabel('Email baru')).toBeVisible();
 
 		await page.getByRole('button', { name: 'Menu akun pengguna' }).click();
 		await expect(page.getByRole('link', { name: 'Pengaturan' })).toBeVisible();
