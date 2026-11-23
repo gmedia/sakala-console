@@ -24,7 +24,9 @@ describe('limit profile form', () => {
 			'idle_sleep_minutes',
 			'max_replicas',
 			'max_databases',
-			'max_database_storage_mb'
+			'max_database_storage_mb',
+			'max_buckets',
+			'max_bucket_storage_mb'
 		]);
 		for (const field of PROFILE_NUMBER_FIELDS) {
 			expect(Boolean(field.optional), field.key).toBe(field.group === 'optional');
@@ -71,8 +73,25 @@ describe('limit profile form', () => {
 			max_replicas: null,
 			max_databases: null,
 			max_database_storage_mb: null,
+			max_buckets: null,
+			max_bucket_storage_mb: null,
 			default_region: null
 		});
+	});
+
+	it('sends 0 buckets as a value, says the server default is 0, and caps the count at 100', () => {
+		const values = { ...emptyProfileValues(), max_buckets: '0', max_bucket_storage_mb: '2048' };
+		expect(hasOptionalValue(values)).toBe(true);
+		expect(profilePayload('Kelas', values)).toMatchObject({
+			max_buckets: 0,
+			max_bucket_storage_mb: 2048
+		});
+		const buckets = PROFILE_NUMBER_FIELDS.find((field) => field.key === 'max_buckets');
+		expect(buckets).toMatchObject({ label: 'Bucket', min: 0, max: 100 });
+		expect(buckets?.hint).toMatch(/ikut bawaan server \(0 kalau tidak diubah/);
+		expect(
+			invalidProfileLabels('Kelas', { ...values, max_buckets: '101' }).includes('Bucket')
+		).toBe(true);
 	});
 
 	it('sends 0 databases and 0 MB as values, and a chosen region by its slug', () => {
