@@ -137,6 +137,8 @@ Tab Variabel di halaman proyek memakai `EnvImportPanel` yang sama: kunci baru di
 
 Batas itu milik satu workspace. Tanpa `workspace_id` API menjawab untuk workspace pribadi, jadi Console hanya mengirim parameter itu untuk workspace tim (`limitsWorkspaceId()`), dan key cache-nya `['pilot-limits', id ?? 'personal']`, sehingga invalidasi `queryKeys.pilotLimits` tetap menyegarkan semua workspace.
 
+Kartu Batas workspace juga menampilkan `quotas.max_builds_per_hour` (`workspaceBuildsPerHourSummary()` di `features/workspaces/limits.ts`) dengan nama yang sama dengan kolom profil batas di admin, "Build per jam". Nilai di `pilot-limits` sudah efektif (dari profil atau setelan server), jadi `null` berarti tidak dibatasi, bukan "Bawaan" seperti di profil batas. API lama tanpa field ini tidak mendapat barisnya.
+
 ## Workspace
 
 Setiap project dimiliki workspace (ADR-018 di sakala-landing). Setiap user punya workspace pribadi, dan workspace tim punya peran `owner`, `member`, dan `viewer`. Kontraknya ada di `src/lib/api/resources/workspaces.ts`. Schema Zod di sana ditulis sebelum workspace masuk ke OpenAPI yang di-generate, dan tetap menjadi kontrak runtime-nya. Schema itu diuji terhadap respons yang benar-benar dikirim API di `tests/fixtures/workspaces/*.json`, diambil dari factory sakala-api lewat test Pest sekali jalan yang tidak di-commit ke API. Field debug Laravel (`exception`, `file`, `line`, `trace`) dibuang dari fixture, karena production tidak mengirimnya.

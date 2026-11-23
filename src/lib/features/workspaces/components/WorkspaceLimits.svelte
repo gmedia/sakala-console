@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PilotLimits } from '$lib/api/resources/pilot-limits';
 	import {
+		workspaceBuildsPerHourSummary,
 		workspaceIdleSleepSummary,
 		workspaceLimitRows,
 		workspaceReplicasSummary
@@ -12,6 +13,7 @@
 	const rows = $derived(limits ? workspaceLimitRows(limits) : []);
 	const idleSleep = $derived(limits ? workspaceIdleSleepSummary(limits) : null);
 	const replicas = $derived(limits ? workspaceReplicasSummary(limits) : null);
+	const buildsPerHour = $derived(limits ? workspaceBuildsPerHourSummary(limits) : null);
 </script>
 
 <section class="surface-card flex flex-col gap-3 p-4 sm:p-6" aria-labelledby="limits-heading">
@@ -48,6 +50,9 @@
 		{/if}
 		{#if replicas}
 			<p class="text-sm text-foreground" data-testid="workspace-replicas">{replicas}</p>
+		{/if}
+		{#if buildsPerHour}
+			<p class="text-sm text-foreground" data-testid="workspace-builds-per-hour">{buildsPerHour}</p>
 		{/if}
 		<p class="text-xs text-muted">
 			Batas berlaku untuk seluruh workspace, dipakai bersama semua anggota. Admin Sakala bisa

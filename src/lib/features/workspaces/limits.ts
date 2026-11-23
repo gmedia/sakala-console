@@ -72,3 +72,19 @@ export function workspaceIdleSleepSummary(
 		? idleSleepLine(minutes)
 		: `${IDLE_SLEEP_LABEL}: ${formatIdleSleep(minutes)}, lalu menyala lagi saat URL-nya dibuka.`;
 }
+
+/** The same name the admin limit profile uses for the column and the field. */
+const BUILDS_PER_HOUR_LABEL = 'Build per jam';
+
+/**
+ * The build rate limit for members. The API sends the value already resolved from the profile or the
+ * server setting, so there is no "Bawaan" here: `null` means the server sets no limit, and
+ * `undefined` is an API that does not report it yet. What counts mirrors sakala-api's
+ * `PilotRuntimeLimitService::checkBuildRateLimit()`, like the admin form's hint.
+ */
+export function workspaceBuildsPerHourSummary(limits: Pick<PilotLimits, 'quotas'>): string | null {
+	const perHour = limits.quotas.max_builds_per_hour;
+	if (perHour === undefined) return null;
+	if (perHour === null) return `${BUILDS_PER_HOUR_LABEL}: tidak dibatasi.`;
+	return `${BUILDS_PER_HOUR_LABEL}: paling banyak ${count.format(perHour)} deployment yang membangun image dalam 60 menit terakhir, termasuk yang gagal. Redeploy yang memakai ulang image tidak dihitung.`;
+}
