@@ -1,0 +1,10 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kuota 900 MB melebihi sisa jatah penyimpanan bucket workspace ini (612 dari 1000 MB sudah dialokasikan). Kecilkan kuotanya, kecilkan atau hapus bucket lain, atau minta admin menaikkan jatahnya.",
+		"code": "BUCKET_STORAGE_LIMIT_EXCEEDED",
+		"limit_mb": 1000,
+		"current_mb": 612,
+		"requested_mb": 900
+	}
+}

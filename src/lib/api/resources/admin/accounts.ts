@@ -138,6 +138,10 @@ export const limitProfileSchema = z.object({
 	max_databases: z.number().nullable().optional(),
 	/** Total MB of the workspace's managed databases: `null` follows the server, `0` locks them all. */
 	max_database_storage_mb: z.number().nullable().optional(),
+	/** Managed buckets per workspace: `null` follows the server (0 unless set), `0` allows none. */
+	max_buckets: z.number().nullable().optional(),
+	/** MB the workspace's bucket quotas may reserve: `null` follows the server, `0` allows none. */
+	max_bucket_storage_mb: z.number().nullable().optional(),
 	workspaces_count: z.number().optional(),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
@@ -244,6 +248,8 @@ export type LimitProfileFields = Pick<
 	| 'default_region'
 	| 'max_databases'
 	| 'max_database_storage_mb'
+	| 'max_buckets'
+	| 'max_bucket_storage_mb'
 >;
 
 export async function listLimitProfiles(params: QueryParams) {

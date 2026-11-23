@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom redeploy attached harus bernilai true atau false.",
+		"errors": {
+			"redeploy_attached": ["Kolom redeploy attached harus bernilai true atau false."]
+		}
+	}
+}

@@ -6,7 +6,8 @@ type GeneratedPilotLimits = components['schemas']['PilotLimitsResource'];
 type GeneratedQuotas = GeneratedPilotLimits['quotas'];
 /**
  * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas,
- * the database quotas with managed databases, `max_builds_per_hour` with the build rate limit.
+ * the database quotas with managed databases, `max_builds_per_hour` with the build rate limit, and
+ * the bucket quotas with managed buckets (sakala-api #204).
  */
 type OptionalQuotaKey =
 	| 'max_active_containers'
@@ -16,7 +17,22 @@ type OptionalQuotaKey =
 	| 'max_databases'
 	| 'current_databases_count'
 	| 'max_database_storage_mb'
-	| 'current_database_storage_bytes';
+	| 'current_database_storage_bytes'
+	| 'max_buckets'
+	| 'current_buckets_count'
+	| 'max_bucket_storage_mb'
+	| 'current_bucket_storage_mb'
+	| 'current_bucket_usage_bytes';
+
+/**
+ * The generated document types `buckets.default_quota_mb` as the literal `0`: Scramble reads the
+ * property's initial value in PilotLimitsResource instead of its `int` type. The API sends the
+ * configured quota (256 MB by default), so the Console reads a number. To fix in sakala-api #204
+ * (an `@var int` on the property or an explicit type in the resource).
+ */
+type BucketsContract = Omit<GeneratedPilotLimits['buckets'], 'default_quota_mb'> & {
+	default_quota_mb: number;
+};
 
 /**
  * The part of the resource the Console reads. The workspace, container, replica, idle sleep, and
@@ -32,6 +48,7 @@ type PilotLimitsContract = Pick<
 	limit_profile?: GeneratedPilotLimits['limit_profile'];
 	project_idle_sleep_minutes?: GeneratedPilotLimits['project_idle_sleep_minutes'];
 	databases?: GeneratedPilotLimits['databases'];
+	buckets?: BucketsContract;
 };
 
 const pilotLimitsResponseSchema = z.object({
@@ -59,7 +76,17 @@ const pilotLimitsResponseSchema = z.object({
 			current_databases_count: z.number().optional(),
 			/** Total size the workspace's databases may reach, in MB (1 MB is 1024 × 1024 bytes). */
 			max_database_storage_mb: z.number().optional(),
-			current_database_storage_bytes: z.number().optional()
+			current_database_storage_bytes: z.number().optional(),
+			/** Managed buckets the workspace may hold; `0` allows none. */
+			max_buckets: z.number().optional(),
+			/** Every live bucket except those whose creation failed. */
+			current_buckets_count: z.number().optional(),
+			/** MB the bucket quotas may reserve together; `0` refuses new buckets and increases. */
+			max_bucket_storage_mb: z.number().optional(),
+			/** MB the quotas reserve now (allocated, not used). */
+			current_bucket_storage_mb: z.number().optional(),
+			/** What the buckets hold, from the storage nodes' last reports. */
+			current_bucket_usage_bytes: z.number().optional()
 		}),
 		runtime_defaults: z.object({
 			memory_mb: z.number(),
@@ -78,7 +105,13 @@ const pilotLimitsResponseSchema = z.object({
 		 * Whether this installation offers managed databases right now: a database server is connected
 		 * and answers. Absent from an API before sakala-api #182, which read as available.
 		 */
-		databases: z.object({ available: z.boolean() }).optional()
+		databases: z.object({ available: z.boolean() }).optional(),
+		/**
+		 * Whether this installation offers managed buckets right now, and the quota a new one gets
+		 * unless asked otherwise. Absent from an API without buckets, which the Console treats as
+		 * "no bucket feature": no navigation entry and no bucket offers.
+		 */
+		buckets: z.object({ available: z.boolean(), default_quota_mb: z.number() }).optional()
 	})
 }) satisfies z.ZodType<{ data: PilotLimitsContract }>;
 

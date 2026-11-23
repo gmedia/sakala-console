@@ -1,0 +1,33 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a2090a-47d8-7e8b-9405-3b998e967490",
+			"name": "unggahan-toko",
+			"status": "ready",
+			"region": "jkt",
+			"quota_mb": 256,
+			"pending_quota_mb": null,
+			"size_bytes": 37748736,
+			"usage_checked_at": "2026-11-23T15:33:18+00:00",
+			"projects": [
+				{
+					"id": "01a2090a-4841-7bdf-8ec2-7e3d7114dd0f",
+					"name": "toko-kopi-web",
+					"slug": "toko-kopi-web"
+				}
+			],
+			"connection": {
+				"endpoint": "https://s3.sakala.test",
+				"region": "us-east-1",
+				"bucket": "b-7tc7lxveeo7ydkqx2bnn",
+				"access_key_id": "SKBLNVJ5BKFBVZIE1WMT",
+				"path_style": true
+			},
+			"last_failure": null,
+			"key_rotation": null,
+			"created_at": "2026-11-23T15:33:18+00:00",
+			"updated_at": "2026-11-23T15:33:18+00:00"
+		}
+	}
+}

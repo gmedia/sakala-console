@@ -47,7 +47,11 @@ describe('production source holds no leftover personal or sample data', () => {
 		expect(existsSync(join(projects, 'components/create/DeployStep.svelte'))).toBe(false);
 
 		const production = sourceFiles(join(ROOT, 'src')).filter(
-			(path) => !/\.(test|spec)\.ts$/.test(path) && !path.endsWith('schema.d.ts')
+			// The generated API document and its types quote the API's own examples.
+			(path) =>
+				!/\.(test|spec)\.ts$/.test(path) &&
+				!path.endsWith('schema.d.ts') &&
+				!path.endsWith('openapi.json')
 		);
 		const hits = production.filter((path) => {
 			const content = readFileSync(path, 'utf8');

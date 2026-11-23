@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Belum ada server penyimpanan di region sby. Pilih region lain, atau kosongkan agar bucket dibuat di region mana pun.",
+		"code": "BUCKET_REGION_UNAVAILABLE",
+		"region": "sby"
+	}
+}

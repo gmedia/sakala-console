@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Penggantian secret key sebelumnya masih berjalan. Tunggu sampai selesai, lalu coba lagi.",
+		"code": "BUCKET_BUSY"
+	}
+}

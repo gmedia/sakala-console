@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Bucket ini dikunci admin Sakala, jadi belum bisa dipasang ke proyek. Hubungi admin untuk membukanya.",
+		"code": "BUCKET_LOCKED"
+	}
+}

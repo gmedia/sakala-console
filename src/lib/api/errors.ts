@@ -90,6 +90,30 @@ export const DATABASE_ERROR_CODES = {
 	unavailable: 'DATABASE_UNAVAILABLE'
 } as const;
 
+/**
+ * Refusals of the managed bucket endpoints (BucketRuleException in sakala-api, ADR-021). Their
+ * extra fields are read through `parseBucketRefusal()` in `api/resources/bucket-refusals.ts`.
+ */
+export const BUCKET_ERROR_CODES = {
+	limitExceeded: 'BUCKET_LIMIT_EXCEEDED',
+	storageLimitExceeded: 'BUCKET_STORAGE_LIMIT_EXCEEDED',
+	regionUnavailable: 'BUCKET_REGION_UNAVAILABLE',
+	capacityUnavailable: 'BUCKET_CAPACITY_UNAVAILABLE',
+	notReady: 'BUCKET_NOT_READY',
+	locked: 'BUCKET_LOCKED',
+	inUse: 'BUCKET_IN_USE',
+	busy: 'BUCKET_BUSY',
+	projectAlreadyAttached: 'PROJECT_BUCKET_ALREADY_ATTACHED',
+	/** No storage server takes new buckets now; only refused for a bucket made for a project. */
+	unavailable: 'BUCKET_UNAVAILABLE',
+	endpointUnavailable: 'BUCKET_ENDPOINT_UNAVAILABLE',
+	/**
+	 * The key is being rotated and the node has not confirmed which secret works, or the rotation
+	 * ended `unknown`. Refuses credentials and deploys of attached projects until it settles.
+	 */
+	keyRotating: 'BUCKET_KEY_ROTATING'
+} as const;
+
 export type ValidationErrors = Record<string, string[]>;
 
 export type ApiErrorMeta = {
