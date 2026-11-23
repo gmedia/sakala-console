@@ -1,6 +1,7 @@
 import { page } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { apiErrorFromResponse } from '$lib/api/errors';
 import { inviteToWorkspace, parseInvitation } from '$lib/api/resources/workspaces';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import { errorFromFixture, getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
@@ -17,11 +18,11 @@ vi.mock('$lib/api/resources/workspaces', async (importOriginal) => ({
 const WORKSPACE_ID = '01a1cb4a-de55-72db-b810-80611beec465';
 const invitation = parseInvitation(getWorkspaceFixture('invitation-create').body);
 
-const open = () =>
+const open = (memberEmails: string[] = []) =>
 	render(QueryTestHost, {
 		props: {
 			component: InviteMemberDialog,
-			props: { open: true, workspaceId: WORKSPACE_ID, workspaceName: 'Tim Facility' }
+			props: { open: true, workspaceId: WORKSPACE_ID, workspaceName: 'Tim Facility', memberEmails }
 		}
 	});
 const dialog = () => page.getByRole('dialog');
@@ -99,20 +100,104 @@ describe('InviteMemberDialog', () => {
 
 		await expect
 			.element(dialog().getByRole('alert'))
-			.toHaveTextContent('Orang ini sudah menjadi anggota workspace.');
-		await expect.element(email()).toHaveValue('bima@kampus.test');
+			.toHaveTextContent('bima@kampus.test sudah menjadi anggota workspace ini.');
+		await expect.element(dialog()).toBeInTheDocument();
 	});
 
-	it('puts the API’s validation message on the email field', async () => {
+	it('names the address beside the API’s validation message', async () => {
 		vi.mocked(inviteToWorkspace).mockRejectedValue(errorFromFixture('invitation-create-invalid'));
 		await open();
 		await email().fill('dewi@kampus.test');
 		await send().click();
 
 		await expect
-			.element(
-				dialog().getByText('Kolom email harus berupa alamat email, misalnya nama@contoh.com.')
-			)
-			.toBeVisible();
+			.element(dialog().getByRole('alert'))
+			.toHaveTextContent(
+				'dewi@kampus.test: Kolom email harus berupa alamat email, misalnya nama@contoh.com.'
+			);
+		// The address stays in the field, to fix and send again.
+		await expect.element(email()).toHaveValue('dewi@kampus.test');
+	});
+
+	describe('several addresses', () => {
+		const pasted = [
+			'fajar@kampus.test',
+			'gita@kampus',
+			'hana@kampus.test',
+			'bima@kampus.test',
+			'indra@kampus.test'
+		].join('\n');
+
+		/** What a paste does to the field: the text, plus the paste event that shows the review. */
+		async function paste(value: string) {
+			await email().fill(value);
+			email()
+				.element()
+				.dispatchEvent(new Event('paste', { bubbles: true }));
+		}
+
+		it('shows what will be left out before sending, and counts the rest on the button', async () => {
+			await open(['bima@kampus.test']);
+			await paste(pasted);
+
+			const review = page.getByTestId('invite-review');
+			await expect
+				.element(review)
+				.toHaveTextContent('3 alamat siap diundang, 2 tidak ikut dikirim');
+			await expect
+				.element(review)
+				.toHaveTextContent('gita@kampus belum berupa alamat email lengkap');
+			await expect
+				.element(review)
+				.toHaveTextContent('bima@kampus.test sudah menjadi anggota workspace ini.');
+			await expect
+				.element(dialog().getByRole('button', { name: 'Kirim 3 undangan' }))
+				.toBeVisible();
+		});
+
+		it('invites the three that can be invited, and keeps the malformed one to fix', async () => {
+			vi.mocked(inviteToWorkspace).mockResolvedValue(invitation);
+			await open(['bima@kampus.test']);
+			await paste(pasted);
+			await dialog().getByRole('button', { name: 'Kirim 3 undangan' }).click();
+
+			await expect
+				.poll(() => vi.mocked(inviteToWorkspace).mock.calls.map(([, body]) => body.email))
+				.toEqual(['fajar@kampus.test', 'hana@kampus.test', 'indra@kampus.test']);
+			const outcome = dialog().getByRole('alert');
+			await expect.element(outcome).toHaveTextContent('3 undangan terkirim.');
+			await expect
+				.element(outcome)
+				.toHaveTextContent('gita@kampus belum berupa alamat email lengkap');
+			await expect.element(outcome).toHaveTextContent('bima@kampus.test sudah menjadi anggota');
+			await expect.element(email()).toHaveValue('gita@kampus');
+		});
+
+		it('stops at the invitation limit and says how many were not sent', async () => {
+			vi.mocked(inviteToWorkspace)
+				.mockResolvedValueOnce(invitation)
+				.mockRejectedValueOnce(apiErrorFromResponse(429, { retryAfterSeconds: 120 }));
+			await open();
+			await paste('a@kampus.test\nb@kampus.test\nc@kampus.test');
+			await dialog().getByRole('button', { name: 'Kirim 3 undangan' }).click();
+
+			await expect
+				.element(dialog().getByRole('alert'))
+				.toHaveTextContent(
+					/1 undangan terkirim\..*2 alamat belum dikirim\. Terlalu banyak permintaan/
+				);
+			expect(inviteToWorkspace).toHaveBeenCalledTimes(2);
+			await expect.element(email()).toHaveValue('b@kampus.test\nc@kampus.test');
+		});
+
+		it('closes and says how many went out when every address was sent', async () => {
+			vi.mocked(inviteToWorkspace).mockResolvedValue(invitation);
+			await open();
+			await email().fill('a@kampus.test, b@kampus.test');
+			await dialog().getByRole('button', { name: 'Kirim 2 undangan' }).click();
+
+			await expect.element(dialog()).not.toBeInTheDocument();
+			expect(inviteToWorkspace).toHaveBeenCalledTimes(2);
+		});
 	});
 });

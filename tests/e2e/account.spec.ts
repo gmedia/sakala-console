@@ -19,6 +19,9 @@ const user = {
 
 type User = typeof user;
 
+/** Email, password, data export and account deletion: Pengaturan opens on Profil by default. */
+const ACCOUNT_TAB = '/settings?tab=account';
+
 function reply(route: Route, status: number, body?: unknown, headers?: Record<string, string>) {
 	if (status === 204) return route.fulfill({ status });
 	return route.fulfill({
@@ -435,7 +438,7 @@ test.describe('account settings', () => {
 			return reply(route, 202, { data: { ...user, pending_email: 'baru@sakala.local' } });
 		});
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 		await page.getByLabel('Email baru').fill('baru@sakala.local');
 		await page.getByRole('textbox', { name: 'Kata sandi saat ini' }).fill('kata-sandi');
 		await page.getByRole('button', { name: 'Ubah email' }).click();
@@ -448,7 +451,7 @@ test.describe('account settings', () => {
 	test('a pending address from the API is shown on load', async ({ page }) => {
 		await mockSession(page, { pending_email: 'baru@sakala.local' });
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 
 		await expect(page.getByRole('status').filter({ hasText: 'Cek email baru' })).toContainText(
 			'baru@sakala.local'
@@ -466,7 +469,7 @@ test.describe('account settings', () => {
 			})
 		);
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 		await page.getByLabel('Email baru').fill('baru@sakala.local');
 		const password = page.getByRole('textbox', { name: 'Kata sandi saat ini' });
 		await password.fill('salah');
@@ -486,7 +489,7 @@ test.describe('account settings', () => {
 			return reply(route, 200, { data: user });
 		});
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 
 		await expect(page.getByLabel('Kata sandi baru', { exact: true })).toHaveCount(0);
 		await page.getByRole('button', { name: 'Ubah', exact: true }).click();
@@ -517,7 +520,7 @@ test.describe('account settings', () => {
 			})
 		);
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 		await page.getByRole('button', { name: 'Ubah', exact: true }).click();
 		const current = page.locator('#current-password');
 		await current.fill('salah');
@@ -538,7 +541,7 @@ test.describe('account settings', () => {
 			return reply(route, 200, { data: { ...user, has_password: true } });
 		});
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 
 		// Changing the email needs a password to confirm with, so it waits for this one.
 		await expect(page.getByRole('button', { name: 'Ubah email' })).toHaveCount(0);
@@ -560,7 +563,7 @@ test.describe('account settings', () => {
 	test('does not claim rules or features the API lacks', async ({ page }) => {
 		await mockSession(page);
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 
 		await expect(page.locator('main')).not.toContainText('akses API');
 		await expect(page.locator('main')).not.toContainText('kata sandi sementara');
@@ -571,6 +574,31 @@ test.describe('account settings', () => {
 });
 
 test.describe('profile', () => {
+	test('/profile opens the Profil tab of Pengaturan, which the account menu reaches in one entry', async ({
+		page
+	}) => {
+		await mockSession(page);
+
+		await page.goto('/profile');
+
+		await expect(page).toHaveURL('/settings?tab=profile');
+		await expect(page.getByRole('heading', { name: 'Pengaturan', exact: true })).toBeVisible();
+		const tabs = page.getByRole('navigation', { name: 'Bagian pengaturan akun' });
+		await expect(tabs.getByRole('link', { name: 'Profil' })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+		await expect(page.getByLabel('Nama lengkap')).toHaveValue(user.name);
+
+		await tabs.getByRole('link', { name: 'Akun dan keamanan' }).click();
+		await expect(page).toHaveURL(ACCOUNT_TAB);
+		await expect(page.getByLabel('Email baru')).toBeVisible();
+
+		await page.getByRole('button', { name: 'Menu akun pengguna' }).click();
+		await expect(page.getByRole('link', { name: 'Pengaturan' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Lihat profil' })).toHaveCount(0);
+	});
+
 	test('saves name and username through the API and updates the sidebar', async ({ page }) => {
 		await mockSession(page);
 		const bodies: unknown[] = [];
@@ -782,7 +810,7 @@ test.describe('notifications', () => {
 			reply(route, 200, { data: { count } })
 		);
 
-		await page.goto('/settings');
+		await page.goto(ACCOUNT_TAB);
 		await expect(page.getByRole('heading', { name: 'Pengaturan', exact: true })).toBeVisible();
 		await expect(page.getByTestId('bell-unread-dot')).toHaveCount(0);
 
@@ -963,7 +991,7 @@ test.describe('a session that ends mid-way', () => {
 		);
 		await page.goto('/profile');
 
-		await expect(page).toHaveURL(/\/login\?returnTo=%2Fprofile$/);
+		await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings%3Ftab%3Dprofile$/);
 		await expect(page.getByText('Sesi kamu berakhir, silakan masuk lagi.')).toBeVisible();
 	});
 
@@ -972,7 +1000,7 @@ test.describe('a session that ends mid-way', () => {
 
 		await page.goto('/profile');
 
-		await expect(page).toHaveURL(/\/login\?returnTo=%2Fprofile$/);
+		await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings%3Ftab%3Dprofile$/);
 		await expect(page.getByRole('heading', { name: 'Selamat datang' })).toBeVisible();
 		await expect(page.getByText('Sesi kamu berakhir')).toHaveCount(0);
 	});
@@ -987,7 +1015,7 @@ test.describe('a session that ends mid-way', () => {
 		await page.getByLabel('Nama lengkap').fill('Rani W');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 
-		await expect(page).toHaveURL(/\/login\?returnTo=%2Fprofile$/);
+		await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings%3Ftab%3Dprofile$/);
 	});
 
 	test('nothing from the old session survives for whoever logs in next', async ({ page }) => {

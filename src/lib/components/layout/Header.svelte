@@ -34,7 +34,6 @@
 	const pageTitle = $derived.by(() => {
 		const path = page.url.pathname;
 		if (path.startsWith('/notifications')) return 'Notifikasi';
-		if (path.startsWith('/profile')) return 'Profil saya';
 		if (path.startsWith('/settings')) return 'Pengaturan';
 		if (path.startsWith('/feedback')) return 'Kirim masukan';
 		if (path.startsWith('/projects/new')) return 'Proyek baru';

@@ -803,7 +803,6 @@ test.describe('Projects list page', () => {
 		await expect(profileTrigger).toBeVisible();
 		await profileTrigger.click();
 
-		await expect(mobileNav.getByRole('link', { name: 'Lihat profil' })).toBeVisible();
 		await expect(mobileNav.getByRole('link', { name: 'Pengaturan' })).toBeVisible();
 		await expect(mobileNav.getByRole('button', { name: 'Keluar' })).toBeVisible();
 	});

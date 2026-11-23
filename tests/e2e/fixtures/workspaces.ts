@@ -71,6 +71,9 @@ export const CLOSED_LINK_TOKENS = {
 
 export type Persona = 'owner' | 'viewer' | 'invitee';
 
+/** sakala-api `sakala.workspaces.invitation_ttl_hours` by default: 168 hours. */
+const INVITATION_TTL_MS = 168 * 60 * 60 * 1000;
+
 const users: Record<Persona, typeof signedInUser> = {
 	owner: {
 		...signedInUser,
@@ -357,13 +360,17 @@ export async function mockWorkspaceApi(page: Page, options: WorkspaceOptions) {
 				if (list.some((member) => member.user.email === email)) {
 					return replay(route, 'invitation-create-member');
 				}
+				// Like the API: a pending invitation to the same address is replaced, not kept beside it.
+				const kept = pending.filter((invitation) => invitation.email !== email);
 				const created: Invitation = {
 					...(captured('invitation-create').body!.data as Invitation),
-					id: `01a1cb4a-bbbb-7000-8000-00000000000${pending.length}`,
+					id: `01a1cb4a-bbbb-7000-8000-00000000${String(calls.invite.length).padStart(4, '0')}`,
 					email,
-					role: payload.role as Role
+					role: payload.role as Role,
+					// A new invitation runs for the API's default 168 hours from now.
+					expires_at: new Date(Date.now() + INVITATION_TTL_MS).toISOString()
 				};
-				pending.unshift(created);
+				invitations.set(workspace.id, [created, ...kept]);
 				return json(route, 201, { data: created });
 			}
 			if (method === 'DELETE') {

@@ -119,6 +119,77 @@ test.describe('team workspaces', () => {
 		await expect(dialog.getByRole('alert')).toContainText('sudah menjadi anggota workspace');
 	});
 
+	test('pasting five addresses invites the three that can be invited, and names the other two', async ({
+		page
+	}) => {
+		const { calls } = await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto(teamPage);
+		await expect(page.getByTestId('member-row')).toHaveCount(3);
+
+		await page.getByRole('button', { name: 'Undang anggota' }).click();
+		const dialog = page.getByRole('dialog');
+		const field = dialog.getByLabel('Email');
+		await expect(field).toBeFocused();
+		// A column copied from a spreadsheet: one malformed address, one that is already a member.
+		const column = [
+			'fajar@kampus.test',
+			'gita@kampus',
+			'hana@kampus.test',
+			memberMember.user.email!,
+			'indra@kampus.test'
+		].join('\n');
+		await page.evaluate((text) => {
+			const data = new DataTransfer();
+			data.setData('text/plain', text);
+			document.activeElement?.dispatchEvent(
+				new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true })
+			);
+		}, column);
+		await field.fill(column);
+
+		await expect(dialog.getByTestId('invite-review')).toContainText(
+			'3 alamat siap diundang, 2 tidak ikut dikirim'
+		);
+		await dialog.getByRole('button', { name: 'Kirim 3 undangan' }).click();
+
+		const outcome = dialog.getByRole('alert');
+		await expect(outcome).toContainText('3 undangan terkirim.');
+		await expect(outcome).toContainText('gita@kampus belum berupa alamat email lengkap');
+		await expect(outcome).toContainText(`${memberMember.user.email} sudah menjadi anggota`);
+		expect(calls.invite.map((body) => body.email)).toEqual([
+			'fajar@kampus.test',
+			'hana@kampus.test',
+			'indra@kampus.test'
+		]);
+		await expect(field).toHaveValue('gita@kampus');
+
+		await dialog.getByRole('button', { name: 'Batal' }).click();
+		for (const address of ['fajar@kampus.test', 'hana@kampus.test', 'indra@kampus.test']) {
+			await expect(page.getByTestId('invitation-row').filter({ hasText: address })).toHaveCount(1);
+		}
+	});
+
+	test('"Kirim ulang" renews an expired invitation with the same address and role', async ({
+		page
+	}) => {
+		const { calls } = await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto(teamPage);
+
+		const row = page.getByTestId('invitation-row').filter({ hasText: 'baru@kampus.test' });
+		await expect(row).toContainText('Kedaluwarsa');
+		await row.getByRole('button', { name: 'Kirim ulang undangan untuk baru@kampus.test' }).click();
+
+		await expect(
+			page.getByText(/Undangan baru dikirim ke baru@kampus.test, berlaku sampai/)
+		).toBeVisible();
+		expect(calls.invite).toEqual([{ email: 'baru@kampus.test', role: 'viewer' }]);
+		// One row for the address, with a link that works again.
+		await expect(row).toHaveCount(1);
+		await expect(row).toContainText('Pengamat');
+		await expect(row).not.toContainText('Kedaluwarsa');
+		await expect(row.getByRole('button', { name: /Kirim ulang/ })).toHaveCount(0);
+	});
+
 	test('changes a member’s role', async ({ page }) => {
 		const { calls } = await mockWorkspaceApi(page, { persona: 'owner' });
 		await page.goto(teamPage);

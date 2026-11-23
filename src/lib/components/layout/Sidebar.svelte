@@ -155,20 +155,6 @@
 
 			<div class="space-y-1">
 				<a
-					href={`${base}/profile`}
-					onclick={handleNavigationClick}
-					class={cn(
-						'flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors',
-						isActive('/profile')
-							? 'bg-primary-50 font-semibold text-primary-dark'
-							: 'text-foreground hover:bg-background-soft'
-					)}
-				>
-					<UserIcon size={18} class="size-4.5 shrink-0" />
-					<span>Lihat profil</span>
-				</a>
-
-				<a
 					href={`${base}/settings`}
 					onclick={handleNavigationClick}
 					class={cn(
