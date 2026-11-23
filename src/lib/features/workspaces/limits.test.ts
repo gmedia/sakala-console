@@ -4,6 +4,7 @@ import { getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
 import {
 	formatIdleSleep,
 	replicasLine,
+	workspaceBuildsPerHourSummary,
 	workspaceIdleSleepSummary,
 	workspaceLimitRows,
 	workspaceReplicasSummary
@@ -75,5 +76,42 @@ describe('replicas in the workspace limits', () => {
 	it('says nothing for an API that does not report replicas, like this recorded answer', () => {
 		expect(quotas.max_replicas).toBeUndefined();
 		expect(workspaceReplicasSummary({ quotas })).toBeNull();
+	});
+});
+
+describe('workspaceBuildsPerHourSummary', () => {
+	const quotas = {
+		max_projects_per_user: 3,
+		max_active_deployments_per_user: 2,
+		max_active_deployments_per_project: 1,
+		current_projects_count: 0,
+		current_active_deployments_count: 0
+	};
+
+	it('says how many builds an hour the workspace may start, and what counts', () => {
+		expect(workspaceBuildsPerHourSummary({ quotas: { ...quotas, max_builds_per_hour: 20 } })).toBe(
+			'Build per jam: paling banyak 20 deployment yang membangun image dalam 60 menit terakhir, termasuk yang gagal. Redeploy yang memakai ulang image tidak dihitung.'
+		);
+	});
+
+	it('says there is no limit when the server sets none', () => {
+		expect(
+			workspaceBuildsPerHourSummary({ quotas: { ...quotas, max_builds_per_hour: null } })
+		).toBe('Build per jam: tidak dibatasi.');
+	});
+
+	it('says nothing for an API that does not report it', () => {
+		expect(workspaceBuildsPerHourSummary({ quotas })).toBeNull();
+	});
+
+	it('is read from the API response', () => {
+		const body = getWorkspaceFixture('pilot-limits-team').body as {
+			data: { quotas: Record<string, unknown> };
+		};
+		const limits = parsePilotLimitsResponse({
+			...body,
+			data: { ...body.data, quotas: { ...body.data.quotas, max_builds_per_hour: 1000 } }
+		});
+		expect(workspaceBuildsPerHourSummary(limits)).toMatch(/^Build per jam: paling banyak 1\.000 /);
 	});
 });

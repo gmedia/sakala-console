@@ -6,7 +6,7 @@ type GeneratedPilotLimits = components['schemas']['PilotLimitsResource'];
 type GeneratedQuotas = GeneratedPilotLimits['quotas'];
 /**
  * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas,
- * the database quotas with managed databases. `max_builds_per_hour` is not read by the Console yet.
+ * the database quotas with managed databases, `max_builds_per_hour` with the build rate limit.
  */
 type OptionalQuotaKey =
 	| 'max_active_containers'
@@ -48,6 +48,11 @@ const pilotLimitsResponseSchema = z.object({
 			current_active_containers_count: z.number().optional(),
 			/** Most replicas per project; `1` means replicas are off for this workspace. */
 			max_replicas: z.number().optional(),
+			/**
+			 * Deployments that build an image the workspace may create per rolling hour, already resolved
+			 * from its limit profile or the server setting. `null` means no limit.
+			 */
+			max_builds_per_hour: z.number().nullable().optional(),
 			/** Managed databases the workspace may hold; `0` allows none. */
 			max_databases: z.number().optional(),
 			/** Every live database except those whose creation failed. */

@@ -10,6 +10,18 @@
 		/** A reference line rather than data, such as a limit. */
 		dashed?: boolean;
 	};
+
+	/** An event on the time axis, drawn as a vertical line, such as a deployment going live. */
+	export type ChartMarker = {
+		/** Unix seconds. */
+		t: number;
+		/** What the tooltip leads with: `Deployment #12`. */
+		title: string;
+		/** The line under it, such as the commit message. */
+		detail: string;
+		/** When it happened, in words: `23 Nov 14.30`. */
+		time: string;
+	};
 </script>
 
 <script lang="ts">
@@ -35,6 +47,8 @@
 		legend?: boolean;
 		/** Fewer, wider-spaced ticks and no cursor, for a small chart that only shows the shape. */
 		compact?: boolean;
+		/** Vertical lines at these times, with a tooltip under the cursor. Not on a compact chart. */
+		markers?: readonly ChartMarker[];
 	};
 
 	let {
@@ -48,11 +62,15 @@
 		increments,
 		height = 160,
 		legend = true,
-		compact = false
+		compact = false,
+		markers = []
 	}: Props = $props();
 
 	let container: HTMLDivElement | undefined = $state();
 	let palette: HTMLDivElement | undefined = $state();
+	/** The marker under the cursor, and where its line is, in px from the chart's left edge. */
+	let hovered: { marker: ChartMarker; x: number; top: number; alignRight: boolean } | null =
+		$state(null);
 
 	const LINE_WIDTH = { primary: 2, soft: 1.5, reference: 1.5 } as const;
 	const REFERENCE_DASH = [6, 4];
@@ -66,6 +84,13 @@
 	const NO_VALUE = '–';
 	/** Least room between ticks on a compact chart, in px: about three times and two values. */
 	const COMPACT_TICK_SPACE = { x: 48, y: 28 } as const;
+	/** A marker is a hairline in the event ink, with a cap so it never reads as a grid line. */
+	const MARKER_LINE_WIDTH_PX = 1;
+	const MARKER_CAP_RADIUS_PX = 4;
+	/** Half the hover target: 24 px wide around a 1 px line, so nobody has to land on the line. */
+	const MARKER_HIT_PX = 12;
+	/** Room between the line and its tooltip. */
+	const TOOLTIP_OFFSET_PX = 8;
 
 	/** The design tokens as colours the canvas understands, read off the hidden swatches below. */
 	function readPalette(root: HTMLElement) {
@@ -76,6 +101,7 @@
 			soft: colour('soft'),
 			band: colour('band'),
 			reference: colour('reference'),
+			marker: colour('marker'),
 			axis: colour('axis'),
 			grid: colour('grid'),
 			font: `${AXIS_FONT_SIZE_PX}px ${getComputedStyle(root).fontFamily}`
@@ -123,7 +149,68 @@
 		return null;
 	}
 
-	function options(width: number, colours: ReturnType<typeof readPalette>): uPlot.Options {
+	/** The markers inside the visible window, with their x in CSS px from the plot's left edge. */
+	function visibleMarkers(plot: uPlot, list: readonly ChartMarker[]) {
+		const { min, max } = plot.scales.x;
+		if (min == null || max == null) return [];
+		return list
+			.filter((marker) => marker.t >= min && marker.t <= max)
+			.map((marker) => ({ marker, x: plot.valToPos(marker.t, 'x') }));
+	}
+
+	/** One hairline per marker across the plot, capped at the top, drawn over the series. */
+	function drawMarkers(plot: uPlot, list: readonly ChartMarker[], ink: string) {
+		const ratio = uPlot.pxRatio;
+		const { top, height } = plot.bbox;
+		const { ctx } = plot;
+		ctx.save();
+		ctx.strokeStyle = ink;
+		ctx.fillStyle = ink;
+		ctx.lineWidth = MARKER_LINE_WIDTH_PX * ratio;
+		for (const { marker } of visibleMarkers(plot, list)) {
+			// Whole device pixels plus half the width keep a 1 px line sharp.
+			const x = Math.round(plot.valToPos(marker.t, 'x', true)) + ctx.lineWidth / 2;
+			ctx.beginPath();
+			ctx.moveTo(x, top);
+			ctx.lineTo(x, top + height);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.arc(x, top, MARKER_CAP_RADIUS_PX * ratio, 0, 2 * Math.PI);
+			ctx.fill();
+		}
+		ctx.restore();
+	}
+
+	/** The marker nearest the cursor, within reach, placed for the tooltip. */
+	function hoverMarker(plot: uPlot, list: readonly ChartMarker[], host: HTMLElement) {
+		const left = plot.cursor.left;
+		if (left == null || left < 0) return null;
+		const nearest = visibleMarkers(plot, list).reduce<{ marker: ChartMarker; x: number } | null>(
+			(best, item) =>
+				Math.abs(item.x - left) <= MARKER_HIT_PX &&
+				(best === null || Math.abs(item.x - left) < Math.abs(best.x - left))
+					? item
+					: best,
+			null
+		);
+		if (!nearest) return null;
+		const over = plot.over.getBoundingClientRect();
+		const origin = host.getBoundingClientRect();
+		const x = over.left - origin.left + nearest.x;
+		return {
+			marker: nearest.marker,
+			x,
+			top: over.top - origin.top,
+			alignRight: x > origin.width / 2
+		};
+	}
+
+	function options(
+		width: number,
+		colours: ReturnType<typeof readPalette>,
+		currentMarkers: readonly ChartMarker[],
+		host: HTMLElement
+	): uPlot.Options {
 		const axis = {
 			stroke: colours.axis,
 			font: colours.font,
@@ -182,15 +269,27 @@
 					value: readout(formatValue)
 				}))
 			],
-			bands: band ? [{ series: [band[0] + 1, band[1] + 1], fill: colours.band }] : undefined
+			bands: band ? [{ series: [band[0] + 1, band[1] + 1], fill: colours.band }] : undefined,
+			hooks:
+				currentMarkers.length > 0
+					? {
+							draw: [(plot) => drawMarkers(plot, currentMarkers, colours.marker)],
+							setCursor: [
+								(plot) => {
+									hovered = compact ? null : hoverMarker(plot, currentMarkers, host);
+								}
+							]
+						}
+					: {}
 		};
 	}
 
 	$effect(() => {
 		if (!container || !palette) return;
 		const target = container;
+		const host = target.parentElement ?? target;
 		const plot = new uPlot(
-			options(target.clientWidth, readPalette(palette)),
+			options(target.clientWidth, readPalette(palette), markers, host),
 			columns as uPlot.AlignedData,
 			target
 		);
@@ -199,6 +298,7 @@
 		return () => {
 			observer.disconnect();
 			plot.destroy();
+			hovered = null;
 		};
 	});
 </script>
@@ -211,10 +311,29 @@
 		<span data-tone="soft" class="text-primary-400"></span>
 		<span data-tone="band" class="text-primary-50"></span>
 		<span data-tone="reference" class="text-border-strong"></span>
+		<!-- An event, not data: the ink of secondary text, apart from the teal series and the pale grid. -->
+		<span data-tone="marker" class="text-muted"></span>
 		<span data-tone="axis" class="text-muted"></span>
 		<span data-tone="grid" class="text-border"></span>
 	</div>
-	<div bind:this={container} class="w-full"></div>
+	<div class="relative">
+		<div bind:this={container} class="w-full"></div>
+		{#if hovered}
+			<div
+				class="pointer-events-none absolute z-10 flex max-w-56 flex-col gap-0.5 rounded-overlay border border-border bg-surface px-3 py-2 text-xs shadow-overlay"
+				style:top="{hovered.top}px"
+				style:left={hovered.alignRight ? undefined : `${hovered.x + TOOLTIP_OFFSET_PX}px`}
+				style:right={hovered.alignRight
+					? `calc(100% - ${hovered.x - TOOLTIP_OFFSET_PX}px)`
+					: undefined}
+				data-testid="chart-marker-tooltip"
+			>
+				<span class="font-semibold text-foreground">{hovered.marker.title}</span>
+				<span class="line-clamp-2 wrap-anywhere text-foreground">{hovered.marker.detail}</span>
+				<span class="text-muted">{hovered.marker.time}</span>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>

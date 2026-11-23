@@ -3,7 +3,9 @@ import type { ProjectMetrics } from '$lib/api/resources/project-metrics';
 import {
 	alignColumns,
 	cpuChart,
+	firstPointTime,
 	hasNoMetrics,
+	lateDataStart,
 	memoryChart,
 	replicasChart,
 	restartsChart
@@ -254,5 +256,32 @@ describe('hasNoMetrics', () => {
 
 	it('does not count a limit as data', () => {
 		expect(hasNoMetrics(metrics({ memory_limit_bytes: 512 * MIB }))).toBe(true);
+	});
+});
+
+describe('firstPointTime and lateDataStart', () => {
+	const late = metrics({
+		cpu_percent: [{ t: at(50), avg: 1, max: 2 }],
+		replicas: [{ t: at(48), count: 1 }],
+		restarts: [{ t: at(55), count: 0 }]
+	});
+
+	it('finds the oldest point in any series', () => {
+		expect(firstPointTime(late)).toBe(at(48));
+		expect(firstPointTime(metrics())).toBeNull();
+	});
+
+	it('says when the data starts after the window does', () => {
+		expect(lateDataStart(late, at(0))).toBe(at(48));
+	});
+
+	it('counts a first point within a bucket and a half of the start as the start', () => {
+		expect(lateDataStart(late, at(47))).toBeNull();
+		expect(lateDataStart(late, at(48) - 1.5 * STEP)).toBeNull();
+		expect(lateDataStart(late, at(48) - 2 * STEP)).toBe(at(48));
+	});
+
+	it('says nothing without data', () => {
+		expect(lateDataStart(metrics(), at(0))).toBeNull();
 	});
 });

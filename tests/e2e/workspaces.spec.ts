@@ -22,6 +22,27 @@ async function chooseWorkspace(page: Page, name: string) {
 }
 
 test.describe('team workspaces', () => {
+	test('the switcher marks the workspace pages as the current place in the navigation', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await mockWorkspaceApi(page, { persona: 'owner' });
+		await page.goto('/projects');
+		await expect(switcher(page)).not.toHaveAttribute('aria-current');
+		await expect(page.getByRole('link', { name: 'Proyek', exact: true })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+
+		await page.goto(teamPage);
+		await expect(page.getByTestId('member-row').first()).toBeVisible();
+		await expect(switcher(page)).toHaveAttribute('aria-current', 'page');
+		await expect(page.getByRole('link', { name: 'Proyek', exact: true })).not.toHaveAttribute(
+			'aria-current'
+		);
+		await page.screenshot({ path: test.info().outputPath('workspace-location-1440.png') });
+	});
+
 	test('a solo user starts in the personal workspace and the list asks for it', async ({
 		page
 	}) => {

@@ -1,6 +1,12 @@
 import { writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
-import { baseProject, mockProjectApi, PROJECT_ID, sampleMetrics } from './fixtures/project-detail';
+import {
+	baseProject,
+	mockProjectApi,
+	PROJECT_ID,
+	sampleMetrics,
+	succeededDeployment
+} from './fixtures/project-detail';
 
 const MONITORING_URL = `/projects/${PROJECT_ID}/monitoring`;
 const CHART_NAMES = ['CPU', 'Memori', 'Replika', 'Restart'];
@@ -96,5 +102,80 @@ test.describe('monitoring', () => {
 			page.getByText('Data muncul beberapa menit setelah proyek berjalan.')
 		).toBeVisible();
 		await page.screenshot({ path: testInfo.outputPath('monitoring-empty.png') });
+	});
+
+	test('a five-minute-old project opens on 1 hour, says when its data starts, and marks its deployment', async ({
+		page
+	}, testInfo) => {
+		const now = Date.now();
+		const ago = (seconds: number) => new Date(now - seconds * 1_000).toISOString();
+		const STEP = 60;
+		const points = [240, 180, 120, 60];
+		const ranges: string[] = [];
+		await mockProjectApi(page, {
+			project: () => ({ ...baseProject, created_at: ago(300), runtime_status: 'running' }),
+			deploymentList: () => [
+				{
+					...succeededDeployment,
+					id: 'dep-first',
+					sequence: 1,
+					commit_message: 'feat: halaman menu kopi\n\nDengan harga per cangkir',
+					created_at: ago(290),
+					started_at: ago(290),
+					finished_at: ago(200)
+				}
+			],
+			metrics: (url) => {
+				ranges.push(url.searchParams.get('range') ?? '');
+				return {
+					body: {
+						data: {
+							range: '1h',
+							step_seconds: STEP,
+							series: {
+								cpu_percent: points.map((s, i) => ({ t: ago(s), avg: 4 + i, max: 9 + i })),
+								memory_bytes: points.map((s, i) => ({
+									t: ago(s),
+									avg: (80 + 6 * i) * 1024 * 1024,
+									max: (96 + 6 * i) * 1024 * 1024
+								})),
+								memory_limit_bytes: 512 * 1024 * 1024,
+								replicas: points.map((s) => ({ t: ago(s), count: 1 })),
+								restarts: points.map((s) => ({ t: ago(s), count: 0 }))
+							}
+						}
+					}
+				};
+			}
+		});
+
+		for (const [name, width, height] of [
+			['1440', 1440, 1300],
+			['390', 390, 2200]
+		] as const) {
+			await page.setViewportSize({ width, height });
+			await page.goto(MONITORING_URL);
+
+			await expect(page.getByRole('radio', { name: '1 jam' })).toBeChecked();
+			await expect(page.getByTestId('metrics-data-start')).toHaveText(/^Data mulai /);
+			const list = page.getByRole('region', { name: 'Deployment berhasil di rentang ini' });
+			await expect(list.getByRole('link', { name: 'Deployment #1' })).toBeVisible();
+			await expect(list).toContainText('feat: halaman menu kopi');
+			await expect(page.locator('figure canvas')).toHaveCount(4);
+
+			// Hover the marker on the memory chart: its tooltip names the deployment.
+			const over = page.locator('[data-testid="metric-memory"] .u-over');
+			const box = (await over.boundingBox())!;
+			const share = (3_600 - 200) / 3_600;
+			await page.mouse.move(box.x + share * box.width, box.y + box.height / 2);
+			const tooltip = page.getByTestId('chart-marker-tooltip').first();
+			await expect(tooltip).toContainText('Deployment #1');
+			await expect(tooltip).toContainText('feat: halaman menu kopi');
+			await page.screenshot({
+				path: testInfo.outputPath(`monitoring-new-project-${name}.png`),
+				fullPage: true
+			});
+		}
+		expect(ranges.every((range) => range === '1h')).toBe(true);
 	});
 });

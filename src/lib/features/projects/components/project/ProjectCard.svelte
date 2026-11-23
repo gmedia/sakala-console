@@ -34,7 +34,7 @@
 
 <!-- The whole card opens the project, through a link stretched over it. The URL sits above that. -->
 <article
-	class="surface-card relative flex min-w-0 flex-col gap-3 p-5 transition-colors hover:border-primary"
+	class="surface-card relative flex min-w-0 flex-col gap-3 p-5 transition-colors hover:border-primary has-[:focus-visible]:border-primary"
 >
 	<div class="flex min-w-0 items-start gap-3">
 		<ProjectAvatar {project} />

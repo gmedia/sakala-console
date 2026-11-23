@@ -2,6 +2,7 @@
 	import { DropdownMenu } from 'bits-ui';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import CaretUpDown from 'phosphor-svelte/lib/CaretUpDown';
 	import Check from 'phosphor-svelte/lib/Check';
 	import EnvelopeSimple from 'phosphor-svelte/lib/EnvelopeSimple';
@@ -25,6 +26,15 @@
 	let triggerRef = $state<HTMLElement | null>(null);
 
 	const active = $derived(workspaces.active);
+
+	/**
+	 * The workspace pages have no item in the navigation: the switcher is how people get there, so
+	 * it marks that section as where they are, the way "Proyek" stays active on every project page.
+	 */
+	const WORKSPACE_ROUTES = ['/(app)/workspaces/', '/(app)/workspace-invitations'];
+	const isWorkspaceLocation = $derived(
+		WORKSPACE_ROUTES.some((route) => page.route.id?.startsWith(route) ?? false)
+	);
 
 	const itemClass =
 		'flex min-h-control-md cursor-pointer items-center gap-3 rounded-control px-3 text-sm text-foreground outline-none data-highlighted:bg-background-soft';
@@ -51,7 +61,13 @@
 			bind:ref={triggerRef}
 			data-testid="workspace-switcher"
 			aria-label={`Workspace aktif: ${workspaceLabel(active)}. Ganti workspace`}
-			class="flex w-full cursor-pointer items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-left transition-colors hover:bg-background-soft"
+			aria-current={isWorkspaceLocation ? 'page' : undefined}
+			class={cn(
+				'flex w-full cursor-pointer items-center gap-3 rounded-control border px-3 py-2 text-left transition-colors',
+				isWorkspaceLocation
+					? 'border-primary bg-primary-50'
+					: 'border-border bg-surface hover:bg-background-soft'
+			)}
 		>
 			<span
 				class="flex size-8 shrink-0 items-center justify-center rounded-control bg-primary-50 text-primary-dark"
