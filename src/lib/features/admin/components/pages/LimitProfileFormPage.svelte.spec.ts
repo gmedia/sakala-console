@@ -10,6 +10,7 @@ import {
 	parseAdminWorkspaceDetail,
 	parseLimitProfile
 } from '$lib/api/resources/admin/accounts';
+import { listRegions } from '$lib/api/resources/regions';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import profilesFixture from '../../../../../../tests/fixtures/admin/limit-profiles.json';
 import createdFixture from '../../../../../../tests/fixtures/admin/limit-profile-create.json';
@@ -28,7 +29,11 @@ vi.mock('$app/state', () => ({
 	}
 }));
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('$app/navigation', () => ({
+	goto: vi.fn().mockResolvedValue(undefined),
+	beforeNavigate: vi.fn()
+}));
+vi.mock('$lib/api/resources/regions', () => ({ listRegions: vi.fn() }));
 vi.mock('$lib/config/public', () => ({
 	publicConfig: { apiUrl: 'http://api.test', appUrl: 'http://app.test' }
 }));
@@ -65,6 +70,7 @@ beforeEach(() => {
 	vi.mocked(createLimitProfile).mockReset().mockResolvedValue(created);
 	vi.mocked(getAdminWorkspace).mockReset();
 	vi.mocked(updateLimitProfile).mockReset().mockResolvedValue(created);
+	vi.mocked(listRegions).mockReset().mockResolvedValue(['jkt', 'sby']);
 });
 
 describe('the limit profile page', () => {
@@ -124,6 +130,9 @@ describe('creating a limit profile', () => {
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
 			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null,
 			reason: 'Pilot magang'
 		});
 		await expect.poll(() => vi.mocked(goto).mock.calls[0]?.[0]).toBe('/admin/limit-profiles');
@@ -186,6 +195,9 @@ describe('creating a limit profile', () => {
 			max_builds_per_hour: 1000,
 			idle_sleep_minutes: null,
 			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null,
 			reason: 'Pilot fakultas'
 		});
 		for (const key of [
@@ -362,5 +374,82 @@ describe('replicas in a limit profile', () => {
 
 		await expect.poll(() => vi.mocked(updateLimitProfile).mock.calls.length).toBe(1);
 		expect(vi.mocked(updateLimitProfile).mock.calls[0][1]).toMatchObject({ max_replicas: null });
+	});
+});
+
+describe('databases and region in a limit profile', () => {
+	const databases = () => field('Database (opsional)');
+	const storage = () => field('Penyimpanan database (MB) (opsional)');
+	const region = () => page.getByRole('combobox', { name: 'Region bawaan (opsional)' });
+
+	it('explains 0 and empty for both database limits, and says databases are a pilot', async () => {
+		await renderNew();
+		await optionalToggle().click();
+
+		await expect.element(databases()).toHaveValue(null);
+		await expect
+			.element(databases())
+			.toHaveAccessibleDescription(
+				/0 berarti workspace ini tidak bisa membuat database.*pilot terbatas/
+			);
+		await expect
+			.element(storage())
+			.toHaveAccessibleDescription(/0 berarti semuanya dikunci.*512 MB kalau tidak diubah/);
+	});
+
+	it('sends 0 databases as a value, and the region chosen from the API list', async () => {
+		await renderNew();
+		await optionalToggle().click();
+		await expect.element(region().getByRole('option', { name: 'sby' })).toBeInTheDocument();
+
+		await userEvent.type(nameField(), 'Tanpa database');
+		await userEvent.type(databases(), '0');
+		await userEvent.selectOptions(region(), 'sby');
+		await userEvent.type(page.getByLabelText('Alasan'), 'Kelas tanpa database');
+		await submit().click();
+
+		await expect.poll(() => vi.mocked(createLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(createLimitProfile).mock.calls[0][0]).toMatchObject({
+			max_databases: 0,
+			max_database_storage_mb: null,
+			default_region: 'sby'
+		});
+	});
+
+	it('refuses more databases than the API allows before sending', async () => {
+		await renderNew();
+		await optionalToggle().click();
+
+		await userEvent.type(databases(), '1001');
+
+		await expect.element(databases()).toHaveAccessibleDescription('Bilangan bulat 0 sampai 1.000.');
+	});
+
+	it('opens Opsional for a saved region, and keeps one no node reports anymore', async () => {
+		vi.mocked(getLimitProfile).mockResolvedValue({ ...kelas, default_region: 'id-jog-1' });
+		await renderEdit();
+
+		await expect.element(optionalToggle()).toHaveAttribute('aria-expanded', 'true');
+		await expect.element(region()).toHaveValue('id-jog-1');
+		await expect
+			.element(region())
+			.toHaveAccessibleDescription(/Region id-jog-1 sekarang tidak punya node aktif/);
+
+		await userEvent.selectOptions(region(), 'Semua region');
+		await userEvent.type(page.getByLabelText('Alasan'), 'Boleh di mana saja');
+		await submit('Simpan perubahan').click();
+
+		await expect.poll(() => vi.mocked(updateLimitProfile).mock.calls.length).toBe(1);
+		expect(vi.mocked(updateLimitProfile).mock.calls[0][1]).toMatchObject({ default_region: null });
+	});
+
+	it('says when no node reports a region yet', async () => {
+		vi.mocked(listRegions).mockResolvedValue([]);
+		await renderNew();
+		await optionalToggle().click();
+
+		await expect
+			.element(region())
+			.toHaveAccessibleDescription(/Belum ada node yang melaporkan region/);
 	});
 });

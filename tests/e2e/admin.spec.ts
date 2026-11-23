@@ -282,6 +282,9 @@ test.describe('admin journeys', () => {
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
 			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null,
 			reason: 'Pilot magang semester ini'
 		});
 	});
@@ -325,6 +328,61 @@ test.describe('admin journeys', () => {
 		expect(calls.find((call) => call.method === 'PATCH')?.path).toBe(
 			`limit-profiles/${ids.limitProfile}`
 		);
+	});
+
+	test('database limits and the default region go out as typed and chosen', async ({ page }) => {
+		const calls = await mockAdminApi(page);
+		await page.goto('/admin/limit-profiles/new');
+
+		const form = page.getByRole('form', { name: 'Buat profil batas' });
+		await form.getByLabel('Nama (wajib)').fill('Kelas basis data');
+		await form.getByRole('button', { name: 'Opsional' }).click();
+		await expect(form.getByLabel('Database (opsional)')).toHaveAccessibleDescription(
+			/pilot terbatas/
+		);
+		await form.getByLabel('Database (opsional)').fill('3');
+		await form.getByLabel('Penyimpanan database (MB) (opsional)').fill('0');
+		await form.getByLabel('Region bawaan (opsional)').selectOption('jkt');
+		await form.getByLabel('Alasan').fill('Kelas basis data di Jakarta');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect(page).toHaveURL('/admin/limit-profiles');
+		expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({
+			max_databases: 3,
+			max_database_storage_mb: 0,
+			default_region: 'jkt'
+		});
+	});
+
+	test('leaving with unsaved changes asks first, and stays when the admin says no', async ({
+		page
+	}) => {
+		await mockAdminApi(page);
+		await page.goto('/admin/limit-profiles/new');
+		const form = page.getByRole('form', { name: 'Buat profil batas' });
+		await expect(form.getByLabel('Nama (wajib)')).toBeFocused();
+
+		// Nothing typed yet: Batal leaves without asking.
+		await form.getByRole('link', { name: 'Batal' }).click();
+		await expect(page).toHaveURL('/admin/limit-profiles');
+
+		await page.goto('/admin/limit-profiles/new');
+		await form.getByLabel('Nama (wajib)').fill('Setengah jadi');
+		const prompts: string[] = [];
+		page.once('dialog', (dialog) => {
+			prompts.push(dialog.message());
+			void dialog.dismiss();
+		});
+		await form.getByRole('link', { name: 'Batal' }).click();
+		await expect(page).toHaveURL('/admin/limit-profiles/new');
+		await expect(form.getByLabel('Nama (wajib)')).toHaveValue('Setengah jadi');
+		expect(prompts).toEqual([
+			'Perubahan di profil ini belum disimpan. Tinggalkan halaman ini dan buang perubahannya?'
+		]);
+
+		page.once('dialog', (dialog) => void dialog.accept());
+		await page.getByRole('link', { name: 'Profil batas' }).first().click();
+		await expect(page).toHaveURL('/admin/limit-profiles');
 	});
 
 	test('an old create link opens the new page and keeps where to return', async ({ page }) => {
@@ -424,6 +482,9 @@ test.describe('admin journeys', () => {
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
 			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null,
 			reason: 'Pilot magang semester ini'
 		});
 		const put = calls.find((call) => call.method === 'PUT');

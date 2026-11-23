@@ -14,6 +14,14 @@ export const IDLE_SLEEP_MINUTES_RANGE = { min: 0, max: 7 * 24 * 60 } as const;
  */
 export const MAX_REPLICAS_RANGE = { min: MIN_REPLICAS, max: 10 } as const;
 
+/**
+ * The ranges sakala-api accepts for the database limits (StoreLimitProfileRequest,
+ * `LimitProfile::MAX_DATABASES_CEILING` and `MAX_DATABASE_STORAGE_MB_CEILING`). `0` is in range
+ * and allows none; empty follows the server's setting.
+ */
+export const MAX_DATABASES_RANGE = { min: 0, max: 1000 } as const;
+export const MAX_DATABASE_STORAGE_MB_RANGE = { min: 0, max: 1024 * 1024 } as const;
+
 export type ProfileNumbers = Pick<
 	LimitProfile,
 	| 'max_projects'

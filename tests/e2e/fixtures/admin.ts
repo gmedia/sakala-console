@@ -70,6 +70,14 @@ export async function mockAdminApi(page: Page, { role = 'admin', override }: Opt
 	await page.route('**/api/v1/auth/user', (route) =>
 		fulfill(route, { status: 200, body: { data: currentUser(role) } })
 	);
+	// The profile form offers the regions runtime nodes report, as sakala-api answered them.
+	const regions = JSON.parse(
+		readFileSync(
+			fileURLToPath(new URL('../../fixtures/databases/regions.json', import.meta.url)),
+			'utf8'
+		)
+	) as Fixture;
+	await page.route('**/api/v1/app/regions', (route) => fulfill(route, regions));
 	await page.route(/\/api\/v1\/admin\//, (route) => {
 		const request = route.request();
 		const url = new URL(request.url());

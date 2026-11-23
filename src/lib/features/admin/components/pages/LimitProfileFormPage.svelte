@@ -3,7 +3,7 @@
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { goto } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
@@ -16,7 +16,9 @@
 	import { formatNumber } from '../../format';
 	import { ASSIGN_PROFILE_PARAM, parseProfileReturn, RETURN_TO_PARAM } from '../../return-to';
 	import { profilePrefill, type ProfilePrefill } from '../../profile-defaults';
+	import { createRegionsQuery } from '$lib/features/databases/queries';
 	import {
+		ANY_REGION,
 		emptyProfileValues,
 		hasOptionalValue,
 		invalidProfileLabels,
@@ -26,10 +28,14 @@
 		profilePayload,
 		profileValuesFrom,
 		rawProfileValue,
+		regionOptions,
 		type ProfileFieldGroup,
 		type ProfileNumberValues
 	} from '../../limit-profile-form';
 	import { REASON_HINT, REASON_MAX, reasonProblem } from '../../reason';
+
+	const UNSAVED_CHANGES_PROMPT =
+		'Perubahan di profil ini belum disimpan. Tinggalkan halaman ini dan buang perubahannya?';
 
 	/** Null creates a profile; an id edits that one. */
 	let { profileId }: { profileId: string | null } = $props();
@@ -58,6 +64,9 @@
 	let name = $state('');
 	let values = $state<ProfileNumberValues>(emptyProfileValues());
 	let reason = $state('');
+	let region = $state(ANY_REGION);
+	const regionsQuery = createRegionsQuery();
+	const regions = $derived(regionOptions(regionsQuery.data ?? [], region));
 	/** Which numbers a new profile started from, said in the form so nobody takes them for a rule. */
 	let prefill = $state<ProfilePrefill['source'] | null>(null);
 	/** Null until someone opens or closes Opsional; until then it is open when it holds a value. */
@@ -86,10 +95,12 @@
 		} else if (profileQuery.data) {
 			name = profileQuery.data.name;
 			values = profileValuesFrom(profileQuery.data);
+			region = profileQuery.data.default_region ?? ANY_REGION;
 		} else {
 			return;
 		}
 		loaded = true;
+		baseline = snapshot();
 		// Start where the form starts, not at the reason at its end.
 		void tick().then(() => nameInput?.focus());
 	});
@@ -99,7 +110,27 @@
 		const live = profilePrefill(returnWorkspace.data);
 		if (isNew && prefill === 'documented' && live.source === 'workspace' && !numbersEdited) {
 			applyPrefill(live);
+			baseline = snapshot();
 		}
+	});
+
+	/** What the form holds, normalized, to compare with what it opened with. */
+	const snapshot = () => JSON.stringify([profilePayload(name, values, region), reason.trim()]);
+	/** Set once the form is filled; empty until then, so loading never counts as a change. */
+	let baseline = $state('');
+	/** Set after a save, so going back to the list does not ask about what was just saved. */
+	let leavingAfterSave = false;
+	const dirty = $derived(baseline !== '' && snapshot() !== baseline);
+
+	// Leaving with unsaved numbers loses them. Closing the tab or reloading gets the browser's own
+	// prompt (cancelling a `leave` navigation asks for it); a link inside the Console asks here.
+	beforeNavigate((navigation) => {
+		if (!dirty || leavingAfterSave) return;
+		if (navigation.type === 'leave') {
+			navigation.cancel();
+			return;
+		}
+		if (!confirm(UNSAVED_CHANGES_PROMPT)) navigation.cancel();
 	});
 
 	const fieldError = (key: string) => getFieldError(saveError, key);
@@ -114,7 +145,11 @@
 					(rawProfileValue(values, field.key) !== '' && profileFieldProblem(field, values)))
 		)
 	);
-	const optionalVisible = $derived(optionalHasError || (optionalOpen ?? hasOptionalValue(values)));
+	const optionalVisible = $derived(
+		optionalHasError ||
+			Boolean(fieldError('default_region')) ||
+			(optionalOpen ?? hasOptionalValue(values, region))
+	);
 
 	const reasonTooLong = $derived(reason.length > REASON_MAX);
 	const currentReasonProblem = $derived(reasonProblem(reason));
@@ -169,13 +204,14 @@
 		}
 
 		submitting = true;
-		const fields = profilePayload(name, values);
+		const fields = profilePayload(name, values, region);
 		try {
 			const saved = await saveMutation.mutateAsync({
 				id: profileId,
 				fields,
 				reason: reason.trim()
 			});
+			leavingAfterSave = true;
 			if (returnTarget) {
 				toast.success(`Profil ${fields.name} dibuat. Tulis alasan lalu simpan untuk memasangnya.`);
 				await goto(`${backHref}?${ASSIGN_PROFILE_PARAM}=${encodeURIComponent(saved.id)}`);
@@ -228,6 +264,47 @@
 			class="text-xs {message ? 'text-error-base' : 'text-foreground/70'}"
 		>
 			{message ?? field.hint}
+		</p>
+	</div>
+{/snippet}
+
+{#snippet regionField()}
+	{@const message = fieldError('default_region')}
+	<div class="space-y-1.5">
+		<label for="profile-default_region" class="block text-sm font-medium">
+			Region bawaan <span class="font-normal text-foreground/70">(opsional)</span>
+		</label>
+		<!-- Only regions the API reports, so nothing the placement could never honour is offered. -->
+		<select
+			id="profile-default_region"
+			class="control-input max-w-60"
+			bind:value={region}
+			onchange={() => (optionalOpen = true)}
+			aria-invalid={message ? 'true' : undefined}
+			aria-describedby="profile-default_region-hint"
+		>
+			<option value={ANY_REGION}>Semua region</option>
+			{#each regions as slug (slug)}
+				<option value={slug}>{slug}</option>
+			{/each}
+		</select>
+		<p
+			id="profile-default_region-hint"
+			class="text-xs {message ? 'text-error-base' : 'text-foreground/70'}"
+		>
+			{#if message}
+				{message}
+			{:else if regionsQuery.isError}
+				Daftar region belum bisa dimuat, jadi hanya region yang sudah tersimpan yang bisa dipilih.
+			{:else if (regionsQuery.data ?? []).length === 0 && !regionsQuery.isPending}
+				Belum ada node yang melaporkan region, jadi proyek dan database berjalan di node mana saja.
+			{:else}
+				Proyek dan database baru di workspace ini memakai region ini kalau tidak memilih sendiri.
+				Proyek yang sudah berjalan tetap di node-nya sampai di-deploy ulang ke node lain.
+			{/if}
+			{#if region && !(regionsQuery.data ?? []).includes(region) && regionsQuery.isSuccess}
+				Region {region} sekarang tidak punya node aktif.
+			{/if}
 		</p>
 	</div>
 {/snippet}
@@ -334,6 +411,7 @@
 						{#each groupFields(group.id) as field (field.key)}
 							{@render numberField(field)}
 						{/each}
+						{@render regionField()}
 					</div>
 				{:else}
 					<div>

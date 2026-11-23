@@ -132,6 +132,12 @@ export const limitProfileSchema = z.object({
 	idle_sleep_minutes: z.number().nullable().optional(),
 	/** `null` allows one replica, so replicas stay off. Missing from an older API. */
 	max_replicas: z.number().nullable().optional(),
+	/** Region the workspace's projects and databases use unless they name one; `null` for any. */
+	default_region: z.string().nullable().optional(),
+	/** Managed databases per workspace: `null` follows the server, `0` allows none. */
+	max_databases: z.number().nullable().optional(),
+	/** Total MB of the workspace's managed databases: `null` follows the server, `0` locks them all. */
+	max_database_storage_mb: z.number().nullable().optional(),
 	workspaces_count: z.number().optional(),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
@@ -235,6 +241,9 @@ export type LimitProfileFields = Pick<
 	| 'max_builds_per_hour'
 	| 'idle_sleep_minutes'
 	| 'max_replicas'
+	| 'default_region'
+	| 'max_databases'
+	| 'max_database_storage_mb'
 >;
 
 export async function listLimitProfiles(params: QueryParams) {

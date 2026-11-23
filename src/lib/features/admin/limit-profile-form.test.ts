@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+	ANY_REGION,
 	emptyProfileValues,
 	hasOptionalValue,
 	invalidProfileLabels,
 	PROFILE_GROUPS,
 	PROFILE_NUMBER_FIELDS,
-	profilePayload
+	profilePayload,
+	regionOptions
 } from './limit-profile-form';
 
 describe('limit profile form', () => {
@@ -17,7 +19,13 @@ describe('limit profile form', () => {
 		]);
 		expect(
 			PROFILE_NUMBER_FIELDS.filter((field) => field.group === 'optional').map((field) => field.key)
-		).toEqual(['max_builds_per_hour', 'idle_sleep_minutes', 'max_replicas']);
+		).toEqual([
+			'max_builds_per_hour',
+			'idle_sleep_minutes',
+			'max_replicas',
+			'max_databases',
+			'max_database_storage_mb'
+		]);
 		for (const field of PROFILE_NUMBER_FIELDS) {
 			expect(Boolean(field.optional), field.key).toBe(field.group === 'optional');
 		}
@@ -60,7 +68,49 @@ describe('limit profile form', () => {
 			max_cpu_millis: 1000,
 			max_builds_per_hour: null,
 			idle_sleep_minutes: 0,
-			max_replicas: null
+			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null
 		});
+	});
+
+	it('sends 0 databases and 0 MB as values, and a chosen region by its slug', () => {
+		const values = {
+			...emptyProfileValues(),
+			max_projects: '1',
+			max_active_containers: '1',
+			max_active_deployments: '1',
+			max_memory_mb: '512',
+			max_cpu_millis: '1000',
+			max_databases: '0',
+			max_database_storage_mb: '0'
+		};
+		expect(profilePayload('Tanpa database', values, 'jkt')).toMatchObject({
+			max_databases: 0,
+			max_database_storage_mb: 0,
+			default_region: 'jkt'
+		});
+		expect(hasOptionalValue(emptyProfileValues(), 'jkt')).toBe(true);
+		expect(hasOptionalValue(emptyProfileValues(), ANY_REGION)).toBe(false);
+	});
+
+	it('says what 0 and empty mean for the database limits, and that databases are a pilot', () => {
+		const field = (key: string) => PROFILE_NUMBER_FIELDS.find((item) => item.key === key)!;
+		expect(field('max_databases')).toMatchObject({ min: 0, max: 1000 });
+		expect(field('max_databases').hint).toMatch(
+			/0 berarti workspace ini tidak bisa membuat database/
+		);
+		expect(field('max_databases').hint).toMatch(/ikut bawaan server \(2 kalau tidak diubah\)/);
+		expect(field('max_databases').hint).toMatch(/pilot terbatas/);
+		expect(field('max_database_storage_mb')).toMatchObject({ min: 0, max: 1048576 });
+		expect(field('max_database_storage_mb').hint).toMatch(/0 berarti semuanya dikunci/);
+		expect(field('max_database_storage_mb').hint).toMatch(/512 MB kalau tidak diubah/);
+	});
+
+	it('keeps a saved region that no node reports anymore, so editing does not drop it', () => {
+		expect(regionOptions(['jkt', 'sby'], 'sby')).toEqual(['jkt', 'sby']);
+		expect(regionOptions(['jkt'], 'id-jog-1')).toEqual(['jkt', 'id-jog-1']);
+		expect(regionOptions([], ANY_REGION)).toEqual([]);
 	});
 });
