@@ -150,7 +150,8 @@ test.describe('Redeploy and "Build ulang dari awal"', () => {
 		expect(bodies).toEqual([{ branch: 'main' }]);
 
 		await page.goto(PROJECT_URL);
-		await page.getByRole('button', { name: 'Pilihan cara build' }).click();
+		// The project runs, so the same menu holds Restart and is named for both.
+		await page.getByRole('button', { name: 'Pilihan build dan restart' }).click();
 		const menu = page.getByRole('menu');
 		await expect(menu).toContainText(
 			'Memakai ulang image yang sedang dipakai kalau commit, pengaturan build, dan variabel yang dibaca saat build tidak berubah'
