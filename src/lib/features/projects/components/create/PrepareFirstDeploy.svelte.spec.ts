@@ -193,6 +193,32 @@ describe('Persiapan, the database card', () => {
 			.toHaveTextContent(/hilang setiap kali deploy/);
 	});
 
+	it('does not suggest a Sakala database to a workspace without quota or one to use', async () => {
+		project = {
+			...baseProject,
+			inspection: { ...baseProject.inspection, database_hint: hint({ engine: 'sqlite' }) }
+		};
+		await renderStep({ pilotLimits: limits({ used: 0, max: 0 }) });
+
+		const note = page.getByTestId('database-engine-note');
+		await expect.element(note).toHaveTextContent(/hilang setiap kali deploy/);
+		await expect.element(note).toHaveTextContent(/database di luar container/);
+		await expect.element(note).not.toHaveTextContent(/Database dari Sakala/);
+	});
+
+	it('still points at a Sakala database when the workspace has one this project can use', async () => {
+		project = {
+			...baseProject,
+			inspection: { ...baseProject.inspection, database_hint: hint({ engine: 'sqlite' }) }
+		};
+		databases = [ready('db-c', 'cadangan')];
+		await renderStep({ pilotLimits: limits({ used: 1, max: 1 }) });
+
+		await expect
+			.element(page.getByTestId('database-engine-note'))
+			.toHaveTextContent(/Database dari Sakala menyimpan datanya tetap ada/);
+	});
+
 	it('lists every workspace database, disabling the ones it cannot use with the reason', async () => {
 		databases = [
 			ready('db-a', 'toko-teh-db', {

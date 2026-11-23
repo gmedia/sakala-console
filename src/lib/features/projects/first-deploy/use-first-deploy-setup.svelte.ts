@@ -118,6 +118,11 @@ export function useFirstDeploySetup(options: Options) {
 		createDatabaseBlockedReason({ unavailable, quotaBlockedReason: quota?.blockedReason ?? null })
 	);
 	const candidates = $derived(project ? attachCandidates(databasesQuery.data ?? [], project) : []);
+	// Whether a Sakala database is within reach: one is attached, one can be made, or one of the
+	// workspace's can be used. Notes about the app's own engine only recommend one when it is.
+	const sakalaDatabase = $derived(
+		attached !== null || createBlockedReason === null || firstUsableCandidate(candidates) !== null
+	);
 
 	let chosenOption = $state<DatabaseOption | null>(null);
 	const option = $derived<DatabaseOption>(
@@ -390,7 +395,10 @@ export function useFirstDeploySetup(options: Options) {
 		},
 		get engineNote() {
 			return hint
-				? databaseEngineNote(hint.engine, { laravel: isLaravelStack(project?.stack) })
+				? databaseEngineNote(hint.engine, {
+						laravel: isLaravelStack(project?.stack),
+						sakalaDatabase
+					})
 				: null;
 		},
 		get createBlockedReason() {
