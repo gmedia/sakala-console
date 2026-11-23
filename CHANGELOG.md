@@ -4,6 +4,19 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-23
+
+### Added
+
+- Deployment markers in the Metrik charts: a thin vertical line at each successful deployment in the range, with a tooltip (number, first line of the commit, time) and a "Deployment berhasil di rentang ini" list below the charts for keyboard and screen reader users. Reads at most 30 deployments per range.
+- The workspace limits say how many builds per hour the workspace may run ("Build per jam"), or "tidak dibatasi".
+
+### Changed
+
+- The Metrik tab picks a range that fits the project's age when the URL has none (1 hour for a project younger than an hour, 6 hours under 6 hours, otherwise 24 hours) and says "Data mulai ..." when data starts later than the range.
+- Project cards get the same stronger border on keyboard focus as on hover.
+- The workspace switcher marks the current location on workspace and invitation pages (`aria-current="page"`).
+
 ## [0.12.0] - 2026-11-23
 
 ### Added
@@ -284,7 +297,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/gmedia/sakala-console/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/gmedia/sakala-console/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/gmedia/sakala-console/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/gmedia/sakala-console/compare/v0.9.0...v0.10.0
