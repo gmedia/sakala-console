@@ -93,6 +93,9 @@ describe('getRollbackErrorMessage', () => {
 		expect(getRollbackErrorMessage(refused('no_commit'), 4)).toBe(
 			ROLLBACK_COPY.refused.no_commit(4)
 		);
+		expect(getRollbackErrorMessage(refused('settings_unavailable'), 4)).toBe(
+			ROLLBACK_COPY.refused.settings_unavailable(4)
+		);
 		expect(getRollbackErrorMessage(refused('something_new'), 4)).toBe(
 			ROLLBACK_COPY.refusedOther(4)
 		);

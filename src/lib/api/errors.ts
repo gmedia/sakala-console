@@ -63,7 +63,7 @@ export const PROJECT_RELEASE_COMMAND_UNSUPPORTED = 'PROJECT_RELEASE_COMMAND_UNSU
 
 /**
  * A 409 on rollback: the deployment cannot be rolled back to (any more). Carries `reason`:
- * `not_succeeded`, `already_active`, `no_commit`, or `branch_changed`.
+ * `not_succeeded`, `already_active`, `no_commit`, `branch_changed`, or `settings_unavailable`.
  */
 export const DEPLOYMENT_NOT_ROLLBACK_TARGET = 'DEPLOYMENT_NOT_ROLLBACK_TARGET';
 /** A 409 on restart: nothing runs to restart. Carries `runtime_status`. */

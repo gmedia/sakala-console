@@ -10,7 +10,9 @@ export const ROLLBACK_REFUSAL_REASONS = {
 	notSucceeded: 'not_succeeded',
 	alreadyActive: 'already_active',
 	noCommit: 'no_commit',
-	branchChanged: 'branch_changed'
+	branchChanged: 'branch_changed',
+	/** The target has no recorded settings; `rollback_target` does not check this beforehand. */
+	settingsUnavailable: 'settings_unavailable'
 } as const;
 export type RollbackRefusalReason =
 	(typeof ROLLBACK_REFUSAL_REASONS)[keyof typeof ROLLBACK_REFUSAL_REASONS];
@@ -46,7 +48,9 @@ export const ROLLBACK_COPY = {
 		no_commit: (sequence: number) =>
 			`Deployment #${sequence} tidak mencatat commit, jadi Sakala tidak tahu kode mana yang harus dikembalikan.`,
 		branch_changed: (sequence: number) =>
-			`Deployment #${sequence} dari branch lain. Rollback hanya ke deployment dari branch yang dipakai proyek sekarang.`
+			`Deployment #${sequence} dari branch lain. Rollback hanya ke deployment dari branch yang dipakai proyek sekarang.`,
+		settings_unavailable: (sequence: number) =>
+			`Pengaturan build yang dipakai deployment #${sequence} tidak tercatat, jadi versi ini tidak bisa dikembalikan. Kembalikan commit-nya di repository, lalu Redeploy.`
 	} satisfies Record<RollbackRefusalReason, (sequence: number) => string>,
 	/** A refusal whose reason this Console does not know. */
 	refusedOther: (sequence: number) =>
