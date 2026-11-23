@@ -9,10 +9,15 @@
 	import {
 		formatResourceLimit,
 		getCommitUrl,
-		getDeploymentTriggerLabel,
 		isFirstSuccessfulDeployment,
 		TERMINAL_STATUSES
 	} from '$lib/features/deployments/deployment-presentation';
+	import {
+		describeDeploymentTrigger,
+		DEPLOYMENT_TRIGGERS,
+		getRollbackLabel,
+		HISTORY_COPY
+	} from '$lib/features/deployments/history-presentation';
 	import { getErrorMessage } from '$lib/api/errors';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -82,6 +87,22 @@
 	const commitUrl = $derived(
 		getCommitUrl(detail.project?.repository_url, detail.deployment?.commit_sha)
 	);
+	const isRollback = $derived(detail.deployment?.trigger === DEPLOYMENT_TRIGGERS.rollback);
+	const triggerLabel = $derived(
+		detail.deployment
+			? describeDeploymentTrigger(detail.deployment, detail.project?.workspace?.type)
+			: ''
+	);
+	// The version this rollback went back to, linked while that deployment still exists.
+	const rollbackTargetHref = $derived.by(() => {
+		const targetId = detail.deployment?.rollback?.target_deployment_id;
+		return targetId
+			? resolveRoute('/(app)/projects/[id]/deployments/[deploymentId]', {
+					id: page.params.id ?? '',
+					deploymentId: targetId
+				})
+			: null;
+	});
 	const projectHref = $derived(
 		resolveRoute('/(app)/projects/[id]/deployments', {
 			id: page.params.id ?? ''
@@ -179,7 +200,23 @@
 	<!-- Fills the space under the shell's header, so the terminal ends where the viewport does. -->
 	<div class="flex flex-col gap-3 lg:h-[calc(100dvh-7.5rem)]">
 		<div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-			<Breadcrumb items={breadcrumb} class="shrink-0 text-sm font-semibold" />
+			<div class="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+				<Breadcrumb items={breadcrumb} class="shrink-0 text-sm font-semibold" />
+				{#if isRollback}
+					<p class="text-sm text-muted" data-testid="deployment-rollback-of">
+						{#if rollbackTargetHref && detail.deployment.rollback?.target_sequence != null}
+							{HISTORY_COPY.rollbackToLead}
+							<a
+								href={rollbackTargetHref}
+								class="font-mono text-primary-dark tabular-nums underline underline-offset-2"
+								>#{detail.deployment.rollback.target_sequence}</a
+							>
+						{:else}
+							{getRollbackLabel(detail.deployment)}
+						{/if}
+					</p>
+				{/if}
+			</div>
 			{#if detail.deployment.commit_message}
 				<p
 					class="min-w-0 flex-1 truncate text-sm text-foreground max-sm:basis-full lg:text-right"
@@ -266,7 +303,11 @@
 						<h2 class="mb-3 font-sans text-sm text-foreground">Tahapan</h2>
 						{#if detail.imageBuild.kind === 'fallback'}
 							<div class="mb-3">
-								<ImageFallbackNote projectId={page.params.id ?? ''} state={detail.imageBuild} />
+								<ImageFallbackNote
+									projectId={page.params.id ?? ''}
+									state={detail.imageBuild}
+									rollback={isRollback}
+								/>
 							</div>
 						{/if}
 						{#if detail.eventsError}
@@ -298,7 +339,7 @@
 							commitSha={detail.deployment.commit_sha ?? '-'}
 							{commitUrl}
 							branch={detail.deployment.branch}
-							trigger={getDeploymentTriggerLabel(detail.deployment.trigger)}
+							trigger={triggerLabel}
 							status={detail.bannerInput.status}
 							timestamp={detail.infoTimestamp}
 							lastUpdate={detail.lastUpdateTimestamp}

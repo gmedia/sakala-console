@@ -6,11 +6,13 @@
 	type Props = {
 		projectId: string;
 		state: Extract<ImageBuildState, { kind: 'fallback' }>;
+		/** A rollback builds the old commit again, and says so. */
+		rollback?: boolean;
 	};
 
-	let { projectId, state }: Props = $props();
+	let { projectId, state, rollback = false }: Props = $props();
 
-	const segments = $derived(getFallbackNoteSegments(state.source, state.reason));
+	const segments = $derived(getFallbackNoteSegments(state.source, state.reason, { rollback }));
 </script>
 
 <!-- A fallback is normal, so it reads as information beside the steps, not as a warning. -->

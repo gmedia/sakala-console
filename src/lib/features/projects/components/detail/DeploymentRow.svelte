@@ -1,17 +1,44 @@
 <script lang="ts">
 	import { resolveRoute } from '$app/paths';
+	import { DropdownMenu } from 'bits-ui';
+	import ArrowCounterClockwise from 'phosphor-svelte/lib/ArrowCounterClockwise';
+	import DotsThree from 'phosphor-svelte/lib/DotsThree';
+	import Badge from '$lib/components/ui/Badge.svelte';
 	import StatusIndicator from '$lib/components/ui/StatusIndicator.svelte';
+	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import { deriveDurationLabel } from '$lib/features/deployments/deployment-presentation';
+	import { HISTORY_COPY } from '$lib/features/deployments/history-presentation';
 	import { getReuseRowLabel } from '$lib/features/deployments/image-reuse-presentation';
+	import { ROLLBACK_COPY } from '$lib/features/deployments/rollback';
+	import { cn } from '$lib/utils/cn';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
 	import type { Deployment } from '../../type';
+	import { HISTORY_ACTION_CELL, historyRowColumns } from '../../history-grid';
 	import {
 		getDeploymentBadge,
 		getDeploymentCardNote,
 		getDeploymentIndicatorStatus
 	} from '../../presentation';
 
-	let { deployment }: { deployment: Deployment } = $props();
+	type Props = {
+		deployment: Deployment;
+		/** The version visitors get now. At most one row says so. */
+		serving?: boolean;
+		/** Who or what started it, when the row should say ("Rani, push ke main", "Rollback ke #4"). */
+		triggerNote?: string | null;
+		/** The page has a menu column, so this row keeps it even without a menu of its own. */
+		withActions?: boolean;
+		/** Set when this deployment can be rolled back to, by someone who may deploy. */
+		onRollback?: () => void;
+	};
+
+	let {
+		deployment,
+		serving = false,
+		triggerNote = null,
+		withActions = false,
+		onRollback
+	}: Props = $props();
 
 	const badge = $derived(getDeploymentBadge(deployment.status));
 	const note = $derived(getDeploymentCardNote(deployment));
@@ -26,14 +53,29 @@
 			deploymentId: deployment.id
 		})
 	);
+	const accessibleName = $derived(
+		[
+			`Deployment #${deployment.sequence}, ${badge.label}`,
+			serving && HISTORY_COPY.servingAccessible,
+			triggerNote,
+			reuse?.accessible
+		]
+			.filter(Boolean)
+			.join(', ') + `: ${message}`
+	);
 </script>
 
 <!--
 	One link, stretched over the row, so the whole row opens the deployment and a screen reader hears
-	one thing per row. Below 48rem the row has two levels: what changed, then the facts.
+	one thing per row. Below 48rem the row has two levels: what changed, then the facts. The menu sits
+	above the link, last, so the link comes first by keyboard.
 -->
 <li
-	class="relative grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-1 px-4 py-3 transition-colors hover:bg-surface-tint @3xl:grid-cols-[6.5rem_2.5rem_minmax(0,1fr)_4.5rem_5rem_6.5rem_6.5rem] @3xl:items-center @3xl:gap-x-3 @3xl:py-2.5"
+	class={cn(
+		'relative grid gap-x-2.5 gap-y-1 px-4 py-3 transition-colors hover:bg-surface-tint @3xl:items-center @3xl:gap-x-3 @3xl:py-2.5',
+		historyRowColumns(withActions)
+	)}
+	data-testid="deployment-row"
 >
 	<span
 		class="inline-flex items-center gap-2 @3xl:col-start-1 @3xl:row-start-1"
@@ -53,14 +95,24 @@
 	<div class="min-w-0 @3xl:col-start-3 @3xl:row-start-1">
 		<a
 			{href}
-			aria-label={`Deployment #${deployment.sequence}, ${badge.label}${reuse ? `, ${reuse.accessible}` : ''}: ${message}`}
+			aria-label={accessibleName}
 			class="block min-h-6 truncate text-sm leading-6 font-medium text-foreground after:absolute after:inset-0 after:rounded-control after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:-outline-offset-3 focus-visible:after:outline-primary"
 			title={message}
 		>
 			{message}
 		</a>
-		{#if note || reuse}
-			<p class="flex min-w-0 flex-wrap gap-x-2 text-xs text-muted">
+		{#if serving || triggerNote || note || reuse}
+			<p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted">
+				{#if serving}
+					<span data-testid="deployment-row-serving"
+						><Badge tone="success">{HISTORY_COPY.serving}</Badge></span
+					>
+				{/if}
+				{#if triggerNote}
+					<span class="min-w-0 truncate" title={triggerNote} data-testid="deployment-row-trigger"
+						>{triggerNote}</span
+					>
+				{/if}
 				{#if reuse}
 					<span class="whitespace-nowrap" data-testid="deployment-row-reuse">{reuse.label}</span>
 				{/if}
@@ -102,4 +154,42 @@
 			>{duration ?? '-'}</span
 		>
 	</div>
+
+	{#if withActions}
+		<div class={cn('flex justify-end', HISTORY_ACTION_CELL)}>
+			{#if onRollback}
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						aria-label={ROLLBACK_COPY.rowMenuLabel(deployment.sequence)}
+						title={ROLLBACK_COPY.rowMenuLabel(deployment.sequence)}
+						data-testid="deployment-row-menu"
+						class={buttonClasses('ghost', 'icon-sm', 'relative z-10')}
+					>
+						<DotsThree size={20} weight="bold" aria-hidden="true" />
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Portal>
+						<DropdownMenu.Content
+							sideOffset={4}
+							align="end"
+							collisionPadding={8}
+							class="z-50 w-64 max-w-[calc(100vw-1rem)] rounded-overlay border border-border bg-surface p-1 shadow-overlay"
+						>
+							<DropdownMenu.Item
+								class="flex cursor-pointer items-center gap-3 rounded-control px-3 py-2.5 text-left text-sm font-semibold text-foreground outline-none data-highlighted:bg-background-soft"
+								onSelect={onRollback}
+							>
+								<ArrowCounterClockwise
+									size={16}
+									weight="bold"
+									class="shrink-0"
+									aria-hidden="true"
+								/>
+								{ROLLBACK_COPY.action}
+							</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Portal>
+				</DropdownMenu.Root>
+			{/if}
+		</div>
+	{/if}
 </li>
