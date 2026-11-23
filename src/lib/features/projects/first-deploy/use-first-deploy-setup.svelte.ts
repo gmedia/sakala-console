@@ -25,6 +25,7 @@ import {
 	type DraftEntry,
 	type SuggestionDraft
 } from '../env-suggestions/suggestion-draft';
+import { fileStorageNote } from '../file-storage';
 import { createAddEnvironmentVariableMutation, createUpdateProjectMutation } from '../mutations';
 import { createEnvironmentVariablesQuery, projectKeys } from '../queries';
 import { generateSecret } from '../secret-generation';
@@ -38,7 +39,11 @@ import {
 	suggestedReleaseCommand,
 	type DatabaseOption
 } from './database-choice';
-import { databaseEngineNote, databaseSignalsSentence } from './database-hint';
+import {
+	databaseEngineGuideUrl,
+	databaseEngineNote,
+	databaseSignalsSentence
+} from './database-hint';
 import { deployWhenReadyOf, deployWhenReadyView } from './deploy-when-ready';
 import {
 	firstDeployFailure,
@@ -399,6 +404,15 @@ export function useFirstDeploySetup(options: Options) {
 						laravel: isLaravelStack(project?.stack),
 						sakalaDatabase
 					})
+				: null;
+		},
+		get engineNoteGuideUrl() {
+			return hint ? databaseEngineGuideUrl(hint.engine) : null;
+		},
+		/** Files the app writes on its own disk do not survive a sleep, restart, or deploy. */
+		get fileStorageNote() {
+			return inspected
+				? fileStorageNote({ stack: project?.stack, envEntries: envExample?.entries ?? [] })
 				: null;
 		},
 		get createBlockedReason() {

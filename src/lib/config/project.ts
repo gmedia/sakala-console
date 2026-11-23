@@ -17,6 +17,26 @@ export const DEPLOY_GUIDE_URL = 'https://sakala.dev/docs/deploy-pertama';
  */
 export const DEPLOY_FAILURE_GUIDE_URL = 'https://sakala.dev/docs/deploy-gagal';
 
+/**
+ * Published by sakala-landing (`src/content/docs/penyimpanan-file.md`): files an app writes inside
+ * its container are lost when the container stops, and where to keep them instead. The anchors are
+ * its headings.
+ */
+export const FILE_STORAGE_GUIDE_URL = 'https://sakala.dev/docs/penyimpanan-file';
+export const FILE_STORAGE_GUIDE_ANCHORS = {
+	laravel: 'laravel',
+	node: 'node',
+	sqlite: 'berkas-sqlite'
+} as const;
+
+export type FileStorageGuideAnchor =
+	(typeof FILE_STORAGE_GUIDE_ANCHORS)[keyof typeof FILE_STORAGE_GUIDE_ANCHORS];
+
+/** The guide, or one of its sections. */
+export function fileStorageGuideUrl(anchor?: FileStorageGuideAnchor | null): string {
+	return anchor ? `${FILE_STORAGE_GUIDE_URL}#${anchor}` : FILE_STORAGE_GUIDE_URL;
+}
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = 'abuse@sakala.dev';
 

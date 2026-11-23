@@ -111,7 +111,14 @@ test.describe('the first deploy offers a database and the variables of .env.exam
 		);
 		await expect(card.getByLabel(/Buat database baru untuk proyek ini/)).toBeChecked();
 		await expect(card.getByTestId('database-engine-note')).toContainText(
-			'hilang setiap kali deploy'
+			'hilang saat proyek tidur, di-restart, atau di-deploy ulang'
+		);
+		// Uploads on the app's own disk are gone after a sleep too: one calm note, with the guide.
+		const fileNote = page.getByTestId('file-storage-note');
+		await expect(fileNote).toContainText('object storage yang kompatibel dengan S3');
+		await expect(fileNote.getByRole('link', { name: /Panduan penyimpanan file/ })).toHaveAttribute(
+			'href',
+			'https://sakala.dev/docs/penyimpanan-file#laravel'
 		);
 		await expect(card).toContainText(
 			'Release command proyek ini tetap: php artisan migrate --force'
