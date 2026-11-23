@@ -284,6 +284,8 @@ test.describe('admin journeys', () => {
 			max_replicas: null,
 			max_databases: null,
 			max_database_storage_mb: null,
+			max_buckets: null,
+			max_bucket_storage_mb: null,
 			default_region: null,
 			reason: 'Pilot magang semester ini'
 		});
@@ -484,6 +486,8 @@ test.describe('admin journeys', () => {
 			max_replicas: null,
 			max_databases: null,
 			max_database_storage_mb: null,
+			max_buckets: null,
+			max_bucket_storage_mb: null,
 			default_region: null,
 			reason: 'Pilot magang semester ini'
 		});
