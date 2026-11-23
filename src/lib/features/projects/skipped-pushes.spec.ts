@@ -3,6 +3,7 @@ import {
 	groupSkippedPushes,
 	shortSha,
 	skippedPushesSince,
+	isHeldPush,
 	skippedPushFiles,
 	skippedPushTitle
 } from './skipped-pushes';
@@ -74,5 +75,19 @@ describe('copy', () => {
 			more: 'dan 3 file lainnya'
 		});
 		expect(skippedPushFiles(skip()).more).toBeNull();
+	});
+});
+
+describe('a push held while auto-deploy is paused', () => {
+	const held = skip({ reason: 'auto_deploy_paused', root_directory: '' });
+
+	it('says it was held, not that the folder had no changes', () => {
+		expect(isHeldPush(held)).toBe(true);
+		expect(isHeldPush(skip())).toBe(false);
+		expect(skippedPushTitle(held)).toBe('Ditahan — auto-deploy sedang dijeda');
+	});
+
+	it('lists the files without claiming they belong to other projects', () => {
+		expect(skippedPushFiles(held).summary).toBe('2 file berubah:');
 	});
 });
