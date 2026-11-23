@@ -225,6 +225,15 @@ test.describe('admin journeys', () => {
 		await expect(page.getByRole('button', { name: 'Hentikan' })).toHaveCount(0);
 	});
 
+	test('member roles use the words members see: Pemilik, Anggota, Pengamat', async ({ page }) => {
+		await mockAdminApi(page);
+		await page.goto(`/admin/workspaces/${ids.workspace}`);
+
+		const members = page.getByRole('table').filter({ hasText: 'Peran' }).first();
+		await expect(members).toContainText('Pemilik');
+		await expect(members).not.toContainText('Owner');
+	});
+
 	test('deleting a limit profile in use explains the refusal and links to its workspaces', async ({
 		page
 	}) => {
@@ -250,15 +259,18 @@ test.describe('admin journeys', () => {
 		const calls = await mockAdminApi(page);
 		await page.goto('/admin/limit-profiles');
 
-		await page.getByRole('button', { name: 'Buat profil' }).click();
-		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
+		await page.getByRole('link', { name: 'Buat profil' }).click();
+		await expect(page).toHaveURL('/admin/limit-profiles/new');
+		const form = page.getByRole('form', { name: 'Buat profil batas' });
+		await expect(form.getByLabel('Nama (wajib)')).toBeFocused();
 		await expect(form).toContainText('batas default tim bawaan Sakala');
+		await form.getByRole('button', { name: 'Opsional' }).click();
 		await expect(form.getByLabel('Build per jam (opsional)')).toHaveValue('');
 		await form.getByLabel('Nama (wajib)').fill('Magang');
 		await form.getByLabel('Alasan').fill('Pilot magang semester ini');
 		await form.getByRole('button', { name: 'Buat profil' }).click();
 
-		await expect(form).toBeHidden();
+		await expect(page).toHaveURL('/admin/limit-profiles');
 		await expect(page.getByText('Profil Magang dibuat.')).toBeVisible();
 		expect(calls.find((call) => call.method === 'POST')?.body).toEqual({
 			name: 'Magang',
@@ -270,8 +282,119 @@ test.describe('admin journeys', () => {
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
 			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null,
 			reason: 'Pilot magang semester ini'
 		});
+	});
+
+	test('the profile page shows its title, Nama, and the first group without scrolling, and keeps the buttons in view', async ({
+		page
+	}) => {
+		await mockAdminApi(page);
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await page.goto('/admin/limit-profiles/new');
+
+		await expect(
+			page.getByRole('heading', { name: 'Buat profil batas', level: 1 })
+		).toBeInViewport();
+		await expect(page.getByLabel('Nama (wajib)')).toBeInViewport();
+		await expect(page.getByTestId('profile-group-workspace')).toBeInViewport();
+		// The whole first group, above the sticky footer.
+		const lastOfGroup = page.getByLabel('Deployment berjalan (wajib)');
+		const footer = await page.getByTestId('profile-form-footer').boundingBox();
+		const field = await lastOfGroup.boundingBox();
+		expect(field!.y + field!.height).toBeLessThanOrEqual(footer!.y);
+		await expect(page.getByRole('button', { name: 'Buat profil' })).toBeInViewport();
+		await expect(page.getByLabel('Alasan')).not.toBeInViewport();
+	});
+
+	test('editing a profile opens its page with the saved numbers, and saving returns to the list', async ({
+		page
+	}) => {
+		const calls = await mockAdminApi(page);
+		await page.goto('/admin/limit-profiles');
+
+		await page.getByRole('link', { name: 'Ubah Kelas' }).click();
+		await expect(page).toHaveURL(`/admin/limit-profiles/${ids.limitProfile}`);
+		const form = page.getByRole('form', { name: 'Ubah profil batas' });
+		await expect(form.getByLabel('Nama (wajib)')).toHaveValue('Kelas');
+		await expect(form.getByLabel('Nama (wajib)')).toBeFocused();
+		await form.getByLabel('Alasan').fill('Kelas butuh lebih banyak proyek');
+		await form.getByRole('button', { name: 'Simpan perubahan' }).click();
+
+		await expect(page).toHaveURL('/admin/limit-profiles');
+		expect(calls.find((call) => call.method === 'PATCH')?.path).toBe(
+			`limit-profiles/${ids.limitProfile}`
+		);
+	});
+
+	test('database limits and the default region go out as typed and chosen', async ({ page }) => {
+		const calls = await mockAdminApi(page);
+		await page.goto('/admin/limit-profiles/new');
+
+		const form = page.getByRole('form', { name: 'Buat profil batas' });
+		await form.getByLabel('Nama (wajib)').fill('Kelas basis data');
+		await form.getByRole('button', { name: 'Opsional' }).click();
+		await expect(form.getByLabel('Database (opsional)')).toHaveAccessibleDescription(
+			/pilot terbatas/
+		);
+		await form.getByLabel('Database (opsional)').fill('3');
+		await form.getByLabel('Penyimpanan database (MB) (opsional)').fill('0');
+		await form.getByLabel('Region bawaan (opsional)').selectOption('jkt');
+		await form.getByLabel('Alasan').fill('Kelas basis data di Jakarta');
+		await form.getByRole('button', { name: 'Buat profil' }).click();
+
+		await expect(page).toHaveURL('/admin/limit-profiles');
+		expect(calls.find((call) => call.method === 'POST')?.body).toMatchObject({
+			max_databases: 3,
+			max_database_storage_mb: 0,
+			default_region: 'jkt'
+		});
+	});
+
+	test('leaving with unsaved changes asks first, and stays when the admin says no', async ({
+		page
+	}) => {
+		await mockAdminApi(page);
+		await page.goto('/admin/limit-profiles/new');
+		const form = page.getByRole('form', { name: 'Buat profil batas' });
+		await expect(form.getByLabel('Nama (wajib)')).toBeFocused();
+
+		// Nothing typed yet: Batal leaves without asking.
+		await form.getByRole('link', { name: 'Batal' }).click();
+		await expect(page).toHaveURL('/admin/limit-profiles');
+
+		await page.goto('/admin/limit-profiles/new');
+		await form.getByLabel('Nama (wajib)').fill('Setengah jadi');
+		const prompts: string[] = [];
+		page.once('dialog', (dialog) => {
+			prompts.push(dialog.message());
+			void dialog.dismiss();
+		});
+		await form.getByRole('link', { name: 'Batal' }).click();
+		await expect(page).toHaveURL('/admin/limit-profiles/new');
+		await expect(form.getByLabel('Nama (wajib)')).toHaveValue('Setengah jadi');
+		expect(prompts).toEqual([
+			'Perubahan di profil ini belum disimpan. Tinggalkan halaman ini dan buang perubahannya?'
+		]);
+
+		page.once('dialog', (dialog) => void dialog.accept());
+		await page.getByRole('link', { name: 'Profil batas' }).first().click();
+		await expect(page).toHaveURL('/admin/limit-profiles');
+	});
+
+	test('an old create link opens the new page and keeps where to return', async ({ page }) => {
+		await mockAdminApi(page);
+		await page.goto(
+			`/admin/limit-profiles?create=1&return_to=%2Fadmin%2Fworkspaces%2F${ids.workspace}`
+		);
+
+		await expect(page).toHaveURL(
+			`/admin/limit-profiles/new?return_to=%2Fadmin%2Fworkspaces%2F${ids.workspace}`
+		);
+		await expect(page.getByText(/kamu kembali ke workspace tadi/)).toBeVisible();
 	});
 
 	test('with no limit profiles yet, an admin creates one and assigns it to a team workspace with a reason', async ({
@@ -316,15 +439,15 @@ test.describe('admin journeys', () => {
 		await expect(empty.getByRole('button', { name: 'Simpan profil' })).toHaveCount(0);
 		await empty.getByRole('link', { name: 'Buat profil batas' }).click();
 
-		await expect(page).toHaveURL(/\/admin\/limit-profiles\?create=1&return_to=/);
-		const form = page.getByRole('dialog', { name: 'Buat profil batas' });
-		await expect(form).toContainText('kamu kembali ke workspace tadi');
+		await expect(page).toHaveURL(/\/admin\/limit-profiles\/new\?return_to=/);
+		const form = page.getByRole('form', { name: 'Buat profil batas' });
+		await expect(page.getByText(/kamu kembali ke workspace tadi/)).toBeVisible();
 		// Prefilled with the team default this workspace runs on (5, 3, 2, 512 MB, 1,000 m).
 		await expect(form).toContainText('batas Default tim yang berlaku di workspace tadi');
 		await expect(form.getByLabel('Proyek (wajib)', { exact: true })).toHaveValue('5');
 		await form.getByRole('button', { name: 'Buat profil' }).click();
 		await expect(form.getByRole('alert')).toHaveText(
-			'Belum bisa dilanjutkan. Periksa isian yang ditandai: Nama. Isi alasan dulu.'
+			'Belum bisa disimpan. Periksa isian yang ditandai: Nama. Isi alasan dulu.'
 		);
 		await expect(form.getByLabel('Nama (wajib)')).toBeFocused();
 
@@ -359,6 +482,9 @@ test.describe('admin journeys', () => {
 			max_builds_per_hour: null,
 			idle_sleep_minutes: null,
 			max_replicas: null,
+			max_databases: null,
+			max_database_storage_mb: null,
+			default_region: null,
 			reason: 'Pilot magang semester ini'
 		});
 		const put = calls.find((call) => call.method === 'PUT');

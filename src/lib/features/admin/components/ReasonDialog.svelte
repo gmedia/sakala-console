@@ -2,8 +2,7 @@
 	import { tick, type Snippet } from 'svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
-
-	const REASON_MAX = 500;
+	import { REASON_HINT, REASON_MAX, reasonProblem as problemOf } from '../reason';
 
 	type Props = {
 		open: boolean;
@@ -51,7 +50,7 @@
 		fields,
 		fieldsProblem = null,
 		unavailable,
-		reasonHint = 'Tulis singkat kenapa aksi ini dilakukan. Alasan ini masuk audit log bersama namamu, supaya admin lain bisa menelusurinya.',
+		reasonHint = REASON_HINT,
 		id = 'admin-reason'
 	}: Props = $props();
 
@@ -79,13 +78,7 @@
 
 	const trimmed = $derived(reason.trim());
 	const tooLong = $derived(reason.length > REASON_MAX);
-	const reasonProblem = $derived(
-		tooLong
-			? `Alasan paling panjang ${REASON_MAX} karakter.`
-			: trimmed
-				? null
-				: 'Alasan belum diisi. Tulis satu kalimat, misalnya permintaan siapa atau masalah apa.'
-	);
+	const reasonProblem = $derived(problemOf(reason));
 	// Too long shows while typing, next to the counter; empty waits for the first confirm.
 	const reasonError = $derived(
 		(tooLong || attempted ? reasonProblem : null) ?? getFieldError(error, 'reason')

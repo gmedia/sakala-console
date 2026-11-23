@@ -111,7 +111,7 @@ describe('sleeping projects in the admin', () => {
 	});
 
 	it("tells a profile that follows the server's setting from one that never sleeps", () => {
-		expect(formatProfileIdleSleep(null)).toBe('Ikut bawaan server');
+		expect(formatProfileIdleSleep(null)).toBe('Bawaan');
 		expect(formatProfileIdleSleep(0)).toBe('Tidak pernah');
 		expect(formatProfileIdleSleep(10080)).toBe('10.080 menit');
 		expect(formatProfileIdleSleep(undefined)).toBe('-');

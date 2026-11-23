@@ -8,7 +8,8 @@ import {
 	getAdminWorkspace,
 	listAdminUsers,
 	listAdminWorkspaces,
-	listLimitProfiles
+	listLimitProfiles,
+	getLimitProfile
 } from '$lib/api/resources/admin/accounts';
 import { getAdminProject, listAdminProjects } from '$lib/api/resources/admin/projects';
 import {
@@ -106,6 +107,15 @@ export function createLimitProfilesQuery(params: () => QueryParams) {
 	return createQuery(() =>
 		listQuery(queryKeys.admin.limitProfiles(params()), () => listLimitProfiles(params()))
 	);
+}
+
+export function createLimitProfileQuery(id: () => string, enabled: () => boolean = () => true) {
+	return createQuery(() => ({
+		queryKey: queryKeys.admin.limitProfile(id()),
+		queryFn: () => getLimitProfile(id()),
+		enabled: enabled(),
+		retry: retryAdmin
+	}));
 }
 
 /** Every profile for a picker. A hundred is the API's page limit and far above what exists. */

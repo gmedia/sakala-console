@@ -7,7 +7,7 @@
 	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import ReasonDialog from './ReasonDialog.svelte';
 	import { formatNumber } from '../format';
-	import { profileReturnPath, type ProfileReturnTarget } from '../return-to';
+	import { profileReturnPath, RETURN_TO_PARAM, type ProfileReturnTarget } from '../return-to';
 
 	type KeyLimits = Pick<
 		LimitProfile,
@@ -67,7 +67,7 @@
 	const noProfiles = $derived(!profilesLoading && !profilesError && profiles?.length === 0);
 	const unchanged = $derived(selected === current);
 	const createHref = $derived(
-		`${resolve('/admin/limit-profiles')}?create=1&return_to=${encodeURIComponent(profileReturnPath(returnTo))}`
+		`${resolve('/admin/limit-profiles/new')}?${RETURN_TO_PARAM}=${encodeURIComponent(profileReturnPath(returnTo))}`
 	);
 
 	function keyLimits(limits: KeyLimits): string {

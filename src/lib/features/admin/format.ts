@@ -3,6 +3,7 @@ import type { TimeRange } from '$lib/api/resources/admin/common';
 import { ONBOARDING_SOURCE_OPTIONS_MAP } from '$lib/features/onboarding/constants';
 import { IDLE_SLEEP_NEVER } from '$lib/features/workspaces/limits';
 import { MIN_REPLICAS } from '$lib/features/projects/replicas';
+import { ROLE_LABELS as WORKSPACE_ROLE_LABELS } from '$lib/features/workspaces/presentation';
 
 /** Admin ranges are whole days in WIB, so every date on these pages is shown in WIB too. */
 export const ADMIN_TIMEZONE = 'Asia/Jakarta';
@@ -150,11 +151,8 @@ export const FEEDBACK_CATEGORY_OPTIONS = Object.entries(FEEDBACK_CATEGORIES).map
 
 export const ROLE_LABELS: Record<string, string> = { admin: 'Admin', user: 'Pengguna' };
 export const WORKSPACE_TYPE_LABELS: Record<string, string> = { personal: 'Pribadi', team: 'Tim' };
-export const MEMBER_ROLE_LABELS: Record<string, string> = {
-	owner: 'Owner',
-	member: 'Member',
-	viewer: 'Viewer'
-};
+/** The same words members see on their team page: one name for one role. */
+export const MEMBER_ROLE_LABELS: Record<string, string> = WORKSPACE_ROLE_LABELS;
 
 export function onboardingSourceLabel(source: string | null): string {
 	if (source === null) return 'Belum menjawab';
@@ -176,8 +174,16 @@ export function formatNumber(value: number): string {
  */
 export function formatProfileIdleSleep(minutes: number | null | undefined): string {
 	if (minutes === undefined) return '-';
-	if (minutes === null) return 'Ikut bawaan server';
+	if (minutes === null) return 'Bawaan';
 	return minutes === IDLE_SLEEP_NEVER ? 'Tidak pernah' : `${formatNumber(minutes)} menit`;
+}
+
+/**
+ * A profile's `max_builds_per_hour`: `null` follows `SAKALA_PROJECT_MAX_BUILDS_PER_HOUR`. Short,
+ * because the table has ten columns; the form's help says what the default is.
+ */
+export function formatProfileBuildsPerHour(perHour: number | null): string {
+	return perHour === null ? 'Bawaan' : formatNumber(perHour);
 }
 
 /**
