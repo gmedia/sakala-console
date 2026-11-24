@@ -1,0 +1,44 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a20cea-5307-75fb-a655-97a6f955899b",
+			"project_id": "01a20cea-525c-7a9b-bea5-c1f19ed71e69",
+			"name": "Laporan harian",
+			"command": "php artisan report:daily",
+			"cron_expression": "30 2 * * *",
+			"timezone": "Asia/Jakarta",
+			"timeout_seconds": 300,
+			"enabled": false,
+			"next_run_at": null,
+			"health": "failing",
+			"consecutive_failures": 10,
+			"paused_at": "2026-11-24T02:30:40Z",
+			"pause_reason": "consecutive_failures",
+			"latest_run": {
+				"id": "01a20cea-5540-714f-afbd-5302befaec13",
+				"schedule_id": "01a20cea-5307-75fb-a655-97a6f955899b",
+				"trigger": "manual",
+				"scheduled_for": null,
+				"status": "cancelled",
+				"reason": null,
+				"reason_message": null,
+				"command": "php artisan report:daily",
+				"timeout_seconds": 300,
+				"exit_code": null,
+				"duration_ms": null,
+				"oom_killed": null,
+				"timed_out": null,
+				"error_code": null,
+				"error_summary": null,
+				"deployment_id": "01a20cea-527b-7b06-bdb4-ab9e4c00ead7",
+				"deadline_at": "2026-11-24T10:17:30Z",
+				"started_at": null,
+				"finished_at": "2026-11-24T10:07:30Z",
+				"created_at": "2026-11-24T10:07:30Z"
+			},
+			"created_at": "2026-11-24T10:07:30Z",
+			"updated_at": "2026-11-24T10:07:30Z"
+		}
+	}
+}

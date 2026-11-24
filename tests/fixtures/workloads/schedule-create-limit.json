@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Workspace ini sudah punya 2 jadwal aktif, dan itu batasnya. Nonaktifkan atau hapus jadwal lain dulu.",
+		"code": "SCHEDULE_LIMIT_EXCEEDED",
+		"limit": 2,
+		"current": 2
+	}
+}

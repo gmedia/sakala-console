@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Nama web, release, dan job dipakai Sakala sendiri. Pilih nama lain, misalnya queue.",
+		"errors": {
+			"name": [
+				"Nama web, release, dan job dipakai Sakala sendiri. Pilih nama lain, misalnya queue."
+			]
+		}
+	}
+}

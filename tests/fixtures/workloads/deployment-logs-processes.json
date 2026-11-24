@@ -1,0 +1,61 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"sequence": 6,
+				"stream": "stdout",
+				"process": null,
+				"message": "GET / 200",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 5,
+				"stream": "stdout",
+				"process": "job",
+				"message": "Report written",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 4,
+				"stream": "stderr",
+				"process": "queue",
+				"message": "Failed: App\\Jobs\\SendInvoice",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 3,
+				"stream": "stdout",
+				"process": "queue",
+				"message": "Processing: App\\Jobs\\SendInvoice",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 2,
+				"stream": "stdout",
+				"process": null,
+				"message": "Server listening on port 3000",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 1,
+				"stream": "stdout",
+				"process": null,
+				"message": "Deployment succeeded.",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			}
+		],
+		"links": {
+			"first": null,
+			"last": null,
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"path": "http://api.sakala.localhost:8000/api/v1/app/projects/01a20cea-501a-709f-a796-28737f0d140c/deployments/01a20cea-505e-799d-a59d-0be6f985d495/logs",
+			"per_page": 200,
+			"next_cursor": null,
+			"prev_cursor": null
+		}
+	}
+}

@@ -14,6 +14,8 @@
 	import { getRollbackPlan } from '$lib/features/deployments/rollback';
 	import { useDeploymentRollback } from '$lib/features/deployments/use-deployment-rollback.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
+	import { useWorkloadAvailability } from '$lib/features/workloads/availability.svelte';
+	import { createProcessesQuery } from '$lib/features/workloads/queries';
 	import { cn } from '$lib/utils/cn';
 	import { historyHeaderColumns } from '../../history-grid';
 	import {
@@ -99,6 +101,12 @@
 	);
 
 	const rollback = useDeploymentRollback(() => projectId);
+	// Only to warn that a rollback brings back the target's workers, read once someone asks for one.
+	const workloads = useWorkloadAvailability(() => project);
+	const processesQuery = createProcessesQuery(
+		() => projectId,
+		() => workloads.workers && rollback.target !== null
+	);
 	// What serves now, for the comparison: on this page, in the header's list, or read once.
 	const recentQuery = createRecentDeploymentsQuery(() => projectId);
 	const activeId = $derived(project?.active_deployment_id ?? null);
@@ -120,7 +128,9 @@
 		if (!target || !project) return null;
 		const active = activeListed ?? activeQuery.data?.data;
 		const serving = active && isServingDeployment(active, project.runtime_status) ? active : null;
-		return getRollbackPlan(target, serving, project);
+		return getRollbackPlan(target, serving, project, {
+			hasWorkers: (processesQuery.data?.length ?? 0) > 0
+		});
 	});
 </script>
 

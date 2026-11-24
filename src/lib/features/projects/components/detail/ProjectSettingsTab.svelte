@@ -54,14 +54,21 @@
 		ADVANCED_ANCHORS,
 		SETTINGS_ANCHORS,
 		SETTINGS_SECTION_IDS as SECTION,
-		SETTINGS_SECTIONS
+		settingsSections
 	} from '../../settings-anchors';
+	import { useWorkloadAvailability } from '$lib/features/workloads/availability.svelte';
+	import ProcessesSection from '$lib/features/workloads/components/ProcessesSection.svelte';
+	import SchedulesSection from '$lib/features/workloads/components/SchedulesSection.svelte';
 
 	let { projectId }: { projectId: string } = $props();
 
 	const projectQuery = createProjectQuery(() => projectId);
 	const access = useProjectAccess(() => projectQuery.data);
 	const pilotLimits = createPilotLimitsQuery();
+	// Workers and schedules (ADR-022) appear only where the installation turned them on.
+	const workloads = useWorkloadAvailability(() => projectQuery.data);
+	const sections = $derived(settingsSections(workloads));
+	const framework = $derived(projectQuery.data?.stack?.framework ?? null);
 	const deleteMutation = createDeleteProjectMutation();
 	const updateMutation = createUpdateProjectMutation();
 	const inspectMutation = createRequestInspectionMutation();
@@ -314,6 +321,21 @@
 	/>
 {/snippet}
 
+{#snippet workloadSections(readOnly: boolean)}
+	{#if workloads.workers}
+		<ProcessesSection
+			{projectId}
+			{framework}
+			liveDeploymentId={projectQuery.data?.active_deployment_id}
+			limits={workloads.limits}
+			{readOnly}
+		/>
+	{/if}
+	{#if workloads.schedules}
+		<SchedulesSection {projectId} {framework} limits={workloads.limits} {readOnly} />
+	{/if}
+{/snippet}
+
 <div class="flex w-full max-w-reading flex-col gap-4">
 	{#if projectQuery.isLoading}
 		<div class="p-6 text-center text-sm text-muted">Memuat pengaturan...</div>
@@ -333,6 +355,7 @@
 				{/each}
 			</dl>
 		</section>
+		{@render workloadSections(true)}
 	{:else if projectQuery.data}
 		{#if projectQuery.data.redeploy_required}
 			<div class="flex flex-col gap-2">
@@ -345,7 +368,7 @@
 		<!-- One link per section, so a later section (Domain) is one more entry, not a new page. -->
 		<nav aria-label="Bagian pengaturan" data-testid="settings-sections">
 			<ul class="flex flex-wrap gap-x-1 gap-y-1">
-				{#each SETTINGS_SECTIONS as section (section.id)}
+				{#each sections as section (section.id)}
 					<li>
 						<a
 							href="#{section.id}"
@@ -545,6 +568,8 @@
 				</div>
 			</div>
 		</form>
+
+		{@render workloadSections(false)}
 
 		<section
 			id={SECTION.danger}

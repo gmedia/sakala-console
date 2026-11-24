@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { DeploymentLogLine } from './deployment-logs';
 import {
+	ALL_LOG_PROCESSES,
 	filterLogLines,
 	linePermalinkHash,
 	logDownloadFileName,
+	logProcessOf,
+	logProcessOptions,
 	parseLinePermalink
 } from './log-tools';
 
@@ -59,5 +62,37 @@ describe('logDownloadFileName', () => {
 		expect(logDownloadFileName('toko-kopi-web', 5)).toBe('toko-kopi-web-deployment-5.txt');
 		expect(logDownloadFileName('Kafé Rani / Web', 2)).toBe('kafe-rani-web-deployment-2.txt');
 		expect(logDownloadFileName('🚀', 1)).toBe('proyek-deployment-1.txt');
+	});
+});
+
+describe('process filter (ADR-022)', () => {
+	const levelOf = () => 'normal' as const;
+	const from = (sequence: number, process: string | null): DeploymentLogLine => ({
+		...line(sequence, `baris ${sequence}`),
+		process
+	});
+	const MIXED = [from(1, null), from(2, 'queue'), from(3, 'job'), from(4, 'mailer'), from(5, null)];
+
+	it('offers web and each worker by name, never the scheduled runs', () => {
+		expect(logProcessOptions(MIXED)).toEqual(['web', 'mailer', 'queue']);
+		expect(logProcessOptions([from(1, null), from(2, 'job')])).toEqual(['web']);
+		expect(logProcessOf(from(1, null))).toBe('web');
+	});
+
+	it('always leaves out scheduled runs, and keeps one process when asked', () => {
+		const all = filterLogLines(MIXED, { query: '', errorsOnly: false, levelOf });
+		expect(all.map((item) => item.sequence)).toEqual([1, 2, 4, 5]);
+		const web = filterLogLines(MIXED, { query: '', errorsOnly: false, levelOf, process: 'web' });
+		expect(web.map((item) => item.sequence)).toEqual([1, 5]);
+		const queue = filterLogLines(MIXED, {
+			query: 'baris 2',
+			errorsOnly: false,
+			levelOf,
+			process: 'queue'
+		});
+		expect(queue.map((item) => item.sequence)).toEqual([2]);
+		expect(
+			filterLogLines(MIXED, { query: '', errorsOnly: false, levelOf, process: ALL_LOG_PROCESSES })
+		).toHaveLength(4);
 	});
 });

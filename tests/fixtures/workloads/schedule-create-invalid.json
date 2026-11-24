@@ -1,0 +1,13 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Ekspresi cron harus lima bagian: menit, jam, tanggal, bulan, dan hari, misalnya 30 2 * * * untuk setiap hari pukul 02.30. (dan 2 kesalahan lainnya)",
+		"errors": {
+			"cron_expression": [
+				"Ekspresi cron harus lima bagian: menit, jam, tanggal, bulan, dan hari, misalnya 30 2 * * * untuk setiap hari pukul 02.30."
+			],
+			"timezone": ["Zona waktu tidak dikenal. Pakai nama seperti Asia/Jakarta."],
+			"timeout_seconds": ["Batas waktu run antara 1 dan 600 detik."]
+		}
+	}
+}

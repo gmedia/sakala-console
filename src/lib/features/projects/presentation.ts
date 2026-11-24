@@ -8,7 +8,8 @@ import {
 	PROJECT_RELEASE_COMMAND_UNSUPPORTED,
 	PROJECT_REPLICAS_UNSUPPORTED,
 	PROJECT_SUSPENDED,
-	PROJECT_WAKE_LIMIT_EXCEEDED
+	PROJECT_WAKE_LIMIT_EXCEEDED,
+	WORKLOAD_ERROR_CODES
 } from '$lib/api/errors';
 import type { RuntimeStatus } from '$lib/api/resources/projects';
 import { parseWakeLimitDetails } from '$lib/api/resources/project-wake';
@@ -308,6 +309,10 @@ export function getProjectWakeErrorMessage(error: unknown): string | null {
 /** Emptying the field deploys without the command, so the message says the command is skipped. */
 export const RELEASE_COMMAND_UNSUPPORTED_MESSAGE = `Proyek ini punya release command, tetapi server yang menjalankannya belum bisa menjalankan release command. Untuk deploy sekarang tanpa perintah itu, kosongkan ${RELEASE_COMMAND_LABEL} di tab Pengaturan. Atau coba lagi setelah servernya diperbarui.`;
 
+/** Setting every worker to 0 containers still sends them, so the way out is deleting them. */
+export const WORKER_PROCESSES_UNSUPPORTED_MESSAGE =
+	'Proyek ini punya worker, tetapi server yang menjalankannya belum bisa menjalankan worker. Untuk deploy sekarang, hapus worker di bagian Proses pada tab Pengaturan. Atau coba lagi setelah servernya diperbarui.';
+
 /**
  * What to say when a deployment is refused. The replica and release command refusals point at the
  * setting that causes them; anything else, and a refusal without its counts, keeps the API's own
@@ -317,6 +322,9 @@ export function getDeployErrorMessage(error: unknown, fallback: string): string 
 	if (error instanceof ApiError) {
 		if (error.code === PROJECT_RELEASE_COMMAND_UNSUPPORTED) {
 			return RELEASE_COMMAND_UNSUPPORTED_MESSAGE;
+		}
+		if (error.code === WORKLOAD_ERROR_CODES.workerProcessesUnsupported) {
+			return WORKER_PROCESSES_UNSUPPORTED_MESSAGE;
 		}
 		if (error.code === PROJECT_REPLICAS_UNSUPPORTED) {
 			const setting = parseReplicasUnsupportedDetails(error.details);

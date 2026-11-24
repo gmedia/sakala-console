@@ -1833,6 +1833,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/processes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The project's worker definitions, by name, with crash details of the
+         *     serving deployment's workers
+         */
+        get: operations["v1.app.projects.processes.index"];
+        put?: never;
+        /**
+         * Add a worker process. At most five per project, and the project's
+         *     worker replicas together stay within `max_worker_containers`
+         */
+        post: operations["v1.app.projects.processes.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/processes/{process}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a worker process; its containers stop with the next deployment */
+        delete: operations["v1.app.projects.processes.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a worker process. The serving deployment keeps the old
+         *     definition until the next deployment: see `redeploy_required`
+         */
+        patch: operations["v1.app.projects.processes.update"];
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's schedules, oldest first, each with its newest run */
+        get: operations["v1.app.projects.schedules.index"];
+        put?: never;
+        /**
+         * Create a schedule. Enabled by default; only enabled schedules count towards `max_schedules`, and two slots may
+         *     not be closer than `min_schedule_interval_minutes`
+         */
+        post: operations["v1.app.projects.schedules.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/schedules/{schedule}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1.app.projects.schedules.show"];
+        put?: never;
+        post?: never;
+        /** Delete a schedule and its history; an open run is stopped first */
+        delete: operations["v1.app.projects.schedules.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a schedule. A change of the expression or timezone, or enabling it, computes the next slot from now;
+         *     enabling a paused schedule clears the pause
+         */
+        patch: operations["v1.app.projects.schedules.update"];
+        trace?: never;
+    };
     "/v1/public/projects/{slug}/wake": {
         parameters: {
             query?: never;
@@ -1909,6 +1996,67 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["v1.auth.email.verification-notification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/schedules/{schedule}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The schedule's runs, newest first, cursor paginated. The newest 100 are kept */
+        get: operations["v1.app.projects.schedules.runs.index"];
+        put?: never;
+        /**
+         * Run now: one run outside the schedule's slots, under the same rules. Answers 409 `SCHEDULE_RUN_REFUSED` with
+         *     the `reason` a slot would be skipped for; a run that has to wait for a free job slot is `waiting`
+         */
+        post: operations["v1.app.projects.schedules.runs.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/schedules/{schedule}/runs/{run}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop run. A waiting or unclaimed run ends at once as `cancelled`; a running one ends when its node stops it.
+         *     Answers 409 `SCHEDULE_RUN_NOT_OPEN` for a run that already ended
+         */
+        post: operations["v1.app.projects.schedules.runs.cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/schedules/{schedule}/runs/{run}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The run's output, oldest first, cursor paginated. Lines carry `process: "job"` and follow the log retention of
+         *     deployments
+         */
+        get: operations["v1.app.projects.schedules.runs.logs"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2466,7 +2614,7 @@ export interface components {
              * @description An `AgentCommandType`, for example `DeployProject`, `StopProject`, `CleanupRuntime`.
              * @enum {string}
              */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob";
             /**
              * @description `Pending`, `Claimed`, `Running`, `Succeeded`, `Failed`, `Cancelled`, or `Expired`.
              * @enum {string}
@@ -2910,7 +3058,7 @@ export interface components {
         AgentCommandResource: {
             id: string;
             /** @enum {string} */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob";
             /** @enum {string} */
             status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             project_id: string | null;
@@ -2929,7 +3077,7 @@ export interface components {
          * @description Command types shared with sakala-agent protocol revision 4. Case order and values must match `sakala-agent-protocol::CommandType` exactly.
          * @enum {string}
          */
-        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
+        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob";
         /** AgentHeartbeatRequest */
         AgentHeartbeatRequest: {
             /** @enum {string} */
@@ -2999,6 +3147,14 @@ export interface components {
                         oom_killed: boolean;
                         /** Format: date-time */
                         finished_at: string | null;
+                        /**
+                         * @description Additive within protocol revision 4 (ADR-022): only on worker
+                         *     containers. Absent means the web process. A crashing worker
+                         *     never marks the web process crashed.
+                         */
+                        process?: string | null;
+                        restart_count?: number | null;
+                        running?: boolean | null;
                     }[];
                     /**
                      * @description Optional, from nodes with the `idle-sleep` capability. The agent
@@ -3055,6 +3211,11 @@ export interface components {
                         memory_bytes: number;
                         memory_limit_bytes: number | null;
                         restart_count: number;
+                        /**
+                         * @description Additive within protocol revision 4 (ADR-022): only on worker
+                         *     containers, whose samples are not project metrics.
+                         */
+                        process?: string | null;
                     }[];
                 };
                 /**
@@ -3205,7 +3366,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             };
@@ -3438,7 +3599,7 @@ export interface components {
              *     `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`, `active_deployment_limit`,
              *     `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,
              *     `database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`,
-             *     `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.
+             *     `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, `worker_container_limit`, `worker_processes_unsupported`, or `failed`.
              */
             key_rotation: {
                 /** @enum {string} */
@@ -3685,7 +3846,7 @@ export interface components {
              *     deployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:
              *     `no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,
              *     `active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,
-             *     `database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`, `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.
+             *     `database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`, `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, `worker_container_limit`, `worker_processes_unsupported`, or `failed`.
              */
             password_rotation: {
                 /** @enum {string} */
@@ -3777,6 +3938,11 @@ export interface components {
         DeploymentLogResource: {
             sequence: number;
             stream: components["schemas"]["LogStream"];
+            /**
+             * @description The worker process or `job` the line came from (ADR-022); `null` for the deployment's own lines: build,
+             *     release command, and web.
+             */
+            process: string | null;
             message: string;
             recorded_at: string;
         };
@@ -4079,6 +4245,15 @@ export interface components {
                 name: string;
                 status: components["schemas"]["DatabaseStatus"];
             }[];
+            /**
+             * @description The managed bucket attached to the project, as a list of at most one: a project uses one bucket at a
+             *     time. Only `id`, `name`, and `status`; the project detail has the connection variables.
+             */
+            buckets: {
+                id: string;
+                name: string;
+                status: components["schemas"]["BucketStatus"];
+            }[];
             /** @description The workspace that owns the project. Null only for a project that is being purged. */
             workspace: {
                 id: string;
@@ -4183,6 +4358,17 @@ export interface components {
              *     `SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases.
              */
             max_bucket_storage_mb: number | null;
+            /**
+             * @description Worker containers the workspace may run at once. `null` follows the global
+             *     `SAKALA_WORKER_DEFAULT_MAX_CONTAINERS`; `0` allows none.
+             */
+            max_worker_containers: number | null;
+            /** @description Enabled schedules the workspace may hold. `null` follows the global `SAKALA_SCHEDULE_DEFAULT_MAX_COUNT`; `0` allows none. */
+            max_schedules: number | null;
+            /** @description Shortest gap between two slots of a schedule, in minutes. `null` follows the global `SAKALA_SCHEDULE_DEFAULT_MIN_INTERVAL_MINUTES`. */
+            min_schedule_interval_minutes: number | null;
+            /** @description Scheduled runs the workspace runs at once. `null` follows the global `SAKALA_SCHEDULE_DEFAULT_MAX_CONCURRENT_RUNS`; `0` runs none. */
+            max_concurrent_job_runs: number | null;
             /** @description Workspaces running under this profile. A profile is deleted only at zero. */
             workspaces_count?: number | null;
             created_at: string | null;
@@ -4307,6 +4493,21 @@ export interface components {
                 current_bucket_storage_mb: number;
                 /** @description Usage of the workspace's buckets from the storage nodes' last reports, in bytes; a bucket never measured counts 0. */
                 current_bucket_usage_bytes: number;
+                /**
+                 * @description Worker containers the workspace may run at once, from its limit profile or the global setting
+                 *     (ADR-022). They also count towards `max_active_containers`. `0` allows none.
+                 */
+                max_worker_containers: number;
+                /** @description Worker containers of the workspace's projects that serve or are being deployed. */
+                current_worker_containers_count: number;
+                /** @description Enabled schedules the workspace may hold, from its limit profile or the global setting; `0` allows none. */
+                max_schedules: number;
+                /** @description Enabled schedules that count towards `max_schedules`. */
+                current_schedules_count: number;
+                /** @description Shortest gap between two slots of a schedule, in minutes, from its limit profile or the global setting. */
+                min_schedule_interval_minutes: number;
+                /** @description Scheduled runs the workspace runs at once; a due run beyond that waits. `0` runs none. */
+                max_concurrent_job_runs: number;
             };
             runtime_defaults: {
                 memory_mb: number;
@@ -4352,8 +4553,31 @@ export interface components {
              */
             buckets: {
                 available: boolean;
-                /** @constant */
-                default_quota_mb: 0;
+                /**
+                 * @description Quota of a bucket created without `quota_mb`, in MB: `SAKALA_BUCKET_DEFAULT_QUOTA_MB`, or 256 when
+                 *     unset, kept between 1 and 1048576. Never null.
+                 */
+                default_quota_mb: number;
+            };
+            /**
+             * @description Worker processes on this installation (ADR-022). `enabled` follows `SAKALA_WORKERS_ENABLED`; while it
+             *     is false the process endpoints answer 404 and deployments carry no workers.
+             */
+            workers: {
+                enabled: boolean;
+            };
+            /**
+             * @description Scheduled jobs on this installation (ADR-022). `enabled` follows `SAKALA_SCHEDULES_ENABLED`; while it
+             *     is false the schedule endpoints answer 404 and nothing is dispatched. `default_timezone` is the
+             *     timezone of a schedule created without one, `max_timeout_seconds` the longest run timeout, and
+             *     `start_deadline_minutes` how late a slot may still start.
+             */
+            schedules: {
+                enabled: boolean;
+                default_timezone: string;
+                default_timeout_seconds: number;
+                max_timeout_seconds: number;
+                start_deadline_minutes: number;
             };
         };
         /** PilotValidationMetricsResource */
@@ -4377,7 +4601,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             } | null;
@@ -4460,6 +4684,35 @@ export interface components {
                     }[];
                 }[];
             };
+        };
+        /** ProjectProcessResource */
+        ProjectProcessResource: {
+            id: string;
+            name: string;
+            command: string;
+            /** @description Containers of this process; `0` keeps the definition and runs nothing. */
+            replicas: number;
+            /** @description Per container, in MB; `null` follows the deployment's. */
+            memory_mb: number | null;
+            /** @description Per container, in thousandths of a CPU; `null` follows the deployment's. */
+            cpu_millis: number | null;
+            /**
+             * @description Set while the node reports this worker of the serving deployment as crashing (exited with a code other
+             *     than 0, or restarting over and over); `null` otherwise. A crashing worker never marks the web process
+             *     crashed. `running` true means it is up between two crashes.
+             */
+            crash: {
+                exit_code: number | null;
+                oom_killed: boolean;
+                finished_at: string | null;
+                restart_count: number | null;
+                running: boolean | null;
+                since: string;
+            } | null;
+            /** @description Only on the answer to a change: whether the serving deployment now differs from the project's settings. */
+            redeploy_required?: boolean;
+            created_at: string | null;
+            updated_at: string | null;
         };
         /** ProjectResource */
         ProjectResource: {
@@ -4663,6 +4916,30 @@ export interface components {
          * @enum {string}
          */
         ProjectRestartState: "pending" | "succeeded" | "failed";
+        /** ProjectScheduleResource */
+        ProjectScheduleResource: {
+            id: string;
+            project_id: string;
+            name: string;
+            command: string;
+            /** @description Five fields: minute, hour, day of month, month, day of week. */
+            cron_expression: string;
+            timezone: string;
+            timeout_seconds: number;
+            enabled: boolean;
+            /** @description The next slot that has not been handled, in UTC; `null` while disabled. */
+            next_run_at: string | null;
+            /** @description `failing` after a failed, timed out, or lost run, until one succeeds. */
+            health: components["schemas"]["ScheduleHealth"];
+            /** @description Failed, timed out, or lost runs in a row. */
+            consecutive_failures: number;
+            /** @description When the control plane disabled the schedule by itself; `null` otherwise. Enabling it clears this. */
+            paused_at: string | null;
+            pause_reason: components["schemas"]["SchedulePauseReason"] | null;
+            latest_run?: components["schemas"]["ScheduleRunResource"] | null;
+            created_at: string | null;
+            updated_at: string | null;
+        };
         /**
          * ProjectStatus
          * @enum {string}
@@ -4735,6 +5012,11 @@ export interface components {
                 message: string;
                 /** Format: date-time */
                 recorded_at: string;
+                /**
+                 * @description Additive within protocol revision 4 (ADR-022): a worker's name,
+                 *     or `job` for RunJob output. Absent for build, release, and web.
+                 */
+                process?: string | null;
             }[];
         };
         /** RepositoryCredentialResource */
@@ -4813,6 +5095,128 @@ export interface components {
          * @enum {string}
          */
         RuntimeStatus: "not_deployed" | "deploying" | "running" | "stopped" | "failed" | "crashed" | "sleeping";
+        /**
+         * ScheduleHealth
+         * @description Whether a schedule's last finished run failed. Members are notified when it changes, never on every failure.
+         * @enum {string}
+         */
+        ScheduleHealth: "healthy" | "failing";
+        /**
+         * SchedulePauseReason
+         * @description Why the control plane disabled a schedule by itself.
+         *     | |
+         *     |---|
+         *     | `consecutive_failures` <br/> `pause_after_failures` runs in a row failed, timed out, or were lost. |
+         * @enum {string}
+         */
+        SchedulePauseReason: "consecutive_failures";
+        /**
+         * ScheduleRunReason
+         * @description Why a run was skipped, missed, or waited (`schedule_runs.reason`). The Console shows message(); nothing here names a node or an internal ID.
+         *     | |
+         *     |---|
+         *     | `overlap` <br/> The schedule's previous run was still open when the slot came. |
+         *     | `concurrency_limit` <br/> The workspace already ran `max_concurrent_job_runs` jobs. |
+         *     | `project_suspended` <br/>  |
+         *     | `project_deleted` <br/>  |
+         *     | `no_live_deployment` <br/> The project has no deployment on a node, so there is no image to run. |
+         *     | `node_unsupported` <br/> The node of the live deployment does not advertise `scheduled-jobs`. |
+         *     | `dispatcher_late` <br/> The dispatcher reached the slot after its start deadline, for example while the API was down. |
+         *     | `not_started` <br/> The node did not claim the RunJob before the start deadline: offline or busy. |
+         * @enum {string}
+         */
+        ScheduleRunReason: "overlap" | "concurrency_limit" | "project_suspended" | "project_deleted" | "no_live_deployment" | "node_unsupported" | "dispatcher_late" | "not_started";
+        /** ScheduleRunResource */
+        ScheduleRunResource: {
+            id: string;
+            schedule_id: string;
+            /**
+             * @description `scheduled` for a slot, `manual` for "Run now".
+             *     | |
+             *     |---|
+             *     | `scheduled` <br/> A slot of the cron expression, recorded by `schedules:dispatch`. |
+             *     | `manual` <br/> "Run now" by a workspace member; audited. |
+             */
+            trigger: components["schemas"]["ScheduleRunTrigger"];
+            /** @description The slot, in UTC; `null` for a manual run. */
+            scheduled_for: string | null;
+            /**
+             * @description `waiting` (the workspace runs as many jobs as it may), `queued`, `running`, `succeeded`, `failed`,
+             *     `timed_out`, `cancelled`, `lost` (the node stopped reporting during the run), `missed` (did not start
+             *     before its deadline), or `skipped`.
+             *     | |
+             *     |---|
+             *     | `waiting` <br/> The workspace already runs `max_concurrent_job_runs` jobs; the run starts when one ends, or is missed at its deadline. |
+             *     | `queued` <br/> A RunJob command waits for the node to claim it before the start deadline. |
+             *     | `running` <br/> The node claimed the RunJob command. |
+             *     | `succeeded` <br/> The command exited with code 0. |
+             *     | `failed` <br/> The command exited with another code, or the node could not run it. |
+             *     | `timed_out` <br/> The command ran past the schedule's timeout and was stopped. |
+             *     | `cancelled` <br/> Stopped on request (Stop run), by a StopProject, or because the project was deleted. |
+             *     | `lost` <br/> The node went away during the run: its lease expired without a report. |
+             *     | `missed` <br/> The slot did not start before its deadline (`reason` says why). |
+             *     | `skipped` <br/> The slot was not run on purpose (`reason` says why). |
+             */
+            status: components["schemas"]["ScheduleRunStatus"];
+            reason: components["schemas"]["ScheduleRunReason"] | null;
+            /**
+             * @description reason as a sentence for people, in Indonesian; `null` without a reason.
+             * @enum {string|null}
+             */
+            reason_message: "Dilewati karena run sebelumnya dari jadwal ini masih berjalan." | "Workspace ini sedang menjalankan job sebanyak batasnya, jadi run ini menunggu atau terlewat." | "Dilewati karena proyek ini sedang ditangguhkan." | "Dilewati karena proyek ini sudah dihapus." | "Dilewati karena proyek ini belum punya deployment yang berjalan. Deploy proyek dulu." | "Dilewati karena server yang menjalankan proyek ini belum mendukung jadwal. Tunggu operator memperbarui agent di server." | "Terlewat karena penjadwal Sakala tidak sempat memulainya sebelum batas mulai, misalnya saat Sakala sedang gangguan." | "Terlewat karena server proyek tidak memulainya sebelum batas mulai, misalnya karena sedang offline atau sibuk." | null;
+            command: string;
+            timeout_seconds: number;
+            /** @description The command's exit code, from the node; `null` before it ended, after a timeout, or when it never ran. */
+            exit_code: number | null;
+            /** @description From the container's start until it exited, in milliseconds. */
+            duration_ms: number | null;
+            /** @description Whether the kernel killed the command for memory. */
+            oom_killed: boolean | null;
+            timed_out: boolean | null;
+            /** @description The node's or control plane's failure code, for example `job_failed`; `null` unless it failed or was stopped. */
+            error_code: string | null;
+            /**
+             * @description What the failure means and what to do, in Indonesian; `null` without a failure code.
+             * @enum {string|null}
+             */
+            error_summary: "Perintah kehabisan memori dan dihentikan. Kurangi pemakaian memori perintah ini, atau naikkan memori proyek saat deploy." | "Perintah keluar dengan kode selain 0. Kode keluarnya tertulis di run ini; buka log run untuk melihat error-nya." | "Perintah melewati batas waktu jadwal dan dihentikan. Percepat perintahnya atau naikkan batas waktu jadwal, paling lama 10 menit." | "Image deployment yang sedang berjalan tidak ada di server. Deploy ulang proyek ini, lalu jalankan jadwalnya lagi." | "Server Sakala sedang penuh, jadi run ini tidak dimulai. Ini bukan kesalahan di aplikasimu; run berikutnya dicoba seperti biasa." | "Server Sakala menolak perintah run ini. Pastikan perintahnya satu baris, lalu coba lagi." | "Environment variable PORT di proyek ini berbeda dengan port yang dipakai Sakala. Hapus atau samakan PORT, deploy ulang, lalu jalankan jadwalnya lagi." | "Run ini dihentikan sebelum selesai." | "Server berhenti melapor saat run ini berjalan, jadi hasilnya tidak diketahui. Pastikan perintahnya aman dijalankan ulang, lalu jalankan lagi bila perlu." | "Server proyek tidak memulai run ini sebelum batas mulai." | "Run ini gagal karena kesalahan yang belum dikenali. Buka log run, dan kirim kode kegagalannya ke admin Sakala bila berulang." | null;
+            /** @description The live deployment whose image the run used. */
+            deployment_id: string | null;
+            /** @description The run must start before this, or it is missed. */
+            deadline_at: string | null;
+            /** @description When the node took the run. */
+            started_at: string | null;
+            finished_at: string | null;
+            created_at: string | null;
+        };
+        /**
+         * ScheduleRunStatus
+         * @description Lifecycle of one run of a schedule (ADR-022). A slot is recorded once, as a run in one of these states, and never run late in a burst.
+         *     | |
+         *     |---|
+         *     | `waiting` <br/> The workspace already runs `max_concurrent_job_runs` jobs; the run starts when one ends, or is missed at its deadline. |
+         *     | `queued` <br/> A RunJob command waits for the node to claim it before the start deadline. |
+         *     | `running` <br/> The node claimed the RunJob command. |
+         *     | `succeeded` <br/> The command exited with code 0. |
+         *     | `failed` <br/> The command exited with another code, or the node could not run it. |
+         *     | `timed_out` <br/> The command ran past the schedule's timeout and was stopped. |
+         *     | `cancelled` <br/> Stopped on request (Stop run), by a StopProject, or because the project was deleted. |
+         *     | `lost` <br/> The node went away during the run: its lease expired without a report. |
+         *     | `missed` <br/> The slot did not start before its deadline (`reason` says why). |
+         *     | `skipped` <br/> The slot was not run on purpose (`reason` says why). |
+         * @enum {string}
+         */
+        ScheduleRunStatus: "waiting" | "queued" | "running" | "succeeded" | "failed" | "timed_out" | "cancelled" | "lost" | "missed" | "skipped";
+        /**
+         * ScheduleRunTrigger
+         * @description What started a schedule run.
+         *     | |
+         *     |---|
+         *     | `scheduled` <br/> A slot of the cron expression, recorded by `schedules:dispatch`. |
+         *     | `manual` <br/> "Run now" by a workspace member; audited. |
+         * @enum {string}
+         */
+        ScheduleRunTrigger: "scheduled" | "manual";
         /** ServiceStatusResource */
         ServiceStatusResource: {
             service: string;
@@ -4995,6 +5399,26 @@ export interface components {
              *     shrinks an existing bucket.
              */
             max_bucket_storage_mb?: number | null;
+            /**
+             * @description Worker containers the workspace may run at once (ADR-022). They also count against
+             *     `max_active_containers`. `null` (the default) follows `SAKALA_WORKER_DEFAULT_MAX_CONTAINERS`; `0` allows none.
+             */
+            max_worker_containers?: number | null;
+            /**
+             * @description Enabled schedules the workspace may hold. `null` (the default) follows `SAKALA_SCHEDULE_DEFAULT_MAX_COUNT`;
+             *     `0` allows none.
+             */
+            max_schedules?: number | null;
+            /**
+             * @description Shortest gap between two slots of a schedule, in minutes. `null` (the default) follows
+             *     `SAKALA_SCHEDULE_DEFAULT_MIN_INTERVAL_MINUTES`.
+             */
+            min_schedule_interval_minutes?: number | null;
+            /**
+             * @description Scheduled runs the workspace runs at once; a due run beyond that waits. `null` (the default) follows
+             *     `SAKALA_SCHEDULE_DEFAULT_MAX_CONCURRENT_RUNS`; `0` runs none.
+             */
+            max_concurrent_job_runs?: number | null;
         };
         /** StoreOnboardingProfileRequest */
         StoreOnboardingProfileRequest: {
@@ -5008,6 +5432,35 @@ export interface components {
             source?: components["schemas"]["OnboardingSource"];
             /** @enum {unknown} */
             skip?: "yes" | "on" | "1" | 1 | "true" | true;
+        };
+        /**
+         * StoreProjectProcessRequest
+         * @description A worker process definition (ADR-022). The rules match what the agent
+         *     accepts in `DeployProject.processes`, so a saved definition never fails a
+         *     deployment for its shape. Workspace caps are checked in closures, so the
+         *     documented schema does not show the caps of whichever workspace was
+         *     resolved while generating it.
+         */
+        StoreProjectProcessRequest: {
+            /**
+             * @description Lowercase letters, digits, and dashes, starting with a letter, up to 30 characters, unique in the
+             *     project. `web`, `release`, and `job` are reserved.
+             */
+            name: string;
+            /**
+             * @description Runs as `sh -c <command>` in the container, for example `php artisan queue:work --sleep=3 --tries=3
+             *     --max-time=3600`. One line of 1 to 1000 characters.
+             */
+            command: string;
+            /**
+             * @description Containers of this process, from 0 to `max_replicas` of the workspace; 0 keeps the definition and runs
+             *     nothing. Defaults to 1.
+             */
+            replicas?: number;
+            /** @description Memory per container, in MB, up to the workspace's per-container cap. `null` follows the deployment's. */
+            memory_mb?: number | null;
+            /** @description CPU per container, in thousandths of a CPU, up to the workspace's cap. `null` follows the deployment's. */
+            cpu_millis?: number | null;
         };
         /** StoreProjectRequest */
         StoreProjectRequest: {
@@ -5037,6 +5490,29 @@ export interface components {
             release_command?: string | null;
             root_directory?: string | null;
             auto_deploy?: boolean;
+        };
+        /**
+         * StoreProjectScheduleRequest
+         * @description A schedule of a project (ADR-022). The command follows the release
+         *     command's rule; the minimum interval of the workspace is checked when
+         *     saving (SaveProjectScheduleAction), with the final expression and timezone.
+         */
+        StoreProjectScheduleRequest: {
+            name: string;
+            /** @description Runs as `sh -c <command>` in a one-off container of the live image. One line of 1 to 1000 characters. */
+            command: string;
+            /**
+             * @description Standard five-field cron expression (minute, hour, day of month, month, day of week), read in
+             *     `timezone`, for example `30 2 * * *`. Two slots may not be closer than the workspace's
+             *     `min_schedule_interval_minutes`.
+             */
+            cron_expression: string;
+            /** @description Timezone identifier the expression is read in, for example `Asia/Jakarta` (the default, WIB). */
+            timezone?: string;
+            /** @description Seconds a run may take before it is stopped, 1 to 600; default 300. */
+            timeout_seconds?: number;
+            /** @description Whether slots run; default true. Only enabled schedules count towards `max_schedules`. */
+            enabled?: boolean;
         };
         /** StoreWorkspaceInvitationRequest */
         StoreWorkspaceInvitationRequest: {
@@ -5177,6 +5653,20 @@ export interface components {
              *     any region without one. Applies to the next placement on a node: a project that already runs stays on its node.
              */
             region?: string | null;
+        };
+        /**
+         * UpdateProjectScheduleRequest
+         * @description A partial change of a schedule: every field is optional, with the rules of
+         *     StoreProjectScheduleRequest. Enabling a schedule the control plane paused
+         *     clears the pause and its failure count.
+         */
+        UpdateProjectScheduleRequest: {
+            name?: string;
+            command?: string;
+            cron_expression?: string;
+            timezone?: string;
+            timeout_seconds?: number;
+            enabled?: boolean;
         };
         /** UpdateUserRoleRequest */
         UpdateUserRoleRequest: {
@@ -5350,6 +5840,14 @@ export interface components {
                 max_buckets: number;
                 /** @description Effective MB the bucket quotas may reserve together, from the profile or the global setting. `0` allows no new allocation. */
                 max_bucket_storage_mb: number;
+                /** @description Effective worker containers at once, from the profile or the global setting. `0` allows none. */
+                max_worker_containers: number;
+                /** @description Effective enabled schedules, from the profile or the global setting. `0` allows none. */
+                max_schedules: number;
+                /** @description Effective shortest gap between two slots of a schedule, in minutes. */
+                min_schedule_interval_minutes: number;
+                /** @description Effective scheduled runs at once, from the profile or the global setting. `0` runs none. */
+                max_concurrent_job_runs: number;
                 /** @description Global, the same for every workspace. */
                 max_active_deployments_per_project: number;
             };
@@ -5368,6 +5866,10 @@ export interface components {
                 bucket_storage_mb: number;
                 /** @description Reported usage of the workspace's buckets, in bytes. */
                 bucket_usage_bytes: number;
+                /** @description Worker containers of the projects that serve or are being deployed. */
+                worker_containers: number;
+                /** @description Enabled schedules that count towards `max_schedules`. */
+                schedules: number;
             };
         };
         /** WorkspaceResource */
@@ -5498,6 +6000,28 @@ export interface components {
                     requested?: number;
                     /** @description The current `runtime_status`. Only with `PROJECT_NOT_SLEEPING`. */
                     runtime_status?: string;
+                };
+            };
+        };
+        /** @description The run cannot be started or stopped */
+        ScheduleRunConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description `SCHEDULE_RUN_REFUSED`: Run now cannot start a run, see `reason`. `SCHEDULE_RUN_NOT_OPEN`: Stop run on a run that already ended.
+                     * @enum {string}
+                     */
+                    code: "SCHEDULE_RUN_REFUSED" | "SCHEDULE_RUN_NOT_OPEN";
+                    /**
+                     * @description Only with `SCHEDULE_RUN_REFUSED`: why a slot would be skipped now.
+                     * @enum {string}
+                     */
+                    reason?: "overlap" | "concurrency_limit" | "project_suspended" | "project_deleted" | "no_live_deployment" | "node_unsupported" | "dispatcher_late" | "not_started";
                 };
             };
         };
@@ -8327,6 +8851,11 @@ export interface operations {
                 cursor?: string;
                 per_page?: number;
                 order?: "asc" | "desc";
+                /**
+                 * @description Only lines of one process (ADR-022): a worker name, `job` for scheduled runs, or `web` for the
+                 *     deployment's own lines (build, release command, and web), which carry no process. All lines when absent.
+                 */
+                process?: string;
             };
             header?: never;
             path: {
@@ -11595,6 +12124,440 @@ export interface operations {
             };
         };
     };
+    "v1.app.projects.processes.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ProjectProcessResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectProcessResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.processes.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreProjectProcessRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProjectProcessResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectProcessResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.processes.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The process ID */
+                process: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.processes.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The process ID */
+                process: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProjectProcessResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectProcessResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ProjectScheduleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: (components["schemas"]["ProjectScheduleResource"] & Record<string, never>)[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreProjectScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProjectScheduleResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectScheduleResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The workspace already has as many enabled schedules as it may
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /** @enum {string} */
+                        code: "SCHEDULE_LIMIT_EXCEEDED";
+                        /** @description The workspace limit of enabled schedules. */
+                        limit: number;
+                        /** @description Enabled schedules of the workspace now. */
+                        current: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProjectScheduleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectScheduleResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProjectScheduleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectScheduleResource"] & Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /**
+             * @description The workspace already has as many enabled schedules as it may
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /** @enum {string} */
+                        code: "SCHEDULE_LIMIT_EXCEEDED";
+                        /** @description The workspace limit of enabled schedules. */
+                        limit: number;
+                        /** @description Enabled schedules of the workspace now. */
+                        current: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     "v1.public.projects.wake": {
         parameters: {
             query?: never;
@@ -11725,6 +12688,231 @@ export interface operations {
                     };
                 };
             };
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.runs.index": {
+        parameters: {
+            query?: {
+                cursor?: string;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `ScheduleRunResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ScheduleRunResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.runs.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ScheduleRunResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ScheduleRunResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["ScheduleRunConflict"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.runs.cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+                /** @description The run ID */
+                run: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run is `cancelled`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ScheduleRunResource"];
+                    };
+                };
+            };
+            /** @description A node still has to stop the run. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ScheduleRunResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["ScheduleRunConflict"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.schedules.runs.logs": {
+        parameters: {
+            query?: {
+                cursor?: string;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The schedule ID */
+                schedule: string;
+                /** @description The run ID */
+                run: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `DeploymentLogResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DeploymentLogResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
             /** @description Too many requests */
             429: {

@@ -1,0 +1,23 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a20cea-5307-75fb-a655-97a6f955899b",
+			"project_id": "01a20cea-525c-7a9b-bea5-c1f19ed71e69",
+			"name": "Laporan harian",
+			"command": "php artisan report:daily",
+			"cron_expression": "30 2 * * *",
+			"timezone": "Asia/Jakarta",
+			"timeout_seconds": 300,
+			"enabled": true,
+			"next_run_at": "2026-11-24T19:30:00Z",
+			"health": "healthy",
+			"consecutive_failures": 0,
+			"paused_at": null,
+			"pause_reason": null,
+			"latest_run": null,
+			"created_at": "2026-11-24T10:07:30Z",
+			"updated_at": "2026-11-24T10:07:30Z"
+		}
+	}
+}

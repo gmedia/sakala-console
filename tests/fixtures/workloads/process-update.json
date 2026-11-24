@@ -1,0 +1,17 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a20cea-5126-7f74-af37-741a8ba286d5",
+			"name": "mailer",
+			"command": "npm run mailer",
+			"replicas": 0,
+			"memory_mb": null,
+			"cpu_millis": 250,
+			"crash": null,
+			"redeploy_required": true,
+			"created_at": "2026-11-24T10:07:30+00:00",
+			"updated_at": "2026-11-24T10:07:30+00:00"
+		}
+	}
+}

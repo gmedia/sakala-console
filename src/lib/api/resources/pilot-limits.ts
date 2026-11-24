@@ -7,7 +7,8 @@ type GeneratedQuotas = GeneratedPilotLimits['quotas'];
 /**
  * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas,
  * the database quotas with managed databases, `max_builds_per_hour` with the build rate limit, and
- * the bucket quotas with managed buckets (sakala-api #204).
+ * the bucket quotas with managed buckets (sakala-api #204), and the worker and schedule quotas with
+ * ADR-022 (sakala-api #208).
  */
 type OptionalQuotaKey =
 	| 'max_active_containers'
@@ -22,7 +23,13 @@ type OptionalQuotaKey =
 	| 'current_buckets_count'
 	| 'max_bucket_storage_mb'
 	| 'current_bucket_storage_mb'
-	| 'current_bucket_usage_bytes';
+	| 'current_bucket_usage_bytes'
+	| 'max_worker_containers'
+	| 'current_worker_containers_count'
+	| 'max_schedules'
+	| 'current_schedules_count'
+	| 'min_schedule_interval_minutes'
+	| 'max_concurrent_job_runs';
 
 /**
  * The generated document types `buckets.default_quota_mb` as the literal `0`: Scramble reads the
@@ -49,6 +56,9 @@ type PilotLimitsContract = Pick<
 	project_idle_sleep_minutes?: GeneratedPilotLimits['project_idle_sleep_minutes'];
 	databases?: GeneratedPilotLimits['databases'];
 	buckets?: BucketsContract;
+	runtime_maximums?: GeneratedPilotLimits['runtime_maximums'];
+	workers?: GeneratedPilotLimits['workers'];
+	schedules?: GeneratedPilotLimits['schedules'];
 };
 
 const pilotLimitsResponseSchema = z.object({
@@ -86,13 +96,26 @@ const pilotLimitsResponseSchema = z.object({
 			/** MB the quotas reserve now (allocated, not used). */
 			current_bucket_storage_mb: z.number().optional(),
 			/** What the buckets hold, from the storage nodes' last reports. */
-			current_bucket_usage_bytes: z.number().optional()
+			current_bucket_usage_bytes: z.number().optional(),
+			/** Worker containers the workspace may run at once; they also count as running containers. */
+			max_worker_containers: z.number().optional(),
+			current_worker_containers_count: z.number().optional(),
+			/** Enabled schedules the workspace may hold; `0` allows none. */
+			max_schedules: z.number().optional(),
+			current_schedules_count: z.number().optional(),
+			/** Shortest gap between two slots of one schedule, in minutes. */
+			min_schedule_interval_minutes: z.number().optional(),
+			max_concurrent_job_runs: z.number().optional()
 		}),
 		runtime_defaults: z.object({
 			memory_mb: z.number(),
 			cpu_millis: z.number(),
 			pids_limit: z.number()
 		}),
+		/** The per-container caps of the workspace, which a worker's memory and CPU stay within. */
+		runtime_maximums: z
+			.object({ memory_mb: z.number(), cpu_millis: z.number(), pids_limit: z.number() })
+			.optional(),
 		timeouts: z.object({
 			build_timeout_seconds: z.number(),
 			start_timeout_seconds: z.number(),
@@ -111,7 +134,22 @@ const pilotLimitsResponseSchema = z.object({
 		 * unless asked otherwise. Absent from an API without buckets, which the Console treats as
 		 * "no bucket feature": no navigation entry and no bucket offers.
 		 */
-		buckets: z.object({ available: z.boolean(), default_quota_mb: z.number() }).optional()
+		buckets: z.object({ available: z.boolean(), default_quota_mb: z.number() }).optional(),
+		/**
+		 * Worker processes and schedules (ADR-022) on this installation. Off by default, and absent from
+		 * an API before them: either way the Console shows neither.
+		 */
+		workers: z.object({ enabled: z.boolean() }).optional(),
+		schedules: z
+			.object({
+				enabled: z.boolean(),
+				default_timezone: z.string(),
+				default_timeout_seconds: z.number(),
+				max_timeout_seconds: z.number(),
+				/** How late a slot may still start before it is recorded as missed. */
+				start_deadline_minutes: z.number()
+			})
+			.optional()
 	})
 }) satisfies z.ZodType<{ data: PilotLimitsContract }>;
 

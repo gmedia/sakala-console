@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Run ini sudah selesai, jadi tidak ada yang perlu dihentikan.",
+		"code": "SCHEDULE_RUN_NOT_OPEN"
+	}
+}

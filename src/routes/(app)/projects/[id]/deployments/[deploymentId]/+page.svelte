@@ -40,6 +40,7 @@
 	import DeploymentTimeline from '$lib/features/deployments/components/DeploymentTimeline.svelte';
 	import ImageFallbackNote from '$lib/features/deployments/components/ImageFallbackNote.svelte';
 	import DeploymentLogPanel from '$lib/features/deployments/components/DeploymentLogPanel.svelte';
+	import { schedulesHref } from '$lib/features/workloads/routes';
 	import { useDeploymentDetail } from '$lib/features/deployments/use-deployment-detail.svelte';
 	import { useFailedDeploymentRedeploy } from '$lib/features/deployments/use-failed-deployment-redeploy.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
@@ -406,6 +407,7 @@
 						deployment={detail.deployment}
 						events={detail.events}
 						projectName={detail.project?.name}
+						scheduleHistoryHref={schedulesHref(page.params.id ?? '')}
 					/>
 				{/key}
 			</div>

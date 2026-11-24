@@ -22,13 +22,17 @@
 	import { formatLogTime, TERMINAL_STATUSES } from '../deployment-presentation';
 	import { classifyLogLines, getFailureWindow, type LogLevel } from '../log-classification';
 	import {
+		ALL_LOG_PROCESSES,
 		filterLogLines,
+		isJobOutput,
 		logDownloadFileName,
+		logProcessOptions,
 		parseLinePermalink,
 		linePermalinkHash
 	} from '../log-tools';
 	import { useDeploymentLogs } from '../use-deployment-logs.svelte';
 	import DeploymentLogConsole from './DeploymentLogConsole.svelte';
+	import { LOG_PROCESS_PARAM } from '$lib/features/workloads/routes';
 
 	type Props = {
 		projectId: string;
@@ -37,9 +41,20 @@
 		events?: readonly DeploymentEvent[];
 		/** For the downloaded file's name. */
 		projectName?: string;
+		/**
+		 * Where a scheduled run's output can be read instead (ADR-022). Without it, the note about
+		 * hidden run output does not link anywhere.
+		 */
+		scheduleHistoryHref?: string;
 	};
 
-	let { projectId, deployment, events = [], projectName = 'proyek' }: Props = $props();
+	let {
+		projectId,
+		deployment,
+		events = [],
+		projectName = 'proyek',
+		scheduleHistoryHref
+	}: Props = $props();
 
 	const isTerminal = $derived(TERMINAL_STATUSES.has(deployment.status));
 
@@ -66,12 +81,29 @@
 
 	let query = $state('');
 	let errorsOnly = $state(false);
-	const filtering = $derived(errorsOnly || query.trim() !== '');
+	// Workers write into the same log (ADR-022); the filter appears once there is more than web.
+	// A worker's crash links here with `?process=`, so the log opens on that worker.
+	let processFilter = $state(page.url.searchParams.get(LOG_PROCESS_PARAM) ?? ALL_LOG_PROCESSES);
+	const processOptions = $derived(logProcessOptions(logs.lines));
+	const showProcessFilter = $derived(processOptions.length > 1);
+	// Scheduled runs write here too, but are read in the schedule's run history.
+	const jobLineCount = $derived(logs.lines.filter(isJobOutput).length);
+	const ownLines = $derived(
+		jobLineCount > 0 ? logs.lines.filter((line) => !isJobOutput(line)) : logs.lines
+	);
+	const filtering = $derived(
+		errorsOnly || query.trim() !== '' || processFilter !== ALL_LOG_PROCESSES
+	);
 	const visibleLines = $derived(
-		filterLogLines(logs.lines, { query, errorsOnly, levelOf: (line) => levels.get(line.sequence) })
+		filterLogLines(logs.lines, {
+			query,
+			errorsOnly,
+			process: processFilter,
+			levelOf: (line) => levels.get(line.sequence)
+		})
 	);
 	const hiddenSequences = $derived.by(() => {
-		if (!filtering) return undefined;
+		if (!filtering && jobLineCount === 0) return undefined;
 		const shown = new Set(visibleLines.map((line) => line.sequence));
 		return new Set(
 			logs.lines.filter((line) => !shown.has(line.sequence)).map((line) => line.sequence)
@@ -149,21 +181,21 @@
 	export function failureStageLines() {
 		const window = failureWindow;
 		if (!window) return [];
-		return logs.lines.filter((line) => {
+		return ownLines.filter((line) => {
 			const time = Date.parse(line.recorded_at);
 			return time >= window.start && time <= window.end;
 		});
 	}
 
 	function handleDownload() {
-		const text = formatLogsForClipboard(logs.lines, formatLogTime);
+		const text = formatLogsForClipboard(ownLines, formatLogTime);
 		const url = URL.createObjectURL(new Blob([`${text}\n`], { type: 'text/plain;charset=utf-8' }));
 		const link = document.createElement('a');
 		link.href = url;
 		link.download = logDownloadFileName(projectName, deployment.sequence);
 		link.click();
 		URL.revokeObjectURL(url);
-		copyStatus = `${logs.lines.length} baris diunduh`;
+		copyStatus = `${ownLines.length} baris diunduh`;
 		clearTimeout(copyTimer);
 		copyTimer = setTimeout(() => (copyStatus = ''), 4000);
 	}
@@ -172,8 +204,8 @@
 		clearTimeout(copyTimer);
 
 		try {
-			await navigator.clipboard.writeText(formatLogsForClipboard(logs.lines, formatLogTime));
-			copyStatus = `${logs.lines.length} baris tersalin`;
+			await navigator.clipboard.writeText(formatLogsForClipboard(ownLines, formatLogTime));
+			copyStatus = `${ownLines.length} baris tersalin`;
 			copied = true;
 		} catch {
 			copied = false;
@@ -193,13 +225,33 @@
 		class="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-white/10 py-1.5 pr-1.5 pl-3 font-sans sm:pl-4"
 	>
 		<h2 id="deployment-logs-title" class="font-sans text-sm text-terminal-text">Log</h2>
-		<span role="status" class="min-w-0 flex-1 basis-0 truncate text-xs text-terminal-muted">
+		<span
+			role="status"
+			class="min-w-0 flex-1 basis-0 truncate text-xs text-terminal-muted {filtering
+				? 'min-w-24'
+				: ''}"
+		>
 			{copyStatus ||
 				permalinkNote ||
-				(filtering ? `${visibleLines.length} dari ${logs.lines.length} baris` : '')}
+				(filtering ? `${visibleLines.length} dari ${ownLines.length} baris` : '')}
 		</span>
 
-		{#if logs.lines.length > 0}
+		{#if showProcessFilter}
+			<div class="min-w-0">
+				<label for="log-process" class="sr-only">Proses</label>
+				<select
+					id="log-process"
+					bind:value={processFilter}
+					class="min-h-control-sm max-w-40 rounded-control border border-white/25 bg-terminal py-1 pr-7 pl-2 font-mono text-xs text-terminal-text focus:border-white focus:outline-white max-lg:min-h-control-lg"
+				>
+					<option value={ALL_LOG_PROCESSES}>Semua proses</option>
+					{#each processOptions as name (name)}
+						<option value={name}>{name}</option>
+					{/each}
+				</select>
+			</div>
+		{/if}
+		{#if ownLines.length > 0}
 			<div class="relative min-w-0 flex-1 basis-40 sm:max-w-56">
 				<MagnifyingGlass
 					size={14}
@@ -287,7 +339,7 @@
 	<div class="min-h-0 flex-1">
 		<DeploymentLogConsole
 			bind:this={terminal}
-			lines={filtering && visibleLines.length === 0 ? [] : logs.lines}
+			lines={(filtering || jobLineCount > 0) && visibleLines.length === 0 ? [] : logs.lines}
 			{hiddenSequences}
 			{levels}
 			{highlighted}
@@ -305,7 +357,12 @@
 			{toolbar}
 		>
 			<div class="font-sans text-sm text-terminal-text">
-				{#if logs.lines.length > 0 && filtering}
+				{#if ownLines.length === 0 && jobLineCount > 0 && !filtering}
+					<p class="font-semibold">Belum ada log aplikasi yang dimuat</p>
+					<p class="mt-1 text-terminal-muted">
+						Baris yang dimuat hanya output jadwal. Muat log sebelumnya untuk melihat baris lain.
+					</p>
+				{:else if logs.lines.length > 0 && filtering}
 					<p class="font-semibold">
 						{errorsOnly && !query.trim()
 							? 'Tidak ada baris error di log ini'
@@ -359,6 +416,23 @@
 			</div>
 		</DeploymentLogConsole>
 	</div>
+
+	{#if jobLineCount > 0}
+		<p class="text-sm text-foreground/70" data-testid="log-job-output-note">
+			{jobLineCount} baris output jadwal tidak ditampilkan di sini.
+			{#if scheduleHistoryHref}
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved by the caller -->
+				<a
+					href={scheduleHistoryHref}
+					class="font-medium text-primary underline-offset-2 hover:underline"
+					>Lihat di riwayat run jadwal</a
+				>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->.
+			{:else}
+				Baca output itu di riwayat run jadwalnya.
+			{/if}
+		</p>
+	{/if}
 
 	{#if logs.lines.length > 0 && logs.error}
 		<div

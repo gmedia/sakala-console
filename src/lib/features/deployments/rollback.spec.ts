@@ -49,6 +49,19 @@ describe('getRollbackPlan', () => {
 		expect(plan.notes).not.toContain(ROLLBACK_COPY.imageKept);
 	});
 
+	it('says the target brings back its own workers when the project has any (ADR-022)', () => {
+		const withWorkers = getRollbackPlan(target, live, { auto_deploy: false }, { hasWorkers: true });
+		expect(withWorkers.notes).toEqual([
+			ROLLBACK_COPY.settings(4),
+			ROLLBACK_COPY.imageKept,
+			ROLLBACK_COPY.workers(4)
+		]);
+		expect(withWorkers.notes[2]).toMatch(/tidak berjalan sampai deployment berikutnya/);
+		expect(getRollbackPlan(target, live, { auto_deploy: false }).notes).not.toContain(
+			ROLLBACK_COPY.workers(4)
+		);
+	});
+
 	it('pauses auto-deploy only where it is on, or already paused by an earlier rollback', () => {
 		expect(getRollbackPlan(target, live, { auto_deploy: false }).pausesAutoDeploy).toBe(false);
 		expect(getRollbackPlan(target, live, { auto_deploy: false }).notes).not.toContain(

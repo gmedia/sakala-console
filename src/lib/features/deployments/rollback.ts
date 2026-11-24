@@ -35,6 +35,12 @@ export const ROLLBACK_COPY = {
 	imageKept: 'Image versi ini masih tersimpan, jadi tidak perlu build.',
 	imageRebuilt:
 		'Image versi ini sudah tidak tersimpan, jadi Sakala akan build ulang commit ini (lebih lama).',
+	/**
+	 * ADR-022: a rollback runs the workers the target recorded. The API does not say which those
+	 * were, so the note says what happens instead of listing the difference.
+	 */
+	workers: (sequence: number) =>
+		`Worker juga kembali seperti saat #${sequence}. Worker yang ditambahkan atau diubah setelah itu tidak berjalan sampai deployment berikutnya.`,
 	autoDeployPaused:
 		'Auto-deploy dijeda sampai dinyalakan lagi, supaya push berikutnya tidak langsung menimpa versi ini. Push yang masuk tetap tercatat di Riwayat.',
 	started: (sequence: number) => `Rollback ke #${sequence} dimulai.`,
@@ -100,7 +106,9 @@ export function getRollbackPlan(
 	current: VersionDeployment | null | undefined,
 	project: Pick<GeneratedProject, 'auto_deploy'> & {
 		auto_deploy_pause?: GeneratedProject['auto_deploy_pause'];
-	}
+	},
+	/** Whether the project has worker definitions now (ADR-022), when workers are on. */
+	{ hasWorkers = false }: { hasWorkers?: boolean } = {}
 ): RollbackPlan {
 	const imageKept = target.rollback_target?.image_expected === true;
 	const pausesAutoDeploy = project.auto_deploy || project.auto_deploy_pause != null;
@@ -108,6 +116,7 @@ export function getRollbackPlan(
 		ROLLBACK_COPY.settings(target.sequence),
 		imageKept ? ROLLBACK_COPY.imageKept : ROLLBACK_COPY.imageRebuilt
 	];
+	if (hasWorkers) notes.push(ROLLBACK_COPY.workers(target.sequence));
 	if (pausesAutoDeploy) notes.push(ROLLBACK_COPY.autoDeployPaused);
 
 	return {

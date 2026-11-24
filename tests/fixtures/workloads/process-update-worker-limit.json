@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Workspace ini paling banyak menjalankan 2 worker sekaligus, sedangkan total replika worker proyek ini akan menjadi 3.",
+		"errors": {
+			"replicas": [
+				"Workspace ini paling banyak menjalankan 2 worker sekaligus, sedangkan total replika worker proyek ini akan menjadi 3."
+			]
+		}
+	}
+}

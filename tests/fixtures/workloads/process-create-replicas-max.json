@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Satu worker di workspace ini paling banyak berjalan dengan 2 replika.",
+		"errors": {
+			"replicas": ["Satu worker di workspace ini paling banyak berjalan dengan 2 replika."]
+		}
+	}
+}

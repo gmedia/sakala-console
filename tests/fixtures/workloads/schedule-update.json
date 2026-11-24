@@ -1,0 +1,23 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a20cea-537d-79b2-b38c-bc9e2bd3f87c",
+			"project_id": "01a20cea-525c-7a9b-bea5-c1f19ed71e69",
+			"name": "Bersihkan sesi",
+			"command": "php artisan session:gc",
+			"cron_expression": "45 */2 * * *",
+			"timezone": "Asia/Jakarta",
+			"timeout_seconds": 120,
+			"enabled": false,
+			"next_run_at": null,
+			"health": "healthy",
+			"consecutive_failures": 0,
+			"paused_at": null,
+			"pause_reason": null,
+			"latest_run": null,
+			"created_at": "2026-11-24T10:07:30Z",
+			"updated_at": "2026-11-24T10:07:30Z"
+		}
+	}
+}
