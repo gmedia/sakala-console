@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import type { Page, Route } from '@playwright/test';
+import { Cron } from 'croner';
 import { baseProject, logLine, logPage, personalWorkspace, PROJECT_ID } from './project-detail';
 
 /** Bodies captured from sakala-api main ea7287b (#208), tests/fixtures/workloads. */
@@ -28,6 +29,10 @@ const teamSummary = { id: TEAM_ID, name: 'Tim Kopi', slug: 'tim-kopi', type: 'te
 
 /** The same project in a team where the signed-in user is only a viewer. */
 export const viewerProject = { ...laravelProject, workspace: teamSummary };
+
+/** The next slot of an expression in WIB, as the API would answer it, so the page reads true. */
+const nextSlot = (expression: string) =>
+	new Cron(expression, { timezone: 'Asia/Jakarta', paused: true }).nextRun()!.toISOString();
 
 /** Times relative to now, so "Run berikutnya" and relative times read sensibly. */
 const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
@@ -61,6 +66,7 @@ export function workloadState(): WorkloadState {
 		name: 'Bersihkan sesi',
 		enabled: true,
 		paused_at: null,
+		next_run_at: nextSlot('45 */2 * * *'),
 		latest_run: { ...runs[0], created_at: minutesFromNow(-82) }
 	};
 	return {
@@ -68,6 +74,7 @@ export function workloadState(): WorkloadState {
 		schedules: [
 			{
 				...dataOf('schedule-create'),
+				next_run_at: nextSlot('30 2 * * *'),
 				health: 'failing',
 				consecutive_failures: 1,
 				latest_run: { ...runs[1], created_at: minutesFromNow(-25) }
