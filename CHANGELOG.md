@@ -4,6 +4,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-24
+
 ### Added
 
 - Managed S3 buckets (ADR-021, requires gmedia/sakala-api#204). `/buckets` lists the workspace's private buckets with status, usage against each bucket's own quota, attached projects, and region, under a quota card that separates what is allocated from the workspace's bucket storage from what is used. "Buat bucket" takes a name, a quota in MB (prefilled with the server default capped at what is left), and a region. The bucket page mirrors the database page: status and creation steps, a derived "Penuh" badge, attach and detach with redeploy notices, the connection (public endpoint, S3 region, bucket, access key ID, path-style) for every member, the secret key and a copyable `.env` block for owners only (audited, never cached, dropped on Sembunyikan, rotation, and navigation), key rotation with optional redeploy of attached projects and per-project outcomes, an `unknown` rotation state, quota change with a warning below current usage, rename, and delete with the name typed, blocked while attached.
@@ -305,7 +307,8 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - `static/icons/load.svg`, whose origin is not recorded, the 1.26 MB `bg.png`, and unused logo files.
 - Dead code: `ApiStatusCard`, `ConfirmDialog`, `Select`, the system status resource, and `api/envelope.ts`.
 
-[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/gmedia/sakala-console/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/gmedia/sakala-console/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/gmedia/sakala-console/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/gmedia/sakala-console/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/gmedia/sakala-console/compare/v0.10.0...v0.11.0
