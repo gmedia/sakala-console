@@ -5722,6 +5722,16 @@
                                 "desc"
                             ]
                         }
+                    },
+                    {
+                        "name": "process",
+                        "in": "query",
+                        "description": "Only lines of one process (ADR-022): a worker name, `job` for scheduled runs, or `web` for the\ndeployment's own lines (build, release command, and web), which carry no process. All lines when absent.",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9-]*$",
+                            "maxLength": 30
+                        }
                     }
                 ],
                 "responses": {
@@ -12208,6 +12218,843 @@
                 }
             }
         },
+        "/v1/app/projects/{project}/processes": {
+            "get": {
+                "operationId": "v1.app.projects.processes.index",
+                "summary": "The project's worker definitions, by name, with crash details of the\nserving deployment's workers",
+                "tags": [
+                    "ProjectProcess"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ProjectProcessResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProjectProcessResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.projects.processes.store",
+                "summary": "Add a worker process. At most five per project, and the project's\nworker replicas together stay within `max_worker_containers`",
+                "tags": [
+                    "ProjectProcess"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProjectProcessRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ProjectProcessResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectProcessResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/processes/{process}": {
+            "patch": {
+                "operationId": "v1.app.projects.processes.update",
+                "summary": "Change a worker process. The serving deployment keeps the old\ndefinition until the next deployment: see `redeploy_required`",
+                "tags": [
+                    "ProjectProcess"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "process",
+                        "in": "path",
+                        "required": true,
+                        "description": "The process ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProjectProcessResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectProcessResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.projects.processes.destroy",
+                "summary": "Remove a worker process; its containers stop with the next deployment",
+                "tags": [
+                    "ProjectProcess"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "process",
+                        "in": "path",
+                        "required": true,
+                        "description": "The process ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/schedules": {
+            "get": {
+                "operationId": "v1.app.projects.schedules.index",
+                "summary": "The project's schedules, oldest first, each with its newest run",
+                "tags": [
+                    "ProjectSchedule"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ProjectScheduleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/ProjectScheduleResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "latest_run"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.projects.schedules.store",
+                "summary": "Create a schedule. Enabled by default; only enabled schedules count towards `max_schedules`, and two slots may\nnot be closer than `min_schedule_interval_minutes`",
+                "tags": [
+                    "ProjectSchedule"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProjectScheduleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ProjectScheduleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ProjectScheduleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "latest_run"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The workspace already has as many enabled schedules as it may\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "SCHEDULE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer",
+                                                    "description": "The workspace limit of enabled schedules."
+                                                },
+                                                "current": {
+                                                    "type": "integer",
+                                                    "description": "Enabled schedules of the workspace now."
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/schedules/{schedule}": {
+            "get": {
+                "operationId": "v1.app.projects.schedules.show",
+                "tags": [
+                    "ProjectSchedule"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProjectScheduleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ProjectScheduleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "latest_run"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.app.projects.schedules.update",
+                "summary": "Change a schedule. A change of the expression or timezone, or enabling it, computes the next slot from now;\nenabling a paused schedule clears the pause",
+                "tags": [
+                    "ProjectSchedule"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProjectScheduleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ProjectScheduleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ProjectScheduleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "latest_run"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The workspace already has as many enabled schedules as it may\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "SCHEDULE_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer",
+                                                    "description": "The workspace limit of enabled schedules."
+                                                },
+                                                "current": {
+                                                    "type": "integer",
+                                                    "description": "Enabled schedules of the workspace now."
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.projects.schedules.destroy",
+                "summary": "Delete a schedule and its history; an open run is stopped first",
+                "tags": [
+                    "ProjectSchedule"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/public/projects/{slug}/wake": {
             "post": {
                 "operationId": "v1.public.projects.wake",
@@ -12427,6 +13274,556 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/schedules/{schedule}/runs": {
+            "get": {
+                "operationId": "v1.app.projects.schedules.runs.index",
+                "summary": "The schedule's runs, newest first, cursor paginated. The newest 100 are kept",
+                "tags": [
+                    "ScheduleRun"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `ScheduleRunResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ScheduleRunResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the next set of items."
+                                                },
+                                                "prev_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the previous set of items."
+                                                }
+                                            },
+                                            "required": [
+                                                "path",
+                                                "per_page",
+                                                "next_cursor",
+                                                "prev_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.projects.schedules.runs.store",
+                "summary": "Run now: one run outside the schedule's slots, under the same rules. Answers 409 `SCHEDULE_RUN_REFUSED` with\nthe `reason` a slot would be skipped for; a run that has to wait for a free job slot is `waiting`",
+                "tags": [
+                    "ScheduleRun"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "`ScheduleRunResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ScheduleRunResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ScheduleRunConflict"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/schedules/{schedule}/runs/{run}/cancel": {
+            "post": {
+                "operationId": "v1.app.projects.schedules.runs.cancel",
+                "summary": "Stop run. A waiting or unclaimed run ends at once as `cancelled`; a running one ends when its node stops it.\nAnswers 409 `SCHEDULE_RUN_NOT_OPEN` for a run that already ended",
+                "tags": [
+                    "ScheduleRun"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "run",
+                        "in": "path",
+                        "required": true,
+                        "description": "The run ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The run is `cancelled`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ScheduleRunResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ScheduleRunConflict"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "202": {
+                        "description": "A node still has to stop the run.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ScheduleRunResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/schedules/{schedule}/runs/{run}/logs": {
+            "get": {
+                "operationId": "v1.app.projects.schedules.runs.logs",
+                "summary": "The run's output, oldest first, cursor paginated. Lines carry `process: \"job\"` and follow the log retention of\ndeployments",
+                "tags": [
+                    "ScheduleRun"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "schedule",
+                        "in": "path",
+                        "required": true,
+                        "description": "The schedule ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "run",
+                        "in": "path",
+                        "required": true,
+                        "description": "The run ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `DeploymentLogResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DeploymentLogResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the next set of items."
+                                                },
+                                                "prev_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the previous set of items."
+                                                }
+                                            },
+                                            "required": [
+                                                "path",
+                                                "per_page",
+                                                "next_cursor",
+                                                "prev_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -15567,7 +16964,8 @@
                             "RotateBucketKey",
                             "SetBucketQuota",
                             "LockBucket",
-                            "UnlockBucket"
+                            "UnlockBucket",
+                            "RunJob"
                         ]
                     },
                     "status": {
@@ -17237,7 +18635,8 @@
                             "RotateBucketKey",
                             "SetBucketQuota",
                             "LockBucket",
-                            "UnlockBucket"
+                            "UnlockBucket",
+                            "RunJob"
                         ]
                     },
                     "status": {
@@ -17326,7 +18725,8 @@
                     "RotateBucketKey",
                     "SetBucketQuota",
                     "LockBucket",
-                    "UnlockBucket"
+                    "UnlockBucket",
+                    "RunJob"
                 ],
                 "title": "AgentCommandType"
             },
@@ -17577,6 +18977,28 @@
                                                         "null"
                                                     ],
                                                     "format": "date-time"
+                                                },
+                                                "process": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Additive within protocol revision 4 (ADR-022): only on worker\ncontainers. Absent means the web process. A crashing worker\nnever marks the web process crashed.",
+                                                    "pattern": "^[a-z][a-z0-9-]*$",
+                                                    "maxLength": 30
+                                                },
+                                                "restart_count": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 0
+                                                },
+                                                "running": {
+                                                    "type": [
+                                                        "boolean",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
@@ -17711,6 +19133,15 @@
                                                     "type": "integer",
                                                     "minimum": 0,
                                                     "maximum": 2147483647
+                                                },
+                                                "process": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Additive within protocol revision 4 (ADR-022): only on worker\ncontainers, whose samples are not project metrics.",
+                                                    "pattern": "^[a-z][a-z0-9-]*$",
+                                                    "maxLength": 30
                                                 }
                                             },
                                             "required": [
@@ -18270,7 +19701,8 @@
                                     "RotateBucketKey",
                                     "SetBucketQuota",
                                     "LockBucket",
-                                    "UnlockBucket"
+                                    "UnlockBucket",
+                                    "RunJob"
                                 ]
                             },
                             "status": {
@@ -18897,7 +20329,7 @@
                             "object",
                             "null"
                         ],
-                        "description": "The newest key rotation; `null` when the key was never rotated. `status` is `pending` while the storage\nnode has not reported, `completed` once only the new secret works, and `failed` when the node failed it\ndefinitively (the old secret still works; see `last_failure`), and `unknown` when the node could not\nconfirm the outcome and a resend of the same secret did not complete either: neither secret is known to\nwork, deployments and credentials answer `409 BUCKET_KEY_ROTATING`, and a new rotation or\n`buckets:reconcile` settles it. While the outcome is unconfirmed the API resends the same new\nsecret and the status stays `pending`. The node switches as soon\nas it runs the request, so a `pending` rotation can already have cut off the old secret. The access key\nID never changes. `requested_at` is when it was asked for, `completed_at` and `failed_at` are set only\nin their status. `redeploy_attached` is what the request asked for. `redeploys` is `null` until the API\nhas queued the redeploys after completion (and always without `redeploy_attached`), then one item per\nproject attached at that moment: `deployment_id` of the queued deployment (trigger\n`bucket_key_rotated`), or `skipped_reason` when none was queued: `no_active_deployment`,\n`requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`, `active_deployment_limit`,\n`active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`,\n`bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.",
+                        "description": "The newest key rotation; `null` when the key was never rotated. `status` is `pending` while the storage\nnode has not reported, `completed` once only the new secret works, and `failed` when the node failed it\ndefinitively (the old secret still works; see `last_failure`), and `unknown` when the node could not\nconfirm the outcome and a resend of the same secret did not complete either: neither secret is known to\nwork, deployments and credentials answer `409 BUCKET_KEY_ROTATING`, and a new rotation or\n`buckets:reconcile` settles it. While the outcome is unconfirmed the API resends the same new\nsecret and the status stays `pending`. The node switches as soon\nas it runs the request, so a `pending` rotation can already have cut off the old secret. The access key\nID never changes. `requested_at` is when it was asked for, `completed_at` and `failed_at` are set only\nin their status. `redeploy_attached` is what the request asked for. `redeploys` is `null` until the API\nhas queued the redeploys after completion (and always without `redeploy_attached`), then one item per\nproject attached at that moment: `deployment_id` of the queued deployment (trigger\n`bucket_key_rotated`), or `skipped_reason` when none was queued: `no_active_deployment`,\n`requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`, `active_deployment_limit`,\n`active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`,\n`bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, `worker_container_limit`, `worker_processes_unsupported`, or `failed`.",
                         "properties": {
                             "status": {
                                 "type": "string",
@@ -19733,7 +21165,7 @@
                             "object",
                             "null"
                         ],
-                        "description": "The newest password rotation; `null` when the password was never rotated. `status` is `pending` while\nthe database node has not reported, `completed` once the new password is the only one that connects,\nand `failed` when the node failed it or did not finish in time (the old password still works; see\n`last_failure`). The node switches as soon as it runs the request, so a `pending` rotation can\nalready have cut off the old password. `requested_at` is when it was asked for, `completed_at` and\n`failed_at` are set only in their status. `redeploy_attached` is what the request asked for.\n`redeploys` is `null` until the API has queued the redeploys after completion (and always without\n`redeploy_attached`), then one item per project attached at that moment: `deployment_id` of the queued\ndeployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:\n`no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,\n`active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`, `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, or `failed`.",
+                        "description": "The newest password rotation; `null` when the password was never rotated. `status` is `pending` while\nthe database node has not reported, `completed` once the new password is the only one that connects,\nand `failed` when the node failed it or did not finish in time (the old password still works; see\n`last_failure`). The node switches as soon as it runs the request, so a `pending` rotation can\nalready have cut off the old password. `requested_at` is when it was asked for, `completed_at` and\n`failed_at` are set only in their status. `redeploy_attached` is what the request asked for.\n`redeploys` is `null` until the API has queued the redeploys after completion (and always without\n`redeploy_attached`), then one item per project attached at that moment: `deployment_id` of the queued\ndeployment (trigger `database_password_rotated`), or `skipped_reason` when none was queued:\n`no_active_deployment`, `requester_cannot_deploy`, `legal_acceptance_required`, `project_suspended`,\n`active_deployment_limit`, `active_container_limit`, `build_rate_limit`, `repository_access_revoked`,\n`database_endpoint_unavailable`, `database_not_ready`, `bucket_endpoint_unavailable`, `bucket_not_ready`, `bucket_key_rotating`, `release_command_unsupported`, `worker_container_limit`, `worker_processes_unsupported`, or `failed`.",
                         "properties": {
                             "status": {
                                 "type": "string",
@@ -19955,6 +21387,13 @@
                     "stream": {
                         "$ref": "#/components/schemas/LogStream"
                     },
+                    "process": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The worker process or `job` the line came from (ADR-022); `null` for the deployment's own lines: build,\nrelease command, and web."
+                    },
                     "message": {
                         "type": "string"
                     },
@@ -19965,6 +21404,7 @@
                 "required": [
                     "sequence",
                     "stream",
+                    "process",
                     "message",
                     "recorded_at"
                 ],
@@ -21198,6 +22638,29 @@
                             ]
                         }
                     },
+                    "buckets": {
+                        "type": "array",
+                        "description": "The managed bucket attached to the project, as a list of at most one: a project uses one bucket at a\ntime. Only `id`, `name`, and `status`; the project detail has the connection variables.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "$ref": "#/components/schemas/BucketStatus"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "status"
+                            ]
+                        }
+                    },
                     "workspace": {
                         "type": [
                             "object",
@@ -21249,6 +22712,7 @@
                     "stack",
                     "last_deployed_at",
                     "databases",
+                    "buckets",
                     "workspace",
                     "created_at"
                 ],
@@ -21510,6 +22974,34 @@
                         ],
                         "description": "MB the quotas of the workspace's buckets may reserve together. `null` follows the global\n`SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases."
                     },
+                    "max_worker_containers": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Worker containers the workspace may run at once. `null` follows the global\n`SAKALA_WORKER_DEFAULT_MAX_CONTAINERS`; `0` allows none."
+                    },
+                    "max_schedules": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Enabled schedules the workspace may hold. `null` follows the global `SAKALA_SCHEDULE_DEFAULT_MAX_COUNT`; `0` allows none."
+                    },
+                    "min_schedule_interval_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Shortest gap between two slots of a schedule, in minutes. `null` follows the global `SAKALA_SCHEDULE_DEFAULT_MIN_INTERVAL_MINUTES`."
+                    },
+                    "max_concurrent_job_runs": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Scheduled runs the workspace runs at once. `null` follows the global `SAKALA_SCHEDULE_DEFAULT_MAX_CONCURRENT_RUNS`; `0` runs none."
+                    },
                     "workspaces_count": {
                         "type": [
                             "integer",
@@ -21546,6 +23038,10 @@
                     "max_database_storage_mb",
                     "max_buckets",
                     "max_bucket_storage_mb",
+                    "max_worker_containers",
+                    "max_schedules",
+                    "min_schedule_interval_minutes",
+                    "max_concurrent_job_runs",
                     "created_at",
                     "updated_at"
                 ],
@@ -21852,6 +23348,30 @@
                             "current_bucket_usage_bytes": {
                                 "type": "integer",
                                 "description": "Usage of the workspace's buckets from the storage nodes' last reports, in bytes; a bucket never measured counts 0."
+                            },
+                            "max_worker_containers": {
+                                "type": "integer",
+                                "description": "Worker containers the workspace may run at once, from its limit profile or the global setting\n(ADR-022). They also count towards `max_active_containers`. `0` allows none."
+                            },
+                            "current_worker_containers_count": {
+                                "type": "integer",
+                                "description": "Worker containers of the workspace's projects that serve or are being deployed."
+                            },
+                            "max_schedules": {
+                                "type": "integer",
+                                "description": "Enabled schedules the workspace may hold, from its limit profile or the global setting; `0` allows none."
+                            },
+                            "current_schedules_count": {
+                                "type": "integer",
+                                "description": "Enabled schedules that count towards `max_schedules`."
+                            },
+                            "min_schedule_interval_minutes": {
+                                "type": "integer",
+                                "description": "Shortest gap between two slots of a schedule, in minutes, from its limit profile or the global setting."
+                            },
+                            "max_concurrent_job_runs": {
+                                "type": "integer",
+                                "description": "Scheduled runs the workspace runs at once; a due run beyond that waits. `0` runs none."
                             }
                         },
                         "required": [
@@ -21872,7 +23392,13 @@
                             "current_buckets_count",
                             "max_bucket_storage_mb",
                             "current_bucket_storage_mb",
-                            "current_bucket_usage_bytes"
+                            "current_bucket_usage_bytes",
+                            "max_worker_containers",
+                            "current_worker_containers_count",
+                            "max_schedules",
+                            "current_schedules_count",
+                            "min_schedule_interval_minutes",
+                            "max_concurrent_job_runs"
                         ]
                     },
                     "runtime_defaults": {
@@ -21983,12 +23509,52 @@
                             },
                             "default_quota_mb": {
                                 "type": "integer",
-                                "const": 0
+                                "description": "Quota of a bucket created without `quota_mb`, in MB: `SAKALA_BUCKET_DEFAULT_QUOTA_MB`, or 256 when\nunset, kept between 1 and 1048576. Never null."
                             }
                         },
                         "required": [
                             "available",
                             "default_quota_mb"
+                        ]
+                    },
+                    "workers": {
+                        "type": "object",
+                        "description": "Worker processes on this installation (ADR-022). `enabled` follows `SAKALA_WORKERS_ENABLED`; while it\nis false the process endpoints answer 404 and deployments carry no workers.",
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "enabled"
+                        ]
+                    },
+                    "schedules": {
+                        "type": "object",
+                        "description": "Scheduled jobs on this installation (ADR-022). `enabled` follows `SAKALA_SCHEDULES_ENABLED`; while it\nis false the schedule endpoints answer 404 and nothing is dispatched. `default_timezone` is the\ntimezone of a schedule created without one, `max_timeout_seconds` the longest run timeout, and\n`start_deadline_minutes` how late a slot may still start.",
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "default_timezone": {
+                                "type": "string"
+                            },
+                            "default_timeout_seconds": {
+                                "type": "integer"
+                            },
+                            "max_timeout_seconds": {
+                                "type": "integer"
+                            },
+                            "start_deadline_minutes": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "enabled",
+                            "default_timezone",
+                            "default_timeout_seconds",
+                            "max_timeout_seconds",
+                            "start_deadline_minutes"
                         ]
                     }
                 },
@@ -22003,7 +23569,9 @@
                     "deleted_project_retention_days",
                     "project_idle_sleep_minutes",
                     "databases",
-                    "buckets"
+                    "buckets",
+                    "workers",
+                    "schedules"
                 ],
                 "title": "PilotLimitsResource"
             },
@@ -22097,7 +23665,8 @@
                                     "RotateBucketKey",
                                     "SetBucketQuota",
                                     "LockBucket",
-                                    "UnlockBucket"
+                                    "UnlockBucket",
+                                    "RunJob"
                                 ]
                             },
                             "status": {
@@ -22361,6 +23930,113 @@
                     "series"
                 ],
                 "title": "ProjectMetricsResource"
+            },
+            "ProjectProcessResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "command": {
+                        "type": "string"
+                    },
+                    "replicas": {
+                        "type": "integer",
+                        "description": "Containers of this process; `0` keeps the definition and runs nothing."
+                    },
+                    "memory_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Per container, in MB; `null` follows the deployment's."
+                    },
+                    "cpu_millis": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Per container, in thousandths of a CPU; `null` follows the deployment's."
+                    },
+                    "crash": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Set while the node reports this worker of the serving deployment as crashing (exited with a code other\nthan 0, or restarting over and over); `null` otherwise. A crashing worker never marks the web process\ncrashed. `running` true means it is up between two crashes.",
+                        "properties": {
+                            "exit_code": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "oom_killed": {
+                                "type": "boolean"
+                            },
+                            "finished_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "restart_count": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "running": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "since": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "exit_code",
+                            "oom_killed",
+                            "finished_at",
+                            "restart_count",
+                            "running",
+                            "since"
+                        ]
+                    },
+                    "redeploy_required": {
+                        "type": "boolean",
+                        "description": "Only on the answer to a change: whether the serving deployment now differs from the project's settings."
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "command",
+                    "replicas",
+                    "memory_mb",
+                    "cpu_millis",
+                    "crash",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ProjectProcessResource"
             },
             "ProjectResource": {
                 "type": "object",
@@ -23152,6 +24828,110 @@
                 ],
                 "title": "ProjectRestartState"
             },
+            "ProjectScheduleResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "project_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "command": {
+                        "type": "string"
+                    },
+                    "cron_expression": {
+                        "type": "string",
+                        "description": "Five fields: minute, hour, day of month, month, day of week."
+                    },
+                    "timezone": {
+                        "type": "string"
+                    },
+                    "timeout_seconds": {
+                        "type": "integer"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "next_run_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The next slot that has not been handled, in UTC; `null` while disabled."
+                    },
+                    "health": {
+                        "description": "`failing` after a failed, timed out, or lost run, until one succeeds.",
+                        "$ref": "#/components/schemas/ScheduleHealth"
+                    },
+                    "consecutive_failures": {
+                        "type": "integer",
+                        "description": "Failed, timed out, or lost runs in a row."
+                    },
+                    "paused_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When the control plane disabled the schedule by itself; `null` otherwise. Enabling it clears this."
+                    },
+                    "pause_reason": {
+                        "anyOf": [
+                            {
+                                "description": "`consecutive_failures`, or `null`.\n| |\n|---|\n| `consecutive_failures` <br/> `pause_after_failures` runs in a row failed, timed out, or were lost. |",
+                                "$ref": "#/components/schemas/SchedulePauseReason"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "latest_run": {
+                        "anyOf": [
+                            {
+                                "description": "The newest run, whatever its outcome; `null` before the first.",
+                                "$ref": "#/components/schemas/ScheduleRunResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "project_id",
+                    "name",
+                    "command",
+                    "cron_expression",
+                    "timezone",
+                    "timeout_seconds",
+                    "enabled",
+                    "next_run_at",
+                    "health",
+                    "consecutive_failures",
+                    "paused_at",
+                    "pause_reason",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ProjectScheduleResource"
+            },
             "ProjectStatus": {
                 "type": "string",
                 "enum": [
@@ -23372,6 +25152,15 @@
                                 "recorded_at": {
                                     "type": "string",
                                     "format": "date-time"
+                                },
+                                "process": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "description": "Additive within protocol revision 4 (ADR-022): a worker's name,\nor `job` for RunJob output. Absent for build, release, and web.",
+                                    "pattern": "^[a-z][a-z0-9-]*$",
+                                    "maxLength": 30
                                 }
                             },
                             "required": [
@@ -23535,6 +25324,236 @@
                     "sleeping"
                 ],
                 "title": "RuntimeStatus"
+            },
+            "ScheduleHealth": {
+                "type": "string",
+                "description": "Whether a schedule's last finished run failed. Members are notified when it changes, never on every failure.\n",
+                "enum": [
+                    "healthy",
+                    "failing"
+                ],
+                "title": "ScheduleHealth"
+            },
+            "SchedulePauseReason": {
+                "type": "string",
+                "description": "Why the control plane disabled a schedule by itself.\n| |\n|---|\n| `consecutive_failures` <br/> `pause_after_failures` runs in a row failed, timed out, or were lost. |",
+                "enum": [
+                    "consecutive_failures"
+                ],
+                "title": "SchedulePauseReason"
+            },
+            "ScheduleRunReason": {
+                "type": "string",
+                "description": "Why a run was skipped, missed, or waited (`schedule_runs.reason`). The Console shows message(); nothing here names a node or an internal ID.\n| |\n|---|\n| `overlap` <br/> The schedule's previous run was still open when the slot came. |\n| `concurrency_limit` <br/> The workspace already ran `max_concurrent_job_runs` jobs. |\n| `project_suspended` <br/>  |\n| `project_deleted` <br/>  |\n| `no_live_deployment` <br/> The project has no deployment on a node, so there is no image to run. |\n| `node_unsupported` <br/> The node of the live deployment does not advertise `scheduled-jobs`. |\n| `dispatcher_late` <br/> The dispatcher reached the slot after its start deadline, for example while the API was down. |\n| `not_started` <br/> The node did not claim the RunJob before the start deadline: offline or busy. |",
+                "enum": [
+                    "overlap",
+                    "concurrency_limit",
+                    "project_suspended",
+                    "project_deleted",
+                    "no_live_deployment",
+                    "node_unsupported",
+                    "dispatcher_late",
+                    "not_started"
+                ],
+                "title": "ScheduleRunReason"
+            },
+            "ScheduleRunResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "schedule_id": {
+                        "type": "string"
+                    },
+                    "trigger": {
+                        "description": "`scheduled` for a slot, `manual` for \"Run now\".\n| |\n|---|\n| `scheduled` <br/> A slot of the cron expression, recorded by `schedules:dispatch`. |\n| `manual` <br/> \"Run now\" by a workspace member; audited. |",
+                        "$ref": "#/components/schemas/ScheduleRunTrigger"
+                    },
+                    "scheduled_for": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The slot, in UTC; `null` for a manual run."
+                    },
+                    "status": {
+                        "description": "`waiting` (the workspace runs as many jobs as it may), `queued`, `running`, `succeeded`, `failed`,\n`timed_out`, `cancelled`, `lost` (the node stopped reporting during the run), `missed` (did not start\nbefore its deadline), or `skipped`.\n| |\n|---|\n| `waiting` <br/> The workspace already runs `max_concurrent_job_runs` jobs; the run starts when one ends, or is missed at its deadline. |\n| `queued` <br/> A RunJob command waits for the node to claim it before the start deadline. |\n| `running` <br/> The node claimed the RunJob command. |\n| `succeeded` <br/> The command exited with code 0. |\n| `failed` <br/> The command exited with another code, or the node could not run it. |\n| `timed_out` <br/> The command ran past the schedule's timeout and was stopped. |\n| `cancelled` <br/> Stopped on request (Stop run), by a StopProject, or because the project was deleted. |\n| `lost` <br/> The node went away during the run: its lease expired without a report. |\n| `missed` <br/> The slot did not start before its deadline (`reason` says why). |\n| `skipped` <br/> The slot was not run on purpose (`reason` says why). |",
+                        "$ref": "#/components/schemas/ScheduleRunStatus"
+                    },
+                    "reason": {
+                        "anyOf": [
+                            {
+                                "description": "Why it was skipped, missed, or waits; `null` otherwise.\n| |\n|---|\n| `overlap` <br/> The schedule's previous run was still open when the slot came. |\n| `concurrency_limit` <br/> The workspace already ran `max_concurrent_job_runs` jobs. |\n| `project_suspended` <br/>  |\n| `project_deleted` <br/>  |\n| `no_live_deployment` <br/> The project has no deployment on a node, so there is no image to run. |\n| `node_unsupported` <br/> The node of the live deployment does not advertise `scheduled-jobs`. |\n| `dispatcher_late` <br/> The dispatcher reached the slot after its start deadline, for example while the API was down. |\n| `not_started` <br/> The node did not claim the RunJob before the start deadline: offline or busy. |",
+                                "$ref": "#/components/schemas/ScheduleRunReason"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "reason_message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "reason as a sentence for people, in Indonesian; `null` without a reason.",
+                        "enum": [
+                            "Dilewati karena run sebelumnya dari jadwal ini masih berjalan.",
+                            "Workspace ini sedang menjalankan job sebanyak batasnya, jadi run ini menunggu atau terlewat.",
+                            "Dilewati karena proyek ini sedang ditangguhkan.",
+                            "Dilewati karena proyek ini sudah dihapus.",
+                            "Dilewati karena proyek ini belum punya deployment yang berjalan. Deploy proyek dulu.",
+                            "Dilewati karena server yang menjalankan proyek ini belum mendukung jadwal. Tunggu operator memperbarui agent di server.",
+                            "Terlewat karena penjadwal Sakala tidak sempat memulainya sebelum batas mulai, misalnya saat Sakala sedang gangguan.",
+                            "Terlewat karena server proyek tidak memulainya sebelum batas mulai, misalnya karena sedang offline atau sibuk.",
+                            null
+                        ]
+                    },
+                    "command": {
+                        "type": "string"
+                    },
+                    "timeout_seconds": {
+                        "type": "integer"
+                    },
+                    "exit_code": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "The command's exit code, from the node; `null` before it ended, after a timeout, or when it never ran."
+                    },
+                    "duration_ms": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "From the container's start until it exited, in milliseconds."
+                    },
+                    "oom_killed": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "Whether the kernel killed the command for memory."
+                    },
+                    "timed_out": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "error_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The node's or control plane's failure code, for example `job_failed`; `null` unless it failed or was stopped."
+                    },
+                    "error_summary": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "What the failure means and what to do, in Indonesian; `null` without a failure code.",
+                        "enum": [
+                            "Perintah kehabisan memori dan dihentikan. Kurangi pemakaian memori perintah ini, atau naikkan memori proyek saat deploy.",
+                            "Perintah keluar dengan kode selain 0. Kode keluarnya tertulis di run ini; buka log run untuk melihat error-nya.",
+                            "Perintah melewati batas waktu jadwal dan dihentikan. Percepat perintahnya atau naikkan batas waktu jadwal, paling lama 10 menit.",
+                            "Image deployment yang sedang berjalan tidak ada di server. Deploy ulang proyek ini, lalu jalankan jadwalnya lagi.",
+                            "Server Sakala sedang penuh, jadi run ini tidak dimulai. Ini bukan kesalahan di aplikasimu; run berikutnya dicoba seperti biasa.",
+                            "Server Sakala menolak perintah run ini. Pastikan perintahnya satu baris, lalu coba lagi.",
+                            "Environment variable PORT di proyek ini berbeda dengan port yang dipakai Sakala. Hapus atau samakan PORT, deploy ulang, lalu jalankan jadwalnya lagi.",
+                            "Run ini dihentikan sebelum selesai.",
+                            "Server berhenti melapor saat run ini berjalan, jadi hasilnya tidak diketahui. Pastikan perintahnya aman dijalankan ulang, lalu jalankan lagi bila perlu.",
+                            "Server proyek tidak memulai run ini sebelum batas mulai.",
+                            "Run ini gagal karena kesalahan yang belum dikenali. Buka log run, dan kirim kode kegagalannya ke admin Sakala bila berulang.",
+                            null
+                        ]
+                    },
+                    "deployment_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The live deployment whose image the run used."
+                    },
+                    "deadline_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The run must start before this, or it is missed."
+                    },
+                    "started_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When the node took the run."
+                    },
+                    "finished_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "schedule_id",
+                    "trigger",
+                    "scheduled_for",
+                    "status",
+                    "reason",
+                    "reason_message",
+                    "command",
+                    "timeout_seconds",
+                    "exit_code",
+                    "duration_ms",
+                    "oom_killed",
+                    "timed_out",
+                    "error_code",
+                    "error_summary",
+                    "deployment_id",
+                    "deadline_at",
+                    "started_at",
+                    "finished_at",
+                    "created_at"
+                ],
+                "title": "ScheduleRunResource"
+            },
+            "ScheduleRunStatus": {
+                "type": "string",
+                "description": "Lifecycle of one run of a schedule (ADR-022). A slot is recorded once, as a run in one of these states, and never run late in a burst.\n| |\n|---|\n| `waiting` <br/> The workspace already runs `max_concurrent_job_runs` jobs; the run starts when one ends, or is missed at its deadline. |\n| `queued` <br/> A RunJob command waits for the node to claim it before the start deadline. |\n| `running` <br/> The node claimed the RunJob command. |\n| `succeeded` <br/> The command exited with code 0. |\n| `failed` <br/> The command exited with another code, or the node could not run it. |\n| `timed_out` <br/> The command ran past the schedule's timeout and was stopped. |\n| `cancelled` <br/> Stopped on request (Stop run), by a StopProject, or because the project was deleted. |\n| `lost` <br/> The node went away during the run: its lease expired without a report. |\n| `missed` <br/> The slot did not start before its deadline (`reason` says why). |\n| `skipped` <br/> The slot was not run on purpose (`reason` says why). |",
+                "enum": [
+                    "waiting",
+                    "queued",
+                    "running",
+                    "succeeded",
+                    "failed",
+                    "timed_out",
+                    "cancelled",
+                    "lost",
+                    "missed",
+                    "skipped"
+                ],
+                "title": "ScheduleRunStatus"
+            },
+            "ScheduleRunTrigger": {
+                "type": "string",
+                "description": "What started a schedule run.\n| |\n|---|\n| `scheduled` <br/> A slot of the cron expression, recorded by `schedules:dispatch`. |\n| `manual` <br/> \"Run now\" by a workspace member; audited. |",
+                "enum": [
+                    "scheduled",
+                    "manual"
+                ],
+                "title": "ScheduleRunTrigger"
             },
             "ServiceStatusResource": {
                 "type": "object",
@@ -23950,6 +25969,42 @@
                         "description": "MB the quotas of the workspace's buckets may reserve together. `null` (the default) follows\n`SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases. Lowering it never\nshrinks an existing bucket.",
                         "minimum": 0,
                         "maximum": 1048576
+                    },
+                    "max_worker_containers": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Worker containers the workspace may run at once (ADR-022). They also count against\n`max_active_containers`. `null` (the default) follows `SAKALA_WORKER_DEFAULT_MAX_CONTAINERS`; `0` allows none.",
+                        "minimum": 0,
+                        "maximum": 100
+                    },
+                    "max_schedules": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Enabled schedules the workspace may hold. `null` (the default) follows `SAKALA_SCHEDULE_DEFAULT_MAX_COUNT`;\n`0` allows none.",
+                        "minimum": 0,
+                        "maximum": 1000
+                    },
+                    "min_schedule_interval_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Shortest gap between two slots of a schedule, in minutes. `null` (the default) follows\n`SAKALA_SCHEDULE_DEFAULT_MIN_INTERVAL_MINUTES`.",
+                        "minimum": 1,
+                        "maximum": 1440
+                    },
+                    "max_concurrent_job_runs": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Scheduled runs the workspace runs at once; a due run beyond that waits. `null` (the default) follows\n`SAKALA_SCHEDULE_DEFAULT_MAX_CONCURRENT_RUNS`; `0` runs none.",
+                        "minimum": 0,
+                        "maximum": 100
                     }
                 },
                 "required": [
@@ -24004,6 +26059,49 @@
                     }
                 },
                 "title": "StoreOnboardingSourceRequest"
+            },
+            "StoreProjectProcessRequest": {
+                "type": "object",
+                "description": "A worker process definition (ADR-022). The rules match what the agent\naccepts in `DeployProject.processes`, so a saved definition never fails a\ndeployment for its shape. Workspace caps are checked in closures, so the\ndocumented schema does not show the caps of whichever workspace was\nresolved while generating it.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Lowercase letters, digits, and dashes, starting with a letter, up to 30 characters, unique in the\nproject. `web`, `release`, and `job` are reserved.",
+                        "pattern": "^[a-z][a-z0-9-]*$",
+                        "maxLength": 30
+                    },
+                    "command": {
+                        "type": "string",
+                        "description": "Runs as `sh -c <command>` in the container, for example `php artisan queue:work --sleep=3 --tries=3\n--max-time=3600`. One line of 1 to 1000 characters.",
+                        "maxLength": 1000
+                    },
+                    "replicas": {
+                        "type": "integer",
+                        "description": "Containers of this process, from 0 to `max_replicas` of the workspace; 0 keeps the definition and runs\nnothing. Defaults to 1.",
+                        "minimum": 0
+                    },
+                    "memory_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Memory per container, in MB, up to the workspace's per-container cap. `null` follows the deployment's.",
+                        "minimum": 1
+                    },
+                    "cpu_millis": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "CPU per container, in thousandths of a CPU, up to the workspace's cap. `null` follows the deployment's.",
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "name",
+                    "command"
+                ],
+                "title": "StoreProjectProcessRequest"
             },
             "StoreProjectRequest": {
                 "type": "object",
@@ -24100,6 +26198,47 @@
                     "branch"
                 ],
                 "title": "StoreProjectRequest"
+            },
+            "StoreProjectScheduleRequest": {
+                "type": "object",
+                "description": "A schedule of a project (ADR-022). The command follows the release\ncommand's rule; the minimum interval of the workspace is checked when\nsaving (SaveProjectScheduleAction), with the final expression and timezone.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "command": {
+                        "type": "string",
+                        "description": "Runs as `sh -c <command>` in a one-off container of the live image. One line of 1 to 1000 characters.",
+                        "maxLength": 1000
+                    },
+                    "cron_expression": {
+                        "type": "string",
+                        "description": "Standard five-field cron expression (minute, hour, day of month, month, day of week), read in\n`timezone`, for example `30 2 * * *`. Two slots may not be closer than the workspace's\n`min_schedule_interval_minutes`.",
+                        "maxLength": 100
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "description": "Timezone identifier the expression is read in, for example `Asia/Jakarta` (the default, WIB).",
+                        "maxLength": 64
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Seconds a run may take before it is stopped, 1 to 600; default 300.",
+                        "minimum": 1,
+                        "maximum": 600
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Whether slots run; default true. Only enabled schedules count towards `max_schedules`."
+                    }
+                },
+                "required": [
+                    "name",
+                    "command",
+                    "cron_expression"
+                ],
+                "title": "StoreProjectScheduleRequest"
             },
             "StoreWorkspaceInvitationRequest": {
                 "type": "object",
@@ -24441,6 +26580,37 @@
                     }
                 },
                 "title": "UpdateProjectRequest"
+            },
+            "UpdateProjectScheduleRequest": {
+                "type": "object",
+                "description": "A partial change of a schedule: every field is optional, with the rules of\nStoreProjectScheduleRequest. Enabling a schedule the control plane paused\nclears the pause and its failure count.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "command": {
+                        "type": "string",
+                        "maxLength": 1000
+                    },
+                    "cron_expression": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 600
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdateProjectScheduleRequest"
             },
             "UpdateUserRoleRequest": {
                 "type": "object",
@@ -24997,6 +27167,22 @@
                                 "type": "integer",
                                 "description": "Effective MB the bucket quotas may reserve together, from the profile or the global setting. `0` allows no new allocation."
                             },
+                            "max_worker_containers": {
+                                "type": "integer",
+                                "description": "Effective worker containers at once, from the profile or the global setting. `0` allows none."
+                            },
+                            "max_schedules": {
+                                "type": "integer",
+                                "description": "Effective enabled schedules, from the profile or the global setting. `0` allows none."
+                            },
+                            "min_schedule_interval_minutes": {
+                                "type": "integer",
+                                "description": "Effective shortest gap between two slots of a schedule, in minutes."
+                            },
+                            "max_concurrent_job_runs": {
+                                "type": "integer",
+                                "description": "Effective scheduled runs at once, from the profile or the global setting. `0` runs none."
+                            },
                             "max_active_deployments_per_project": {
                                 "type": "integer",
                                 "description": "Global, the same for every workspace."
@@ -25015,6 +27201,10 @@
                             "max_database_storage_mb",
                             "max_buckets",
                             "max_bucket_storage_mb",
+                            "max_worker_containers",
+                            "max_schedules",
+                            "min_schedule_interval_minutes",
+                            "max_concurrent_job_runs",
                             "max_active_deployments_per_project"
                         ]
                     },
@@ -25050,6 +27240,14 @@
                             "bucket_usage_bytes": {
                                 "type": "integer",
                                 "description": "Reported usage of the workspace's buckets, in bytes."
+                            },
+                            "worker_containers": {
+                                "type": "integer",
+                                "description": "Worker containers of the projects that serve or are being deployed."
+                            },
+                            "schedules": {
+                                "type": "integer",
+                                "description": "Enabled schedules that count towards `max_schedules`."
                             }
                         },
                         "required": [
@@ -25060,7 +27258,9 @@
                             "database_storage_bytes",
                             "buckets",
                             "bucket_storage_mb",
-                            "bucket_usage_bytes"
+                            "bucket_usage_bytes",
+                            "worker_containers",
+                            "schedules"
                         ]
                     }
                 },
@@ -25301,6 +27501,48 @@
                                 "runtime_status": {
                                     "type": "string",
                                     "description": "The current `runtime_status`. Only with `PROJECT_NOT_SLEEPING`."
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ScheduleRunConflict": {
+                "description": "The run cannot be started or stopped",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "`SCHEDULE_RUN_REFUSED`: Run now cannot start a run, see `reason`. `SCHEDULE_RUN_NOT_OPEN`: Stop run on a run that already ended.",
+                                    "enum": [
+                                        "SCHEDULE_RUN_REFUSED",
+                                        "SCHEDULE_RUN_NOT_OPEN"
+                                    ]
+                                },
+                                "reason": {
+                                    "type": "string",
+                                    "description": "Only with `SCHEDULE_RUN_REFUSED`: why a slot would be skipped now.",
+                                    "enum": [
+                                        "overlap",
+                                        "concurrency_limit",
+                                        "project_suspended",
+                                        "project_deleted",
+                                        "no_live_deployment",
+                                        "node_unsupported",
+                                        "dispatcher_late",
+                                        "not_started"
+                                    ]
                                 }
                             },
                             "required": [
