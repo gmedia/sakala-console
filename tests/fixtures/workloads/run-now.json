@@ -1,0 +1,27 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a20cea-5540-714f-afbd-5302befaec13",
+			"schedule_id": "01a20cea-5307-75fb-a655-97a6f955899b",
+			"trigger": "manual",
+			"scheduled_for": null,
+			"status": "queued",
+			"reason": null,
+			"reason_message": null,
+			"command": "php artisan report:daily",
+			"timeout_seconds": 300,
+			"exit_code": null,
+			"duration_ms": null,
+			"oom_killed": null,
+			"timed_out": null,
+			"error_code": null,
+			"error_summary": null,
+			"deployment_id": "01a20cea-527b-7b06-bdb4-ab9e4c00ead7",
+			"deadline_at": "2026-11-24T10:17:30Z",
+			"started_at": null,
+			"finished_at": null,
+			"created_at": "2026-11-24T10:07:30Z"
+		}
+	}
+}

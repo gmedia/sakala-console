@@ -1,0 +1,40 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"sequence": 100,
+				"stream": "stdout",
+				"process": "job",
+				"message": "Menyusun laporan 2026-11-23",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 101,
+				"stream": "stderr",
+				"process": "job",
+				"message": "SQLSTATE[HY000] [2002] Connection refused",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			},
+			{
+				"sequence": 102,
+				"stream": "stderr",
+				"process": "job",
+				"message": "Script exited with code 1",
+				"recorded_at": "2026-11-24T10:07:30.000000Z"
+			}
+		],
+		"links": {
+			"first": null,
+			"last": null,
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"path": "http://api.sakala.localhost:8000/api/v1/app/projects/01a20cea-525c-7a9b-bea5-c1f19ed71e69/schedules/01a20cea-5307-75fb-a655-97a6f955899b/runs/01a20cea-54d5-7a24-819a-cd0986029029/logs",
+			"per_page": 20,
+			"next_cursor": null,
+			"prev_cursor": null
+		}
+	}
+}

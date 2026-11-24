@@ -39,6 +39,17 @@ describe('DeploymentLogConsole', () => {
 		await expect.element(log).toHaveAttribute('tabindex', '0');
 	});
 
+	it('names the worker a line came from, and leaves web and scheduled runs unnamed', async () => {
+		const [web, worker, job] = makeLines(3);
+		await render(DeploymentLogConsoleTestHost, {
+			initialLines: [web, { ...worker, process: 'queue' }, { ...job, process: 'job' }]
+		});
+
+		const labels = page.getByTestId('log-line-process');
+		await expect.element(labels).toHaveTextContent('[queue]');
+		expect(labels.elements()).toHaveLength(1);
+	});
+
 	it('renders a message as text, never as HTML', async () => {
 		const payload = '<img src=x onerror="window.__xss=1"><b>tebal</b>';
 		await render(DeploymentLogConsoleTestHost, {

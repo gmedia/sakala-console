@@ -89,6 +89,21 @@ export const queryKeys = {
 		feedback: (params: QueryParams) => ['admin', 'feedback', params] as const,
 		audit: (params: QueryParams) => ['admin', 'audit', params] as const
 	},
+	/**
+	 * A project's worker processes and schedules (ADR-022). Everything about one project starts with
+	 * `['workloads', projectId]`, and a schedule's runs and their output sit under the schedule.
+	 */
+	workloads: {
+		project: (projectId: string) => ['workloads', projectId] as const,
+		processes: (projectId: string) => ['workloads', projectId, 'processes'] as const,
+		schedules: (projectId: string) => ['workloads', projectId, 'schedules'] as const,
+		schedule: (projectId: string, scheduleId: string) =>
+			['workloads', projectId, 'schedules', scheduleId] as const,
+		runs: (projectId: string, scheduleId: string) =>
+			['workloads', projectId, 'schedules', scheduleId, 'runs'] as const,
+		runLogs: (projectId: string, scheduleId: string, runId: string) =>
+			['workloads', projectId, 'schedules', scheduleId, 'run-logs', runId] as const
+	},
 	domainPreview: (name: string) => ['domain-preview', name] as const,
 	regions: ['regions'] as const,
 	pilotLimits: ['pilot-limits'] as const

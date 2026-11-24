@@ -1,0 +1,82 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a20cea-5307-75fb-a655-97a6f955899b",
+				"project_id": "01a20cea-525c-7a9b-bea5-c1f19ed71e69",
+				"name": "Laporan harian",
+				"command": "php artisan report:daily",
+				"cron_expression": "30 2 * * *",
+				"timezone": "Asia/Jakarta",
+				"timeout_seconds": 300,
+				"enabled": true,
+				"next_run_at": "2026-11-24T19:30:00Z",
+				"health": "healthy",
+				"consecutive_failures": 0,
+				"paused_at": null,
+				"pause_reason": null,
+				"latest_run": {
+					"id": "01a20cea-5540-714f-afbd-5302befaec13",
+					"schedule_id": "01a20cea-5307-75fb-a655-97a6f955899b",
+					"trigger": "manual",
+					"scheduled_for": null,
+					"status": "cancelled",
+					"reason": null,
+					"reason_message": null,
+					"command": "php artisan report:daily",
+					"timeout_seconds": 300,
+					"exit_code": null,
+					"duration_ms": null,
+					"oom_killed": null,
+					"timed_out": null,
+					"error_code": null,
+					"error_summary": null,
+					"deployment_id": "01a20cea-527b-7b06-bdb4-ab9e4c00ead7",
+					"deadline_at": "2026-11-24T10:17:30Z",
+					"started_at": null,
+					"finished_at": "2026-11-24T10:07:30Z",
+					"created_at": "2026-11-24T10:07:30Z"
+				},
+				"created_at": "2026-11-24T10:07:30Z",
+				"updated_at": "2026-11-24T10:07:30Z"
+			},
+			{
+				"id": "01a20cea-537d-79b2-b38c-bc9e2bd3f87c",
+				"project_id": "01a20cea-525c-7a9b-bea5-c1f19ed71e69",
+				"name": "Bersihkan sesi",
+				"command": "php artisan session:gc",
+				"cron_expression": "45 */2 * * *",
+				"timezone": "Asia/Jakarta",
+				"timeout_seconds": 120,
+				"enabled": false,
+				"next_run_at": null,
+				"health": "healthy",
+				"consecutive_failures": 0,
+				"paused_at": null,
+				"pause_reason": null,
+				"latest_run": null,
+				"created_at": "2026-11-24T10:07:30Z",
+				"updated_at": "2026-11-24T10:07:30Z"
+			},
+			{
+				"id": "01a20cea-5423-7eed-aac9-cacea96af5cb",
+				"project_id": "01a20cea-525c-7a9b-bea5-c1f19ed71e69",
+				"name": "Nonaktif",
+				"command": "php artisan x",
+				"cron_expression": "0 3 * * *",
+				"timezone": "Asia/Jakarta",
+				"timeout_seconds": 300,
+				"enabled": false,
+				"next_run_at": null,
+				"health": "healthy",
+				"consecutive_failures": 0,
+				"paused_at": null,
+				"pause_reason": null,
+				"latest_run": null,
+				"created_at": "2026-11-24T10:07:30Z",
+				"updated_at": "2026-11-24T10:07:30Z"
+			}
+		]
+	}
+}

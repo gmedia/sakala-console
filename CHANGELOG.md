@@ -4,6 +4,20 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 
 ## [Unreleased]
 
+### Added
+
+- Worker processes and schedules (ADR-022, requires gmedia/sakala-api#208 with `SAKALA_WORKERS_ENABLED` and `SAKALA_SCHEDULES_ENABLED`). Both appear only when the workspace's `pilot-limits` says the installation turned them on (`workers.enabled`, `schedules.enabled`); otherwise nothing new is shown and the endpoints are never called. A 404 afterwards reads as "belum bisa dipakai di instalasi Sakala ini".
+- Pengaturan gets a "Proses" section: `web` next to the workers, each with its command, containers (0 keeps it without running), memory and CPU ("ikut proyek" when empty), and a "Crash" badge with exit code, restarts, and since when (WIB), linking to the live deployment's log filtered to that worker. "Tambah worker" and "Ubah" open a short dialog that checks the API's rules before sending (name pattern, `web`/`release`/`job` reserved, one-line command up to 1000 characters, containers up to `max_replicas`, memory and CPU up to the workspace caps) and puts the API's own refusals on the field. The quota line says how many worker containers the workspace may run and that each also takes a running-container slot. A detected Laravel project gets "Pakai saran ini" for `php artisan queue:work --sleep=3 --tries=3 --max-time=3600`.
+- Pengaturan gets a "Jadwal" section listing schedules with state ("Aktif", "Nonaktif", "Gagal N kali berturut-turut", "Dijeda otomatis"), the schedule in words, the next run in the schedule's timezone, and the last run. "Buat jadwal" opens a page with quick choices (the workspace's minimum interval when it divides an hour, hourly, daily, and weekly at a random minute so schedules do not all start at :00), the cron expression, a preview of the next three runs in WIB, and the minimum interval checked before sending. Timezone (WIB, WITA, WIT, UTC) and run timeout (default 300 s, at most 600 s) sit in a closed group. A workspace at its limit of active schedules gets a schedule that starts disabled, with the reason. A Laravel project gets the `php artisan schedule:run` suggestion at the minimum interval, with Laravel's one-minute caveat.
+- A schedule's page shows its state, "Jalankan sekarang", "Ubah", "Jeda"/"Aktifkan lagi", and delete, and a paged run history in the schedule's timezone with status, start, duration, exit code, and the API's explanation for failed, timed out, lost, missed, skipped, and waiting runs. "Hentikan run" stops an open run. "Lihat log" opens a run's output inline (`?run=` links to it). A refused run now (`SCHEDULE_RUN_REFUSED`) says what to do for its `reason`. A schedule Sakala paused after failures in a row says so and offers "Aktifkan lagi".
+- The deployment log names the worker of each line, gets a "Proses" filter (`Semua proses`, `web`, each worker) once workers write to it, and leaves the output of scheduled runs to the run history, with a note and a link (maintainer decision).
+- The rollback dialog says that a rollback brings back the workers recorded by the target deployment, when the project has workers. The API does not expose the target's worker set, so the dialog cannot list the difference.
+- A deploy refused with `PROJECT_WORKER_PROCESSES_UNSUPPORTED` says to remove the workers or wait for the server update.
+
+### Changed
+
+- Generated API types follow sakala-api main ea7287b, which also brings `buckets` on the project list (#205).
+
 ## [0.13.0] - 2026-11-24
 
 ### Added

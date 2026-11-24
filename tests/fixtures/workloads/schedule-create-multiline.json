@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Perintah jadwal harus satu baris. Gabungkan beberapa langkah dengan && atau pindahkan ke script di repository.",
+		"errors": {
+			"command": [
+				"Perintah jadwal harus satu baris. Gabungkan beberapa langkah dengan && atau pindahkan ke script di repository."
+			]
+		}
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Jadwal di workspace ini paling sering berjalan setiap 15 menit. Pilih ekspresi cron dengan jarak antar-run paling sedikit 15 menit.",
+		"errors": {
+			"cron_expression": [
+				"Jadwal di workspace ini paling sering berjalan setiap 15 menit. Pilih ekspresi cron dengan jarak antar-run paling sedikit 15 menit."
+			]
+		}
+	}
+}

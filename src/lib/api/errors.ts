@@ -114,6 +114,23 @@ export const BUCKET_ERROR_CODES = {
 	keyRotating: 'BUCKET_KEY_ROTATING'
 } as const;
 
+/**
+ * Refusals of worker processes and schedules (ADR-022). Their extra fields are read through
+ * `parseWorkloadRefusal()` in `api/resources/workload-refusals.ts`.
+ */
+export const WORKLOAD_ERROR_CODES = {
+	/** 422 on deploy: the workspace would run more worker containers than `max_worker_containers`. */
+	workerContainerLimitExceeded: 'WORKER_CONTAINER_LIMIT_EXCEEDED',
+	/** 409 on deploy: no node that could run the project runs worker processes yet. */
+	workerProcessesUnsupported: 'PROJECT_WORKER_PROCESSES_UNSUPPORTED',
+	/** 422 on creating or enabling a schedule: one enabled schedule more than `max_schedules`. */
+	scheduleLimitExceeded: 'SCHEDULE_LIMIT_EXCEEDED',
+	/** 409 on Run now: a slot would be skipped for `reason`; nothing was recorded. */
+	scheduleRunRefused: 'SCHEDULE_RUN_REFUSED',
+	/** 409 on Stop run: the run already ended. */
+	scheduleRunNotOpen: 'SCHEDULE_RUN_NOT_OPEN'
+} as const;
+
 export type ValidationErrors = Record<string, string[]>;
 
 export type ApiErrorMeta = {

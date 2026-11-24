@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Memori worker paling banyak 512 MB per container di workspace ini.",
+		"errors": {
+			"memory_mb": ["Memori worker paling banyak 512 MB per container di workspace ini."]
+		}
+	}
+}

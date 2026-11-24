@@ -1,0 +1,18 @@
+{
+	"status": 200,
+	"body": {
+		"data": [],
+		"links": {
+			"first": null,
+			"last": null,
+			"prev": null,
+			"next": null
+		},
+		"meta": {
+			"path": "http://api.sakala.localhost:8000/api/v1/app/projects/01a20cea-501a-709f-a796-28737f0d140c/deployments/01a20cea-505e-799d-a59d-0be6f985d495/logs",
+			"per_page": 6,
+			"next_cursor": null,
+			"prev_cursor": null
+		}
+	}
+}

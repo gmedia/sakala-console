@@ -1,0 +1,17 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a20cea-50cf-728f-81ef-5ad5428ffe1e",
+			"name": "queue",
+			"command": "php artisan queue:work --sleep=3 --tries=3 --max-time=3600",
+			"replicas": 1,
+			"memory_mb": 192,
+			"cpu_millis": null,
+			"crash": null,
+			"redeploy_required": true,
+			"created_at": "2026-11-24T10:07:30+00:00",
+			"updated_at": "2026-11-24T10:07:30+00:00"
+		}
+	}
+}

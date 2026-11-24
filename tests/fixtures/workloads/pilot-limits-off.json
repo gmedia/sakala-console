@@ -1,0 +1,78 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"workspace_id": "01a20cea-4efa-7487-8c52-e747faca50a0",
+			"limit_profile": {
+				"id": "01a20cea-4ef8-7926-82ed-180af5155d48",
+				"name": "Profil 6895"
+			},
+			"quotas": {
+				"max_projects_per_user": 5,
+				"max_active_deployments_per_user": 5,
+				"max_active_deployments_per_project": 1,
+				"current_projects_count": 1,
+				"current_active_deployments_count": 0,
+				"max_active_containers": 5,
+				"current_active_containers_count": 0,
+				"max_replicas": 1,
+				"max_builds_per_hour": 20,
+				"max_databases": 3,
+				"current_databases_count": 0,
+				"max_database_storage_mb": 100,
+				"current_database_storage_bytes": 0,
+				"max_buckets": 0,
+				"current_buckets_count": 0,
+				"max_bucket_storage_mb": 0,
+				"current_bucket_storage_mb": 0,
+				"current_bucket_usage_bytes": 0,
+				"max_worker_containers": 1,
+				"current_worker_containers_count": 0,
+				"max_schedules": 2,
+				"current_schedules_count": 0,
+				"min_schedule_interval_minutes": 15,
+				"max_concurrent_job_runs": 1
+			},
+			"runtime_defaults": {
+				"memory_mb": 256,
+				"cpu_millis": 500,
+				"pids_limit": 128
+			},
+			"runtime_maximums": {
+				"memory_mb": 512,
+				"cpu_millis": 1000,
+				"pids_limit": 256
+			},
+			"timeouts": {
+				"build_timeout_seconds": 600,
+				"start_timeout_seconds": 120,
+				"command_timeout_seconds": 900
+			},
+			"log_bounds": {
+				"max_line_length": 4096,
+				"max_batch_lines": 500,
+				"max_total_bytes": 10485760,
+				"max_request_bytes": 1048576
+			},
+			"deleted_project_retention_days": 30,
+			"project_idle_sleep_minutes": 0,
+			"databases": {
+				"available": false
+			},
+			"buckets": {
+				"available": false,
+				"default_quota_mb": 256
+			},
+			"workers": {
+				"enabled": false
+			},
+			"schedules": {
+				"enabled": false,
+				"default_timezone": "Asia/Jakarta",
+				"default_timeout_seconds": 300,
+				"max_timeout_seconds": 600,
+				"start_deadline_minutes": 10
+			}
+		}
+	}
+}

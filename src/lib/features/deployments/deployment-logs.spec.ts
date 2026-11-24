@@ -188,6 +188,15 @@ describe('formatLogsForClipboard', () => {
 
 		expect(text).toBe('[08:41:02] baris 1\n[08:41:02] stderr peringatan');
 	});
+
+	it('names the worker a line came from, but not a scheduled run', () => {
+		const text = formatLogsForClipboard(
+			[line(1, { process: 'queue' }), line(2, { process: 'job' }), line(3, { process: null })],
+			() => '08:41:02'
+		);
+
+		expect(text).toBe('[08:41:02] queue: baris 1\n[08:41:02] baris 2\n[08:41:02] baris 3');
+	});
 });
 
 describe('log request policy', () => {

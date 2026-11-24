@@ -20,6 +20,8 @@ Schema database diuji dengan cara yang sama terhadap `tests/fixtures/databases`,
 
 Schema bucket diuji dengan cara yang sama terhadap `tests/fixtures/buckets`, lewat `src/lib/testing/bucket-fixtures.ts`. Fixture itu diambil dari branch gmedia/sakala-api#204 lewat test Pest sekali jalan yang tidak di-commit ke API, termasuk penolakan dengan field tambahannya (`limit`, `limit_mb`, `current_mb`, `requested_mb`, `bucket`). Mock e2e `tests/e2e/fixtures/buckets.ts` memakai fixture yang sama dan menyimpan perubahan di memori.
 
+Schema worker dan jadwal (ADR-022) diuji terhadap `tests/fixtures/workloads`, lewat `src/lib/testing/workload-fixtures.ts`. Fixture itu diambil dari sakala-api main ea7287b lewat test Pest sekali jalan yang tidak di-commit, dengan flag menyala kecuali yang berakhiran `-off`. Test aturan form membandingkan pesan Console dengan pesan validasi API di fixture, jadi perbedaan kata ketahuan. Mock e2e `tests/e2e/fixtures/workloads.ts` memakai fixture yang sama dan menyimpan perubahan di memori.
+
 ## Component
 
 Gunakan Vitest Browser + Playwright untuk behavior component yang membutuhkan DOM. Jangan menguji detail class visual yang mudah berubah; uji role, label, state, dan interaction.
@@ -41,6 +43,8 @@ CI memasang Chromium sekali, lalu menjalankan unit, component, build, dan E2E te
 `tests/e2e/databases.spec.ts` menjalankan perjalanan database: daftar dan status, buat (termasuk penolakan kuota), pasang dan lepas, hapus yang diblokir, kredensial per peran, rotasi password, extension, sisi proyek, dan audit DOM di 320 dan 1280 px. Screenshot untuk PR ditulis kalau `DATABASE_SCREENSHOTS` berisi folder tujuan, misalnya `DATABASE_SCREENSHOTS=/tmp/console-databases-screens pnpm test:e2e tests/e2e/databases.spec.ts`; tanpa itu test screenshot dilewati.
 
 `tests/e2e/buckets.spec.ts` menjalankan perjalanan bucket: kapan menu Bucket muncul (API tanpa bucket, kuota 0, server tanpa penyimpanan), daftar dan kuota, buat (juga dari proyek dengan `project_id`), pasang, secret key per peran, rotasi dengan redeploy dan status `unknown`, ubah kuota, lepas lalu hapus, tab Variabel, dan audit DOM di 320 dan 1280 px. Screenshot ditulis kalau `BUCKET_SCREENSHOTS` berisi folder tujuan.
+
+`tests/e2e/workers.spec.ts` dan `tests/e2e/schedules.spec.ts` menjalankan perjalanan ADR-022: flag mati (tidak ada yang baru dan tidak ada request), daftar worker dengan crash, tambah worker dari saran Laravel dengan keyboard, viewer, filter proses di log, daftar dan buat jadwal dengan pratinjau WIB, riwayat run dengan run gagal dan terlewat, log run, Run now dan penolakannya, Stop run, jadwal yang dijeda otomatis, 320 px, dan audit DOM di 320 dan 1280 px. Screenshot ditulis kalau `WORKLOAD_SCREENSHOTS` berisi folder tujuan.
 
 `tests/e2e/admin.spec.ts` menjalankan perjalanan utama area admin terhadap `tests/e2e/fixtures/admin.ts`, mock yang menyajikan respons asli API dari `tests/fixtures/admin`, termasuk penolakan untuk akun bukan admin. Spec yang sama mengukur semua halaman admin di 320 dan 1280 px dengan `auditDom`.
 

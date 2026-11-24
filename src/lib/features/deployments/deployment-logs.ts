@@ -7,6 +7,7 @@ import type {
 	DeploymentLog,
 	DeploymentLogsResponse
 } from '$lib/api/resources/deployment';
+import { JOB_PROCESS } from '$lib/features/workloads/rules';
 
 /** `IndexDeploymentLogRequest` accepts up to 200 lines a page. */
 export const LOG_PAGE_SIZE = 200;
@@ -137,7 +138,9 @@ export function formatLogsForClipboard(
 	return lines
 		.map((line) => {
 			const stream = line.stream === 'stdout' ? '' : `${line.stream} `;
-			return `[${formatTime(line.recorded_at)}] ${stream}${line.message}`;
+			// A worker's lines name it, as on screen; a run's own output needs no name.
+			const source = line.process && line.process !== JOB_PROCESS ? `${line.process}: ` : '';
+			return `[${formatTime(line.recorded_at)}] ${stream}${source}${line.message}`;
 		})
 		.join('\n');
 }

@@ -213,21 +213,29 @@ const deploymentResponseSchema = z.object({
 	data: deploymentSchema
 }) satisfies z.ZodType<DeploymentResponse>;
 
-const deploymentLogSchema = z.object({
+/**
+ * One log line. `process` names the worker, or `job` for a scheduled run's output (ADR-022); `null`
+ * for the deployment's own lines (build, release command, web), and for an API before workers.
+ */
+export const deploymentLogSchema = z.object({
 	sequence: z.number(),
 	stream: z.enum(['stdout', 'stderr', 'system']),
+	process: z.string().nullable().optional(),
 	message: z.string(),
 	recorded_at: z.string()
-}) satisfies z.ZodType<GeneratedDeploymentLog>;
+}) satisfies z.ZodType<
+	Omit<GeneratedDeploymentLog, 'process'> & { process?: string | null },
+	unknown
+>;
 
-const cursorLinksSchema = z.object({
+export const cursorLinksSchema = z.object({
 	first: z.string().nullable(),
 	last: z.string().nullable(),
 	prev: z.string().nullable(),
 	next: z.string().nullable()
 });
 
-const cursorMetaSchema = z.object({
+export const cursorMetaSchema = z.object({
 	path: z.string().nullable(),
 	per_page: z.number(),
 	next_cursor: z.string().nullable(),
@@ -235,7 +243,7 @@ const cursorMetaSchema = z.object({
 });
 
 /** One bad row is dropped and reported, so the rows around it still reach the screen. */
-function tolerantList<T extends z.ZodType>(item: T, label: string) {
+export function tolerantList<T extends z.ZodType>(item: T, label: string) {
 	return z.array(z.unknown()).transform((rows) =>
 		rows.flatMap((row) => {
 			const parsed = item.safeParse(row);
@@ -256,7 +264,7 @@ const deploymentLogsResponseSchema = z.object({
 	data: tolerantList(deploymentLogSchema, 'baris log'),
 	links: cursorLinksSchema,
 	meta: cursorMetaSchema
-}) satisfies z.ZodType<GeneratedDeploymentLogsResponse>;
+}) satisfies z.ZodType<DeploymentLogsResponse>;
 
 export async function getDeployment(
 	project: string,

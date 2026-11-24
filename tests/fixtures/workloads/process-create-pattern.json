@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Nama worker hanya boleh huruf kecil, angka, dan tanda minus, dan harus diawali huruf.",
+		"errors": {
+			"name": [
+				"Nama worker hanya boleh huruf kecil, angka, dan tanda minus, dan harus diawali huruf."
+			]
+		}
+	}
+}

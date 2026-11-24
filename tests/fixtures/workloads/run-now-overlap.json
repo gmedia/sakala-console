@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Jadwal ini masih punya run yang berjalan atau menunggu. Tunggu sampai selesai, atau hentikan run itu dulu.",
+		"code": "SCHEDULE_RUN_REFUSED",
+		"reason": "overlap"
+	}
+}

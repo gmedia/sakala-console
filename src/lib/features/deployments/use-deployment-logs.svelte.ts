@@ -21,6 +21,8 @@ import {
 const realtimeLogSchema = z.object({
 	log_sequence: z.number(),
 	stream: z.enum(['stdout', 'stderr', 'system']),
+	/** The worker, or `job`, the line came from (ADR-022); missing for the deployment's own lines. */
+	process: z.string().nullable().optional(),
 	message: z.string(),
 	recorded_at: z.string()
 });
@@ -71,11 +73,11 @@ export function useDeploymentLogs(
 				return;
 			}
 
-			const { log_sequence: sequence, stream, message, recorded_at } = parsed.data;
+			const { log_sequence: sequence, stream, process: source, message, recorded_at } = parsed.data;
 			const outcome = applyRealtimeLogLine(
 				client,
 				deploymentId(),
-				{ sequence, stream, message, recorded_at },
+				{ sequence, stream, process: source, message, recorded_at },
 				{ canEvict: following }
 			);
 			if (outcome === 'needs-tail') requestTailRefresh();

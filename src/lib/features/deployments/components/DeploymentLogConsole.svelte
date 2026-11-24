@@ -8,6 +8,7 @@
 	import type { DeploymentLogLine } from '$lib/features/deployments/deployment-logs';
 	import type { LogLevel } from '$lib/features/deployments/log-classification';
 	import { cn } from '$lib/utils/cn';
+	import { JOB_PROCESS } from '$lib/features/workloads/rules';
 
 	const FOLLOW_THRESHOLD_PX = 24;
 
@@ -240,7 +241,11 @@
 								: line.stream === 'system'
 									? 'text-terminal-muted'
 									: 'text-terminal-text'
-					)}>{line.message}</span
+					)}
+					>{#if line.process && line.process !== JOB_PROCESS}<span
+							class="mr-2 text-terminal-muted"
+							data-testid="log-line-process">[{line.process}]</span
+						>{/if}{line.message}</span
 				>
 			</div>
 		{:else}
