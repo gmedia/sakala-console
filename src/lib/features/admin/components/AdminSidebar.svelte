@@ -13,9 +13,12 @@
 	import ChatCircleText from 'phosphor-svelte/lib/ChatCircleText';
 	import ClipboardText from 'phosphor-svelte/lib/ClipboardText';
 	import ArrowLeft from 'phosphor-svelte/lib/ArrowLeft';
+	import Globe from 'phosphor-svelte/lib/Globe';
 	import X from 'phosphor-svelte/lib/X';
 	import SakalaLogo from '$lib/components/brand/SakalaLogo.svelte';
 	import { useCurrentUser } from '$lib/features/auth/queries';
+	import { customDomainsEnabled } from '$lib/features/domains/presentation';
+	import { createPilotLimitsQuery } from '$lib/features/projects/queries';
 	import { cn } from '$lib/utils/cn';
 
 	type Props = { isMobileOpen?: boolean; onCloseMobile?: () => void };
@@ -23,8 +26,17 @@
 
 	const currentUser = useCurrentUser();
 
+	// Custom domains (ADR-024) appear only where the server turned them on.
+	const limitsQuery = createPilotLimitsQuery();
+	const customDomainsItem = {
+		href: resolve('/admin/custom-domains'),
+		match: ['/admin/custom-domains'],
+		label: 'Custom domain',
+		icon: Globe
+	};
+
 	// Paths stay literal so `resolve` checks each one against the route tree.
-	const navigation = [
+	const baseNavigation = [
 		{ href: resolve('/admin'), match: ['/admin'], label: 'Overview', icon: ChartLine, exact: true },
 		{ href: resolve('/admin/users'), match: ['/admin/users'], label: 'Pengguna', icon: Users },
 		{
@@ -65,8 +77,20 @@
 		},
 		{ href: resolve('/admin/audit'), match: ['/admin/audit'], label: 'Audit', icon: ClipboardText }
 	];
+	// Right after Proyek, the domains' owners.
+	const afterProjects =
+		baseNavigation.findIndex((item) => item.match.includes('/admin/projects')) + 1;
+	const navigation = $derived(
+		customDomainsEnabled(limitsQuery.data)
+			? [
+					...baseNavigation.slice(0, afterProjects),
+					customDomainsItem,
+					...baseNavigation.slice(afterProjects)
+				]
+			: baseNavigation
+	);
 
-	function isActive(item: (typeof navigation)[number]): boolean {
+	function isActive(item: (typeof baseNavigation)[number]): boolean {
 		const path = page.url.pathname;
 		return item.match.some((prefix) =>
 			item.exact ? path === prefix : path === prefix || path.startsWith(`${prefix}/`)

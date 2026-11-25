@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Isi nama domain, bukan alamat IP.",
+		"errors": {
+			"hostname": ["Isi nama domain, bukan alamat IP."]
+		}
+	}
+}

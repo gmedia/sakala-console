@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom hostname wajib diisi.",
+		"errors": {
+			"hostname": ["Kolom hostname wajib diisi."]
+		}
+	}
+}

@@ -4,6 +4,7 @@ import {
 	IDLE_SLEEP_MINUTES_RANGE,
 	MAX_BUCKET_STORAGE_MB_RANGE,
 	MAX_BUCKETS_RANGE,
+	MAX_CUSTOM_DOMAINS_RANGE,
 	MAX_DATABASE_STORAGE_MB_RANGE,
 	MAX_DATABASES_RANGE,
 	MAX_REPLICAS_RANGE,
@@ -30,7 +31,7 @@ export const PROFILE_GROUPS: readonly { id: ProfileFieldGroup; title: string; le
 	{
 		id: 'optional',
 		title: 'Opsional',
-		lead: 'Build per jam, tidur otomatis, replika, database, bucket, Valkey, dan region. Kosong berarti ikut bawaan server.'
+		lead: 'Build per jam, tidur otomatis, replika, database, bucket, Valkey, custom domain, dan region. Kosong berarti ikut bawaan server.'
 	}
 ];
 
@@ -73,6 +74,17 @@ export const SERVER_DEFAULT_BUCKET_STORAGE_MB = 0;
  */
 export const SERVER_DEFAULT_MAX_VALKEYS = 0;
 export const SERVER_DEFAULT_VALKEY_MEMORY_MB = 0;
+
+/**
+ * sakala-api `PilotRuntimeLimitService::DEFAULT_MAX_CUSTOM_DOMAINS`: what an empty "Custom domain"
+ * follows unless the server sets `SAKALA_CUSTOM_DOMAIN_DEFAULT_MAX_COUNT` (hosted decision, 25 Nov
+ * 2026).
+ */
+export const SERVER_DEFAULT_MAX_CUSTOM_DOMAINS = 1;
+
+/** Custom domains work only where the server turned them on; the help says so. */
+const CUSTOM_DOMAIN_FLAG_NOTE =
+	'Hanya berlaku kalau server menyalakan custom domain (SAKALA_CUSTOM_DOMAINS_ENABLED).';
 
 /** Valkey runs only where the server turned it on; the help says so instead of promising it. */
 const VALKEY_FLAG_NOTE =
@@ -196,6 +208,14 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_VALKEY_MEMORY_MB_RANGE,
 		hint: `Jumlah ukuran semua Valkey di workspace (32, 64, atau 128 MB per Valkey), dicadangkan di server sejak Valkey dibuat. Menurunkannya tidak mengecilkan Valkey yang ada, hanya menahan Valkey baru dan pembesaran; 0 berarti tidak ada Valkey baru. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_VALKEY_MEMORY_MB)} MB kalau tidak diubah).`,
+		optional: true
+	},
+	{
+		key: 'max_custom_domains',
+		label: 'Custom domain',
+		group: 'optional',
+		...MAX_CUSTOM_DOMAINS_RANGE,
+		hint: `Custom domain semua proyek di workspace, termasuk yang menunggu DNS, gagal, atau nonaktif. 0 berarti workspace ini tidak bisa menambah domain. Menurunkannya tidak menghapus domain yang ada. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_CUSTOM_DOMAINS} kalau tidak diubah). ${CUSTOM_DOMAIN_FLAG_NOTE}`,
 		optional: true
 	}
 ];

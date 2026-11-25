@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "my.id adalah akhiran domain publik yang dipakai banyak orang, bukan domain milik satu orang. Pakai domain yang kamu daftarkan di bawahnya, misalnya nama.my.id.",
+		"errors": {
+			"hostname": [
+				"my.id adalah akhiran domain publik yang dipakai banyak orang, bukan domain milik satu orang. Pakai domain yang kamu daftarkan di bawahnya, misalnya nama.my.id."
+			]
+		}
+	}
+}

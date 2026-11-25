@@ -43,6 +43,7 @@
 	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
 	import { canOfferProjectBucket } from '$lib/features/buckets/presentation';
 	import CreateProjectBucketLink from '$lib/features/buckets/components/CreateProjectBucketLink.svelte';
+	import { useProjectCustomDomains } from '$lib/features/domains/availability.svelte';
 
 	type Props = {
 		project: Project;
@@ -67,7 +68,12 @@
 	);
 
 	const header = $derived(live.header);
-	const publicUrl = $derived(getProjectPublicUrl(project));
+	const defaultUrl = $derived(getProjectPublicUrl(project));
+	// An active custom domain (ADR-024) is the project's address; the Sakala one stays beside it.
+	const customDomains = useProjectCustomDomains(() => project);
+	const publicUrl = $derived(
+		customDomains.serving && defaultUrl ? `https://${customDomains.serving}` : defaultUrl
+	);
 	const port = $derived(getPortDisplay(project));
 	// A static site has no port of its own: the number would be Sakala's file server.
 	const showPort = $derived(!servesStaticFiles(project));
@@ -192,6 +198,14 @@
 			</div>
 
 			<dl class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-muted">
+				{#if showUrl && defaultUrl && publicUrl !== defaultUrl}
+					<div class="flex min-w-0 items-baseline gap-1.5" data-testid="project-default-url">
+						<dt>Alamat Sakala</dt>
+						<dd class="min-w-0 font-mono wrap-anywhere text-foreground">
+							<BreakableUrl text={getPublicUrlLabel(defaultUrl)} />
+						</dd>
+					</div>
+				{/if}
 				<div class="flex min-w-0 items-baseline gap-1.5">
 					<dt class="sr-only">Repository</dt>
 					<dd class="min-w-0 font-mono wrap-anywhere">

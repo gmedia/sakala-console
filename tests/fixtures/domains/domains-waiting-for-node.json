@@ -1,0 +1,44 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a211fe-8ba8-73ca-bfea-c6e879cfab68",
+				"project_id": "01a211fe-8b9d-7e5a-a71d-04887fdc0da3",
+				"hostname": "www.kopi-senja.com",
+				"kind": "subdomain",
+				"status": "verified",
+				"target": "edge.sakala.app",
+				"dns_records": [
+					{
+						"type": "TXT",
+						"name": "_sakala.www.kopi-senja.com",
+						"value": "sakala-verify=749424b23515a6a175e583bc4c646108"
+					},
+					{
+						"type": "CNAME",
+						"name": "www.kopi-senja.com",
+						"value": "edge.sakala.app"
+					}
+				],
+				"last_check": {
+					"checked_at": "2026-11-25T03:13:01+00:00",
+					"reasons": [],
+					"routing_match": "cname"
+				},
+				"next_check_at": "2026-11-25T09:13:01+00:00",
+				"verified_at": "2026-11-25T03:13:01+00:00",
+				"failing_since": null,
+				"disable_at": null,
+				"failed_at": null,
+				"disabled_at": null,
+				"reactivation_ends_at": null,
+				"admin_disabled": false,
+				"admin_disabled_reason": null,
+				"released_at": null,
+				"waiting_for_node": true,
+				"created_at": "2026-11-25T03:12:00+00:00"
+			}
+		]
+	}
+}

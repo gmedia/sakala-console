@@ -19,10 +19,15 @@ Semua perubahan penting pada project ini akan didokumentasikan di file ini mengi
 - The project Variabel tab lists `REDIS_URL`, `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` with hidden values, marks the ones a project variable overrides ("Menimpa Valkey"), warns when the attached store is a cache, offers "Tambahkan QUEUE_CONNECTION=redis dan CACHE_STORE=redis" to a Laravel project, and attaches or detaches a store from the project. Refusals (`VALKEY_NODE_MISMATCH`, `VALKEY_PASSWORD_ROTATING`, `VALKEY_NOT_READY`, the quota and capacity codes) read as what to do next, also when a deploy is refused.
 - "Valkey" and "Memori Valkey (MB)" in a limit profile's Opsional group (0 to 20 and 0 to 10,240; the server default is 0 for both).
 - The deployment trigger `valkey_password_rotated` and the redeploy skip reasons `valkey_not_ready`, `valkey_password_rotating`, and `valkey_node_mismatch` have their own text.
+- Custom domains for projects (ADR-024, requires gmedia/sakala-api#213 with `SAKALA_CUSTOM_DOMAINS_ENABLED`). Nothing new shows, and no domain endpoint is called, unless the workspace's `pilot-limits` says `custom_domains.enabled`.
+- Pengaturan gets a "Domain" section: add a domain (a pasted URL is reduced to its name; the API's name rules are checked first, in the API's words), then two numbered records to copy, TXT `_sakala` and CNAME (ALIAS at `@` for an apex), with names relative to the registered domain as most DNS providers expect, a one-line Cloudflare "DNS only" hint, and never an IP address. Typing an apex explains flattening in one line and offers "Pakai www.…". Each domain has a status badge and one sentence (Menunggu DNS, Aktif, DNS bermasalah with the disable time in WIB, Nonaktif with the reactivation window, Dinonaktifkan admin with the reason, Gagal, Dipakai proyek lain, Menunggu server), the three checks (TXT, CNAME or ALIAS, CAA) with the API's fix for a failing one, "Periksa sekarang" that waits out a 429, and delete. Records fold away once active; longer explanations (apex, framework host settings) sit behind "Pelajari" and a folded hint. The workspace quota is shown, and a full or zero quota closes the form with the reason.
+- An active custom domain becomes the project's address in the header and the Ringkasan diagram, with the Sakala address beside it; the Ringkasan address card lists the domains with their status and links to the settings.
+- Admin: "Custom domain" lists every project's domains with status, project, and last check, filters by name, status, and failing checks, disables a domain with a reason the owners are told, and enables it again. The menu entry appears only while the server has custom domains on. Limit profiles get "Custom domain" in Opsional (0 to 100; the server default is 1).
 
 ### Changed
 
-- Generated API types follow sakala-api main fc93ff9 (#211, managed Valkey), which also brings `buckets` on the project list (#205).
+- Generated API types follow sakala-api main 4943fbd (#213, custom domains), after fc93ff9 (#211, managed Valkey), which also brought `buckets` on the project list (#205).
+- The Ringkasan address card calls the second address "Custom domain" instead of "Domain sendiri", the name the API and the settings use.
 
 ## [0.13.0] - 2026-11-24
 

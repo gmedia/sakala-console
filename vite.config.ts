@@ -28,7 +28,8 @@ export default defineConfig({
 	optimizeDeps: {
 		// Found late otherwise (uqr is imported only when the QR dialog opens), and Vite's reload
 		// halfway through a browser test run makes vitest fail or hang on a cold cache, as in CI.
-		include: ['uqr', 'dotenv']
+		// tldts is imported only by the custom domain section (ADR-024).
+		include: ['uqr', 'dotenv', 'tldts']
 	},
 	test: {
 		expect: { requireAssertions: true },

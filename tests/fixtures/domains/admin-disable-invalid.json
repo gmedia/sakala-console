@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom reason harus minimal 3 karakter.",
+		"errors": {
+			"reason": ["Kolom reason harus minimal 3 karakter."]
+		}
+	}
+}

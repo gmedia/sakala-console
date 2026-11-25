@@ -13,6 +13,8 @@ export const SETTINGS_SECTION_IDS = {
 	general: 'umum',
 	build: 'build-dan-start',
 	advanced: 'lanjutan',
+	/** Custom domains (ADR-024), only while the installation has them on. */
+	domains: 'domain',
 	/** Worker processes (ADR-022), only while the installation has them on. */
 	processes: 'proses',
 	/** Schedules (ADR-022), only while the installation has them on. */
@@ -22,13 +24,14 @@ export const SETTINGS_SECTION_IDS = {
 
 /**
  * The section links, in page order. A later section (Domain, for one) goes in here and gets its
- * link without reworking the page. Proses and Jadwal are listed only while the installation offers
- * them (`settingsSections`).
+ * link without reworking the page. Domain, Proses, and Jadwal are listed only while the
+ * installation offers them (`settingsSections`).
  */
 export const SETTINGS_SECTIONS = [
 	{ id: SETTINGS_SECTION_IDS.general, label: 'Umum' },
 	{ id: SETTINGS_SECTION_IDS.build, label: 'Build dan start' },
 	{ id: SETTINGS_SECTION_IDS.advanced, label: 'Lanjutan' },
+	{ id: SETTINGS_SECTION_IDS.domains, label: 'Domain' },
 	{ id: SETTINGS_SECTION_IDS.processes, label: 'Proses' },
 	{ id: SETTINGS_SECTION_IDS.schedules, label: 'Jadwal' },
 	{ id: SETTINGS_SECTION_IDS.danger, label: 'Zona berbahaya' }
@@ -36,13 +39,18 @@ export const SETTINGS_SECTIONS = [
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
-/** The sections this project's settings show: workers and schedules only where they are on. */
+/**
+ * The sections this project's settings show: custom domains, workers, and schedules only where they
+ * are on. `domains` is optional so a caller without ADR-024 reads it as off.
+ */
 export function settingsSections(features: {
 	workers: boolean;
 	schedules: boolean;
+	domains?: boolean;
 }): readonly SettingsSection[] {
 	return SETTINGS_SECTIONS.filter(
 		(section) =>
+			(section.id !== SETTINGS_SECTION_IDS.domains || features.domains === true) &&
 			(section.id !== SETTINGS_SECTION_IDS.processes || features.workers) &&
 			(section.id !== SETTINGS_SECTION_IDS.schedules || features.schedules)
 	);

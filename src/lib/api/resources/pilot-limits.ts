@@ -8,7 +8,8 @@ type GeneratedQuotas = GeneratedPilotLimits['quotas'];
  * Fields an older API does not send: containers came with workspaces, `max_replicas` with replicas,
  * the database quotas with managed databases, `max_builds_per_hour` with the build rate limit, and
  * the bucket quotas with managed buckets (sakala-api #204), and the worker and schedule quotas with
- * ADR-022 (sakala-api #208), and the Valkey quotas with ADR-023 (sakala-api #211).
+ * ADR-022 (sakala-api #208), and the Valkey quotas with ADR-023 (sakala-api #211), and the custom
+ * domain quotas with ADR-024 (sakala-api #213).
  */
 type OptionalQuotaKey =
 	| 'max_active_containers'
@@ -33,7 +34,9 @@ type OptionalQuotaKey =
 	| 'max_valkeys'
 	| 'current_valkeys_count'
 	| 'max_valkey_memory_mb'
-	| 'current_valkey_memory_mb';
+	| 'current_valkey_memory_mb'
+	| 'max_custom_domains'
+	| 'current_custom_domains_count';
 
 /**
  * The generated document types `buckets.default_quota_mb` as the literal `0`: Scramble reads the
@@ -64,6 +67,7 @@ type PilotLimitsContract = Pick<
 	workers?: GeneratedPilotLimits['workers'];
 	schedules?: GeneratedPilotLimits['schedules'];
 	valkeys?: GeneratedPilotLimits['valkeys'];
+	custom_domains?: GeneratedPilotLimits['custom_domains'];
 };
 
 const pilotLimitsResponseSchema = z.object({
@@ -118,7 +122,11 @@ const pilotLimitsResponseSchema = z.object({
 			/** MB of `maxmemory` the stores may reserve together; `0` refuses new stores and growth. */
 			max_valkey_memory_mb: z.number().optional(),
 			/** MB the stores reserve now (their sizes, a pending growth included), not what they hold. */
-			current_valkey_memory_mb: z.number().optional()
+			current_valkey_memory_mb: z.number().optional(),
+			/** Custom domains the workspace's projects may hold together; `0` allows none. */
+			max_custom_domains: z.number().optional(),
+			/** Claims that count: pending, verified, failed, and disabled ones, not released ones. */
+			current_custom_domains_count: z.number().optional()
 		}),
 		runtime_defaults: z.object({
 			memory_mb: z.number(),
@@ -175,7 +183,14 @@ const pilotLimitsResponseSchema = z.object({
 				sizes_mb: z.array(z.number()),
 				default_size_mb: z.number()
 			})
-			.optional()
+			.optional(),
+		/**
+		 * Custom domains for projects (ADR-024). `enabled` follows the server's
+		 * `SAKALA_CUSTOM_DOMAINS_ENABLED`, off by default, and the domain endpoints answer 404 while it
+		 * is off. `target` is the name a domain points at with a CNAME, never an IP address. Absent
+		 * from an API before them; either way the Console shows no custom domain.
+		 */
+		custom_domains: z.object({ enabled: z.boolean(), target: z.string() }).optional()
 	})
 }) satisfies z.ZodType<{ data: PilotLimitsContract }>;
 

@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Wildcard seperti *.contoh.com belum didukung. Tambahkan setiap nama satu per satu, misalnya www.contoh.com.",
+		"errors": {
+			"hostname": [
+				"Wildcard seperti *.contoh.com belum didukung. Tambahkan setiap nama satu per satu, misalnya www.contoh.com."
+			]
+		}
+	}
+}

@@ -3620,6 +3620,397 @@
                 }
             }
         },
+        "/v1/admin/custom-domains": {
+            "get": {
+                "operationId": "customDomain.index",
+                "summary": "Custom domains of every project, newest first, with status and the last check's reasons",
+                "tags": [
+                    "CustomDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Matches the hostname, case-insensitively.",
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/CustomDomainStatus"
+                        }
+                    },
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "failing",
+                        "in": "query",
+                        "description": "`true` for verified domains whose checks are failing (`failing_since` set), `false` to leave them out.",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `AdminCustomDomainResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AdminCustomDomainResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/custom-domains/{domain}/disable": {
+            "post": {
+                "operationId": "customDomain.disable",
+                "summary": "Disable a domain with a reason, for abuse such as phishing. It stops routing at once and never comes back on its\nown until enabled again; the project's people are told the reason",
+                "tags": [
+                    "CustomDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "domain",
+                        "in": "path",
+                        "required": true,
+                        "description": "The domain ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DisableCustomDomainRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AdminCustomDomainResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AdminCustomDomainResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/custom-domains/{domain}/enable": {
+            "post": {
+                "operationId": "customDomain.enable",
+                "summary": "Lift an admin disable. The domain stays `disabled`, is checked at once, and becomes `verified` again when its DNS\npasses",
+                "tags": [
+                    "CustomDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "domain",
+                        "in": "path",
+                        "required": true,
+                        "description": "The domain ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`AdminCustomDomainResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AdminCustomDomainResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/app/workspaces/{workspace}/databases": {
             "get": {
                 "operationId": "v1.app.workspaces.databases.index",
@@ -12285,6 +12676,363 @@
                 }
             }
         },
+        "/v1/app/projects/{project}/domains": {
+            "get": {
+                "operationId": "v1.app.projects.domains.index",
+                "summary": "The project's custom domains, oldest first; deleted ones are gone",
+                "tags": [
+                    "ProjectDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ProjectDomainResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProjectDomainResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.projects.domains.store",
+                "summary": "Add a custom domain. It is `pending` with a new token until its DNS records are published and pass a check;\nSakala checks every minute for the first 30 minutes. A name verified on another project is refused with `409\nDOMAIN_TAKEN`; a pending claim elsewhere does not block",
+                "tags": [
+                    "ProjectDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProjectDomainRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ProjectDomainResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectDomainResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The workspace holds as many custom domains as its limit allows (`limit`, `current`); pending, failed, and disabled ones count. `limit` 0 means the workspace may not add custom domains.\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The workspace holds as many custom domains as its limit allows (`limit`, `current`); pending, failed, and disabled ones count. `limit` 0 means the workspace may not add custom domains.",
+                                                    "enum": [
+                                                        "CUSTOM_DOMAIN_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer"
+                                                },
+                                                "current": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/CustomDomainTakenException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/domains/{domain}/check": {
+            "post": {
+                "operationId": "v1.app.projects.domains.check",
+                "summary": "Check the domain's DNS now and apply the result, as the scheduled check would; a disabled domain whose DNS\npasses is active again. At most 6 per minute per domain (`429` beyond)",
+                "tags": [
+                    "ProjectDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "domain",
+                        "in": "path",
+                        "required": true,
+                        "description": "The domain ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProjectDomainResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProjectDomainResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/projects/{project}/domains/{domain}": {
+            "delete": {
+                "operationId": "v1.app.projects.domains.destroy",
+                "summary": "Delete the domain. It stops routing within about 10 seconds; `<slug>.<project domain>` is not affected",
+                "tags": [
+                    "ProjectDomain"
+                ],
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "domain",
+                        "in": "path",
+                        "required": true,
+                        "description": "The domain ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/app/projects/{project}/metrics": {
             "get": {
                 "operationId": "v1.app.projects.metrics",
@@ -18519,7 +19267,8 @@
                             "RotateValkeyPassword",
                             "LockValkey",
                             "UnlockValkey",
-                            "ResizeValkey"
+                            "ResizeValkey",
+                            "UpdateProjectDomains"
                         ]
                     },
                     "status": {
@@ -18916,6 +19665,58 @@
                     "updated_at"
                 ],
                 "title": "AdminAgentResource"
+            },
+            "AdminCustomDomainResource": {
+                "type": "object",
+                "properties": {
+                    "domain": {
+                        "description": "The claim, as `GET app/projects/{project}/domains` shows it.",
+                        "$ref": "#/components/schemas/ProjectDomainResource"
+                    },
+                    "project": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "The project the claim belongs to.",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            },
+                            "workspace_id": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug",
+                            "workspace_id"
+                        ]
+                    },
+                    "created_by": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "The token is public in DNS; admins see who added the claim instead."
+                    }
+                },
+                "required": [
+                    "domain",
+                    "project",
+                    "created_by"
+                ],
+                "title": "AdminCustomDomainResource"
             },
             "AdminDeploymentResource": {
                 "type": "object",
@@ -20196,7 +20997,8 @@
                             "RotateValkeyPassword",
                             "LockValkey",
                             "UnlockValkey",
-                            "ResizeValkey"
+                            "ResizeValkey",
+                            "UpdateProjectDomains"
                         ]
                     },
                     "status": {
@@ -20292,7 +21094,8 @@
                     "RotateValkeyPassword",
                     "LockValkey",
                     "UnlockValkey",
-                    "ResizeValkey"
+                    "ResizeValkey",
+                    "UpdateProjectDomains"
                 ],
                 "title": "AgentCommandType"
             },
@@ -21274,7 +22077,8 @@
                                     "RotateValkeyPassword",
                                     "LockValkey",
                                     "UnlockValkey",
-                                    "ResizeValkey"
+                                    "ResizeValkey",
+                                    "UpdateProjectDomains"
                                 ]
                             },
                             "status": {
@@ -22487,6 +23291,18 @@
                 ],
                 "title": "CreateProjectResource"
             },
+            "CustomDomainStatus": {
+                "type": "string",
+                "description": "Where a custom domain claim stands (ADR-024). Only `verified` routes: the Edge serves it and the project's commands carry it. A claim is never deleted automatically; deleting is the user's (a soft delete).\n| |\n|---|\n| `pending` <br/> Added; waiting until TXT, pointing, and CAA pass together. Checked every minute, then every 15 minutes. |\n| `verified` <br/> TXT, pointing, and CAA passed; routed and re-checked every 6 hours. |\n| `failed` <br/> A pending claim that did not pass within 72 hours. Checked again only on \"check now\". |\n| `disabled` <br/> A verified domain that kept failing for 72 hours, or that an admin disabled. Not routed; checked daily for 30 days. |\n| `released` <br/> A disabled claim another project verified the name for. It can never route again. |",
+                "enum": [
+                    "pending",
+                    "verified",
+                    "failed",
+                    "disabled",
+                    "released"
+                ],
+                "title": "CustomDomainStatus"
+            },
             "DatabaseAttachmentResource": {
                 "type": "object",
                 "properties": {
@@ -23460,6 +24276,22 @@
                 ],
                 "title": "DesiredWorkloadState"
             },
+            "DisableCustomDomainRequest": {
+                "type": "object",
+                "description": "An admin disabling a custom domain (ADR-024); the reason is shown to the project's people.",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "Why, in words the project's owners understand; it is in their notification and email.",
+                        "minLength": 3,
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "reason"
+                ],
+                "title": "DisableCustomDomainRequest"
+            },
             "DomainPreviewResource": {
                 "type": "object",
                 "properties": {
@@ -23498,7 +24330,7 @@
                     },
                     "revision": {
                         "type": "string",
-                        "description": "SHA-256 (lowercase hex) of `expected_minimum_routes`, `routes`, and `skipped_routes`; also the ETag."
+                        "description": "SHA-256 (lowercase hex) of `expected_minimum_routes`, `routes`, `skipped_routes`, and, while custom domains\nare on, `expected_minimum_custom_routes` and `custom_routes`; also the ETag."
                     },
                     "expected_minimum_routes": {
                         "type": "integer",
@@ -23550,6 +24382,36 @@
                                 "host",
                                 "project_id",
                                 "reason"
+                            ]
+                        }
+                    },
+                    "expected_minimum_custom_routes": {
+                        "type": "integer",
+                        "description": "Verified custom domains of live projects that the Edge must serve (ADR-024). Present only while\n`SAKALA_CUSTOM_DOMAINS_ENABLED` is on; part of `revision` then. A response with fewer `custom_routes` is\ntruncated and its custom part must be rejected."
+                    },
+                    "custom_routes": {
+                        "type": "array",
+                        "description": "One route per verified custom domain, sorted by `host`. `upstreams` is empty when the project has no\nworkload on a node that serves custom domains; the Edge then answers 404 for it itself. Present only\nwhile custom domains are on.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "host": {
+                                    "type": "string"
+                                },
+                                "project_id": {
+                                    "type": "string"
+                                },
+                                "upstreams": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "host",
+                                "project_id",
+                                "upstreams"
                             ]
                         }
                     }
@@ -24585,6 +25447,13 @@
                         ],
                         "description": "MB of `maxmemory` the workspace's Valkey stores may reserve together. `null` follows the global\n`SAKALA_VALKEY_DEFAULT_MAX_MEMORY_MB`; `0` refuses new stores and growth."
                     },
+                    "max_custom_domains": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Custom domains the workspace's projects may hold together. `null` follows the global\n`SAKALA_CUSTOM_DOMAIN_DEFAULT_MAX_COUNT`; `0` allows none."
+                    },
                     "max_worker_containers": {
                         "type": [
                             "integer",
@@ -24651,6 +25520,7 @@
                     "max_bucket_storage_mb",
                     "max_valkeys",
                     "max_valkey_memory_mb",
+                    "max_custom_domains",
                     "max_worker_containers",
                     "max_schedules",
                     "min_schedule_interval_minutes",
@@ -25001,6 +25871,14 @@
                             "current_valkey_memory_mb": {
                                 "type": "integer",
                                 "description": "MB the workspace's Valkey stores reserve now: the sum of their sizes, a pending growth included."
+                            },
+                            "max_custom_domains": {
+                                "type": "integer",
+                                "description": "Custom domains the workspace's projects may hold together, from its limit profile or the global\nsetting (ADR-024); `0` allows none."
+                            },
+                            "current_custom_domains_count": {
+                                "type": "integer",
+                                "description": "Custom domain claims that count towards `max_custom_domains`: pending, verified, failed, and disabled ones."
                             }
                         },
                         "required": [
@@ -25031,7 +25909,9 @@
                             "max_valkeys",
                             "current_valkeys_count",
                             "max_valkey_memory_mb",
-                            "current_valkey_memory_mb"
+                            "current_valkey_memory_mb",
+                            "max_custom_domains",
+                            "current_custom_domains_count"
                         ]
                     },
                     "runtime_defaults": {
@@ -25216,6 +26096,22 @@
                             "sizes_mb",
                             "default_size_mb"
                         ]
+                    },
+                    "custom_domains": {
+                        "type": "object",
+                        "description": "Custom domains for projects on this installation (ADR-024). `enabled` follows\n`SAKALA_CUSTOM_DOMAINS_ENABLED`; while it is false the domain endpoints answer 404. `target` is the name\na domain points at with a CNAME (or flattening, ALIAS, ANAME for an apex); never an IP address.",
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "target": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "enabled",
+                            "target"
+                        ]
                     }
                 },
                 "required": [
@@ -25232,7 +26128,8 @@
                     "buckets",
                     "workers",
                     "schedules",
-                    "valkeys"
+                    "valkeys",
+                    "custom_domains"
                 ],
                 "title": "PilotLimitsResource"
             },
@@ -25333,7 +26230,8 @@
                                     "RotateValkeyPassword",
                                     "LockValkey",
                                     "UnlockValkey",
-                                    "ResizeValkey"
+                                    "ResizeValkey",
+                                    "UpdateProjectDomains"
                                 ]
                             },
                             "status": {
@@ -25375,6 +26273,213 @@
                     "wake"
                 ],
                 "title": "ProjectControlResource"
+            },
+            "ProjectDomainResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "project_id": {
+                        "type": "string"
+                    },
+                    "hostname": {
+                        "type": "string",
+                        "description": "Final lowercase ASCII form; an international name is punycode (`xn--`)."
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "`apex` for a registrable domain (`contoh.com`), `subdomain` below one (`www.contoh.com`).",
+                        "enum": [
+                            "apex",
+                            "subdomain"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "`pending` until TXT, pointing, and CAA pass together; `verified` routes; `failed` when a pending claim\ndid not pass in 72 hours; `disabled` after 72 hours of failing checks or by an admin; `released` when\nanother project verified the name of this disabled claim.",
+                        "enum": [
+                            "pending",
+                            "verified",
+                            "failed",
+                            "disabled",
+                            "released"
+                        ]
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "The stable name the domain points at (`SAKALA_CUSTOM_DOMAIN_TARGET`). Never an IP address."
+                    },
+                    "dns_records": {
+                        "type": "array",
+                        "description": "The records to publish, exactly. `TXT` proves ownership and stays for as long as the domain is used.\n`CNAME` points a subdomain. `ALIAS` points an apex: CNAME flattening, ALIAS, or ANAME, whichever the\nDNS provider offers; without one, use `www` and redirect the apex at the provider.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "TXT",
+                                        "CNAME",
+                                        "ALIAS"
+                                    ]
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "type",
+                                "name",
+                                "value"
+                            ]
+                        }
+                    },
+                    "last_check": {
+                        "type": "object",
+                        "description": "What the last check found; `checked_at` null before the first. `reasons` is empty when it passed;\neach item has a stable `code` and a `message` in Indonesian with what to change. `routing_match` is how\nthe last passing check found the domain pointed: `cname`, or `addresses` for an apex whose addresses\nare Sakala's (flattening, or a literal A record that breaks when Sakala's addresses change).",
+                        "properties": {
+                            "checked_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "reasons": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "message"
+                                    ]
+                                }
+                            },
+                            "routing_match": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "cname",
+                                    "addresses",
+                                    null
+                                ]
+                            }
+                        },
+                        "required": [
+                            "checked_at",
+                            "reasons",
+                            "routing_match"
+                        ]
+                    },
+                    "next_check_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When the next automatic check runs; null when none is planned (failed, released, admin-disabled, or past 30 days disabled)."
+                    },
+                    "verified_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "failing_since": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Set while a verified domain fails its checks: the first failing check since the last pass."
+                    },
+                    "disable_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When a failing verified domain is disabled if its DNS is not fixed; null otherwise."
+                    },
+                    "failed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "disabled_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reactivation_ends_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Until when a disabled domain comes back on its own once its DNS passes; null when it does not (admin) or\nis not disabled."
+                    },
+                    "admin_disabled": {
+                        "type": "boolean",
+                        "description": "True while an admin keeps the domain disabled; it then never comes back on its own."
+                    },
+                    "admin_disabled_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "released_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "waiting_for_node": {
+                        "type": "string",
+                        "description": "True when the domain is verified but the node that runs the project cannot serve custom domains yet\n(an older agent): visitors get a 404 until the project runs on a node that can."
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "project_id",
+                    "hostname",
+                    "kind",
+                    "status",
+                    "target",
+                    "dns_records",
+                    "last_check",
+                    "next_check_at",
+                    "verified_at",
+                    "failing_since",
+                    "disable_at",
+                    "failed_at",
+                    "disabled_at",
+                    "reactivation_ends_at",
+                    "admin_disabled",
+                    "admin_disabled_reason",
+                    "released_at",
+                    "waiting_for_node",
+                    "created_at"
+                ],
+                "title": "ProjectDomainResource"
             },
             "ProjectMetricsRange": {
                 "type": "string",
@@ -27707,6 +28812,15 @@
                         "minimum": 0,
                         "maximum": 10240
                     },
+                    "max_custom_domains": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Custom domains the workspace's projects may hold together (ADR-024), pending and disabled claims\nincluded. `null` (the default) follows `SAKALA_CUSTOM_DOMAIN_DEFAULT_MAX_COUNT`; `0` allows none.\nLowering it never removes a domain; it only refuses new ones.",
+                        "minimum": 0,
+                        "maximum": 100
+                    },
                     "max_worker_containers": {
                         "type": [
                             "integer",
@@ -27796,6 +28910,21 @@
                     }
                 },
                 "title": "StoreOnboardingSourceRequest"
+            },
+            "StoreProjectDomainRequest": {
+                "type": "object",
+                "description": "A custom domain to add to a project (ADR-024). The name is normalized\n(CustomDomainNameParser) and refused with the reason when it cannot be a\ncustom domain.",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "The domain, for example `www.contoh.com` or `contoh.com`. Case, a trailing dot, a scheme, a path, and a\nport are dropped; an international name is stored as punycode (`xn--`). Refused: IP addresses,\nwildcards, one-label names, public suffixes such as `ac.id` or `my.id`, unknown suffixes, and names\nunder Sakala's own zones.",
+                        "maxLength": 506
+                    }
+                },
+                "required": [
+                    "hostname"
+                ],
+                "title": "StoreProjectDomainRequest"
             },
             "StoreProjectProcessRequest": {
                 "type": "object",
@@ -29380,6 +30509,10 @@
                                 "type": "integer",
                                 "description": "Effective MB of `maxmemory` the Valkey stores may reserve together. `0` allows no new allocation."
                             },
+                            "max_custom_domains": {
+                                "type": "integer",
+                                "description": "Effective custom domains, from the profile or the global setting. `0` allows none."
+                            },
                             "max_worker_containers": {
                                 "type": "integer",
                                 "description": "Effective worker containers at once, from the profile or the global setting. `0` allows none."
@@ -29416,6 +30549,7 @@
                             "max_bucket_storage_mb",
                             "max_valkeys",
                             "max_valkey_memory_mb",
+                            "max_custom_domains",
                             "max_worker_containers",
                             "max_schedules",
                             "min_schedule_interval_minutes",
@@ -29471,6 +30605,10 @@
                             "valkey_memory_mb": {
                                 "type": "integer",
                                 "description": "MB of `maxmemory` the workspace's Valkey stores reserve (allocated, not used)."
+                            },
+                            "custom_domains": {
+                                "type": "integer",
+                                "description": "Custom domain claims that count towards `max_custom_domains`."
                             }
                         },
                         "required": [
@@ -29485,7 +30623,8 @@
                             "worker_containers",
                             "schedules",
                             "valkeys",
-                            "valkey_memory_mb"
+                            "valkey_memory_mb",
+                            "custom_domains"
                         ]
                     }
                 },
@@ -29773,6 +30912,37 @@
                             "required": [
                                 "message",
                                 "code"
+                            ]
+                        }
+                    }
+                }
+            },
+            "CustomDomainTakenException": {
+                "description": "The name (`hostname`, in final form) is active on another project. It must be deleted there before any other project can claim it. A pending claim elsewhere never blocks.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview, in Indonesian."
+                                },
+                                "code": {
+                                    "type": "string",
+                                    "description": "The name (`hostname`, in final form) is active on another project. It must be deleted there before any other project can claim it. A pending claim elsewhere never blocks.",
+                                    "enum": [
+                                        "DOMAIN_TAKEN"
+                                    ]
+                                },
+                                "hostname": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "code",
+                                "hostname"
                             ]
                         }
                     }

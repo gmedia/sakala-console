@@ -296,6 +296,18 @@ Valkey terkelola milik workspace (ADR-023, bagian "Valkey" di `docs/API_CONVENTI
 - Penolakan deploy karena store (`VALKEY_NOT_READY`, `VALKEY_PASSWORD_ROTATING`, `VALKEY_NODE_MISMATCH`) diterjemahkan `valkeyDeployRefusalMessage()` di dalam `getDeployErrorMessage()`.
 - Kunci cache Valkey ada di bawah `['workspaces', 'valkeys', workspaceId]`, dan `workspaceIdOfQueryKey()` mengenalinya.
 
+## Custom Domain
+
+Custom domain proyek (ADR-024, `docs/CUSTOM_DOMAINS.md` sakala-api, gmedia/sakala-api#213). Kontraknya ada di `src/lib/api/resources/project-domains.ts` dan `admin/custom-domains.ts`, diuji terhadap respons asli API di `tests/fixtures/domains/*.json` (diambil dari sakala-api main 4943fbd lewat test Pest sekali jalan yang tidak di-commit). Field penolakan dibaca `parseDomainRefusal()` di `api/resources/domain-refusals.ts`, kodenya di `CUSTOM_DOMAIN_ERROR_CODES`, dan status, pemeriksaan, record, serta pemetaan error ada di `features/domains/presentation.ts`.
+
+- Fitur ini di balik flag server `SAKALA_CUSTOM_DOMAINS_ENABLED` (default mati); selama mati semua endpoint domain menjawab 404. Console hanya membaca `pilot-limits` (`custom_domains.enabled`, lewat `useProjectCustomDomains()`), tidak pernah menebak dari 404: selama mati tidak ada bagian Domain di Pengaturan, tidak ada menu admin, kartu Ringkasan tetap menulis catatan roadmap, dan tidak ada request ke endpoint domain.
+- Nama domain diperiksa dulu di Console (`features/domains/names.ts`) dengan aturan dan kalimat yang sama dengan `CustomDomainNameParser` API: skema, path, port, dan titik akhir dibuang, IDN jadi punycode lewat parser URL browser, dan Public Suffix List dari `tldts` (dengan domain privat, seperti php-domain-parser di API) menentukan apex atau subdomain. Label `xn--` yang bukan punycode valid dan zona terlarang yang tidak diketahui Console tetap ditolak API, dan pesannya tampil di field.
+- Record ditampilkan sebagai langkah bernomor (TXT, lalu CNAME atau ALIAS) dengan nama relatif terhadap domain terdaftar (`_sakala.www`, `www`, `@`), karena kebanyakan provider meminta host saja; satu baris di bawahnya menyebut akhiran yang ditambahkan kalau provider meminta nama lengkap. Console tidak pernah menampilkan alamat IP.
+- Daftar domain dibaca ulang setiap 30 detik selama ada yang `pending` (API memeriksanya setiap menit pada 30 menit pertama), dan tidak di-poll selain itu. "Periksa sekarang" adalah `POST`, jadi 429-nya tidak memblokir bacaan lain; tombolnya menunggu selama `Retry-After`.
+- Dokumen OpenAPI menulis `waiting_for_node` sebagai `string` karena Scramble membaca property resource lewat `withWaitingForNode()`. API mengirim boolean, jadi schema Console memakai `boolean` dengan catatan di `project-domains.ts`; perlu diperbaiki di sakala-api.
+- Domain `verified` pertama yang tidak `waiting_for_node` menjadi alamat proyek di header dan diagram Ringkasan, dengan alamat Sakala di sampingnya.
+- Kunci cache domain proyek ada di `['custom-domains', projectId]`; daftar admin di `['admin', 'custom-domains', params]`.
+
 ## Alasan Penangguhan
 
 Header membaca alasan dari `suspension.reason` di project, dan API mengosongkan `suspension` begitu penangguhan dibuka. Alasan itu ditulis admin, jadi selalu ditampilkan sebagai teks. Kalau nilainya `null`, header menyebut bahwa alasannya ada di notifikasi dan email. Kontak banding (`abuse@sakala.dev` di layanan hosted) diambil dari `PUBLIC_ABUSE_EMAIL` lewat `src/lib/config/project.ts`, jadi instalasi self-host bisa memakai alamatnya sendiri.

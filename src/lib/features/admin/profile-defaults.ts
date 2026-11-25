@@ -38,6 +38,12 @@ export const MAX_BUCKET_STORAGE_MB_RANGE = { min: 0, max: 1024 * 1024 } as const
 export const MAX_VALKEYS_RANGE = { min: 0, max: 20 } as const;
 export const MAX_VALKEY_MEMORY_MB_RANGE = { min: 0, max: 20 * 512 } as const;
 
+/**
+ * The range sakala-api accepts for `max_custom_domains` (StoreLimitProfileRequest,
+ * `LimitProfile::MAX_CUSTOM_DOMAINS_CEILING`). `0` allows none; empty follows the server's setting.
+ */
+export const MAX_CUSTOM_DOMAINS_RANGE = { min: 0, max: 100 } as const;
+
 export type ProfileNumbers = Pick<
 	LimitProfile,
 	| 'max_projects'

@@ -100,6 +100,11 @@ export type TopologyOptions = {
 	 * self-hosted install may not, and then visitors reach the node's router directly.
 	 */
 	edge: boolean;
+	/**
+	 * The active custom domain visitors use (ADR-024), shown as the address; the Sakala address
+	 * stays in its detail. Absent or `null` without one.
+	 */
+	customDomain?: string | null;
 };
 
 export const TOPOLOGY_COPY = {
@@ -109,6 +114,7 @@ export const TOPOLOGY_COPY = {
 	pathLabel: 'Jalur dari alamat ke aplikasi',
 	groups: { network: 'Jaringan', attached: 'Terpasang' },
 	address: 'Alamat',
+	customAddress: (defaultDomain: string) => `Custom domain. Alamat Sakala: ${defaultDomain}.`,
 	edge: 'Sakala Edge',
 	edgeActive: 'aktif',
 	edgeCut: 'trafik diputus',
@@ -423,7 +429,9 @@ export function deriveTopology(
 	const serving = header.serving || SERVING_KINDS.includes(kind);
 	const asleep = kind === 'sleeping';
 	const publicUrl = getProjectPublicUrl(project);
-	const domain = publicUrl ? getPublicUrlLabel(publicUrl) : project.default_domain || null;
+	const defaultDomain = publicUrl ? getPublicUrlLabel(publicUrl) : project.default_domain || null;
+	const customDomain = (defaultDomain && options.customDomain) || null;
+	const domain = customDomain ?? defaultDomain;
 	const port = getPortDisplay(project).current;
 	const cells = deriveReplicaCells(project, serving);
 	const command = project.release_command?.trim() || null;
@@ -443,7 +451,9 @@ export function deriveTopology(
 		replicas: null,
 		tone: 'neutral',
 		detail: {
-			body: [addressNote(kind, beforeFirst)],
+			body: customDomain
+				? [TOPOLOGY_COPY.customAddress(defaultDomain!)]
+				: [addressNote(kind, beforeFirst)],
 			value: domain,
 			link: { label: TOPOLOGY_COPY.links.address, target: 'address' }
 		}

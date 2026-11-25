@@ -1,0 +1,47 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a211fe-8a1d-71eb-a9e6-ccaa848250be",
+			"project_id": "01a211fe-89c9-7ef9-84e6-09fba7b9e421",
+			"hostname": "www.kopi-senja.com",
+			"kind": "subdomain",
+			"status": "pending",
+			"target": "edge.sakala.app",
+			"dns_records": [
+				{
+					"type": "TXT",
+					"name": "_sakala.www.kopi-senja.com",
+					"value": "sakala-verify=695baa7a2dc532420a3b55d696fdd343"
+				},
+				{
+					"type": "CNAME",
+					"name": "www.kopi-senja.com",
+					"value": "edge.sakala.app"
+				}
+			],
+			"last_check": {
+				"checked_at": "2026-11-25T03:16:04+00:00",
+				"reasons": [
+					{
+						"code": "points_elsewhere",
+						"message": "www.kopi-senja.com belum mengarah ke Sakala. Buat record CNAME www.kopi-senja.com ke edge.sakala.app. Kalau domain ini memakai proxy Cloudflare (awan oranye), ubah menjadi DNS only."
+					}
+				],
+				"routing_match": null
+			},
+			"next_check_at": "2026-11-25T03:17:04+00:00",
+			"verified_at": null,
+			"failing_since": null,
+			"disable_at": null,
+			"failed_at": null,
+			"disabled_at": null,
+			"reactivation_ends_at": null,
+			"admin_disabled": false,
+			"admin_disabled_reason": null,
+			"released_at": null,
+			"waiting_for_node": false,
+			"created_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

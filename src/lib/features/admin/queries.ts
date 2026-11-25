@@ -26,6 +26,7 @@ import {
 	listAgentCommands
 } from '$lib/api/resources/admin/agents';
 import { listAdminFeedback, listAuditEvents } from '$lib/api/resources/admin/audit';
+import { listAdminCustomDomains } from '$lib/api/resources/admin/custom-domains';
 import type { DeploymentEvent } from '$lib/api/resources/deployment';
 
 /** The API caches the overview for 60 seconds; the page reads it again every five minutes. */
@@ -238,4 +239,12 @@ export function createAuditEventsQuery(params: () => QueryParams) {
 	return createQuery(() =>
 		listQuery(queryKeys.admin.audit(params()), () => listAuditEvents(params()))
 	);
+}
+
+/** Custom domains of every project (ADR-024); 404 while the server has them off. */
+export function createAdminCustomDomainsQuery(params: () => QueryParams, enabled: () => boolean) {
+	return createQuery(() => ({
+		...listQuery(queryKeys.admin.customDomains(params()), () => listAdminCustomDomains(params())),
+		enabled: enabled()
+	}));
 }

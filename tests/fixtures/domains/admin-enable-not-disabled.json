@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Domain ini tidak sedang dinonaktifkan admin.",
+		"errors": {
+			"domain": ["Domain ini tidak sedang dinonaktifkan admin."]
+		}
+	}
+}

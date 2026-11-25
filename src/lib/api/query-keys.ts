@@ -91,7 +91,8 @@ export const queryKeys = {
 		agentCommand: (agentId: string, commandId: string) =>
 			['admin', 'agent-command', agentId, commandId] as const,
 		feedback: (params: QueryParams) => ['admin', 'feedback', params] as const,
-		audit: (params: QueryParams) => ['admin', 'audit', params] as const
+		audit: (params: QueryParams) => ['admin', 'audit', params] as const,
+		customDomains: (params: QueryParams) => ['admin', 'custom-domains', params] as const
 	},
 	/**
 	 * A project's worker processes and schedules (ADR-022). Everything about one project starts with
@@ -107,6 +108,10 @@ export const queryKeys = {
 			['workloads', projectId, 'schedules', scheduleId, 'runs'] as const,
 		runLogs: (projectId: string, scheduleId: string, runId: string) =>
 			['workloads', projectId, 'schedules', scheduleId, 'run-logs', runId] as const
+	},
+	/** A project's custom domains (ADR-024). */
+	customDomains: {
+		list: (projectId: string) => ['custom-domains', projectId] as const
 	},
 	domainPreview: (name: string) => ['domain-preview', name] as const,
 	regions: ['regions'] as const,

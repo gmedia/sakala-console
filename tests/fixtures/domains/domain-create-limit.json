@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Workspace ini sudah punya 1 custom domain, dan itu batasnya. Domain yang menunggu, gagal, atau nonaktif ikut dihitung. Hapus yang tidak dipakai untuk menambah yang baru.",
+		"code": "CUSTOM_DOMAIN_LIMIT_EXCEEDED",
+		"limit": 1,
+		"current": 1
+	}
+}

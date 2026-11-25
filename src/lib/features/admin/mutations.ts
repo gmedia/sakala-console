@@ -18,6 +18,10 @@ import {
 import { provisionAgent, revokeAgent, rotateAgentToken } from '$lib/api/resources/admin/agents';
 import { updateAdminFeedbackStatus, type FeedbackStatus } from '$lib/api/resources/admin/audit';
 import type { WithReason } from '$lib/api/resources/admin/common';
+import {
+	disableAdminCustomDomain,
+	enableAdminCustomDomain
+} from '$lib/api/resources/admin/custom-domains';
 
 /**
  * Every admin change refreshes every admin read. One change touches several views at once (a
@@ -113,5 +117,17 @@ export function createRevokeAgentMutation() {
 export function createFeedbackStatusMutation() {
 	return createAdminMutation((input: WithReason & { id: string; status: FeedbackStatus }) =>
 		updateAdminFeedbackStatus(input.id, { status: input.status, reason: input.reason })
+	);
+}
+
+/** Disable with a reason the project's people are told, or lift an admin's disable (ADR-024). */
+export function createCustomDomainControlMutation() {
+	return createAdminMutation(
+		(
+			input: { id: string; action: 'disable'; reason: string } | { id: string; action: 'enable' }
+		) =>
+			input.action === 'disable'
+				? disableAdminCustomDomain(input.id, input.reason)
+				: enableAdminCustomDomain(input.id)
 	);
 }
