@@ -117,7 +117,6 @@
 			await deleteMutation.mutateAsync({ projectId, scheduleId: schedule.id });
 			deleteOpen = false;
 			toast.success(SCHEDULE_COPY.deleted(name));
-			// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved, plus an anchor
 			await goto(backHref);
 		} catch (error) {
 			deleteError = getErrorMessage(error, SCHEDULE_COPY.deleteFailed);
@@ -151,9 +150,7 @@
 				? SCHEDULE_COPY.notFoundHint
 				: getErrorMessage(scheduleQuery.error, SCHEDULE_COPY.loadFailed)}
 			onRetry={isFeatureOffError(scheduleQuery.error) ? undefined : () => scheduleQuery.refetch()}
-			links={[
-				{ label: SCHEDULE_COPY.backToSettings, href: resolve(`/projects/${projectId}/settings`) }
-			]}
+			links={[{ label: SCHEDULE_COPY.backToSettings, href: schedulesHref(projectId) }]}
 		/>
 	{:else}
 		<section

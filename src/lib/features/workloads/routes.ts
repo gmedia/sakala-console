@@ -1,7 +1,5 @@
 import { resolve } from '$app/paths';
 import type { ResolvedPathname } from '$app/types';
-import { settingsHref } from '$lib/features/projects/overview/links';
-import { SETTINGS_SECTION_IDS } from '$lib/features/projects/settings-anchors';
 
 /** The query parameter of a schedule's page that opens one run's log. */
 export const RUN_PARAM = 'run';
@@ -14,9 +12,9 @@ export function processLogHref(projectId: string, deploymentId: string, process:
 	return `${resolve(`/projects/${projectId}/deployments/${deploymentId}`)}?${new URLSearchParams({ [LOG_PROCESS_PARAM]: process })}#deployment-logs`;
 }
 
-/** The Jadwal section of the project's settings. */
-export function schedulesHref(projectId: string): string {
-	return settingsHref(projectId, SETTINGS_SECTION_IDS.schedules);
+/** The Jadwal page of the project's settings. */
+export function schedulesHref(projectId: string): ResolvedPathname {
+	return resolve(`/projects/${projectId}/settings/schedules`);
 }
 
 export function newScheduleHref(projectId: string): ResolvedPathname {

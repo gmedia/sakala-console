@@ -81,6 +81,11 @@ async function mockState(page: Page, state: FlagState) {
 
 async function settled(page: Page) {
 	await expect(page.getByTestId('settings-sections')).toBeVisible();
+	await expect(
+		page.getByTestId('form-page-main').or(page.getByTestId('settings-read-only')).first()
+	)
+		.toBeVisible()
+		.catch(() => undefined);
 	await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => undefined);
 }
 
@@ -150,6 +155,10 @@ async function capture(page: Page, name: string, regions: Record<string, string[
 	if (!SHOTS_DIR) return;
 	mkdirSync(SHOTS_DIR, { recursive: true });
 	const width = page.viewportSize()?.width ?? WIDTHS.wide;
+	// How far the page scrolls: the height of what `main` holds, header and tabs included.
+	const scrollHeight = await page.evaluate(
+		() => document.querySelector('main')?.scrollHeight ?? document.documentElement.scrollHeight
+	);
 	for (let pass = 0; pass < 2; pass++) {
 		const height = await page.evaluate(() => {
 			const main = document.querySelector('main');
@@ -161,26 +170,55 @@ async function capture(page: Page, name: string, regions: Record<string, string[
 	await page.screenshot({ path: `${SHOTS_DIR}/${name}.png` });
 	writeFileSync(`${SHOTS_DIR}/${name}.html`, await page.content());
 	const counts = await page.evaluate(countVisibleWords, regions);
-	writeFileSync(`${SHOTS_DIR}/${name}.words.json`, JSON.stringify(counts, null, '\t'));
+	writeFileSync(
+		`${SHOTS_DIR}/${name}.words.json`,
+		JSON.stringify({ ...counts, scrollHeight }, null, '\t')
+	);
 }
+
+/** The settings pages, by route segment, and what each must show once loaded. */
+const SUB_PAGES = [
+	['general', 'Nama proyek'],
+	['build', 'Build command'],
+	['domain', 'Nama domain'],
+	['processes', null],
+	['schedules', null],
+	['danger', null]
+] as const;
+
+/**
+ * Captures run on both sides of the change: the single settings page of origin/main, or each
+ * sub-page with SETTINGS_SUBPAGES set (this branch).
+ */
+const SUBPAGES = Boolean(process.env.SETTINGS_SUBPAGES);
 
 test.describe('settings screenshots and word counts', () => {
 	test.skip(!SHOTS_DIR, 'Only when SETTINGS_SHOTS names a folder.');
 
-	for (const state of ['off', 'on', 'on-new'] as const) {
-		for (const [label, width] of Object.entries(WIDTHS)) {
-			test(`${state} at ${width} px`, async ({ page }) => {
-				await page.setViewportSize({ width, height: 900 });
-				await mockState(page, state);
-				await page.goto(SETTINGS_URL);
-				await settled(page);
-				if (state !== 'off') {
-					await expect(page.getByTestId('processes-section')).toBeVisible();
-					await expect(page.getByTestId('schedules-section')).toBeVisible();
-					await expect(page.getByTestId('domains-section')).toBeVisible();
-				}
-				await capture(page, `settings-${state}-${label}-${width}`, REGIONS.settings);
-			});
+	if (!SUBPAGES) {
+		for (const state of ['off', 'on', 'on-new'] as const) {
+			for (const [label, width] of Object.entries(WIDTHS)) {
+				test(`${state} at ${width} px`, async ({ page }) => {
+					await page.setViewportSize({ width, height: 900 });
+					await mockState(page, state);
+					await page.goto(SETTINGS_URL);
+					await settled(page);
+					await capture(page, `settings-${state}-${label}-${width}`, REGIONS.settings);
+				});
+			}
+		}
+	} else {
+		for (const [segment] of SUB_PAGES) {
+			for (const [label, width] of Object.entries(WIDTHS)) {
+				test(`sub-page ${segment} at ${width} px`, async ({ page }) => {
+					await page.setViewportSize({ width, height: 900 });
+					await mockState(page, 'on');
+					await page.goto(`${SETTINGS_URL}/${segment}`);
+					await settled(page);
+					await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => undefined);
+					await capture(page, `settings-${segment}-${label}-${width}`, REGIONS.settings);
+				});
+			}
 		}
 	}
 });
@@ -218,17 +256,18 @@ test.describe('valkey and project list screenshots and word counts', () => {
 	}
 });
 
-test.describe('the settings layout', () => {
+test.describe('the page templates', () => {
 	/** Every page and state the templates were applied to, opened the way a person would. */
 	const PAGES: [string, (page: Page) => Promise<void>][] = [
-		...(['off', 'on', 'on-new'] as const).map(
-			(state) =>
+		...SUB_PAGES.map(
+			([segment, visible]) =>
 				[
-					`settings ${state}`,
+					`settings ${segment}`,
 					async (page: Page) => {
-						await mockState(page, state);
-						await page.goto(SETTINGS_URL);
+						await mockState(page, 'on');
+						await page.goto(`${SETTINGS_URL}/${segment}`);
 						await settled(page);
+						if (visible) await expect(page.getByLabel(visible)).toBeVisible();
 					}
 				] as [string, (page: Page) => Promise<void>]
 		),
@@ -244,7 +283,7 @@ test.describe('the settings layout', () => {
 					async (page: Page) => {
 						await mockValkeyApi(page, { valkeys: [queueValkey(), cacheValkey()] });
 						await page.goto(`/valkeys/${id}`);
-						await expect(page.getByTestId('valkey-summary')).toBeVisible();
+						await expect(page.getByTestId('valkey-facts')).toBeVisible();
 					}
 				] as [string, (page: Page) => Promise<void>]
 		),
@@ -278,7 +317,7 @@ test.describe('the settings layout', () => {
 	test('two columns only with the sidebar shown and 56rem of content', async ({ page }) => {
 		await mockState(page, 'on-new');
 		await page.setViewportSize({ width: 1440, height: 900 });
-		await page.goto(SETTINGS_URL);
+		await page.goto(`${SETTINGS_URL}/general`);
 		await settled(page);
 		const columns = async () => {
 			const [form, panel] = [
@@ -301,48 +340,63 @@ test.describe('the settings layout', () => {
 		}
 	});
 
-	test('the Valkey page follows the same template, with deleting last', async ({ page }) => {
-		await mockValkeyApi(page, { valkeys: [queueValkey(), cacheValkey()] });
-		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
-		await page.goto('/valkeys/valkey-cache');
-		const panel = (await page.getByTestId('form-page-panel').boundingBox())!;
-		const danger = (await page.getByTestId('valkey-danger-zone').boundingBox())!;
-		expect(danger.y).toBeGreaterThan(panel.y + panel.height);
-		await expect(
-			page.getByRole('complementary', { name: 'Ringkasan Valkey' }).getByTestId('valkey-summary')
-		).toBeVisible();
-		// The how-to stays folded until asked for.
-		await expect(page.getByText('REDIS_CLIENT=predis')).toBeHidden();
-		await page.getByTestId('valkey-usage-laravel').locator('summary').click();
-		await expect(page.getByText('REDIS_CLIENT=predis')).toBeVisible();
-	});
-
-	test('wide: the panel sits right of the form; narrow: under it, before the danger zone', async ({
+	test('the panel holds next steps and guides only; project facts stay in the header', async ({
 		page
 	}) => {
 		await mockState(page, 'on-new');
-		const box = async (testId: string) => (await page.getByTestId(testId).boundingBox())!;
-
 		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
-		await page.goto(SETTINGS_URL);
+		await page.goto(`${SETTINGS_URL}/build`);
 		await settled(page);
-		const [form, panel] = [await box('form-page-main'), await box('form-page-panel')];
-		expect(panel.x).toBeGreaterThan(form.x + form.width);
-		expect(Math.abs(panel.y - form.y)).toBeLessThan(2);
-
-		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
-		const [narrowForm, narrowPanel] = [await box('form-page-main'), await box('form-page-panel')];
-		const danger = await page.getByRole('heading', { name: 'Zona berbahaya' }).boundingBox();
-		expect(narrowPanel.y).toBeGreaterThan(narrowForm.y + narrowForm.height);
-		expect(danger!.y).toBeGreaterThan(narrowPanel.y + narrowPanel.height);
+		const panel = page.getByRole('complementary', { name: 'Langkah dan bantuan' });
+		await expect(panel.getByRole('heading', { level: 2 })).toHaveText(['Berikutnya', 'Bantuan']);
+		await expect(page.getByText('Ringkasan', { exact: true })).toHaveCount(1); // the overview tab
+		await expect(page.getByTestId('project-public-url')).toBeVisible();
 	});
 
-	test('a next step lands on its place, opening Lanjutan for the release command', async ({
+	test('the sub-navigation wraps at 320 px and marks the current page', async ({ page }) => {
+		await mockState(page, 'on');
+		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
+		await page.goto(`${SETTINGS_URL}/schedules`);
+		await settled(page);
+		const nav = page.getByRole('navigation', { name: 'Bagian pengaturan' });
+		await expect(nav.getByRole('link')).toHaveText([
+			'Umum',
+			'Build dan start',
+			'Domain',
+			'Proses',
+			'Jadwal',
+			'Zona berbahaya'
+		]);
+		await expect(nav.getByRole('link', { name: 'Jadwal' })).toHaveAttribute('aria-current', 'page');
+		for (const link of await nav.getByRole('link').all()) {
+			const box = (await link.boundingBox())!;
+			expect(box.x).toBeGreaterThanOrEqual(0);
+			expect(box.x + box.width).toBeLessThanOrEqual(WIDTHS.narrow);
+			expect(box.height).toBeGreaterThanOrEqual(44);
+		}
+	});
+
+	test('links from before the split land on the right page', async ({ page }) => {
+		await mockState(page, 'on');
+		for (const [anchor, path, visible] of [
+			['jadwal', '/schedules', page.getByTestId('schedules-section')],
+			['proses', '/processes', page.getByTestId('processes-section')],
+			['domain', '/domain', page.getByTestId('domains-section')],
+			['zona-berbahaya', '/danger', page.getByRole('button', { name: 'Hapus proyek' })],
+			['replicas', '/build#replicas', page.getByRole('spinbutton', { name: 'Replika' })]
+		] as const) {
+			await page.goto(`${SETTINGS_URL}#${anchor}`);
+			await expect(page).toHaveURL(`${SETTINGS_URL}${path}`);
+			await expect(visible).toBeVisible();
+		}
+	});
+
+	test('a next step lands on its page, opening Lanjutan for the release command', async ({
 		page
 	}) => {
 		await mockState(page, 'on-new');
 		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
-		await page.goto(SETTINGS_URL);
+		await page.goto(`${SETTINGS_URL}/general`);
 		await settled(page);
 		const steps = page.getByTestId('settings-next-steps').getByRole('link');
 		await expect(steps).toHaveText([
@@ -351,23 +405,56 @@ test.describe('the settings layout', () => {
 			'Tambah worker antrean'
 		]);
 		await steps.first().click();
+		await expect(page).toHaveURL(`${SETTINGS_URL}/build#releaseCommand`);
 		await expect(page.getByRole('textbox', { name: 'Release command' })).toBeInViewport();
-		await steps.nth(2).click();
-		await expect(page.getByTestId('processes-section')).toBeInViewport();
+		await page
+			.getByTestId('settings-next-steps')
+			.getByRole('link', { name: 'Tambah worker antrean' })
+			.click();
+		await expect(page).toHaveURL(`${SETTINGS_URL}/processes`);
+		await expect(page.getByTestId('processes-section')).toBeVisible();
 	});
 
-	test('with the flags off the panel asks for no domain, worker, or schedule', async ({ page }) => {
+	test('with the flags off nothing asks for domains, workers, or schedules', async ({ page }) => {
 		const calls: string[] = [];
 		page.on('request', (request) => {
-			if (/\/(domains|processes|schedules)(\?|$)/.test(new URL(request.url()).pathname)) {
+			const { pathname } = new URL(request.url());
+			// API calls only: the settings pages themselves live under /settings/schedules and so on.
+			if (pathname.startsWith('/api/') && /\/(domains|processes|schedules)$/.test(pathname)) {
 				calls.push(request.url());
 			}
 		});
 		await mockState(page, 'off');
-		await page.goto(SETTINGS_URL);
+		await page.goto(`${SETTINGS_URL}/general`);
 		await settled(page);
-		await expect(page.getByTestId('settings-summary')).toBeVisible();
 		await expect(page.getByTestId('settings-next-steps')).toHaveCount(0);
+		// A page typed by hand says the feature is off, without asking for it.
+		await page.goto(`${SETTINGS_URL}/domain`);
+		await expect(page.getByTestId('domains-unavailable')).toBeVisible();
+		await page.goto(`${SETTINGS_URL}/schedules`);
+		await expect(page.getByTestId('schedules-unavailable')).toBeVisible();
 		expect(calls).toEqual([]);
+	});
+
+	test('the Valkey page follows the same template: facts under the name, deleting last', async ({
+		page
+	}) => {
+		await mockValkeyApi(page, { valkeys: [queueValkey(), cacheValkey()] });
+		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
+		await page.goto('/valkeys/valkey-cache');
+		await expect(page.getByTestId('valkey-facts')).toContainText('Cache');
+		await expect(page.getByTestId('valkey-facts')).toContainText('32 MB');
+		const panel = (await page.getByTestId('form-page-panel').boundingBox())!;
+		const danger = (await page.getByTestId('valkey-danger-zone').boundingBox())!;
+		expect(danger.y).toBeGreaterThan(panel.y + panel.height);
+		await expect(
+			page
+				.getByRole('complementary', { name: 'Langkah dan bantuan Valkey' })
+				.getByRole('heading', { level: 2 })
+		).toHaveText(['Berikutnya', 'Bantuan']);
+		// The how-to stays folded until asked for.
+		await expect(page.getByText('REDIS_CLIENT=predis')).toBeHidden();
+		await page.getByTestId('valkey-usage-laravel').locator('summary').click();
+		await expect(page.getByText('REDIS_CLIENT=predis')).toBeVisible();
 	});
 });

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import ArrowLeft from 'phosphor-svelte/lib/ArrowLeft';
 	import CalendarBlank from 'phosphor-svelte/lib/CalendarBlank';
@@ -42,7 +41,7 @@
 		page.url.searchParams.get(SUGGESTION_PARAM) === LARAVEL_SUGGESTION
 	);
 	const cancelHref = $derived(
-		editing ? scheduleHref(projectId, scheduleId) : resolve(`/projects/${projectId}/settings`)
+		editing ? scheduleHref(projectId, scheduleId) : schedulesHref(projectId)
 	);
 	const failed = $derived(projectQuery.isError || (editing && scheduleQuery.isError));
 
@@ -70,9 +69,7 @@
 			icon={CalendarBlank}
 			title={SCHEDULE_COPY.loadFailed}
 			description={SCHEDULE_COPY.notFound}
-			links={[
-				{ label: SCHEDULE_COPY.backToSettings, href: resolve(`/projects/${projectId}/settings`) }
-			]}
+			links={[{ label: SCHEDULE_COPY.backToSettings, href: schedulesHref(projectId) }]}
 		/>
 	{:else if !ready}
 		<div class="skeleton h-96 w-full" role="status" aria-label="Memuat formulir jadwal"></div>
@@ -80,9 +77,7 @@
 		<ErrorBlock
 			icon={CalendarBlank}
 			title={access.readOnly ? SCHEDULE_COPY.readOnly : SCHEDULE_COPY.unavailable}
-			links={[
-				{ label: SCHEDULE_COPY.backToSettings, href: resolve(`/projects/${projectId}/settings`) }
-			]}
+			links={[{ label: SCHEDULE_COPY.backToSettings, href: schedulesHref(projectId) }]}
 		/>
 	{:else}
 		<section

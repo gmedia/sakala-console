@@ -114,6 +114,29 @@ export function buildConfigPayload(
 	return payload;
 }
 
+/** A field of the settings form, by the name the API uses for it. */
+export type ProjectFormField = 'name' | 'branch' | keyof ProjectConfigDraft;
+
+/** The build fields that differ from what is saved, compared the way the payload is built. */
+export function changedConfigFields(
+	draft: ProjectConfigDraft,
+	original: ProjectConfigDraft
+): (keyof ProjectConfigDraft)[] {
+	const fields: (keyof ProjectConfigDraft)[] = [];
+	for (const field of [
+		'configured_port',
+		'build_command',
+		'start_command',
+		'release_command',
+		'root_directory'
+	] as const) {
+		if (draft[field].trim() !== original[field]) fields.push(field);
+	}
+	if (draft.auto_deploy !== original.auto_deploy) fields.push('auto_deploy');
+	if (replicasChanged(draft, original)) fields.push('replicas');
+	return fields;
+}
+
 function configIsDirty(draft: ProjectConfigDraft, original: ProjectConfigDraft): boolean {
 	return (
 		draft.configured_port.trim() !== original.configured_port ||
@@ -130,6 +153,7 @@ export function createProjectDetailState() {
 	let draftName = $state<string | null>(null);
 	let draftBranch = $state<string | null>(null);
 	let basicsDirty = $state(false);
+	let basicsChanged = $state<('name' | 'branch')[]>([]);
 	let draftConfig = $state<ProjectConfigDraft | null>(null);
 	let originalConfig = $state<ProjectConfigDraft | null>(null);
 	let configLimits = $state<ProjectConfigLimits>(DEFAULT_CONFIG_LIMITS);
@@ -141,7 +165,11 @@ export function createProjectDetailState() {
 	function setDraft(name: string, branch: string, originalName: string, originalBranch: string) {
 		draftName = name;
 		draftBranch = branch;
-		basicsDirty = name.trim() !== originalName.trim() || branch.trim() !== originalBranch.trim();
+		basicsChanged = [
+			...(name.trim() !== originalName.trim() ? (['name'] as const) : []),
+			...(branch.trim() !== originalBranch.trim() ? (['branch'] as const) : [])
+		];
+		basicsDirty = basicsChanged.length > 0;
 	}
 
 	function setConfigDraft(
@@ -158,6 +186,7 @@ export function createProjectDetailState() {
 		draftName = null;
 		draftBranch = null;
 		basicsDirty = false;
+		basicsChanged = [];
 		draftConfig = null;
 		originalConfig = null;
 		configLimits = DEFAULT_CONFIG_LIMITS;
@@ -181,6 +210,13 @@ export function createProjectDetailState() {
 		},
 		get isDirty() {
 			return basicsDirty || configDirty;
+		},
+		/** Every field that differs from what is saved, so each settings page can tell its own. */
+		get changedFields(): ProjectFormField[] {
+			return [
+				...basicsChanged,
+				...(draftConfig && originalConfig ? changedConfigFields(draftConfig, originalConfig) : [])
+			];
 		},
 		/** The changed build fields, for Save and for Redeploy. Throws when one is invalid. */
 		configPayload(): UpdateProjectPayload {

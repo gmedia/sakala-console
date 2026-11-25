@@ -14,6 +14,7 @@ import {
 	mockWorkloadApi,
 	screenshot,
 	scrollsSideways,
+	PROCESSES_URL,
 	SETTINGS_URL,
 	viewerProject,
 	workloadState
@@ -36,12 +37,10 @@ test.describe('worker processes (ADR-022)', () => {
 
 		await page.goto(SETTINGS_URL);
 		await expect(page.getByRole('heading', { name: 'Umum' })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Zona berbahaya' })).toBeVisible();
 		const sections = page.getByRole('navigation', { name: 'Bagian pengaturan' });
 		await expect(sections.getByRole('link')).toHaveText([
 			'Umum',
 			'Build dan start',
-			'Lanjutan',
 			'Zona berbahaya'
 		]);
 		await expect(page.getByTestId('processes-section')).toHaveCount(0);
@@ -88,7 +87,7 @@ test.describe('worker processes (ADR-022)', () => {
 		await mockProjectApi(page, { project: () => laravelProject });
 		await mockWorkloadApi(page, state);
 
-		await page.goto(SETTINGS_URL);
+		await page.goto(PROCESSES_URL);
 		const section = page.getByTestId('processes-section');
 		await expect(section.getByText('Belum ada worker')).toBeVisible();
 		await section.getByRole('button', { name: 'Pakai saran ini' }).click();
@@ -126,7 +125,7 @@ test.describe('worker processes (ADR-022)', () => {
 		await mockViewerWorkspaces(page);
 		await mockWorkloadApi(page, workloadState());
 
-		await page.goto(SETTINGS_URL);
+		await page.goto(PROCESSES_URL);
 		const section = page.getByTestId('processes-section');
 		await expect(section.getByTestId('process-row')).toHaveCount(2);
 		await expect(section.getByRole('button')).toHaveCount(0);
@@ -153,7 +152,7 @@ test.describe('worker processes (ADR-022)', () => {
 		await expect(note).toContainText('1 baris output jadwal tidak ditampilkan di sini.');
 		await expect(note.getByRole('link', { name: 'Lihat di riwayat run jadwal' })).toHaveAttribute(
 			'href',
-			/\/settings#jadwal$/
+			/\/settings\/schedules$/
 		);
 
 		const filter = page.getByRole('combobox', { name: 'Proses' });
@@ -177,7 +176,7 @@ test.describe('worker processes (ADR-022)', () => {
 		});
 		await mockWorkloadApi(page, workloadState());
 
-		await page.goto(SETTINGS_URL);
+		await page.goto(PROCESSES_URL);
 		await page.getByRole('link', { name: 'Lihat log queue' }).click();
 		await expect(page).toHaveURL(/\?process=queue#deployment-logs$/);
 		await expect(page.getByRole('combobox', { name: 'Proses' })).toHaveValue('queue');

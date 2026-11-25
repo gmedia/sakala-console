@@ -8,6 +8,7 @@ import {
 	mockWorkloadApi,
 	screenshot,
 	scrollsSideways,
+	SCHEDULES_URL,
 	SETTINGS_URL,
 	viewerProject,
 	workloadState,
@@ -52,7 +53,7 @@ test.describe('schedules (ADR-022)', () => {
 
 	test('creates a schedule from a preset with the next runs previewed in WIB', async ({ page }) => {
 		const state = await open(page);
-		await page.goto(SETTINGS_URL);
+		await page.goto(SCHEDULES_URL);
 		await page.getByTestId('schedules-section').getByRole('link', { name: 'Buat jadwal' }).click();
 
 		await expect(page.getByRole('heading', { name: 'Buat jadwal' })).toBeVisible();
@@ -171,7 +172,7 @@ test.describe('schedules (ADR-022)', () => {
 		await mockViewerWorkspaces(page);
 		await mockWorkloadApi(page, state);
 
-		await page.goto(SETTINGS_URL);
+		await page.goto(SCHEDULES_URL);
 		await expect(page.getByTestId('schedule-row')).toHaveCount(2);
 		await expect(page.getByRole('link', { name: 'Buat jadwal' })).toHaveCount(0);
 
@@ -214,7 +215,7 @@ test.describe('schedules (ADR-022)', () => {
 			// Each page is ready when its own content is: the settings page also asks GitHub for
 			// branches, which this mock leaves unanswered, so the network never goes idle.
 			const pages = [
-				[SETTINGS_URL, page.getByTestId('schedule-row').first()],
+				[SCHEDULES_URL, page.getByTestId('schedule-row').first()],
 				[
 					`/projects/${PROJECT_ID}/settings/schedules/new`,
 					page.getByTestId('schedule-preview').getByRole('listitem').first()

@@ -2,7 +2,6 @@ import { page, userEvent } from 'vitest/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { resetRateLimit } from '$lib/api/rate-limit';
-import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import {
 	baseProject,
 	personalWorkspace,
@@ -17,7 +16,8 @@ import {
 import { SETTINGS_PANEL_COPY } from '../../settings-panel';
 import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
 import { REPLICAS_COPY } from '../../replicas';
-import ProjectSettingsTab from './ProjectSettingsTab.svelte';
+import { SETTINGS_PAGES, type SettingsPage } from '../../settings-anchors';
+import ProjectSettingsPageTestHost from '../settings/ProjectSettingsPageTestHost.svelte';
 
 vi.mock('$lib/config/public', () => ({ publicConfig: { apiUrl: 'http://api.test' } }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
@@ -69,10 +69,9 @@ async function answer(request: Request): Promise<Response> {
 	return json(200, { data: project });
 }
 
-const renderTab = () =>
-	render(QueryTestHost, {
-		props: { component: ProjectSettingsTab, props: { projectId: PROJECT_ID } }
-	});
+/** One settings page inside what the project layout provides; Build dan start unless named. */
+const renderTab = (settingsPage: SettingsPage = SETTINGS_PAGES.build) =>
+	render(ProjectSettingsPageTestHost, { props: { projectId: PROJECT_ID, page: settingsPage } });
 const replicasField = () => page.getByRole('spinbutton', { name: REPLICAS_COPY.label });
 const save = () => page.getByRole('button', { name: 'Simpan perubahan' });
 const advancedToggle = () => page.getByRole('button', { name: 'Lanjutan' });
@@ -103,7 +102,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('ProjectSettingsTab, replicas', () => {
+describe('Project settings, replicas', () => {
 	it('offers 1 to the workspace maximum, with the maximum under the field', async () => {
 		await renderTab();
 		await openAdvanced();
@@ -188,7 +187,7 @@ describe('ProjectSettingsTab, replicas', () => {
 	});
 });
 
-describe('ProjectSettingsTab, release command', () => {
+describe('Project settings, release command', () => {
 	const migrate = 'php artisan migrate --force';
 	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
 
@@ -296,64 +295,95 @@ describe('ProjectSettingsTab, release command', () => {
 	});
 });
 
-describe('ProjectSettingsTab, panel', () => {
-	it('shows the address in the panel instead of a disabled subdomain field', async () => {
-		await renderTab();
+describe('Project settings, one draft across the form pages', () => {
+	const nameField = () => page.getByRole('textbox', { name: 'Nama proyek' });
+	const portField = () => page.getByRole('textbox', { name: 'Port' });
 
+	it('keeps a change from Umum on Build dan start, marks it, and saves both together', async () => {
+		const screen = await renderTab(SETTINGS_PAGES.general);
+		await expect.element(page.getByText('Subdomain, dibuat otomatis')).not.toBeInTheDocument();
+		await userEvent.fill(nameField(), 'kopi-baru');
+
+		await screen.rerender({ page: SETTINGS_PAGES.build });
 		await expect
-			.element(page.getByTestId('settings-summary-address'))
-			.toHaveTextContent('toko-kopi-web.sakala.app');
-		await expect.element(page.getByLabelText('Subdomain, dibuat otomatis')).not.toBeInTheDocument();
+			.element(page.getByTestId('settings-also-saves'))
+			.toHaveTextContent(SETTINGS_PANEL_COPY.alsoSaves('Umum'));
+		await expect
+			.element(page.getByRole('link', { name: /^Umum/ }))
+			.toHaveAccessibleName(`Umum, ${SETTINGS_PANEL_COPY.unsaved}`);
+
+		await userEvent.fill(portField(), '8080');
+		await save().click();
+		await expect.poll(() => saved).toEqual([{ name: 'kopi-baru', configured_port: 8080 }]);
+		await expect.element(page.getByTestId('settings-also-saves')).not.toBeInTheDocument();
 	});
 
-	it('marks unsaved changes in the panel until they are saved', async () => {
-		await renderTab();
-		await expect.element(page.getByTestId('settings-summary-unsaved')).not.toBeInTheDocument();
+	it('points at the other page when a field there stops the save', async () => {
+		const screen = await renderTab(SETTINGS_PAGES.build);
+		await userEvent.fill(portField(), 'bukan-angka');
 
-		await userEvent.fill(page.getByRole('textbox', { name: 'Nama proyek' }), 'kopi-baru');
-		await expect
-			.element(page.getByTestId('settings-summary-unsaved'))
-			.toHaveTextContent(SETTINGS_PANEL_COPY.unsaved);
-
+		await screen.rerender({ page: SETTINGS_PAGES.general });
+		await userEvent.fill(nameField(), 'kopi-baru');
 		await save().click();
-		await expect.poll(() => saved).toEqual([{ name: 'kopi-baru' }]);
-		await expect.element(page.getByTestId('settings-summary-unsaved')).not.toBeInTheDocument();
+
+		await expect
+			.element(page.getByTestId('settings-other-page-error'))
+			.toHaveTextContent(SETTINGS_PANEL_COPY.fixOn('Build dan start'));
+		await expect
+			.element(page.getByRole('link', { name: SETTINGS_PANEL_COPY.fixOn('Build dan start') }))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/build`);
+		expect(saved).toEqual([]);
 	});
 });
 
-describe('ProjectSettingsTab, sections', () => {
+describe('Project settings, sections', () => {
 	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
 
-	it('groups the form under Umum, Build dan start, and Lanjutan, then the panel, with the danger zone last', async () => {
-		await renderTab();
+	it('gives each part its own page, linked from the navigation, with the current one marked', async () => {
+		await renderTab(SETTINGS_PAGES.general);
 
 		const form = page.getByTestId('form-page-main').getByRole('heading', { level: 2 });
 		await expect.element(form.nth(0)).toHaveTextContent('Umum');
-		await expect.element(form.nth(1)).toHaveTextContent('Build dan start');
-		await expect.element(form.nth(2)).toHaveTextContent('Lanjutan');
-		const headings = page.getByRole('heading', { level: 2 }).all();
-		expect(headings.at(-1)?.element().textContent?.trim()).toBe('Zona berbahaya');
 		await expect
-			.element(page.getByRole('complementary', { name: SETTINGS_PANEL_COPY.label }))
-			.toBeVisible();
+			.element(page.getByRole('heading', { name: 'Build dan start' }))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('heading', { name: 'Zona berbahaya' }))
+			.not.toBeInTheDocument();
 
-		const links = page.getByRole('navigation', { name: 'Bagian pengaturan' }).getByRole('link');
-		await expect.element(links.nth(0)).toHaveAttribute('href', '#umum');
-		await expect.element(links.nth(3)).toHaveAttribute('href', '#zona-berbahaya');
+		const nav = page.getByRole('navigation', { name: SETTINGS_PANEL_COPY.nav });
+		const links = nav.getByRole('link');
+		await expect
+			.element(links.nth(0))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/general`);
+		await expect.element(links.nth(0)).toHaveAttribute('aria-current', 'page');
+		await expect
+			.element(links.nth(1))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/build`);
+		await expect
+			.element(nav.getByRole('link', { name: 'Zona berbahaya' }))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/danger`);
 	});
 
-	it('keeps Lanjutan closed while it holds nothing, and the link at the top opens it', async () => {
+	it('keeps Lanjutan closed on Build dan start while it holds nothing', async () => {
 		await renderTab();
 
+		await expect
+			.element(page.getByTestId('form-page-main').getByRole('heading', { name: 'Build dan start' }))
+			.toBeVisible();
 		await expect.element(advancedToggle()).toHaveAttribute('aria-expanded', 'false');
 		// Hidden fields are out of the accessibility tree too, so their role finds nothing.
 		await expect.element(releaseField()).not.toBeInTheDocument();
 		await expect.element(replicasField()).not.toBeInTheDocument();
 
-		await page
-			.getByRole('navigation', { name: 'Bagian pengaturan' })
-			.getByRole('link', { name: 'Lanjutan' })
-			.click();
+		await advancedToggle().click();
+		await expect.element(releaseField()).toBeVisible();
+	});
+
+	it('opens Lanjutan when a link from before the split lands on it', async () => {
+		location.hash = '#lanjutan';
+		await renderTab();
+
 		await expect.element(releaseField()).toBeVisible();
 	});
 

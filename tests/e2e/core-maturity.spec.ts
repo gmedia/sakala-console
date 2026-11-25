@@ -21,6 +21,9 @@ import { pilotLimits } from './fixtures/create-project';
 
 const ENV_URL = `/projects/${PROJECT_ID}/environments`;
 const SETTINGS_URL = `/projects/${PROJECT_ID}/settings`;
+/** Settings are sub-pages: Build dan start, and deleting on its own page. */
+const BUILD_URL = `${SETTINGS_URL}/build`;
+const DANGER_URL = `${SETTINGS_URL}/danger`;
 
 const envVars = [
 	{ id: 1, key: 'DATABASE_URL', is_secret: true, created_at: '2026-01-01T00:00:00Z' },
@@ -1420,7 +1423,7 @@ test.describe('delete modals', () => {
 		await mockProjectApi(page, {
 			deleteProject: () => ({ status: 409, body: { message: 'Project is suspended.' } })
 		});
-		await page.goto(SETTINGS_URL);
+		await page.goto(DANGER_URL);
 
 		const trigger = page.getByRole('button', { name: 'Hapus proyek' });
 		await trigger.click();
@@ -1453,7 +1456,7 @@ test.describe('delete modals', () => {
 				body: JSON.stringify({ data: { ...pilotLimits, deleted_project_retention_days: 30 } })
 			})
 		);
-		await page.goto(SETTINGS_URL);
+		await page.goto(DANGER_URL);
 
 		await page.getByRole('button', { name: 'Hapus proyek' }).click();
 		const dialog = page.getByRole('dialog', { name: /Hapus proyek toko-kopi-web/ });
@@ -1474,7 +1477,7 @@ test.describe('delete modals', () => {
 
 	test('a deleted project is not read again after the 204', async ({ page }) => {
 		await mockProjectApi(page);
-		await page.goto(SETTINGS_URL);
+		await page.goto(DANGER_URL);
 		await expect(page.getByRole('button', { name: 'Hapus proyek' })).toBeVisible();
 
 		// The real API answers 404 for a project once it is gone.
@@ -1517,7 +1520,7 @@ test.describe('delete modals', () => {
 				})
 			});
 			await page.setViewportSize({ width, height: 500 });
-			await page.goto(SETTINGS_URL);
+			await page.goto(DANGER_URL);
 
 			await page.getByRole('button', { name: 'Hapus proyek' }).click();
 			const dialog = page.getByRole('dialog');
@@ -1556,8 +1559,12 @@ test.describe('project settings', () => {
 
 		await expect(page.getByLabel('Nama proyek')).toHaveValue('nama-baru');
 		await expect(page.getByRole('combobox', { name: 'Branch' })).toHaveValue('develop');
-		// The address is a fact, not a setting: the side panel shows it instead of a disabled field.
-		await expect(page.getByTestId('settings-summary-address')).toContainText('toko-kopi-web');
+		// The build fields are on their own page, and the draft follows there too.
+		await page
+			.getByRole('navigation', { name: 'Bagian pengaturan' })
+			.getByRole('link', { name: /^Build dan start/ })
+			.click();
+		await expect(page.getByTestId('settings-also-saves')).toContainText('Umum');
 		// Nothing configured: the fields stay empty and editable, and the port names what is used.
 		await expect(page.getByLabel('Port')).toHaveValue('');
 		await expect(page.getByLabel('Port')).toHaveAccessibleDescription(/Sekarang 3000/);
@@ -1659,7 +1666,7 @@ test.describe('project settings', () => {
 		test(`the form and danger zone stay inside the page at ${width} px`, async ({ page }) => {
 			await mockProjectApi(page);
 			await page.setViewportSize({ width, height: 800 });
-			await page.goto(SETTINGS_URL);
+			await page.goto(BUILD_URL);
 
 			await expect(page.getByLabel('Build command')).toBeVisible();
 			expect(await pageOverflowsHorizontally(page)).toBe(false);
@@ -1670,6 +1677,7 @@ test.describe('project settings', () => {
 				(form?.x ?? 0) + (form?.width ?? 0)
 			);
 
+			await page.goto(DANGER_URL);
 			await page.getByRole('button', { name: 'Hapus proyek' }).scrollIntoViewIfNeeded();
 			expect(await isClickable(page, 'Hapus proyek')).toBe(true);
 		});

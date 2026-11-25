@@ -5,7 +5,10 @@
 	import { VALKEY_MODE, AOF_WRITE_FAILED, type Valkey } from '$lib/api/resources/valkeys';
 	import StorageBar from '$lib/features/databases/components/StorageBar.svelte';
 	import { cn } from '$lib/utils/cn';
-	import { formatRelativeTime } from '$lib/utils/date';
+	import { formatDate, formatRelativeTime } from '$lib/utils/date';
+	import { VALKEY_PANEL_COPY as FACTS } from '../panel';
+	import ValkeyModeLabel from './ValkeyModeLabel.svelte';
+	import ValkeyStatusBadge from './ValkeyStatusBadge.svelte';
 	import {
 		LOCKED_COPY,
 		VALKEY_COPY,
@@ -42,10 +45,34 @@
 	aria-labelledby="valkey-overview-title"
 	data-testid="valkey-overview"
 >
-	<!-- Mode, region, and status sit in the panel's Ringkasan; this card is the store's health. -->
-	<h2 id="valkey-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
-		{valkey.name}
-	</h2>
+	<!-- The store's facts in one line of badges and values, like a project's header. -->
+	<div class="flex min-w-0 flex-col gap-2">
+		<h2 id="valkey-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
+			{valkey.name}
+		</h2>
+		<p
+			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
+			data-testid="valkey-facts"
+		>
+			<ValkeyStatusBadge {valkey} />
+			<ValkeyModeLabel mode={valkey.mode} />
+			<span class="text-foreground tabular-nums">{formatMegabytes(valkey.maxmemory_mb)}</span>
+			<span aria-hidden="true">·</span>
+			{#if valkey.region}
+				<span class="font-mono text-foreground">{valkey.region}</span>
+			{:else}
+				<span>{FACTS.autoRegion}</span>
+			{/if}
+			<span aria-hidden="true">·</span>
+			<span data-testid="valkey-facts-projects"
+				>{FACTS.projects(countFormat.format(valkey.projects.length))}</span
+			>
+			{#if valkey.created_at}
+				<span aria-hidden="true">·</span>
+				<span>{FACTS.created(formatDate(valkey.created_at))}</span>
+			{/if}
+		</p>
+	</div>
 
 	<!-- Polite, so the change from Menyiapkan to Siap is heard without moving focus. -->
 	<div

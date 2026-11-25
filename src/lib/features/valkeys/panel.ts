@@ -10,15 +10,12 @@ export const VALKEY_ANCHORS = {
 
 /** The words of the store page's side panel (docs/UI_GUIDELINES.md, text budget). */
 export const VALKEY_PANEL_COPY = {
-	label: 'Ringkasan Valkey',
-	status: 'Status',
-	mode: 'Mode',
-	size: 'Ukuran',
-	region: 'Region',
-	autoRegion: 'Otomatis',
-	projects: 'Proyek',
-	created: 'Dibuat',
+	label: 'Langkah dan bantuan Valkey',
+	autoRegion: 'region otomatis',
+	projects: (count: string) => `${count} proyek`,
+	created: (date: string) => `dibuat ${date}`,
 	learnMode: (mode: string) => `mode ${mode.toLowerCase()}`,
+	modeHelp: (mode: string) => `Mode ${mode.toLowerCase()}`,
 	attach: 'Pasang ke proyek',
 	resize: 'Perbesar ukuran',
 	laravel: 'Laravel',

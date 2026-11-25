@@ -7,27 +7,29 @@ import type { DomainQuota } from '$lib/features/domains/presentation';
 import { processSuggestion } from '$lib/features/workloads/processes';
 import { scheduleSuggestion } from '$lib/features/workloads/schedules';
 import { RELEASE_COMMAND_LABEL } from './build-help';
-import { MAX_PANEL_STEPS } from '$lib/components/panel/panel';
+import { MAX_PANEL_STEPS, type PanelHelpLink } from '$lib/components/panel/panel';
 import { deriveNextSteps, type NextStepId } from './overview/next-steps';
-import { SETTINGS_ANCHORS, SETTINGS_SECTION_IDS } from './settings-anchors';
+import {
+	SETTINGS_ANCHORS,
+	SETTINGS_PAGES,
+	SETTINGS_SECTION_IDS,
+	type SettingsPage
+} from './settings-anchors';
 import type { Project } from './type';
 
 /**
- * The words of the settings page's side panel: card titles of up to four words, one line per state
- * (maintainer, 2026-11-25).
+ * The words around the settings pages (maintainer, 2026-11-25: short titles, one line per state).
+ * Project facts stay in the project header; the panel holds only next steps and guides.
  */
 export const SETTINGS_PANEL_COPY = {
-	label: 'Ringkasan proyek',
-	status: 'Status',
-	address: 'Alamat',
-	sakalaAddress: 'Alamat Sakala',
-	noAddress: 'Belum ada',
-	branch: 'Branch',
-	port: 'Port',
-	nextPort: (port: number) => `${port} setelah deploy`,
-	changes: 'Perubahan',
-	unsaved: 'Belum disimpan',
-	unsavedNote: 'Simpan, atau Redeploy untuk menyimpan sekaligus deploy.'
+	label: 'Langkah dan bantuan',
+	nav: 'Bagian pengaturan',
+	unsaved: 'belum disimpan',
+	alsoSaves: (pages: string) => `Juga menyimpan perubahan di ${pages}.`,
+	fixOn: (page: string) => `Periksa isian di ${page}.`,
+	loading: (page: string) => `Memuat ${page.toLowerCase()}`,
+	loadFailed: 'Gagal memuat data pengaturan proyek.',
+	dangerReadOnly: 'Hanya pemilik dan anggota workspace yang bisa menghapus proyek.'
 } as const;
 
 /** Every suggestion the panel knows, in priority order; a project gets the first three that apply. */
@@ -113,9 +115,19 @@ export function deriveSettingsSteps(
 		.map((id) => ({ id, ...STEPS[id] }));
 }
 
-/** Guides that answer what the settings page asks; short names, each opens the docs. */
-export const SETTINGS_HELP_LINKS = [
-	{ label: 'Deploy pertama', href: DEPLOY_GUIDE_URL },
-	{ label: RELEASE_COMMAND_LABEL, href: RELEASE_COMMAND_DOCS_URL },
-	{ label: 'Kalau deploy gagal', href: DEPLOY_FAILURE_GUIDE_URL }
-] as const;
+const DEPLOY_GUIDE = { label: 'Deploy pertama', href: DEPLOY_GUIDE_URL };
+const RELEASE_GUIDE = { label: RELEASE_COMMAND_LABEL, href: RELEASE_COMMAND_DOCS_URL };
+const FAILURE_GUIDE = { label: 'Kalau deploy gagal', href: DEPLOY_FAILURE_GUIDE_URL };
+
+/**
+ * Guides that answer what each settings page asks, by short name. A page without a guide of its own
+ * yet (Domain, Proses, Jadwal, Zona berbahaya) gets none rather than an unrelated one.
+ */
+export const SETTINGS_HELP_LINKS: Record<SettingsPage, readonly PanelHelpLink[]> = {
+	[SETTINGS_PAGES.general]: [DEPLOY_GUIDE],
+	[SETTINGS_PAGES.build]: [DEPLOY_GUIDE, RELEASE_GUIDE, FAILURE_GUIDE],
+	[SETTINGS_PAGES.domains]: [],
+	[SETTINGS_PAGES.processes]: [],
+	[SETTINGS_PAGES.schedules]: [],
+	[SETTINGS_PAGES.danger]: []
+};
