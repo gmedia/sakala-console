@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { VALKEY_MODE } from '$lib/api/resources/valkeys';
 	import Lightbulb from 'phosphor-svelte/lib/Lightbulb';
 	import { LARAVEL_VALKEY_SUGGESTIONS } from '../variables';
 
@@ -49,7 +50,7 @@
 			penuh, dan koneksi worker-nya perlu
 			<code class="font-mono text-xs">maxRetriesPerRequest: null</code>.
 		</p>
-		{#if mode === 'cache'}
+		{#if mode === VALKEY_MODE.cache}
 			<p class="text-foreground" data-testid="valkey-usage-cache-warning">
 				Valkey ini mode cache, jadi jangan dipakai untuk antrean atau sesi.
 			</p>

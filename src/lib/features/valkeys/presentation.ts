@@ -2,6 +2,7 @@ import { ApiError, VALKEY_ERROR_CODES, getErrorMessage } from '$lib/api/errors';
 import { parseValkeyRefusal } from '$lib/api/resources/valkey-refusals';
 import {
 	VALKEY_COMMANDS,
+	VALKEY_MODE,
 	VALKEY_MODES,
 	type KnownValkeyStatus,
 	type Valkey,
@@ -50,7 +51,7 @@ export const VALKEY_SIZES_MB = [32, 64, 128] as const;
 export const VALKEY_DEFAULT_SIZE_MB = 64;
 
 /** The mode a new store starts with: a queue or a session must not lose its data. */
-export const RECOMMENDED_VALKEY_MODE: ValkeyMode = 'persistent';
+export const RECOMMENDED_VALKEY_MODE: ValkeyMode = VALKEY_MODE.persistent;
 
 export const VALKEY_COPY = {
 	nav: 'Valkey',
@@ -250,7 +251,7 @@ export function valkeyStatusView(
 	const failure = valkey.last_failure;
 	let description: string;
 	if (valkey.status === 'locked') {
-		description = valkey.mode === 'cache' ? LOCKED_COPY.cache : LOCKED_COPY.persistent;
+		description = valkey.mode === VALKEY_MODE.cache ? LOCKED_COPY.cache : LOCKED_COPY.persistent;
 	} else if (valkey.status === 'failed' && failure?.command === VALKEY_COMMANDS.create) {
 		description = `${failure.summary} Hapus Valkey ini lalu buat lagi.`;
 	} else {
@@ -312,7 +313,7 @@ export function valkeyMemoryMeter(
 	const percent = Math.round(meter.ratio * 100);
 	return {
 		...meter,
-		level: valkey.mode === 'cache' && meter.level === 'full' ? 'warning' : meter.level,
+		level: valkey.mode === VALKEY_MODE.cache && meter.level === 'full' ? 'warning' : meter.level,
 		accessibleLabel:
 			valkey.usage.used_memory_bytes == null
 				? `${meter.label}, pemakaiannya belum diukur`
@@ -327,9 +328,10 @@ export function valkeyMemoryNotice(
 	if (!isOnNode(valkey) || valkey.usage.used_memory_bytes == null) return null;
 	const used = valkey.usage.used_memory_bytes;
 	const capacity = valkey.maxmemory_mb * BYTES_PER_MB;
-	const mode: ValkeyMode = valkey.mode === 'cache' ? 'cache' : 'persistent';
+	const mode: ValkeyMode =
+		valkey.mode === VALKEY_MODE.cache ? VALKEY_MODE.cache : VALKEY_MODE.persistent;
 	if (used >= capacity) {
-		return { level: mode === 'cache' ? 'warning' : 'full', text: MEMORY_COPY.full[mode] };
+		return { level: mode === VALKEY_MODE.cache ? 'warning' : 'full', text: MEMORY_COPY.full[mode] };
 	}
 	if (used >= capacity * VALKEY_WARNING_RATIO) {
 		return { level: 'warning', text: MEMORY_COPY.nearlyFull[mode] };

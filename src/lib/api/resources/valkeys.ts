@@ -29,10 +29,12 @@ export type KnownValkeyStatus = (typeof VALKEY_STATUSES)[number];
  * writes an append-only file every second, refuses writes when full, and is backed up nightly.
  * Chosen at creation and fixed.
  */
-export const VALKEY_MODES = [
-	'persistent',
-	'cache'
-] as const satisfies readonly GeneratedValkey['mode'][];
+export const VALKEY_MODE = {
+	persistent: 'persistent',
+	cache: 'cache'
+} as const satisfies Record<string, GeneratedValkey['mode']>;
+/** In the order the create page offers them: the recommended one first. */
+export const VALKEY_MODES = [VALKEY_MODE.persistent, VALKEY_MODE.cache] as const;
 export type ValkeyMode = (typeof VALKEY_MODES)[number];
 
 /** Agent commands that `last_failure.command` names and the Console explains on its own. */

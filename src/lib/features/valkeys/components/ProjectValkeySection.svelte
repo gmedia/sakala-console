@@ -6,7 +6,7 @@
 	import Warning from 'phosphor-svelte/lib/Warning';
 	import { toast } from 'svelte-sonner';
 	import { getErrorMessage } from '$lib/api/errors';
-	import type { ValkeyAttachment } from '$lib/api/resources/valkeys';
+	import { VALKEY_MODE, type ValkeyAttachment } from '$lib/api/resources/valkeys';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
@@ -227,7 +227,7 @@
 			</p>
 		{/if}
 
-		{#if valkey.mode === 'cache'}
+		{#if valkey.mode === VALKEY_MODE.cache}
 			<p
 				class="flex items-start gap-2 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground"
 				data-testid="valkey-variables-cache-warning"

@@ -2,7 +2,7 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Warning from 'phosphor-svelte/lib/Warning';
-	import { AOF_WRITE_FAILED, type Valkey } from '$lib/api/resources/valkeys';
+	import { VALKEY_MODE, AOF_WRITE_FAILED, type Valkey } from '$lib/api/resources/valkeys';
 	import StorageBar from '$lib/features/databases/components/StorageBar.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
@@ -24,6 +24,8 @@
 	let { valkey }: { valkey: Valkey } = $props();
 
 	const countFormat = new Intl.NumberFormat('id-ID');
+	/** A reading the node has not sent yet, or one that does not apply to this mode. */
+	const NOT_REPORTED = 'Belum dilaporkan';
 
 	const view = $derived(valkeyStatusView(valkey));
 	const mode = $derived(valkeyModeView(valkey.mode));
@@ -35,7 +37,7 @@
 	const usage = $derived(valkey.usage);
 	// The node could not write the append-only file: data since the last good write may be lost.
 	const aofFailing = $derived(
-		valkey.mode === 'persistent' && usage.aof_last_write_status === AOF_WRITE_FAILED
+		valkey.mode === VALKEY_MODE.persistent && usage.aof_last_write_status === AOF_WRITE_FAILED
 	);
 </script>
 
@@ -205,30 +207,38 @@
 		<div class="flex min-w-0 flex-col gap-1">
 			<dt class="text-xs text-muted">Koneksi terbuka</dt>
 			<dd class="text-sm text-foreground tabular-nums">
-				{usage.connected_clients === null ? '-' : countFormat.format(usage.connected_clients)}
+				{usage.connected_clients === null
+					? NOT_REPORTED
+					: countFormat.format(usage.connected_clients)}
 			</dd>
 		</div>
-		{#if valkey.mode === 'cache'}
+		{#if valkey.mode === VALKEY_MODE.cache}
 			<div class="flex min-w-0 flex-col gap-1">
 				<dt class="text-xs text-muted">Key dibuang karena penuh</dt>
 				<dd class="text-sm text-foreground tabular-nums" data-testid="valkey-evicted">
-					{usage.evicted_keys === null ? '-' : countFormat.format(usage.evicted_keys)}
-					<span class="text-muted">sejak start</span>
+					{#if usage.evicted_keys === null}
+						{NOT_REPORTED}
+					{:else}
+						{countFormat.format(usage.evicted_keys)} <span class="text-muted">sejak start</span>
+					{/if}
 				</dd>
 			</div>
 		{:else}
 			<div class="flex min-w-0 flex-col gap-1">
 				<dt class="text-xs text-muted">Tulisan ditolak karena penuh</dt>
 				<dd class="text-sm text-foreground tabular-nums" data-testid="valkey-oom">
-					{usage.errorstat_oom === null ? '-' : countFormat.format(usage.errorstat_oom)}
-					<span class="text-muted">sejak start</span>
+					{#if usage.errorstat_oom === null}
+						{NOT_REPORTED}
+					{:else}
+						{countFormat.format(usage.errorstat_oom)} <span class="text-muted">sejak start</span>
+					{/if}
 				</dd>
 			</div>
 		{/if}
 		<div class="flex min-w-0 flex-col gap-1">
 			<dt class="text-xs text-muted">Terakhir diukur</dt>
 			<dd class="text-sm text-foreground">
-				{usage.checked_at ? formatRelativeTime(usage.checked_at) : 'Belum dilaporkan server'}
+				{usage.checked_at ? formatRelativeTime(usage.checked_at) : NOT_REPORTED}
 			</dd>
 		</div>
 	</dl>

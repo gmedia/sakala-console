@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { auditDom } from './fixtures/dom-audit';
 import { PROJECT_ID } from './fixtures/project-detail';
@@ -258,9 +258,9 @@ test.describe('Valkey journeys', () => {
 		await expect(dialog).toContainText('setelah di-redeploy');
 		await expect(dialog.getByTestId('rotate-password-redeploy-attached')).toBeChecked();
 		await dialog.getByRole('button', { name: 'Ganti password' }).click();
-		expect(calls.find((call) => call.path.endsWith('/rotate-password'))?.body).toEqual({
-			redeploy_attached: true
-		});
+		await expect
+			.poll(() => calls.find((call) => call.path.endsWith('/rotate-password'))?.body)
+			.toEqual({ redeploy_attached: true });
 		await expect(page.getByTestId('password-rotation-completed')).toBeVisible();
 		await expect(
 			page
@@ -283,7 +283,9 @@ test.describe('Valkey journeys', () => {
 		await page.goto(detailUrl());
 		await page.getByTestId('valkey-resize').getByText('128 MB').click();
 		await page.getByTestId('save-valkey-size').click();
-		expect(calls.find((call) => call.method === 'PATCH')?.body).toEqual({ maxmemory_mb: 128 });
+		await expect
+			.poll(() => calls.find((call) => call.method === 'PATCH')?.body)
+			.toEqual({ maxmemory_mb: 128 });
 		await expect(page.getByTestId('valkey-size-value')).toHaveText(/128 MB/, { timeout: 15_000 });
 	});
 
@@ -469,6 +471,8 @@ async function fullShot(page: Page, path: string, width: number) {
 	);
 	await page.setViewportSize({ width, height: Math.min(height + 48, SCREENSHOT_MAX_HEIGHT) });
 	await page.screenshot({ path });
+	// The rendered page too, for the HTML audit script of the review.
+	await writeFile(path.replace(/\.png$/, '.html'), await page.content());
 	await page.setViewportSize({ width, height: SCREENSHOT_HEIGHT });
 }
 

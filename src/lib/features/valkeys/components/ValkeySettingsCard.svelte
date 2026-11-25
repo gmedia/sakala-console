@@ -3,7 +3,7 @@
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { toast } from 'svelte-sonner';
 	import { getFieldError } from '$lib/api/errors';
-	import type { Valkey } from '$lib/api/resources/valkeys';
+	import { VALKEY_MODE, type Valkey } from '$lib/api/resources/valkeys';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
@@ -214,7 +214,7 @@
 				role="status"
 				data-testid="valkey-resize-shrink"
 			>
-				{#if valkey.mode === 'cache'}
+				{#if valkey.mode === VALKEY_MODE.cache}
 					Mengecilkan Valkey cache membuang key yang paling lama tidak dipakai sampai isinya muat.
 				{:else if belowUsage}
 					Data di Valkey ini lebih besar dari {formatMegabytes(size)}, jadi permintaan ini akan
@@ -298,7 +298,7 @@
 		<p>
 			Valkey dan semua datanya dihapus dari server, dan password-nya berhenti berlaku. Setelah itu
 			tidak bisa dipulihkan dari Console.
-			{#if valkey.mode === 'persistent'}
+			{#if valkey.mode === VALKEY_MODE.persistent}
 				Backup operator menyimpan salinan sekitar dua minggu.
 			{/if}
 		</p>
