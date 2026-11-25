@@ -343,7 +343,7 @@ describe('ProjectOverview, behaviour', () => {
 		await expect.element(detail).toBeVisible();
 		await expect
 			.element(detail.getByRole('link', { name: 'Atur di Pengaturan' }))
-			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings#releaseCommand`);
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/build#releaseCommand`);
 		await userEvent.keyboard('{Escape}');
 		await expect.element(trigger).toHaveFocus();
 	});

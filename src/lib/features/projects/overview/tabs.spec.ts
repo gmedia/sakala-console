@@ -18,6 +18,8 @@ describe('project tabs', () => {
 		expect(activeProjectTab(`/projects/${ID}`, ID)).toBe('overview');
 		expect(activeProjectTab(`/projects/${ID}/`, ID)).toBe('overview');
 		expect(activeProjectTab(`/projects/${ID}/settings`, ID)).toBe('settings');
+		// Every settings sub-page keeps the Pengaturan tab marked.
+		expect(activeProjectTab(`/projects/${ID}/settings/build`, ID)).toBe('settings');
 	});
 
 	it('keeps Riwayat marked on a deployment page', () => {
