@@ -10,6 +10,7 @@
 	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
 	import DatabaseIcon from 'phosphor-svelte/lib/Database';
 	import ArchiveIcon from 'phosphor-svelte/lib/Archive';
+	import MemoryIcon from 'phosphor-svelte/lib/Memory';
 	import BookOpenText from 'phosphor-svelte/lib/BookOpenText';
 	import ChatCircleText from 'phosphor-svelte/lib/ChatCircleText';
 	import UserIcon from 'phosphor-svelte/lib/User';
@@ -29,6 +30,7 @@
 	import { feedbackPath } from '$lib/features/feedback/context';
 	import { isAdmin } from '$lib/features/admin/access';
 	import { BUCKET_COPY, bucketsInUse } from '$lib/features/buckets/presentation';
+	import { VALKEY_COPY, valkeysInUse } from '$lib/features/valkeys/presentation';
 	import { useActiveWorkspace } from '$lib/features/workspaces/access.svelte';
 	import { limitsWorkspaceId } from '$lib/features/workspaces/presentation';
 	import { createWorkspaceLimitsQuery } from '$lib/features/workspaces/queries';
@@ -67,12 +69,15 @@
 		() => ({ enabled: Boolean(workspaces.active) })
 	);
 	const showBuckets = $derived(bucketsInUse(limitsQuery.data));
+	// Valkey the same way, and never while the server's Valkey flag is off.
+	const showValkeys = $derived(valkeysInUse(limitsQuery.data));
 
 	// Feedback opens from the project or deployment on screen, and the form lets the user remove it.
 	const navigation: readonly NavItem[] = $derived([
 		{ href: '/projects', label: 'Proyek', icon: SquaresFour },
 		{ href: '/databases', label: 'Database', icon: DatabaseIcon },
 		...(showBuckets ? [{ href: '/buckets', label: BUCKET_COPY.nav, icon: ArchiveIcon }] : []),
+		...(showValkeys ? [{ href: '/valkeys', label: VALKEY_COPY.nav, icon: MemoryIcon }] : []),
 		{
 			href: feedbackPath('/feedback', {
 				projectId: page.params.id,

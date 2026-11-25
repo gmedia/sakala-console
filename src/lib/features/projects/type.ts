@@ -108,6 +108,15 @@ export type ProjectBucket = NonNullable<
 >[number];
 type ProjectBucketFields = { buckets?: ProjectBucket[] };
 
+/**
+ * The attached managed Valkey store (sakala-api #211, ADR-023), as a list of at most one. Absent
+ * while the server's Valkey flag is off, which the Console reads as "no Valkey feature".
+ */
+export type ProjectValkey = NonNullable<
+	components['schemas']['ProjectResource']['valkeys']
+>[number];
+type ProjectValkeyFields = { valkeys?: ProjectValkey[] };
+
 /** The newest deployment, which the wizard reads after a reload instead of starting another. */
 type ProjectLatestDeploymentFields = Partial<
 	Pick<components['schemas']['ProjectResource'], 'latest_deployment'>
@@ -193,6 +202,7 @@ export interface Project
 		ProjectPlacementFields,
 		ProjectDatabaseFields,
 		ProjectBucketFields,
+		ProjectValkeyFields,
 		ProjectLatestDeploymentFields,
 		ProjectVariableChangesFields,
 		ProjectRollbackFields {}
