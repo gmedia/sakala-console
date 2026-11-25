@@ -94,7 +94,8 @@ test.describe('team workspaces', () => {
 		await expect(page.getByRole('heading', { name: 'Tugas Pribadi' })).toHaveCount(0);
 		expect(calls.projectLists.at(-1)?.searchParams.get('workspace_id')).toBe(TEAM.id);
 		await expect(page.getByTestId('project-card-workspace').first()).toContainText(TEAM.name);
-		await expect(page.getByText(`Workspace ${TEAM.name} memakai 1 dari 5 proyek`)).toBeVisible();
+		// The list shows the quota as a badge; the full sentence stays in the wizard.
+		await expect(page.getByTestId('project-quota-badge')).toHaveText('Kuota tim: 1 dari 5 proyek');
 
 		await page.reload();
 		await expect(switcher(page)).toContainText(TEAM.name);

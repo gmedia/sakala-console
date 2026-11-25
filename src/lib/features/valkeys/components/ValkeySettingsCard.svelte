@@ -7,6 +7,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import { createDeleteValkeyMutation, createUpdateValkeyMutation } from '../mutations';
 	import {
 		BYTES_PER_MB,
@@ -18,16 +19,25 @@
 	} from '../presentation';
 	import { valkeysHref } from '../routes';
 	import ValkeySizeOptions from './ValkeySizeOptions.svelte';
+	import { VALKEY_ANCHORS } from '../panel';
 
 	type Props = {
 		valkey: Valkey;
+		/**
+		 * Which part to show: the edits (rename, resize) go in the page's column and the delete last,
+		 * after the panel on a narrow screen (docs/UI_GUIDELINES.md). Both by default.
+		 */
+		parts?: 'all' | 'edit' | 'delete';
 		workspaceId: string;
 		sizes: number[];
 		/** MB the workspace may still reserve besides this store; `null` when the API decides. */
 		availableMb: number | null;
 	};
 
-	let { valkey, workspaceId, sizes, availableMb }: Props = $props();
+	let { valkey, workspaceId, sizes, availableMb, parts = 'all' }: Props = $props();
+
+	const showEdit = $derived(parts !== 'delete');
+	const showDelete = $derived(parts !== 'edit');
 
 	const renameMutation = createUpdateValkeyMutation();
 	const resizeMutation = createUpdateValkeyMutation();
@@ -165,165 +175,174 @@
 	}
 </script>
 
-<section
-	class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
-	aria-labelledby="valkey-settings-title"
->
-	<h2 id="valkey-settings-title" class="text-base text-foreground">Ganti nama</h2>
-	<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
-		<FormField
-			id="valkey-rename"
-			label="Nama Valkey"
-			bind:value={name}
-			hint="Hanya nama tampilan. Koneksi dan variabel proyek tidak berubah."
-			error={nameError}
-			autocomplete="off"
-			spellcheck={false}
-			oninput={() => (nameError = null)}
-		/>
-		<Button
-			type="submit"
-			variant="secondary"
-			size="sm"
-			class="self-start"
-			disabled={renameMutation.isPending || name.trim() === valkey.name}
-		>
-			{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
-		</Button>
-	</form>
-</section>
-
-<section
-	class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
-	aria-labelledby="valkey-resize-title"
-	data-testid="valkey-resize"
->
-	<h2 id="valkey-resize-title" class="text-base text-foreground">Ubah ukuran</h2>
-	<form class="flex flex-col gap-3" novalidate onsubmit={resize}>
-		<ValkeySizeOptions
-			bind:value={size}
-			{options}
-			legend="Ukuran"
-			hint={resizeHint}
-			error={sizeError}
-			disabled={Boolean(resizeBlocked)}
-		/>
-		{#if shrinking && !sizeError}
-			<p
-				class="rounded-control border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground"
-				role="status"
-				data-testid="valkey-resize-shrink"
+{#if showEdit}
+	<section
+		class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
+		aria-labelledby="valkey-settings-title"
+	>
+		<h2 id="valkey-settings-title" class="text-base text-foreground">Ganti nama</h2>
+		<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
+			<FormField
+				id="valkey-rename"
+				label="Nama Valkey"
+				bind:value={name}
+				hint="Hanya nama tampilan. Koneksi dan variabel proyek tidak berubah."
+				error={nameError}
+				autocomplete="off"
+				spellcheck={false}
+				oninput={() => (nameError = null)}
+			/>
+			<Button
+				type="submit"
+				variant="secondary"
+				size="sm"
+				class="self-start"
+				disabled={renameMutation.isPending || name.trim() === valkey.name}
 			>
-				{#if valkey.mode === VALKEY_MODE.cache}
-					Mengecilkan Valkey cache membuang key yang paling lama tidak dipakai sampai isinya muat.
-				{:else if belowUsage}
-					Data di Valkey ini lebih besar dari {formatMegabytes(size)}, jadi permintaan ini akan
-					ditolak. Hapus sebagian data dulu, atau pilih ukuran yang lebih besar.
-				{:else}
-					Valkey persisten hanya bisa dikecilkan selama datanya masih muat.
-				{/if}
+				{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
+			</Button>
+		</form>
+	</section>
+
+	<section
+		id={VALKEY_ANCHORS.resize}
+		class="surface-card flex min-w-0 scroll-mt-4 flex-col gap-3 p-4 sm:p-5"
+		aria-labelledby="valkey-resize-title"
+		data-testid="valkey-resize"
+	>
+		<h2 id="valkey-resize-title" class="text-base text-foreground">Ubah ukuran</h2>
+		<form class="flex flex-col gap-3" novalidate onsubmit={resize}>
+			<ValkeySizeOptions
+				bind:value={size}
+				{options}
+				legend="Ukuran"
+				hint={resizeHint}
+				error={sizeError}
+				disabled={Boolean(resizeBlocked)}
+			/>
+			{#if shrinking && !sizeError}
+				<p
+					class="rounded-control border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground"
+					role="status"
+					data-testid="valkey-resize-shrink"
+				>
+					{#if valkey.mode === VALKEY_MODE.cache}
+						Mengecilkan Valkey cache membuang key yang paling lama tidak dipakai sampai isinya muat.
+					{:else if belowUsage}
+						Data di Valkey ini lebih besar dari {formatMegabytes(size)}, jadi permintaan ini akan
+						ditolak. Hapus sebagian data dulu, atau pilih ukuran yang lebih besar.
+					{:else}
+						Valkey persisten hanya bisa dikecilkan selama datanya masih muat.
+					{/if}
+				</p>
+			{/if}
+			<LearnMore topic="mengubah ukuran Valkey">
+				<p>
+					Kalau server tidak bisa mengubah batas memori di tempat, Valkey di-restart sebentar. Mode
+					cache kosong lagi setelah restart; mode persisten memuat datanya lagi.
+				</p>
+			</LearnMore>
+			<Button
+				type="submit"
+				variant="secondary"
+				size="sm"
+				class="self-start"
+				disabled={resizeMutation.isPending ||
+					Boolean(resizeBlocked) ||
+					size === valkey.maxmemory_mb}
+				data-testid="save-valkey-size"
+			>
+				{resizeMutation.isPending ? 'Menyimpan...' : 'Simpan ukuran'}
+			</Button>
+		</form>
+	</section>
+{/if}
+
+{#if showDelete}
+	<section
+		class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
+		aria-labelledby="valkey-danger-title"
+		data-testid="valkey-danger-zone"
+	>
+		<h2 id="valkey-danger-title" class="text-base text-error-dark">Hapus Valkey</h2>
+		<p class="text-sm text-foreground">
+			Menghapus Valkey beserta semua datanya. Tindakan ini tidak bisa dibatalkan dari Console.
+		</p>
+		{#if deleteBlocked}
+			<p
+				id="valkey-delete-blocked"
+				class="text-sm text-foreground"
+				data-testid="valkey-delete-blocked"
+			>
+				Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
+				semua proyek dulu, lalu redeploy proyeknya, supaya aplikasi yang berjalan tidak kehilangan
+				antrean atau sesinya tanpa sengaja.
+			</p>
+		{:else if alreadyDeleting}
+			<p class="text-sm text-muted">
+				Valkey ini sedang dihapus. Kalau tidak selesai, kemungkinan masih ada proyek yang dilepas
+				tetapi belum di-redeploy. Redeploy proyek itu, lalu hapus lagi.
 			</p>
 		{/if}
-		<p class="text-xs text-muted">
-			Kalau server tidak bisa mengubah batas memori di tempat, Valkey di-restart sebentar. Mode
-			cache kosong lagi setelah restart; mode persisten memuat datanya lagi.
-		</p>
 		<Button
-			type="submit"
-			variant="secondary"
+			variant="danger"
 			size="sm"
 			class="self-start"
-			disabled={resizeMutation.isPending || Boolean(resizeBlocked) || size === valkey.maxmemory_mb}
-			data-testid="save-valkey-size"
+			bind:ref={deleteTrigger}
+			disabled={deleteBlocked}
+			aria-describedby={deleteBlocked ? 'valkey-delete-blocked' : undefined}
+			onclick={openDelete}
+			data-testid="delete-valkey"
 		>
-			{resizeMutation.isPending ? 'Menyimpan...' : 'Simpan ukuran'}
+			<Trash size={16} aria-hidden="true" />
+			Hapus Valkey
 		</Button>
-	</form>
-</section>
+	</section>
 
-<section
-	class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
-	aria-labelledby="valkey-danger-title"
-	data-testid="valkey-danger-zone"
->
-	<h2 id="valkey-danger-title" class="text-base text-error-dark">Hapus Valkey</h2>
-	<p class="text-sm text-foreground">
-		Menghapus Valkey beserta semua datanya. Tindakan ini tidak bisa dibatalkan dari Console.
-	</p>
-	{#if deleteBlocked}
-		<p
-			id="valkey-delete-blocked"
-			class="text-sm text-foreground"
-			data-testid="valkey-delete-blocked"
-		>
-			Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
-			semua proyek dulu, lalu redeploy proyeknya, supaya aplikasi yang berjalan tidak kehilangan
-			antrean atau sesinya tanpa sengaja.
-		</p>
-	{:else if alreadyDeleting}
-		<p class="text-sm text-muted">
-			Valkey ini sedang dihapus. Kalau tidak selesai, kemungkinan masih ada proyek yang dilepas
-			tetapi belum di-redeploy. Redeploy proyek itu, lalu hapus lagi.
-		</p>
-	{/if}
-	<Button
-		variant="danger"
-		size="sm"
-		class="self-start"
-		bind:ref={deleteTrigger}
-		disabled={deleteBlocked}
-		aria-describedby={deleteBlocked ? 'valkey-delete-blocked' : undefined}
-		onclick={openDelete}
-		data-testid="delete-valkey"
+	<Dialog
+		bind:open={deleteOpen}
+		title={`Hapus ${valkey.name}?`}
+		confirmLabel={deleteMutation.isPending ? 'Menghapus...' : 'Hapus Valkey ini'}
+		variant="destructive"
+		loading={deleteMutation.isPending}
+		confirmDisabled={!canConfirmDelete}
+		initialFocus={() => confirmInput}
+		returnFocus={() => deleteTrigger}
+		footerClass="flex-col-reverse sm:flex-row"
+		class="max-w-lg"
+		onConfirm={remove}
 	>
-		<Trash size={16} aria-hidden="true" />
-		Hapus Valkey
-	</Button>
-</section>
-
-<Dialog
-	bind:open={deleteOpen}
-	title={`Hapus ${valkey.name}?`}
-	confirmLabel={deleteMutation.isPending ? 'Menghapus...' : 'Hapus Valkey ini'}
-	variant="destructive"
-	loading={deleteMutation.isPending}
-	confirmDisabled={!canConfirmDelete}
-	initialFocus={() => confirmInput}
-	returnFocus={() => deleteTrigger}
-	footerClass="flex-col-reverse sm:flex-row"
-	class="max-w-lg"
-	onConfirm={remove}
->
-	<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="delete-valkey-dialog">
-		<p>
-			Valkey dan semua datanya dihapus dari server, dan password-nya berhenti berlaku. Setelah itu
-			tidak bisa dipulihkan dari Console.
-			{#if valkey.mode === VALKEY_MODE.persistent}
-				Backup operator menyimpan salinan sekitar dua minggu.
+		<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="delete-valkey-dialog">
+			<p>
+				Valkey dan semua datanya dihapus dari server, dan password-nya berhenti berlaku. Setelah itu
+				tidak bisa dipulihkan dari Console.
+				{#if valkey.mode === VALKEY_MODE.persistent}
+					Backup operator menyimpan salinan sekitar dua minggu.
+				{/if}
+			</p>
+			<div class="flex flex-col gap-1.5">
+				<label for="delete-valkey-confirm" class="font-medium">
+					Ketik <strong class="font-mono font-semibold wrap-anywhere">{valkey.name}</strong> untuk konfirmasi
+				</label>
+				<input
+					bind:this={confirmInput}
+					bind:value={confirmText}
+					id="delete-valkey-confirm"
+					type="text"
+					autocomplete="off"
+					spellcheck="false"
+					class="control-input font-mono"
+					onkeydown={(event) => {
+						if (event.key === 'Enter') {
+							event.preventDefault();
+							void remove();
+						}
+					}}
+				/>
+			</div>
+			{#if deleteError}
+				<p role="alert" class="text-error-dark">{deleteError}</p>
 			{/if}
-		</p>
-		<div class="flex flex-col gap-1.5">
-			<label for="delete-valkey-confirm" class="font-medium">
-				Ketik <strong class="font-mono font-semibold wrap-anywhere">{valkey.name}</strong> untuk konfirmasi
-			</label>
-			<input
-				bind:this={confirmInput}
-				bind:value={confirmText}
-				id="delete-valkey-confirm"
-				type="text"
-				autocomplete="off"
-				spellcheck="false"
-				class="control-input font-mono"
-				onkeydown={(event) => {
-					if (event.key === 'Enter') {
-						event.preventDefault();
-						void remove();
-					}
-				}}
-			/>
 		</div>
-		{#if deleteError}
-			<p role="alert" class="text-error-dark">{deleteError}</p>
-		{/if}
-	</div>
-</Dialog>
+	</Dialog>
+{/if}

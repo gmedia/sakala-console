@@ -11,19 +11,22 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
 	import ToggleField from '$lib/components/ui/ToggleField.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import {
 		AUTO_DEPLOY_HELP,
 		AUTO_DEPLOY_UNAVAILABLE_HELP,
-		BUILD_COMMAND_EXAMPLE,
 		BUILD_COMMAND_HELP,
 		DETECTED_PLACEHOLDER,
+		PORT_HELP,
+		RELEASE_COMMAND_DOCS_URL,
 		RELEASE_COMMAND_EXAMPLE,
 		RELEASE_COMMAND_HELP,
 		RELEASE_COMMAND_LABEL,
 		RELEASE_COMMAND_PLACEHOLDER,
 		ROOT_DIRECTORY_HELP,
 		ROOT_DIRECTORY_PLACEHOLDER,
-		START_COMMAND_EXAMPLE,
+		SETTINGS_FIELD_HINTS as HINTS,
+		SETTINGS_LEARN_COPY as LEARN,
 		START_COMMAND_HELP
 	} from '../../build-help';
 	import { createRepositoryBranchesQuery, type BranchSource } from '../../githubQueries';
@@ -48,6 +51,10 @@
 	import BranchCombobox from '../create/BranchCombobox.svelte';
 	import DeleteProjectConfirmModal from './DeleteProjectConfirmModal.svelte';
 	import ProjectReplicasField from './ProjectReplicasField.svelte';
+	import ProjectSettingsPanel from './ProjectSettingsPanel.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import { PANEL_COPY } from '$lib/components/panel/panel';
+	import { SETTINGS_PANEL_COPY } from '../../settings-panel';
 	import RedeployRequiredNotice from './RedeployRequiredNotice.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import {
@@ -128,6 +135,14 @@
 	});
 
 	let configErrors = $state<ProjectConfigErrors>({});
+
+	// Deleting is for those who may change settings, once the project has loaded without error.
+	const showDangerZone = $derived(
+		Boolean(projectQuery.data) &&
+			!projectQuery.isLoading &&
+			!projectQuery.isError &&
+			!access.readOnly
+	);
 
 	/** The fields of the Lanjutan section, which changes rarely and can stop a deployment. */
 	const ADVANCED_FIELDS: readonly (keyof ProjectConfigDraft)[] = ['release_command', 'replicas'];
@@ -364,7 +379,53 @@
 	{/if}
 {/snippet}
 
-<div class="flex w-full max-w-reading flex-col gap-4">
+{#snippet dangerZone()}
+	<section
+		id={SECTION.danger}
+		aria-labelledby="danger-zone-title"
+		class="flex w-full scroll-mt-4 flex-col justify-between gap-4 rounded-card border border-error/40 bg-surface p-4 sm:flex-row sm:items-center sm:p-6"
+	>
+		<div class="min-w-0">
+			<h2 id="danger-zone-title" class="font-sans text-base font-semibold text-foreground">
+				Zona berbahaya
+			</h2>
+			<p class="mt-1 text-sm text-foreground">
+				Menghapus proyek menghentikan aplikasinya dan tidak bisa dibatalkan.
+			</p>
+		</div>
+
+		<Button variant="danger" onclick={handleOpenDelete} disabled={deleteMutation.isPending}>
+			<Trash size={16} aria-hidden="true" />
+			Hapus proyek
+		</Button>
+	</section>
+{/snippet}
+
+{#snippet learnRow(term: string, explanation: string)}
+	<div>
+		<dt class="font-medium text-foreground">{term}</dt>
+		<dd>{explanation}</dd>
+	</div>
+{/snippet}
+
+{#snippet settingsPanel()}
+	{#if projectQuery.data}
+		<ProjectSettingsPanel
+			project={projectQuery.data}
+			isDirty={draft.isDirty}
+			limits={workloads.limits}
+			workers={workloads.workers}
+			schedules={workloads.schedules}
+		/>
+	{/if}
+{/snippet}
+
+<!-- The form template: the form left, the panel right, the danger zone last on every screen. -->
+<FormPageLayout
+	panelLabel={SETTINGS_PANEL_COPY.label}
+	panel={projectQuery.data ? settingsPanel : undefined}
+	after={showDangerZone ? dangerZone : undefined}
+>
 	{#if projectQuery.isLoading}
 		<div class="p-6 text-center text-sm text-muted">Memuat pengaturan...</div>
 	{:else if projectQuery.isError}
@@ -453,20 +514,16 @@
 				<div id={SETTINGS_ANCHORS.autoDeploy} class="-my-3 scroll-mt-4">
 					<ToggleField
 						title="Auto-deploy"
-						description={isGithubInstallation ? AUTO_DEPLOY_HELP : AUTO_DEPLOY_UNAVAILABLE_HELP}
+						description={isGithubInstallation ? HINTS.autoDeploy : HINTS.autoDeployUnavailable}
 						checked={isGithubInstallation && (config?.auto_deploy ?? false)}
 						disabled={!isGithubInstallation}
 						onToggle={() => updateConfig({ auto_deploy: !config?.auto_deploy })}
 					/>
 				</div>
 
-				<FormField
-					id="subdomain"
-					label="Subdomain, dibuat otomatis"
-					value={projectQuery.data.slug ?? ''}
-					disabled
-					inputClass="font-mono"
-				/>
+				<LearnMore topic="auto-deploy">
+					<p>{isGithubInstallation ? AUTO_DEPLOY_HELP : AUTO_DEPLOY_UNAVAILABLE_HELP}</p>
+				</LearnMore>
 			</section>
 
 			<section
@@ -474,20 +531,15 @@
 				aria-labelledby="{SECTION.build}-title"
 				class="mt-6 flex scroll-mt-4 flex-col gap-5 border-t border-border pt-6"
 			>
-				<div>
-					<h2 id="{SECTION.build}-title" class="font-sans text-base font-semibold text-foreground">
-						Build dan start
-					</h2>
-					<p class="mt-1 text-sm text-foreground/70">
-						Kosong berarti dideteksi otomatis dari repository.
-					</p>
-				</div>
+				<h2 id="{SECTION.build}-title" class="font-sans text-base font-semibold text-foreground">
+					Build dan start
+				</h2>
 				{@render configField(
 					'rootDirectory',
 					'Root directory',
 					'root_directory',
 					ROOT_DIRECTORY_PLACEHOLDER,
-					ROOT_DIRECTORY_HELP,
+					HINTS.rootDirectory,
 					{ mono: true }
 				)}
 				{@render configField(
@@ -495,7 +547,7 @@
 					'Port',
 					'configured_port',
 					DETECTED_PLACEHOLDER,
-					`Sekarang ${projectQuery.data.effective_port}. Aplikasimu harus mendengarkan di environment variable PORT.`,
+					HINTS.port(projectQuery.data.effective_port),
 					{ numeric: true }
 				)}
 				{@render configField(
@@ -503,7 +555,7 @@
 					'Build command',
 					'build_command',
 					DETECTED_PLACEHOLDER,
-					`${BUILD_COMMAND_HELP} ${BUILD_COMMAND_EXAMPLE}`,
+					HINTS.buildCommand,
 					{ mono: true }
 				)}
 				{@render configField(
@@ -511,9 +563,19 @@
 					'Start command',
 					'start_command',
 					DETECTED_PLACEHOLDER,
-					`${START_COMMAND_HELP} ${START_COMMAND_EXAMPLE}`,
+					HINTS.startCommand,
 					{ mono: true }
 				)}
+				<LearnMore topic="build dan start" testid="build-learn-more">
+					<dl class="flex flex-col gap-2">
+						{@render learnRow(LEARN.emptyTerm, LEARN.empty)}
+						{@render learnRow('Root directory', ROOT_DIRECTORY_HELP)}
+						{@render learnRow('Port', PORT_HELP)}
+						{@render learnRow('Build command', BUILD_COMMAND_HELP)}
+						{@render learnRow('Start command', START_COMMAND_HELP)}
+						{@render learnRow(LEARN.appliesTerm, LEARN.applies)}
+					</dl>
+				</LearnMore>
 			</section>
 
 			<!-- Closed unless it holds a value: both fields are rare, and either can stop a deployment. -->
@@ -538,9 +600,7 @@
 						/>
 					</button>
 				</h2>
-				<p class="text-sm text-foreground/70">
-					{RELEASE_COMMAND_LABEL} dan replika. Jarang perlu diubah.
-				</p>
+				<p class="text-sm text-foreground/70">{RELEASE_COMMAND_LABEL} dan replika.</p>
 				<div
 					id="{SECTION.advanced}-fields"
 					class="mt-5 flex flex-col gap-5"
@@ -551,7 +611,7 @@
 						RELEASE_COMMAND_LABEL,
 						'release_command',
 						RELEASE_COMMAND_PLACEHOLDER,
-						`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`,
+						HINTS.releaseCommand,
 						{ mono: true }
 					)}
 
@@ -563,16 +623,31 @@
 							onValueChange={(value) => updateConfig({ replicas: value })}
 						/>
 					{/if}
+					<LearnMore topic="release command dan replika" testid="advanced-learn-more">
+						<dl class="flex flex-col gap-2">
+							{@render learnRow(
+								RELEASE_COMMAND_LABEL,
+								`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`
+							)}
+							{@render learnRow(
+								REPLICAS_COPY.label,
+								configLimits && configLimits.maxReplicas > MIN_REPLICAS
+									? REPLICAS_COPY.help
+									: `${REPLICAS_COPY.help} ${REPLICAS_COPY.unavailable}`
+							)}
+						</dl>
+						<a
+							href={RELEASE_COMMAND_DOCS_URL}
+							target="_blank"
+							rel="external noopener noreferrer"
+							class="inline-flex min-h-6 items-center self-start font-medium text-primary-dark underline underline-offset-2"
+							>{LEARN.releaseGuide}<span class="sr-only">&nbsp;{PANEL_COPY.newTab}</span></a
+						>
+					</LearnMore>
 				</div>
 			</section>
 
 			<div class="mt-6 flex flex-col gap-4 border-t border-border pt-6">
-				<p class="text-xs text-foreground/70">
-					Branch, port, command, root directory, dan replika baru dipakai mulai deployment
-					berikutnya. <strong class="text-foreground">Redeploy</strong> di atas juga menyimpan perubahan
-					yang belum tersimpan.
-				</p>
-
 				<div class="flex flex-wrap items-center justify-end gap-3">
 					{#if formError}
 						<p role="alert" class="mr-auto text-sm text-error-dark">{formError}</p>
@@ -599,26 +674,6 @@
 
 		{@render workloadSections(false)}
 
-		<section
-			id={SECTION.danger}
-			aria-labelledby="danger-zone-title"
-			class="flex w-full scroll-mt-4 flex-col justify-between gap-4 rounded-card border border-error/40 bg-surface p-4 sm:flex-row sm:items-center sm:p-6"
-		>
-			<div class="min-w-0">
-				<h2 id="danger-zone-title" class="font-sans text-base font-semibold text-foreground">
-					Zona berbahaya
-				</h2>
-				<p class="mt-1 text-sm text-foreground">
-					Menghapus proyek menghentikan aplikasinya dan tidak bisa dibatalkan.
-				</p>
-			</div>
-
-			<Button variant="danger" onclick={handleOpenDelete} disabled={deleteMutation.isPending}>
-				<Trash size={16} aria-hidden="true" />
-				Hapus proyek
-			</Button>
-		</section>
-
 		<DeleteProjectConfirmModal
 			open={isDeleteDialogOpen}
 			projectName={projectQuery.data.name ?? projectQuery.data.project_name ?? ''}
@@ -630,4 +685,4 @@
 			onClose={handleCloseDelete}
 		/>
 	{/if}
-</div>
+</FormPageLayout>

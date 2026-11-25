@@ -9,11 +9,12 @@ import {
 	PROJECT_ID
 } from '../../../../../../tests/e2e/fixtures/project-detail';
 import {
-	RELEASE_COMMAND_EXAMPLE,
 	RELEASE_COMMAND_HELP,
 	RELEASE_COMMAND_LABEL,
-	RELEASE_COMMAND_PLACEHOLDER
+	RELEASE_COMMAND_PLACEHOLDER,
+	SETTINGS_FIELD_HINTS
 } from '../../build-help';
+import { SETTINGS_PANEL_COPY } from '../../settings-panel';
 import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
 import { REPLICAS_COPY } from '../../replicas';
 import ProjectSettingsTab from './ProjectSettingsTab.svelte';
@@ -51,6 +52,13 @@ async function answer(request: Request): Promise<Response> {
 		});
 	}
 	if (pathname.endsWith('/branches')) return json(200, { data: [] });
+	// The side panel reads the header's recent deployments.
+	if (pathname.endsWith('/deployments')) {
+		return json(200, {
+			data: [],
+			meta: { current_page: 1, from: null, last_page: 1, per_page: 6, to: null, total: 0 }
+		});
+	}
 	if (pathname === `/api/v1/app/projects/${PROJECT_ID}` && request.method === 'PUT') {
 		const body = (await request.json()) as Body;
 		saved.push(body);
@@ -96,7 +104,7 @@ afterEach(() => {
 });
 
 describe('ProjectSettingsTab, replicas', () => {
-	it('offers 1 to the workspace maximum, with the explanation', async () => {
+	it('offers 1 to the workspace maximum, with the maximum under the field', async () => {
 		await renderTab();
 		await openAdvanced();
 
@@ -105,11 +113,7 @@ describe('ProjectSettingsTab, replicas', () => {
 		await expect.element(field).toHaveValue(1);
 		await expect.element(field).toHaveAttribute('min', '1');
 		await expect.element(field).toHaveAttribute('max', '4');
-		await expect
-			.element(field)
-			.toHaveAccessibleDescription(
-				`${REPLICAS_COPY.help} Paling banyak 4 replika di workspace ini.`
-			);
+		await expect.element(field).toHaveAccessibleDescription(REPLICAS_COPY.shortMaximum(4));
 	});
 
 	it('is disabled with the reason when the workspace allows one replica', async () => {
@@ -118,7 +122,9 @@ describe('ProjectSettingsTab, replicas', () => {
 		await openAdvanced();
 
 		await expect.element(replicasField()).toBeDisabled();
-		await expect.element(replicasField()).toHaveAccessibleDescription(REPLICAS_COPY.unavailable);
+		await expect
+			.element(replicasField())
+			.toHaveAccessibleDescription(REPLICAS_COPY.shortUnavailable);
 	});
 
 	it.each(['0', '5'])('refuses %s before sending', async (value) => {
@@ -186,7 +192,7 @@ describe('ProjectSettingsTab, release command', () => {
 	const migrate = 'php artisan migrate --force';
 	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
 
-	it('explains when the command runs and what a failure does, with the example in the help', async () => {
+	it('says in one line when the command runs, with the full explanation one click away', async () => {
 		await renderTab();
 		await openAdvanced();
 
@@ -197,7 +203,13 @@ describe('ProjectSettingsTab, release command', () => {
 			.toHaveAttribute('placeholder', RELEASE_COMMAND_PLACEHOLDER);
 		await expect
 			.element(releaseField())
-			.toHaveAccessibleDescription(`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`);
+			.toHaveAccessibleDescription(SETTINGS_FIELD_HINTS.releaseCommand);
+
+		const learnMore = page.getByTestId('advanced-learn-more');
+		const explanation = learnMore.getByText(RELEASE_COMMAND_HELP, { exact: false });
+		await expect.element(explanation).not.toBeVisible();
+		await learnMore.getByText('Pelajari').click();
+		await expect.element(explanation).toBeVisible();
 	});
 
 	it('saves a new command alone, then says the project needs a redeploy', async () => {
@@ -284,17 +296,46 @@ describe('ProjectSettingsTab, release command', () => {
 	});
 });
 
+describe('ProjectSettingsTab, panel', () => {
+	it('shows the address in the panel instead of a disabled subdomain field', async () => {
+		await renderTab();
+
+		await expect
+			.element(page.getByTestId('settings-summary-address'))
+			.toHaveTextContent('toko-kopi-web.sakala.app');
+		await expect.element(page.getByLabelText('Subdomain, dibuat otomatis')).not.toBeInTheDocument();
+	});
+
+	it('marks unsaved changes in the panel until they are saved', async () => {
+		await renderTab();
+		await expect.element(page.getByTestId('settings-summary-unsaved')).not.toBeInTheDocument();
+
+		await userEvent.fill(page.getByRole('textbox', { name: 'Nama proyek' }), 'kopi-baru');
+		await expect
+			.element(page.getByTestId('settings-summary-unsaved'))
+			.toHaveTextContent(SETTINGS_PANEL_COPY.unsaved);
+
+		await save().click();
+		await expect.poll(() => saved).toEqual([{ name: 'kopi-baru' }]);
+		await expect.element(page.getByTestId('settings-summary-unsaved')).not.toBeInTheDocument();
+	});
+});
+
 describe('ProjectSettingsTab, sections', () => {
 	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
 
-	it('groups the form under Umum, Build dan start, and Lanjutan, with the danger zone last', async () => {
+	it('groups the form under Umum, Build dan start, and Lanjutan, then the panel, with the danger zone last', async () => {
 		await renderTab();
 
-		const headings = page.getByRole('heading', { level: 2 });
-		await expect.element(headings.nth(0)).toHaveTextContent('Umum');
-		await expect.element(headings.nth(1)).toHaveTextContent('Build dan start');
-		await expect.element(headings.nth(2)).toHaveTextContent('Lanjutan');
-		await expect.element(headings.nth(3)).toHaveTextContent('Zona berbahaya');
+		const form = page.getByTestId('form-page-main').getByRole('heading', { level: 2 });
+		await expect.element(form.nth(0)).toHaveTextContent('Umum');
+		await expect.element(form.nth(1)).toHaveTextContent('Build dan start');
+		await expect.element(form.nth(2)).toHaveTextContent('Lanjutan');
+		const headings = page.getByRole('heading', { level: 2 }).all();
+		expect(headings.at(-1)?.element().textContent?.trim()).toBe('Zona berbahaya');
+		await expect
+			.element(page.getByRole('complementary', { name: SETTINGS_PANEL_COPY.label }))
+			.toBeVisible();
 
 		const links = page.getByRole('navigation', { name: 'Bagian pengaturan' }).getByRole('link');
 		await expect.element(links.nth(0)).toHaveAttribute('href', '#umum');

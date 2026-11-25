@@ -13,13 +13,19 @@ test.describe('project settings: build configuration', () => {
 
 		await expect(page.getByLabel('Build command')).toBeEditable();
 		await expect(page.getByText('Belum tersedia')).toHaveCount(0);
+		// One short line per field; the full help sits behind "Pelajari" at the end of the section.
 		await expect(page.getByLabel('Build command')).toHaveAccessibleDescription(
-			/Hanya dipakai saat build otomatis dengan Railpack/
+			'Contoh: npm run build.'
 		);
 		await expect(page.getByLabel('Start command')).toHaveAccessibleDescription(
-			/Berlaku untuk Dockerfile dan Railpack/
+			'Contoh: npm start.'
 		);
 		await expect(page.getByLabel('Port')).toHaveAccessibleDescription(/Sekarang 3000/);
+		const railpack = page.getByText(/Hanya dipakai saat build otomatis dengan Railpack/);
+		await expect(railpack).toBeHidden();
+		await page.locator('summary', { hasText: 'build dan start' }).click();
+		await expect(railpack).toBeVisible();
+		await expect(page.getByText(/Berlaku untuk Dockerfile dan Railpack/)).toBeVisible();
 	});
 
 	test('groups the form in Umum, Build dan start, and a closed Lanjutan, with links to each', async ({
@@ -35,10 +41,13 @@ test.describe('project settings: build configuration', () => {
 			'Lanjutan',
 			'Zona berbahaya'
 		]);
+		// Reading order on every width: the form, the side panel, then the danger zone.
 		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
 			'Umum',
 			'Build dan start',
 			'Lanjutan',
+			'Ringkasan',
+			'Bantuan',
 			'Zona berbahaya'
 		]);
 		await expect(page.getByRole('button', { name: 'Lanjutan' })).toHaveAttribute(
@@ -183,7 +192,9 @@ test.describe('project settings: build configuration', () => {
 
 		const toggle = page.getByRole('switch', { name: 'Auto-deploy' });
 		await expect(toggle).toHaveAttribute('aria-checked', 'false');
-		await expect(toggle).toHaveAccessibleDescription(/berlangganan event push/);
+		await expect(toggle).toHaveAccessibleDescription('Deploy otomatis setiap push ke branch ini.');
+		await page.locator('summary', { hasText: 'auto-deploy' }).click();
+		await expect(page.getByText(/berlangganan event push/)).toBeVisible();
 
 		await toggle.click();
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
@@ -205,9 +216,11 @@ test.describe('project settings: build configuration', () => {
 		const toggle = page.getByRole('switch', { name: 'Auto-deploy' });
 		await expect(toggle).toBeDisabled();
 		await expect(toggle).toHaveAttribute('aria-checked', 'false');
-		await expect(toggle).toHaveAccessibleDescription(
-			/tidak tersedia untuk proyek dari URL GitHub publik/
-		);
+		await expect(toggle).toHaveAccessibleDescription('Hanya untuk repository lewat GitHub App.');
+		await page.locator('summary', { hasText: 'auto-deploy' }).click();
+		await expect(
+			page.getByText(/tidak tersedia untuk proyek dari URL GitHub publik/)
+		).toBeVisible();
 	});
 });
 

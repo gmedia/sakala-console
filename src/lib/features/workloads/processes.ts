@@ -6,7 +6,9 @@ import { formatZonedTime } from './time';
 
 export const PROCESS_COPY = {
 	section: 'Proses',
-	intro:
+	/** One line under the title; the full explanation sits behind "Pelajari". */
+	intro: 'Perintah yang terus berjalan di latar, misalnya antrean.',
+	introLearn:
 		'web melayani alamat proyek. Worker menjalankan perintah lain dari image dan variabel yang sama, tanpa alamat, misalnya antrean Laravel.',
 	webName: 'web',
 	webBadge: 'Melayani alamat',

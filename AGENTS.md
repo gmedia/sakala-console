@@ -34,6 +34,7 @@ Panduan ini berlaku untuk AI agent dan Codex yang bekerja di `sakala-console`.
 - Inter untuk teks baca, Montserrat untuk `h1`, `h2`, dan display, JetBrains Mono untuk kode dan log. Ukuran teks hanya 12, 14, 16, 20, 24, 32, dan 48 px. Weight hanya 400, 500, dan 600.
 - Pakai `Button`, `Badge`, `FormField`, `EmptyState`, dan `.control-input`. Radius kontrol `rounded-control`, kartu `rounded-card`, overlay `rounded-overlay`. Hanya overlay yang punya shadow.
 - Console memakai sidebar di `AppShell`, yang menjadi drawer sampai lebar 1024 px.
+- Setiap halaman memakai satu dari tiga template (form dengan panel kanan, daftar lebar penuh, tugas fokus), anggaran teks, dan set ikon di [docs/UI_GUIDELINES.md](docs/UI_GUIDELINES.md).
 - UI light-first, tenang, jelas, accessible, dan tidak memakai dark cyberpunk atau AI glow.
 - User-facing copy memakai Bahasa Indonesia.
 - Setiap screen memiliki satu primary action dan status tidak boleh bergantung pada warna saja.

@@ -11,6 +11,8 @@
 
 ## Ikon
 
+Ikon per konsep (proyek, database, deploy, dan seterusnya) diambil dari `src/lib/components/icons.ts`; daftarnya ada di [Panduan UI](UI_GUIDELINES.md#ikon).
+
 Import ikon satu per satu, misalnya `phosphor-svelte/lib/Check`, bukan dari barrel-nya. Console hanya memakai Phosphor. ESLint menolak import dari barrel. Barrel `phosphor-svelte` di-prebundle Vite menjadi 20 MB JavaScript, dan itu membuat test browser crash saat cache Vite kosong. Alasannya ada di [Testing](TESTING.md#component).
 
 ## Warna

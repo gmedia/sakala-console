@@ -25,7 +25,9 @@
 	import ValkeyOverviewCard from './ValkeyOverviewCard.svelte';
 	import ValkeyProjectsCard from './ValkeyProjectsCard.svelte';
 	import ValkeySettingsCard from './ValkeySettingsCard.svelte';
-	import ValkeyUsageHintCard from './ValkeyUsageHintCard.svelte';
+	import ValkeyPanel from './ValkeyPanel.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import { VALKEY_PANEL_COPY } from '../panel';
 
 	type Props = { workspaceId: string | null; valkeyId: string };
 
@@ -92,27 +94,33 @@
 		links={[{ label: 'Lihat semua Valkey', href: resolve('/valkeys') }]}
 	/>
 {:else}
-	<div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
-		<div class="flex min-w-0 flex-col gap-4 lg:gap-6">
-			{#if !access.canManage}
-				<p class="text-sm text-muted" data-testid="valkey-viewer-note">{VALKEY_COPY.viewerNote}</p>
-			{/if}
-			<ValkeyOverviewCard {valkey} />
-			<ValkeyProjectsCard
-				{valkey}
-				{workspaceId}
-				{access}
-				{notices}
-				preselectedProjectId={route.projectId}
-				onChanged={addNotices}
-			/>
-			<ValkeyConnectionCard {valkey} {workspaceId} {access} />
-		</div>
-		<aside class="flex min-w-0 flex-col gap-4 lg:gap-6" aria-label="Petunjuk dan pengaturan Valkey">
-			<ValkeyUsageHintCard mode={valkey.mode} />
-			{#if access.canManage}
-				<ValkeySettingsCard {valkey} {workspaceId} {sizes} {availableMb} />
-			{/if}
-		</aside>
-	</div>
+	{#snippet panel()}
+		<ValkeyPanel {valkey} canManage={access.canManage} />
+	{/snippet}
+	{#snippet danger()}
+		<ValkeySettingsCard {valkey} {workspaceId} {sizes} {availableMb} parts="delete" />
+	{/snippet}
+	<!-- The form template: the store's cards left, the panel right, deleting last on every screen. -->
+	<FormPageLayout
+		panelLabel={VALKEY_PANEL_COPY.label}
+		{panel}
+		after={access.canManage ? danger : undefined}
+	>
+		{#if !access.canManage}
+			<p class="text-sm text-muted" data-testid="valkey-viewer-note">{VALKEY_COPY.viewerNote}</p>
+		{/if}
+		<ValkeyOverviewCard {valkey} />
+		<ValkeyProjectsCard
+			{valkey}
+			{workspaceId}
+			{access}
+			{notices}
+			preselectedProjectId={route.projectId}
+			onChanged={addNotices}
+		/>
+		<ValkeyConnectionCard {valkey} {workspaceId} {access} />
+		{#if access.canManage}
+			<ValkeySettingsCard {valkey} {workspaceId} {sizes} {availableMb} parts="edit" />
+		{/if}
+	</FormPageLayout>
 {/if}

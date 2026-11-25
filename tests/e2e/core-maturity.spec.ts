@@ -1556,7 +1556,8 @@ test.describe('project settings', () => {
 
 		await expect(page.getByLabel('Nama proyek')).toHaveValue('nama-baru');
 		await expect(page.getByRole('combobox', { name: 'Branch' })).toHaveValue('develop');
-		await expect(page.getByLabel('Subdomain, dibuat otomatis')).toHaveValue('toko-kopi-web');
+		// The address is a fact, not a setting: the side panel shows it instead of a disabled field.
+		await expect(page.getByTestId('settings-summary-address')).toContainText('toko-kopi-web');
 		// Nothing configured: the fields stay empty and editable, and the port names what is used.
 		await expect(page.getByLabel('Port')).toHaveValue('');
 		await expect(page.getByLabel('Port')).toHaveAccessibleDescription(/Sekarang 3000/);

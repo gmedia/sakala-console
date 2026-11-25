@@ -12,6 +12,7 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import { SETTINGS_SECTION_IDS } from '$lib/features/projects/settings-anchors';
 	import { createDeleteProcessMutation } from '../mutations';
 	import {
@@ -53,6 +54,8 @@
 	const quota = $derived(workerQuota(limits, processes));
 	const suggestion = $derived(readOnly ? null : processSuggestion(framework, processes));
 	const atMaximum = $derived(processes.length >= PROCESS_RULES.maxPerProject);
+	// The quota is status: shown while it stops something, otherwise one click away.
+	const quotaBlocks = $derived(quota !== null && (quota.max === 0 || quota.current >= quota.max));
 	const maxReplicas = $derived(limits?.quotas.max_replicas ?? PROCESS_RULES.defaultReplicas);
 
 	let formOpen = $state(false);
@@ -243,11 +246,17 @@
 			{#if atMaximum && !readOnly}
 				<p id="{sectionId}-maximum">{PROCESS_COPY.limitReached(PROCESS_RULES.maxPerProject)}</p>
 			{/if}
-			{#if quota}
+			{#if quota && quotaBlocks}
 				<p data-testid="worker-quota">{workerQuotaText(quota)}</p>
 			{/if}
 			<p>{readOnly ? PROCESS_COPY.readOnly : PROCESS_COPY.applies}</p>
 		</div>
+		<LearnMore topic="worker">
+			<p>{PROCESS_COPY.introLearn}</p>
+			{#if quota && !quotaBlocks}
+				<p data-testid="worker-quota">{workerQuotaText(quota)}</p>
+			{/if}
+		</LearnMore>
 		<span role="status" class="sr-only">{statusMessage}</span>
 	{/if}
 </section>

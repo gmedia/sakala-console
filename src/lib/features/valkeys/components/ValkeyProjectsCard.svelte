@@ -1,4 +1,6 @@
 <script lang="ts">
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
+	import { VALKEY_ANCHORS } from '../panel';
 	// Project links come from resolveRoute() in the database routes helpers.
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
@@ -112,18 +114,22 @@
 </script>
 
 <section
-	class="surface-card flex min-w-0 flex-col gap-4 p-4 sm:p-6"
+	id={VALKEY_ANCHORS.projects}
+	class="surface-card flex min-w-0 scroll-mt-4 flex-col gap-4 p-4 sm:p-6"
 	aria-labelledby="valkey-projects-title"
 	data-testid="valkey-projects"
 >
 	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
 		<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
 			<h2 id="valkey-projects-title" class="text-base text-foreground">Proyek terpasang</h2>
-			<p class="text-sm text-muted">
-				Proyek yang terpasang tersambung ke Valkey ini dan menerima REDIS_URL serta variabel REDIS_*
-				lainnya saat deploy berikutnya. Satu proyek memakai satu Valkey, dan hanya proyek di server
-				yang sama yang bisa memakainya.
-			</p>
+			<p class="text-sm text-muted">Menerima REDIS_URL saat deploy berikutnya.</p>
+			<LearnMore topic="memasang Valkey ke proyek">
+				<p>
+					Proyek yang terpasang tersambung ke Valkey ini dan menerima REDIS_URL serta variabel
+					REDIS_* lainnya saat deploy berikutnya. Satu proyek memakai satu Valkey, dan hanya proyek
+					di server yang sama yang bisa memakainya.
+				</p>
+			</LearnMore>
 		</div>
 		{#if access.canManage}
 			<div class="flex flex-col items-start gap-1">

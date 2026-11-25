@@ -25,7 +25,9 @@ const MS_PER_SECOND = 1000;
 
 export const SCHEDULE_COPY = {
 	section: 'Jadwal',
-	intro:
+	/** One line under the title; the full explanation sits behind "Pelajari". */
+	intro: 'Perintah sekali jalan pada waktu tertentu.',
+	introLearn:
 		'Menjalankan perintah sekali jalan pada waktu tertentu, dari image deployment yang sedang live. Run dimulai sekitar satu menit setelah waktunya dan tidak membangunkan proyek yang tidur.',
 	create: 'Buat jadwal',
 	createTitle: 'Buat jadwal',
