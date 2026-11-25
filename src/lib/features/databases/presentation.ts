@@ -471,7 +471,12 @@ export const ATTACHED_REDEPLOY_SKIPPED_REASONS: Record<string, string> = {
 	bucket_endpoint_unavailable:
 		'Redeploy otomatis dilewati karena server penyimpanan belum melaporkan alamatnya.',
 	bucket_key_rotating:
-		'Redeploy otomatis dilewati karena secret key bucket proyek ini sedang diganti. Redeploy lagi setelah penggantiannya selesai.'
+		'Redeploy otomatis dilewati karena secret key bucket proyek ini sedang diganti. Redeploy lagi setelah penggantiannya selesai.',
+	valkey_not_ready: 'Redeploy otomatis dilewati karena Valkey proyek ini belum siap dipakai.',
+	valkey_password_rotating:
+		'Redeploy otomatis dilewati karena password Valkey proyek ini sedang diganti. Redeploy lagi setelah penggantiannya selesai.',
+	valkey_node_mismatch:
+		'Redeploy otomatis dilewati karena proyek ini berjalan di server lain dari Valkey-nya. Buat Valkey baru untuk proyek ini.'
 };
 
 const SKIPPED_FALLBACK = 'Redeploy otomatis belum bisa dijalankan untuk proyek ini.';

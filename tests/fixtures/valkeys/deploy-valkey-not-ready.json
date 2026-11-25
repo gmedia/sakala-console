@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Valkey ini masih dibuat. Tunggu sampai siap, lalu coba lagi.",
+		"code": "VALKEY_NOT_READY",
+		"status": "provisioning"
+	}
+}

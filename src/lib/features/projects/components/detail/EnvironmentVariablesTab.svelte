@@ -40,6 +40,8 @@
 	import { overriddenNames } from '$lib/features/databases/project-variables';
 	import ProjectBucketVariables from '$lib/features/buckets/components/ProjectBucketVariables.svelte';
 	import { overriddenBucketNames } from '$lib/features/buckets/project-variables';
+	import ProjectValkeySection from '$lib/features/valkeys/components/ProjectValkeySection.svelte';
+	import { overriddenValkeyNames } from '$lib/features/valkeys/project-variables';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -57,6 +59,14 @@
 	// And the ones that take the place of a value from the attached bucket.
 	const overridesBucket = $derived(overriddenBucketNames(projectQuery.data?.buckets));
 	const projectKeys = $derived(query.data ? new Set(query.data.map((env) => env.key)) : undefined);
+	// And the ones that take the place of a value from the attached Valkey store.
+	const overridesValkey = $derived(overriddenValkeyNames(projectQuery.data?.valkeys));
+	// Names with their visible values, so the Valkey section can tell what Laravel still needs.
+	const projectValues = $derived(
+		query.data
+			? new Map(query.data.map((env) => [env.key, env.is_secret ? null : (env.value ?? null)]))
+			: undefined
+	);
 
 	// Local State
 	let revealedValues = $state<Record<number, string>>({});
@@ -512,6 +522,12 @@
 										data-testid="env-overrides-bucket">Menimpa bucket</span
 									>
 								{/if}
+								{#if overridesValkey.has(env.key)}
+									<span
+										class="text-xs font-medium text-warning-dark"
+										data-testid="env-overrides-valkey">Menimpa Valkey</span
+									>
+								{/if}
 							</span>
 
 							<span
@@ -832,6 +848,7 @@
 	{#if projectQuery.data}
 		<ProjectDatabaseVariables project={projectQuery.data} readOnly={access.readOnly} />
 		<ProjectBucketVariables project={projectQuery.data} readOnly={access.readOnly} {projectKeys} />
+		<ProjectValkeySection project={projectQuery.data} readOnly={access.readOnly} {projectValues} />
 	{/if}
 
 	<!-- Said beside the import's save button, for the keys it is about to save. -->

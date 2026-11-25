@@ -5263,7 +5263,7 @@
                         }
                     },
                     "409": {
-                        "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                        "description": "The node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.\n\nThe store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe password of the store (`valkey`: `id`, `name`) is being rotated and the node has not confirmed which password works, or the rotation ended `unknown`. Retry once `password_rotation.status` is `completed` or `failed`, or after a new rotation.\n\nThe project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5395,6 +5395,84 @@
                                                 "message",
                                                 "code",
                                                 "bucket"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "VALKEY_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The password of the store (`valkey`: `id`, `name`) is being rotated and the node has not confirmed which password works, or the rotation ended `unknown`. Retry once `password_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                                                    "enum": [
+                                                        "VALKEY_PASSWORD_ROTATING"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
+                                                    "enum": [
+                                                        "VALKEY_NODE_MISMATCH"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
                                             ]
                                         }
                                     ]
@@ -6040,7 +6118,7 @@
                         }
                     },
                     "409": {
-                        "description": "The deployment cannot be rolled back to; `reason` says why.\n\nThe node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                        "description": "The deployment cannot be rolled back to; `reason` says why.\n\nThe node of the attached database (`database`: `id`, `name`) has not reported its address yet, so the connection variables cannot be built.\n\nThe database is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe node of the attached bucket (`bucket`: `id`, `name`) has not reported its endpoint yet, so the bucket variables cannot be built.\n\nThe bucket is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe key of the bucket (`bucket`: `id`, `name`) is being rotated and the node has not confirmed which secret works, or the rotation ended `unknown`. Retry once `key_rotation.status` is `completed` or `failed`, or after a new rotation.\n\nThe store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe password of the store (`valkey`: `id`, `name`) is being rotated and the node has not confirmed which password works, or the rotation ended `unknown`. Retry once `password_rotation.status` is `completed` or `failed`, or after a new rotation.\n\nThe project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6204,6 +6282,84 @@
                                                 "message",
                                                 "code",
                                                 "bucket"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "VALKEY_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The password of the store (`valkey`: `id`, `name`) is being rotated and the node has not confirmed which password works, or the rotation ended `unknown`. Retry once `password_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                                                    "enum": [
+                                                        "VALKEY_PASSWORD_ROTATING"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
+                                                    "enum": [
+                                                        "VALKEY_NODE_MISMATCH"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
                                             ]
                                         }
                                     ]
@@ -10362,7 +10518,7 @@
         "/v1/app/pilot-limits": {
             "get": {
                 "operationId": "v1.app.pilot-limits.show",
-                "summary": "Quotas, usage, and runtime maximums of one workspace: the one named by\n`workspace_id`, or the caller's personal workspace, plus whether this\ninstallation offers managed databases (`databases.available`) and\nbuckets (`buckets.available`) right now",
+                "summary": "Quotas, usage, and runtime maximums of one workspace: the one named by\n`workspace_id`, or the caller's personal workspace, plus whether this\ninstallation offers managed databases (`databases.available`) and\nbuckets (`buckets.available`) and Valkey stores (`valkeys.available`)\nright now",
                 "tags": [
                     "PilotLimits"
                 ],
@@ -14711,6 +14867,1397 @@
                 }
             }
         },
+        "/v1/app/workspaces/{workspace}/valkeys": {
+            "get": {
+                "operationId": "v1.app.workspaces.valkeys.index",
+                "summary": "The workspace's Valkey stores, newest first. Deleted ones are gone; quotas are in `GET app/pilot-limits`",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ValkeyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ValkeyResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.app.workspaces.valkeys.store",
+                "summary": "Create a store. It is `provisioning` until the node creates it; its size is reserved from the workspace's\nValkey memory at once. With `project_id` it goes to the node the project runs on and is attached to that\nproject in the same step. Needs the current legal terms accepted (`LEGAL_ACCEPTANCE_REQUIRED`)",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreValkeyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ValkeyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The project already uses another Valkey store, named in `valkey` (`id`, `name`). A project uses one store at a time.\n\nNo node that may host the store runs Valkey: none in the region, or the node the project (`project_id`) runs on has no Valkey role.\n\nNo Valkey node that could take the store has room for its size in its memory budget right now. Try a smaller size or later.\n\nThe project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project already uses another Valkey store, named in `valkey` (`id`, `name`). A project uses one store at a time.",
+                                                    "enum": [
+                                                        "PROJECT_VALKEY_ALREADY_ATTACHED"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No node that may host the store runs Valkey: none in the region, or the node the project (`project_id`) runs on has no Valkey role.",
+                                                    "enum": [
+                                                        "VALKEY_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No Valkey node that could take the store has room for its size in its memory budget right now. Try a smaller size or later.",
+                                                    "enum": [
+                                                        "VALKEY_CAPACITY_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
+                                                    "enum": [
+                                                        "VALKEY_NODE_MISMATCH"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The workspace holds as many Valkey stores as its limit allows (`limit`, `current`). `limit` 0 means the workspace may not create stores yet.\n\nThe store size would push the memory reserved by the workspace's Valkey stores above its limit. `limit_mb` is the limit, `current_mb` what the other stores reserve (without this one), `requested_mb` the size asked for.\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The workspace holds as many Valkey stores as its limit allows (`limit`, `current`). `limit` 0 means the workspace may not create stores yet.",
+                                                    "enum": [
+                                                        "VALKEY_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit": {
+                                                    "type": "integer"
+                                                },
+                                                "current": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit",
+                                                "current"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store size would push the memory reserved by the workspace's Valkey stores above its limit. `limit_mb` is the limit, `current_mb` what the other stores reserve (without this one), `requested_mb` the size asked for.",
+                                                    "enum": [
+                                                        "VALKEY_MEMORY_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "current_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "requested_mb": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit_mb",
+                                                "current_mb",
+                                                "requested_mb"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/valkeys/{valkey}": {
+            "get": {
+                "operationId": "v1.app.workspaces.valkeys.show",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ValkeyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "v1.app.workspaces.valkeys.update",
+                "summary": "Rename the store and/or resize it. `200` for a rename only or an unchanged size; `202` when a resize was sent\nto the node (`pending_maxmemory_mb`). The mode never changes",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateValkeyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Renamed, or the size is unchanged.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe Valkey node is still working on an earlier request for this store (creating it, rotating its password, or resizing it). Safe to retry once it finishes.\n\nNo Valkey node that could take the store has room for its size in its memory budget right now. Try a smaller size or later.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "VALKEY_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The Valkey node is still working on an earlier request for this store (creating it, rotating its password, or resizing it). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "VALKEY_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "No Valkey node that could take the store has room for its size in its memory budget right now. Try a smaller size or later.",
+                                                    "enum": [
+                                                        "VALKEY_CAPACITY_UNAVAILABLE"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The store size would push the memory reserved by the workspace's Valkey stores above its limit. `limit_mb` is the limit, `current_mb` what the other stores reserve (without this one), `requested_mb` the size asked for.\n\nValidation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store size would push the memory reserved by the workspace's Valkey stores above its limit. `limit_mb` is the limit, `current_mb` what the other stores reserve (without this one), `requested_mb` the size asked for.",
+                                                    "enum": [
+                                                        "VALKEY_MEMORY_LIMIT_EXCEEDED"
+                                                    ]
+                                                },
+                                                "limit_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "current_mb": {
+                                                    "type": "integer"
+                                                },
+                                                "requested_mb": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "limit_mb",
+                                                "current_mb",
+                                                "requested_mb"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Errors overview."
+                                                },
+                                                "errors": {
+                                                    "type": "object",
+                                                    "description": "A detailed description of each field that failed validation.",
+                                                    "additionalProperties": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "errors"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "202": {
+                        "description": "A resize is on its way to the node.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.workspaces.valkeys.destroy",
+                "summary": "Delete the store with all its data. Answers `202` with `status: deleting`; it is gone once the node deletes\nit. `204` when a store still `provisioning` was removed before any node started creating it. Only a store\nwithout attached projects can be deleted; a detached project must be redeployed first, or the node refuses\n(`last_failure.code` `valkey_in_use`). Backups of a persistent store are kept for about 14 days",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "The node is deleting the store.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "The store was removed before a node started creating it.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The store is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.\n\nThe Valkey node is still working on an earlier request for this store (creating it, rotating its password, or resizing it). Safe to retry once it finishes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is still attached to the projects listed in `projects` (`id`, `name`, `slug`); detach it first.",
+                                                    "enum": [
+                                                        "VALKEY_IN_USE"
+                                                    ]
+                                                },
+                                                "projects": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "projects"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The Valkey node is still working on an earlier request for this store (creating it, rotating its password, or resizing it). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "VALKEY_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/valkeys/{valkey}/credentials": {
+            "get": {
+                "operationId": "v1.app.workspaces.valkeys.credentials",
+                "summary": "The store's address and password and the variables attached projects receive. Owners and admins only, recorded\nin the audit trail before it is sent, never cached. `409 VALKEY_PASSWORD_ROTATING` while a rotation reached the\nnode and the node has not confirmed which password works",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ValkeyCredentialsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyCredentialsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe password of the store (`valkey`: `id`, `name`) is being rotated and the node has not confirmed which password works, or the rotation ended `unknown`. Retry once `password_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "VALKEY_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The password of the store (`valkey`: `id`, `name`) is being rotated and the node has not confirmed which password works, or the rotation ended `unknown`. Retry once `password_rotation.status` is `completed` or `failed`, or after a new rotation.",
+                                                    "enum": [
+                                                        "VALKEY_PASSWORD_ROTATING"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/valkeys/{valkey}/rotate-password": {
+            "post": {
+                "operationId": "v1.app.workspaces.valkeys.rotate-password",
+                "summary": "Ask the node for a new password. Answers `202` with `password_rotation.status: pending`. The node switches at\nonce and closes the connections that are logged in, so running applications fail until they are redeployed.\nOnce the node reports, attached projects show `redeploy_required`, and with `redeploy_attached` the API\nredeploys the attached projects that have a live deployment (`password_rotation.redeploys`)",
+                "tags": [
+                    "Valkey"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RotateValkeyPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "`ValkeyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe Valkey node is still working on an earlier request for this store (creating it, rotating its password, or resizing it). Safe to retry once it finishes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "VALKEY_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The Valkey node is still working on an earlier request for this store (creating it, rotating its password, or resizing it). Safe to retry once it finishes.",
+                                                    "enum": [
+                                                        "VALKEY_BUSY"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/app/workspaces/{workspace}/valkeys/{valkey}/attachments/{project}": {
+            "post": {
+                "operationId": "v1.app.workspaces.valkeys.attachments.store",
+                "summary": "Attach the store to the project. `201`, or `200` when it already was. The project must run, or be able to run,\non the store's node (`VALKEY_NODE_MISMATCH` otherwise). Its next deployment joins the store's network and\nreceives `REDIS_URL` (without a database number), `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD`, except\nthose the project sets itself",
+                "tags": [
+                    "ValkeyAttachment"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The store already was attached.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyAttachmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "The store is locked, so it cannot be attached to a project.\n\nThe store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.\n\nThe project already uses another Valkey store, named in `valkey` (`id`, `name`). A project uses one store at a time.\n\nThe project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is locked, so it cannot be attached to a project.",
+                                                    "enum": [
+                                                        "VALKEY_LOCKED"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The store is not ready or locked: it is being created (`provisioning`), failed, or is being deleted. `status` says which.",
+                                                    "enum": [
+                                                        "VALKEY_NOT_READY"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "status"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project already uses another Valkey store, named in `valkey` (`id`, `name`). A project uses one store at a time.",
+                                                    "enum": [
+                                                        "PROJECT_VALKEY_ALREADY_ATTACHED"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview, in Indonesian."
+                                                },
+                                                "code": {
+                                                    "type": "string",
+                                                    "description": "The project runs, or must run, on another node than the Valkey store (`valkey`: `id`, `name`); a store is reachable only from projects on its own node.",
+                                                    "enum": [
+                                                        "VALKEY_NODE_MISMATCH"
+                                                    ]
+                                                },
+                                                "valkey": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "message",
+                                                "code",
+                                                "valkey"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "201": {
+                        "description": "The store is attached.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ValkeyAttachmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.app.workspaces.valkeys.attachments.destroy",
+                "summary": "Detach the store from the project. The data stays; the project's next deployment no longer joins the store's\nnetwork or receives its variables. `404` when the store is not attached to the project",
+                "tags": [
+                    "ValkeyAttachment"
+                ],
+                "parameters": [
+                    {
+                        "name": "workspace",
+                        "in": "path",
+                        "required": true,
+                        "description": "The workspace ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "valkey",
+                        "in": "path",
+                        "required": true,
+                        "description": "The valkey ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "description": "The project ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/app/workspaces": {
             "get": {
                 "operationId": "v1.app.workspaces.index",
@@ -16717,6 +18264,7 @@
                                         "database_password_rotated",
                                         "database_ready",
                                         "bucket_key_rotated",
+                                        "valkey_password_rotated",
                                         "rollback"
                                     ]
                                 },
@@ -16965,7 +18513,13 @@
                             "SetBucketQuota",
                             "LockBucket",
                             "UnlockBucket",
-                            "RunJob"
+                            "RunJob",
+                            "CreateValkey",
+                            "DeleteValkey",
+                            "RotateValkeyPassword",
+                            "LockValkey",
+                            "UnlockValkey",
+                            "ResizeValkey"
                         ]
                     },
                     "status": {
@@ -18636,7 +20190,13 @@
                             "SetBucketQuota",
                             "LockBucket",
                             "UnlockBucket",
-                            "RunJob"
+                            "RunJob",
+                            "CreateValkey",
+                            "DeleteValkey",
+                            "RotateValkeyPassword",
+                            "LockValkey",
+                            "UnlockValkey",
+                            "ResizeValkey"
                         ]
                     },
                     "status": {
@@ -18726,7 +20286,13 @@
                     "SetBucketQuota",
                     "LockBucket",
                     "UnlockBucket",
-                    "RunJob"
+                    "RunJob",
+                    "CreateValkey",
+                    "DeleteValkey",
+                    "RotateValkeyPassword",
+                    "LockValkey",
+                    "UnlockValkey",
+                    "ResizeValkey"
                 ],
                 "title": "AgentCommandType"
             },
@@ -19702,7 +21268,13 @@
                                     "SetBucketQuota",
                                     "LockBucket",
                                     "UnlockBucket",
-                                    "RunJob"
+                                    "RunJob",
+                                    "CreateValkey",
+                                    "DeleteValkey",
+                                    "RotateValkeyPassword",
+                                    "LockValkey",
+                                    "UnlockValkey",
+                                    "ResizeValkey"
                                 ]
                             },
                             "status": {
@@ -21450,6 +23022,7 @@
                             "database_password_rotated",
                             "database_ready",
                             "bucket_key_rotated",
+                            "valkey_password_rotated",
                             "rollback"
                         ]
                     },
@@ -22135,6 +23708,7 @@
                             "database_password_rotated",
                             "database_ready",
                             "bucket_key_rotated",
+                            "valkey_password_rotated",
                             "rollback"
                         ]
                     },
@@ -22661,6 +24235,29 @@
                             ]
                         }
                     },
+                    "valkeys": {
+                        "type": "array",
+                        "description": "The managed Valkey store attached to the project, as a list of at most one (ADR-023). Only `id`, `name`,\nand `status`. Absent while `SAKALA_VALKEY_ENABLED` is off (`valkeys.enabled` in `GET app/pilot-limits`).",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "status"
+                            ]
+                        }
+                    },
                     "workspace": {
                         "type": [
                             "object",
@@ -22974,6 +24571,20 @@
                         ],
                         "description": "MB the quotas of the workspace's buckets may reserve together. `null` follows the global\n`SAKALA_BUCKET_DEFAULT_MAX_STORAGE_MB`; `0` refuses new buckets and quota increases."
                     },
+                    "max_valkeys": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Managed Valkey stores the workspace may hold. `null` follows the global `SAKALA_VALKEY_DEFAULT_MAX_COUNT`;\n`0` allows none."
+                    },
+                    "max_valkey_memory_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "MB of `maxmemory` the workspace's Valkey stores may reserve together. `null` follows the global\n`SAKALA_VALKEY_DEFAULT_MAX_MEMORY_MB`; `0` refuses new stores and growth."
+                    },
                     "max_worker_containers": {
                         "type": [
                             "integer",
@@ -23038,6 +24649,8 @@
                     "max_database_storage_mb",
                     "max_buckets",
                     "max_bucket_storage_mb",
+                    "max_valkeys",
+                    "max_valkey_memory_mb",
                     "max_worker_containers",
                     "max_schedules",
                     "min_schedule_interval_minutes",
@@ -23372,6 +24985,22 @@
                             "max_concurrent_job_runs": {
                                 "type": "integer",
                                 "description": "Scheduled runs the workspace runs at once; a due run beyond that waits. `0` runs none."
+                            },
+                            "max_valkeys": {
+                                "type": "integer",
+                                "description": "Managed Valkey stores the workspace may hold, from its limit profile or the global setting (ADR-023); `0` allows none."
+                            },
+                            "current_valkeys_count": {
+                                "type": "integer",
+                                "description": "Managed Valkey stores that count towards `max_valkeys`: every live one except those whose creation failed."
+                            },
+                            "max_valkey_memory_mb": {
+                                "type": "integer",
+                                "description": "MB of `maxmemory` the workspace's Valkey stores may reserve together, from its limit profile or the\nglobal setting. `0` refuses new stores and growth; existing stores keep their size."
+                            },
+                            "current_valkey_memory_mb": {
+                                "type": "integer",
+                                "description": "MB the workspace's Valkey stores reserve now: the sum of their sizes, a pending growth included."
                             }
                         },
                         "required": [
@@ -23398,7 +25027,11 @@
                             "max_schedules",
                             "current_schedules_count",
                             "min_schedule_interval_minutes",
-                            "max_concurrent_job_runs"
+                            "max_concurrent_job_runs",
+                            "max_valkeys",
+                            "current_valkeys_count",
+                            "max_valkey_memory_mb",
+                            "current_valkey_memory_mb"
                         ]
                     },
                     "runtime_defaults": {
@@ -23556,6 +25189,33 @@
                             "max_timeout_seconds",
                             "start_deadline_minutes"
                         ]
+                    },
+                    "valkeys": {
+                        "type": "object",
+                        "description": "Managed Valkey stores on this installation (ADR-023). `enabled` follows `SAKALA_VALKEY_ENABLED`; while it\nis false the Valkey endpoints answer 404 and deployments carry no store. `available` is true while it\nis on and at least one online node with the `managed-valkey` capability may receive new stores and did\nnot report its role down. `sizes_mb` lists the sizes a store may have, `default_size_mb` the one used\nwithout `maxmemory_mb`.",
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "available": {
+                                "type": "boolean"
+                            },
+                            "sizes_mb": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                }
+                            },
+                            "default_size_mb": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "enabled",
+                            "available",
+                            "sizes_mb",
+                            "default_size_mb"
+                        ]
                     }
                 },
                 "required": [
@@ -23571,7 +25231,8 @@
                     "databases",
                     "buckets",
                     "workers",
-                    "schedules"
+                    "schedules",
+                    "valkeys"
                 ],
                 "title": "PilotLimitsResource"
             },
@@ -23666,7 +25327,13 @@
                                     "SetBucketQuota",
                                     "LockBucket",
                                     "UnlockBucket",
-                                    "RunJob"
+                                    "RunJob",
+                                    "CreateValkey",
+                                    "DeleteValkey",
+                                    "RotateValkeyPassword",
+                                    "LockValkey",
+                                    "UnlockValkey",
+                                    "ResizeValkey"
                                 ]
                             },
                             "status": {
@@ -24724,6 +26391,47 @@
                             ]
                         }
                     },
+                    "valkeys": {
+                        "type": "array",
+                        "description": "The managed Valkey store attached to the project, as a list of at most one (ADR-023). The next\ndeployment joins its network and receives its variables; see each item's `variables`. Absent while\n`SAKALA_VALKEY_ENABLED` is off (`valkeys.enabled` in `GET app/pilot-limits`).",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "mode": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "variables": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "overridden_variables": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "mode",
+                                "status",
+                                "variables",
+                                "overridden_variables"
+                            ]
+                        }
+                    },
                     "workspace": {
                         "type": [
                             "object",
@@ -25301,6 +27009,16 @@
                 },
                 "title": "RotateDatabasePasswordRequest"
             },
+            "RotateValkeyPasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "redeploy_attached": {
+                        "type": "boolean",
+                        "description": "Redeploy every attached project that has a live deployment as soon as the node reports the new\npassword, as whoever asked for the rotation. Defaults to `false`."
+                    }
+                },
+                "title": "RotateValkeyPasswordRequest"
+            },
             "RuntimeCleanupTarget": {
                 "type": "string",
                 "description": "Values must match `sakala-agent-protocol::RuntimeCleanupTarget` (protocol revision 4).\n",
@@ -25463,6 +27181,7 @@
                             "Image deployment yang sedang berjalan tidak ada di server. Deploy ulang proyek ini, lalu jalankan jadwalnya lagi.",
                             "Server Sakala sedang penuh, jadi run ini tidak dimulai. Ini bukan kesalahan di aplikasimu; run berikutnya dicoba seperti biasa.",
                             "Server Sakala menolak perintah run ini. Pastikan perintahnya satu baris, lalu coba lagi.",
+                            "Jaringan Valkey yang dipakai versi yang sedang berjalan tidak ditemukan di server, jadi run ini tidak dimulai. Ini bukan kesalahan di aplikasimu; deploy ulang proyek ini, lalu jalankan jadwalnya lagi. Kalau terulang, hubungi admin Sakala.",
                             "Environment variable PORT di proyek ini berbeda dengan port yang dipakai Sakala. Hapus atau samakan PORT, deploy ulang, lalu jalankan jadwalnya lagi.",
                             "Run ini dihentikan sebelum selesai.",
                             "Server berhenti melapor saat run ini berjalan, jadi hasilnya tidak diketahui. Pastikan perintahnya aman dijalankan ulang, lalu jalankan lagi bila perlu.",
@@ -25970,6 +27689,24 @@
                         "minimum": 0,
                         "maximum": 1048576
                     },
+                    "max_valkeys": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "Managed Valkey stores the workspace may hold (ADR-023). `null` (the default) follows\n`SAKALA_VALKEY_DEFAULT_MAX_COUNT`; `0` allows none.",
+                        "minimum": 0,
+                        "maximum": 20
+                    },
+                    "max_valkey_memory_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "MB of `maxmemory` the workspace's Valkey stores may reserve together. `null` (the default) follows\n`SAKALA_VALKEY_DEFAULT_MAX_MEMORY_MB`; `0` refuses new stores and growth. Lowering it never shrinks an\nexisting store.",
+                        "minimum": 0,
+                        "maximum": 10240
+                    },
                     "max_worker_containers": {
                         "type": [
                             "integer",
@@ -26239,6 +27976,56 @@
                     "cron_expression"
                 ],
                 "title": "StoreProjectScheduleRequest"
+            },
+            "StoreValkeyRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Name people see, unique among the workspace's live stores. Optional with `project_id`: the project's\nname, followed by ` 2`, ` 3`, ... when taken.",
+                        "maxLength": 100
+                    },
+                    "mode": {
+                        "description": "`cache`: no persistence, the least recently used keys are evicted when full, and a restart empties\nit. `persistent`: append-only file every second, writes are refused when full, backed up nightly;\nfor queues and sessions. Fixed once created.\n\n| |\n|---|\n| `cache` <br/> No persistence, `allkeys-lru`: a full store evicts keys, a restart empties it. |\n| `persistent` <br/> AOF `everysec`, `noeviction`, nightly backup: a full store refuses writes. |",
+                        "$ref": "#/components/schemas/ValkeyMode"
+                    },
+                    "maxmemory_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "`maxmemory` in MB: 32, 64, or 128. `null` (the default) is 64. Reserved from the workspace's Valkey\nmemory at once.",
+                        "enum": [
+                            "32",
+                            "64",
+                            "128",
+                            null
+                        ]
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Sakala region of the Valkey node, for example `jkt`. `null` (the default) uses the project's region\nwith `project_id`, then the workspace's default region, then any region. A store is reachable only\nfrom projects on its own node.",
+                        "maxLength": 32
+                    },
+                    "project_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid",
+                        "description": "A project of this workspace the caller may change, which has no store yet: the new store goes to\nthe node the project runs on and is attached to it at once, while it is still `provisioning`.\nAnother workspace's project answers `404`."
+                    }
+                },
+                "required": [
+                    "mode"
+                ],
+                "title": "StoreValkeyRequest"
             },
             "StoreWorkspaceInvitationRequest": {
                 "type": "object",
@@ -26654,6 +28441,30 @@
                 ],
                 "title": "UpdateUserTeamLimitRequest"
             },
+            "UpdateValkeyRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "New name people see, unique among the workspace's live stores. Never changes anything on the node.",
+                        "maxLength": 100
+                    },
+                    "maxmemory_mb": {
+                        "type": "integer",
+                        "description": "New `maxmemory` in MB: 32, 64, or 128. Needs a `ready` or `locked` store and no resize on its way.\nGrowth must fit the workspace's Valkey memory and the node. A persistent store refuses to shrink below\nits data (`last_failure.code` `valkey_size_below_usage`); a cache store evicts keys instead.",
+                        "enum": [
+                            "32",
+                            "64",
+                            "128"
+                        ]
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "The mode is fixed once created. Sending it answers `422`."
+                    }
+                },
+                "title": "UpdateValkeyRequest"
+            },
             "UpdateWorkspaceMemberRequest": {
                 "type": "object",
                 "properties": {
@@ -26830,6 +28641,400 @@
                     "repository_url"
                 ],
                 "title": "ValidateUrlRequest"
+            },
+            "ValkeyAttachmentResource": {
+                "type": "object",
+                "properties": {
+                    "valkey_id": {
+                        "type": "string"
+                    },
+                    "project": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "slug"
+                        ]
+                    },
+                    "redeploy_required": {
+                        "type": "boolean",
+                        "description": "True while the project's serving deployment lacks the store's network and variables. Deploy again to apply them."
+                    },
+                    "attached_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "valkey_id",
+                    "project",
+                    "redeploy_required",
+                    "attached_at"
+                ],
+                "title": "ValkeyAttachmentResource"
+            },
+            "ValkeyCredentialsResource": {
+                "type": "object",
+                "properties": {
+                    "host": {
+                        "type": "string",
+                        "description": "Address of the store on its private network (`REDIS_HOST`)."
+                    },
+                    "port": {
+                        "type": "integer",
+                        "description": "Always 6379 (`REDIS_PORT`)."
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Password of the `default` user (`REDIS_PASSWORD`): letters and digits only."
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "`redis://:<password>@<host>:<port>`, without a database number (`REDIS_URL`)."
+                    },
+                    "variables": {
+                        "type": "object",
+                        "description": "Exactly the variables an attached project receives, in this order: `REDIS_URL`, `REDIS_HOST`,\n`REDIS_PORT`, `REDIS_PASSWORD`.",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "host",
+                    "port",
+                    "password",
+                    "url",
+                    "variables"
+                ],
+                "title": "ValkeyCredentialsResource"
+            },
+            "ValkeyMode": {
+                "type": "string",
+                "description": "How a managed Valkey store keeps its data (ADR-023), chosen at creation and fixed in v1. The values are the agent's `mode`, exactly.\n| |\n|---|\n| `cache` <br/> No persistence, `allkeys-lru`: a full store evicts keys, a restart empties it. |\n| `persistent` <br/> AOF `everysec`, `noeviction`, nightly backup: a full store refuses writes. |",
+                "enum": [
+                    "cache",
+                    "persistent"
+                ],
+                "title": "ValkeyMode"
+            },
+            "ValkeyPasswordRotationStatus": {
+                "type": "string",
+                "description": "Where the newest password rotation of a managed Valkey store stands, read from its RotateValkeyPassword command.\n| |\n|---|\n| `pending` <br/> Waiting for or running on the Valkey node. The stored password is still the old one. |\n| `completed` <br/> The node switched to the new password and closed the old connections. |\n| `failed` <br/> The node failed it definitively. The old password still works. |\n| `unknown` <br/> The node could not tell whether the new password took effect (the store was down, so the change may apply when it starts), and the API stopped resending it after CredentialRotation::MAX_UNCERTAIN_ATTEMPTS. Neither password is known to work; a new rotation settles it. |",
+                "enum": [
+                    "pending",
+                    "completed",
+                    "failed",
+                    "unknown"
+                ],
+                "title": "ValkeyPasswordRotationStatus"
+            },
+            "ValkeyResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "mode": {
+                        "description": "`cache`: no persistence, the least recently used keys are evicted when full, a restart empties it.\n`persistent`: append-only file every second, writes are refused when full, backed up nightly. Fixed.\n| |\n|---|\n| `cache` <br/> No persistence, `allkeys-lru`: a full store evicts keys, a restart empties it. |\n| `persistent` <br/> AOF `everysec`, `noeviction`, nightly backup: a full store refuses writes. |",
+                        "$ref": "#/components/schemas/ValkeyMode"
+                    },
+                    "status": {
+                        "description": "`provisioning` until the node creates it, then `ready`. `locked` while it is locked (abuse, or every\nattached project is suspended): applications cannot log in, the data stays. `failed` when creation\nfailed; `deleting` while the node deletes it. A deleted store is gone from the API.\n| |\n|---|\n| `provisioning` <br/> CreateValkey is waiting for or running on the Valkey node. |\n| `ready` <br/> Created on the node; attached projects reach it from their next deployment. |\n| `failed` <br/> CreateValkey failed or expired. Delete it and create another. |\n| `deleting` <br/> DeleteValkey is waiting for or running on the Valkey node. |\n| `locked` <br/> An admin locked the store (abuse, or every attached project is suspended): its `default` user is disabled, so applications cannot log in. The data stays. |\n| `deleted` <br/> Deleted on the node. The row is soft deleted at the same moment. |",
+                        "$ref": "#/components/schemas/ValkeyStatus"
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Sakala region of the store's node; `null` when that node has none."
+                    },
+                    "maxmemory_mb": {
+                        "type": "integer",
+                        "description": "`maxmemory` in MB the node applies, or will apply once creation finishes."
+                    },
+                    "pending_maxmemory_mb": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "The size of a resize on its way to the node, in MB; `null` when none is open."
+                    },
+                    "usage": {
+                        "type": "object",
+                        "description": "The node's last reading, all `null` until it reports one: `used_memory_bytes`, `evicted_keys` (keys\nevicted since the store started, cache mode), `errorstat_oom` (writes refused because the store was\nfull, persistent mode), `connected_clients`, `aof_last_write_status` (`ok` or `err`, persistent mode\nonly), `container_status` (Docker state, or `missing`), `restart_count`, and `checked_at`.",
+                        "properties": {
+                            "used_memory_bytes": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "evicted_keys": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "errorstat_oom": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "connected_clients": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "aof_last_write_status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "container_status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "restart_count": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "checked_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "used_memory_bytes",
+                            "evicted_keys",
+                            "errorstat_oom",
+                            "connected_clients",
+                            "aof_last_write_status",
+                            "container_status",
+                            "restart_count",
+                            "checked_at"
+                        ]
+                    },
+                    "projects": {
+                        "type": "array",
+                        "description": "Projects the store is attached to, ordered by name. Each joins the store's network and receives its\nvariables from its next deployment.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "slug": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "slug"
+                            ]
+                        }
+                    },
+                    "connection": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "How attached projects reach the store, without the password: `host` (`REDIS_HOST`, an address on the\nstore's private network, reachable only from attached projects) and `port` (`REDIS_PORT`, always\n6379). Visible to every member. `null` until the node created the store.",
+                        "properties": {
+                            "host": {
+                                "type": "string"
+                            },
+                            "port": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "host",
+                            "port"
+                        ]
+                    },
+                    "last_failure": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Set while the newest request to the node for this store failed or expired: `command` (the agent\ncommand type), `code` (from the agent, such as `valkey_capacity_exceeded`, `valkey_size_below_usage`,\nor `valkey_in_use`, or the control plane's `command_lease_expired`), `user_fixable` (true for\n`valkey_size_below_usage` and `valkey_in_use`), `summary` in Indonesian, and `failed_at`. `null`\notherwise, including once a later request succeeds or is on its way.",
+                        "properties": {
+                            "command": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "user_fixable": {
+                                "type": "boolean"
+                            },
+                            "summary": {
+                                "type": "string"
+                            },
+                            "failed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "command",
+                            "code",
+                            "user_fixable",
+                            "summary",
+                            "failed_at"
+                        ]
+                    },
+                    "password_rotation": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "The newest password rotation; `null` when it was never rotated. Same shape and meaning as\n`key_rotation` of a bucket: `status` is `pending`, `completed`, `failed`, or `unknown` (the store\ndid not answer, so the change may apply when it starts again, and resending it did not complete:\ndeployments and credentials answer `409 VALKEY_PASSWORD_ROTATING` until a new rotation or\n`valkeys:reconcile`). `redeploys` uses trigger `valkey_password_rotated`; `skipped_reason` adds\n`valkey_not_ready`, `valkey_password_rotating`, and `valkey_node_mismatch` to the bucket list.",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "completed",
+                                    "failed",
+                                    "unknown"
+                                ]
+                            },
+                            "requested_at": {
+                                "type": "string"
+                            },
+                            "completed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "failed_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "redeploy_attached": {
+                                "type": "boolean"
+                            },
+                            "redeploys": {
+                                "type": [
+                                    "array",
+                                    "null"
+                                ],
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "project_id": {
+                                            "type": "string"
+                                        },
+                                        "deployment_id": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "skipped_reason": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "project_id",
+                                        "deployment_id",
+                                        "skipped_reason"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "status",
+                            "requested_at",
+                            "completed_at",
+                            "failed_at",
+                            "redeploy_attached",
+                            "redeploys"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "mode",
+                    "status",
+                    "region",
+                    "maxmemory_mb",
+                    "pending_maxmemory_mb",
+                    "usage",
+                    "projects",
+                    "connection",
+                    "last_failure",
+                    "password_rotation",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ValkeyResource"
+            },
+            "ValkeyStatus": {
+                "type": "string",
+                "description": "Lifecycle of a managed Valkey store (ADR-023). Agent command results move it; the API never assumes a node did something it did not report.\n| |\n|---|\n| `provisioning` <br/> CreateValkey is waiting for or running on the Valkey node. |\n| `ready` <br/> Created on the node; attached projects reach it from their next deployment. |\n| `failed` <br/> CreateValkey failed or expired. Delete it and create another. |\n| `deleting` <br/> DeleteValkey is waiting for or running on the Valkey node. |\n| `locked` <br/> An admin locked the store (abuse, or every attached project is suspended): its `default` user is disabled, so applications cannot log in. The data stays. |\n| `deleted` <br/> Deleted on the node. The row is soft deleted at the same moment. |",
+                "enum": [
+                    "provisioning",
+                    "ready",
+                    "failed",
+                    "deleting",
+                    "locked",
+                    "deleted"
+                ],
+                "title": "ValkeyStatus"
             },
             "VariableBuildReason": {
                 "type": "string",
@@ -27167,6 +29372,14 @@
                                 "type": "integer",
                                 "description": "Effective MB the bucket quotas may reserve together, from the profile or the global setting. `0` allows no new allocation."
                             },
+                            "max_valkeys": {
+                                "type": "integer",
+                                "description": "Effective managed Valkey stores, from the profile or the global setting. `0` allows none."
+                            },
+                            "max_valkey_memory_mb": {
+                                "type": "integer",
+                                "description": "Effective MB of `maxmemory` the Valkey stores may reserve together. `0` allows no new allocation."
+                            },
                             "max_worker_containers": {
                                 "type": "integer",
                                 "description": "Effective worker containers at once, from the profile or the global setting. `0` allows none."
@@ -27201,6 +29414,8 @@
                             "max_database_storage_mb",
                             "max_buckets",
                             "max_bucket_storage_mb",
+                            "max_valkeys",
+                            "max_valkey_memory_mb",
                             "max_worker_containers",
                             "max_schedules",
                             "min_schedule_interval_minutes",
@@ -27248,6 +29463,14 @@
                             "schedules": {
                                 "type": "integer",
                                 "description": "Enabled schedules that count towards `max_schedules`."
+                            },
+                            "valkeys": {
+                                "type": "integer",
+                                "description": "Managed Valkey stores that count towards `max_valkeys`."
+                            },
+                            "valkey_memory_mb": {
+                                "type": "integer",
+                                "description": "MB of `maxmemory` the workspace's Valkey stores reserve (allocated, not used)."
                             }
                         },
                         "required": [
@@ -27260,7 +29483,9 @@
                             "bucket_storage_mb",
                             "bucket_usage_bytes",
                             "worker_containers",
-                            "schedules"
+                            "schedules",
+                            "valkeys",
+                            "valkey_memory_mb"
                         ]
                     }
                 },

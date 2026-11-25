@@ -134,6 +134,8 @@ describe('creating a limit profile', () => {
 			max_database_storage_mb: null,
 			max_buckets: null,
 			max_bucket_storage_mb: null,
+			max_valkeys: null,
+			max_valkey_memory_mb: null,
 			default_region: null,
 			reason: 'Pilot magang'
 		});
@@ -201,6 +203,8 @@ describe('creating a limit profile', () => {
 			max_database_storage_mb: null,
 			max_buckets: null,
 			max_bucket_storage_mb: null,
+			max_valkeys: null,
+			max_valkey_memory_mb: null,
 			default_region: null,
 			reason: 'Pilot fakultas'
 		});

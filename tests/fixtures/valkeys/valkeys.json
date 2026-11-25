@@ -1,0 +1,134 @@
+{
+	"status": 200,
+	"body": {
+		"data": [
+			{
+				"id": "01a210b0-2ae7-7a14-a43b-519e3a155837",
+				"name": "cache-gagal",
+				"mode": "cache",
+				"status": "failed",
+				"region": "jkt",
+				"maxmemory_mb": 32,
+				"pending_maxmemory_mb": null,
+				"usage": {
+					"used_memory_bytes": null,
+					"evicted_keys": null,
+					"errorstat_oom": null,
+					"connected_clients": null,
+					"aof_last_write_status": null,
+					"container_status": null,
+					"restart_count": null,
+					"checked_at": null
+				},
+				"projects": [],
+				"connection": null,
+				"last_failure": {
+					"command": "CreateValkey",
+					"code": "valkey_capacity_exceeded",
+					"user_fixable": false,
+					"summary": "Server Valkey tidak punya cukup ruang memori untuk ukuran ini. Coba ukuran yang lebih kecil, atau hubungi operator Sakala.",
+					"failed_at": "2026-11-25T03:12:00+00:00"
+				},
+				"password_rotation": null,
+				"created_at": "2026-11-25T03:12:00+00:00",
+				"updated_at": "2026-11-25T03:12:00+00:00"
+			},
+			{
+				"id": "01a210b0-2ab5-773f-82b1-2bff1733a904",
+				"name": "sesi-lama",
+				"mode": "persistent",
+				"status": "locked",
+				"region": "jkt",
+				"maxmemory_mb": 64,
+				"pending_maxmemory_mb": null,
+				"usage": {
+					"used_memory_bytes": 4194304,
+					"evicted_keys": null,
+					"errorstat_oom": null,
+					"connected_clients": 0,
+					"aof_last_write_status": "ok",
+					"container_status": "running",
+					"restart_count": 0,
+					"checked_at": "2026-11-25T03:09:00+00:00"
+				},
+				"projects": [],
+				"connection": {
+					"host": "10.213.0.2",
+					"port": 6379
+				},
+				"last_failure": null,
+				"password_rotation": null,
+				"created_at": "2026-11-25T03:12:00+00:00",
+				"updated_at": "2026-11-25T03:12:00+00:00"
+			},
+			{
+				"id": "01a210b0-2a5d-733f-a40b-19a5a1fbc3fe",
+				"name": "katalog-api",
+				"mode": "cache",
+				"status": "ready",
+				"region": "jkt",
+				"maxmemory_mb": 32,
+				"pending_maxmemory_mb": null,
+				"usage": {
+					"used_memory_bytes": 28311552,
+					"evicted_keys": 1520,
+					"errorstat_oom": null,
+					"connected_clients": 2,
+					"aof_last_write_status": null,
+					"container_status": "running",
+					"restart_count": 1,
+					"checked_at": "2026-11-25T03:10:00+00:00"
+				},
+				"projects": [
+					{
+						"id": "01a210b0-28c4-7e7e-8fd7-cf4f41081b01",
+						"name": "katalog-api",
+						"slug": "katalog-api"
+					}
+				],
+				"connection": {
+					"host": "10.213.0.2",
+					"port": 6379
+				},
+				"last_failure": null,
+				"password_rotation": null,
+				"created_at": "2026-11-25T03:12:00+00:00",
+				"updated_at": "2026-11-25T03:12:00+00:00"
+			},
+			{
+				"id": "01a210b0-2959-7cc0-8b20-c59e107ba414",
+				"name": "antrean-toko",
+				"mode": "persistent",
+				"status": "ready",
+				"region": "jkt",
+				"maxmemory_mb": 64,
+				"pending_maxmemory_mb": null,
+				"usage": {
+					"used_memory_bytes": 18874368,
+					"evicted_keys": 0,
+					"errorstat_oom": 0,
+					"connected_clients": 3,
+					"aof_last_write_status": "ok",
+					"container_status": "running",
+					"restart_count": 0,
+					"checked_at": "2026-11-25T03:11:00+00:00"
+				},
+				"projects": [
+					{
+						"id": "01a210b0-28b6-74ed-822e-42aff90b7e35",
+						"name": "toko-kopi-web",
+						"slug": "toko-kopi-web"
+					}
+				],
+				"connection": {
+					"host": "10.213.0.2",
+					"port": 6379
+				},
+				"last_failure": null,
+				"password_rotation": null,
+				"created_at": "2026-11-25T03:12:00+00:00",
+				"updated_at": "2026-11-25T03:12:00+00:00"
+			}
+		]
+	}
+}

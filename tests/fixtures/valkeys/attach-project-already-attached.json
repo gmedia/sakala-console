@@ -1,0 +1,11 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Proyek ini sudah memakai Valkey antrean-toko. Lepas dulu Valkey itu dari proyek, lalu pasang yang ini.",
+		"code": "PROJECT_VALKEY_ALREADY_ATTACHED",
+		"valkey": {
+			"id": "01a210b0-2959-7cc0-8b20-c59e107ba414",
+			"name": "antrean-toko"
+		}
+	}
+}

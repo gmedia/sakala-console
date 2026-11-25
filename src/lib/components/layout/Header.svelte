@@ -12,6 +12,7 @@
 	import ProjectAvatar from '$lib/features/projects/components/project/ProjectAvatar.svelte';
 	import { useDatabaseRoute } from '$lib/features/databases/route-state.svelte';
 	import { useBucketRoute } from '$lib/features/buckets/route-state.svelte';
+	import { useValkeyRoute } from '$lib/features/valkeys/route-state.svelte';
 
 	type Props = {
 		onToggleMobile?: () => void;
@@ -31,6 +32,7 @@
 	// A database page names its database after "Database /", like a project page does.
 	const databaseRoute = useDatabaseRoute();
 	const bucketRoute = useBucketRoute();
+	const valkeyRoute = useValkeyRoute();
 
 	// The one page heading. Pages below it do not repeat it.
 	const pageTitle = $derived.by(() => {
@@ -43,6 +45,7 @@
 		if (path.startsWith('/workspaces')) return 'Workspace';
 		if (path.startsWith('/databases')) return 'Database';
 		if (path.startsWith('/buckets')) return 'Bucket';
+		if (path.startsWith('/valkeys')) return 'Valkey';
 		return 'Proyek';
 	});
 </script>
@@ -104,6 +107,14 @@
 					<span class="font-medium text-muted" aria-hidden="true">/</span>
 					<span class="line-clamp-2 min-w-0 font-mono wrap-anywhere text-foreground"
 						>{bucketRoute.name ?? '...'}</span
+					>
+				{:else if valkeyRoute.valkeyId && valkeyRoute.valkeyId !== 'new'}
+					<a href={resolve('/valkeys')} class="font-medium text-muted hover:text-foreground">
+						Valkey
+					</a>
+					<span class="font-medium text-muted" aria-hidden="true">/</span>
+					<span class="line-clamp-2 min-w-0 font-mono wrap-anywhere text-foreground"
+						>{valkeyRoute.name ?? '...'}</span
 					>
 				{:else}
 					<span class="text-foreground">{pageTitle}</span>

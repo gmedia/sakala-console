@@ -115,6 +115,31 @@ export const BUCKET_ERROR_CODES = {
 } as const;
 
 /**
+ * Refusals of the managed Valkey endpoints (ValkeyRuleException in sakala-api, ADR-023), and of a
+ * deploy whose attached store is not usable. Their extra fields are read through
+ * `parseValkeyRefusal()` in `api/resources/valkey-refusals.ts`.
+ */
+export const VALKEY_ERROR_CODES = {
+	/** 422: one store more than `max_valkeys`; `limit` 0 means the workspace may create none. */
+	limitExceeded: 'VALKEY_LIMIT_EXCEEDED',
+	/** 422: the size would take the workspace past `max_valkey_memory_mb`. */
+	memoryLimitExceeded: 'VALKEY_MEMORY_LIMIT_EXCEEDED',
+	/** 409: no node with the Valkey role for this request (region, or the project's node). */
+	unavailable: 'VALKEY_UNAVAILABLE',
+	/** 409: a Valkey node fits, but its memory budget does not hold this size now. */
+	capacityUnavailable: 'VALKEY_CAPACITY_UNAVAILABLE',
+	notReady: 'VALKEY_NOT_READY',
+	locked: 'VALKEY_LOCKED',
+	inUse: 'VALKEY_IN_USE',
+	busy: 'VALKEY_BUSY',
+	projectAlreadyAttached: 'PROJECT_VALKEY_ALREADY_ATTACHED',
+	/** 409: the project runs on another node than the store, which only its own node reaches. */
+	nodeMismatch: 'VALKEY_NODE_MISMATCH',
+	/** 409: the password is being rotated and the node has not confirmed which one works. */
+	passwordRotating: 'VALKEY_PASSWORD_ROTATING'
+} as const;
+
+/**
  * Refusals of worker processes and schedules (ADR-022). Their extra fields are read through
  * `parseWorkloadRefusal()` in `api/resources/workload-refusals.ts`.
  */

@@ -26,7 +26,9 @@ describe('limit profile form', () => {
 			'max_databases',
 			'max_database_storage_mb',
 			'max_buckets',
-			'max_bucket_storage_mb'
+			'max_bucket_storage_mb',
+			'max_valkeys',
+			'max_valkey_memory_mb'
 		]);
 		for (const field of PROFILE_NUMBER_FIELDS) {
 			expect(Boolean(field.optional), field.key).toBe(field.group === 'optional');
@@ -75,8 +77,28 @@ describe('limit profile form', () => {
 			max_database_storage_mb: null,
 			max_buckets: null,
 			max_bucket_storage_mb: null,
+			max_valkeys: null,
+			max_valkey_memory_mb: null,
 			default_region: null
 		});
+	});
+
+	it('sends the Valkey limits, says the server opens none unless told to, and caps them like the API', () => {
+		const values = { ...emptyProfileValues(), max_valkeys: '1', max_valkey_memory_mb: '64' };
+		expect(hasOptionalValue(values)).toBe(true);
+		expect(profilePayload('Pilot', values)).toMatchObject({
+			max_valkeys: 1,
+			max_valkey_memory_mb: 64
+		});
+		const valkeys = PROFILE_NUMBER_FIELDS.find((field) => field.key === 'max_valkeys');
+		expect(valkeys).toMatchObject({ label: 'Valkey', min: 0, max: 20 });
+		expect(valkeys?.hint).toMatch(/ikut bawaan server \(0 kalau tidak diubah/);
+		expect(valkeys?.hint).toMatch(/SAKALA_VALKEY_ENABLED/);
+		const memory = PROFILE_NUMBER_FIELDS.find((field) => field.key === 'max_valkey_memory_mb');
+		expect(memory).toMatchObject({ min: 0, max: 10240 });
+		expect(invalidProfileLabels('Pilot', { ...values, max_valkeys: '21' }).includes('Valkey')).toBe(
+			true
+		);
 	});
 
 	it('sends 0 buckets as a value, says the server default is 0, and caps the count at 100', () => {

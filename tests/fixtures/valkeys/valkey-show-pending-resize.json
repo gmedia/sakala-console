@@ -1,0 +1,39 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a210b0-2959-7cc0-8b20-c59e107ba414",
+			"name": "antrean-toko-kopi",
+			"mode": "persistent",
+			"status": "ready",
+			"region": "jkt",
+			"maxmemory_mb": 64,
+			"pending_maxmemory_mb": 32,
+			"usage": {
+				"used_memory_bytes": 18874368,
+				"evicted_keys": 0,
+				"errorstat_oom": 0,
+				"connected_clients": 3,
+				"aof_last_write_status": "ok",
+				"container_status": "running",
+				"restart_count": 0,
+				"checked_at": "2026-11-25T03:11:00+00:00"
+			},
+			"projects": [
+				{
+					"id": "01a210b0-28b6-74ed-822e-42aff90b7e35",
+					"name": "toko-kopi-web",
+					"slug": "toko-kopi-web"
+				}
+			],
+			"connection": {
+				"host": "10.213.0.2",
+				"port": 6379
+			},
+			"last_failure": null,
+			"password_rotation": null,
+			"created_at": "2026-11-25T03:12:00+00:00",
+			"updated_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

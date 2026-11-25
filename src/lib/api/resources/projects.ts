@@ -9,7 +9,13 @@ type GeneratedListStack = NonNullable<GeneratedProject['stack']>;
 /** Statuses stay plain strings, as parsed, so a value added by a newer API still renders. */
 export type Project = Omit<
 	GeneratedProject,
-	'runtime_status' | 'latest_deployment' | 'workspace' | 'stack' | 'databases' | 'buckets'
+	| 'runtime_status'
+	| 'latest_deployment'
+	| 'workspace'
+	| 'stack'
+	| 'databases'
+	| 'buckets'
+	| 'valkeys'
 > & {
 	/**
 	 * The attached managed database, at most one, with `id`, `name`, and `status` only. Optional
@@ -21,6 +27,8 @@ export type Project = Omit<
 	 * and unparsed.
 	 */
 	buckets?: { id: string; name: string; status: string }[];
+	/** The attached Valkey store (ADR-023); absent while the server's Valkey flag is off. */
+	valkeys?: { id: string; name: string; status: string }[];
 	/** `monorepo` came with sakala-api #179, so an older API leaves it out. */
 	stack:
 		(Omit<GeneratedListStack, 'monorepo'> & { monorepo?: GeneratedListStack['monorepo'] }) | null;

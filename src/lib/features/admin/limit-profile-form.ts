@@ -6,7 +6,9 @@ import {
 	MAX_BUCKETS_RANGE,
 	MAX_DATABASE_STORAGE_MB_RANGE,
 	MAX_DATABASES_RANGE,
-	MAX_REPLICAS_RANGE
+	MAX_REPLICAS_RANGE,
+	MAX_VALKEY_MEMORY_MB_RANGE,
+	MAX_VALKEYS_RANGE
 } from './profile-defaults';
 
 export type ProfileNumberField = Exclude<keyof LimitProfileFields, 'name' | 'default_region'>;
@@ -28,7 +30,7 @@ export const PROFILE_GROUPS: readonly { id: ProfileFieldGroup; title: string; le
 	{
 		id: 'optional',
 		title: 'Opsional',
-		lead: 'Build per jam, tidur otomatis, replika, database, bucket, dan region. Kosong berarti ikut bawaan server.'
+		lead: 'Build per jam, tidur otomatis, replika, database, bucket, Valkey, dan region. Kosong berarti ikut bawaan server.'
 	}
 ];
 
@@ -63,6 +65,18 @@ export const SERVER_DEFAULT_DATABASE_STORAGE_MB = 512;
  */
 export const SERVER_DEFAULT_MAX_BUCKETS = 0;
 export const SERVER_DEFAULT_BUCKET_STORAGE_MB = 0;
+
+/**
+ * sakala-api `PilotRuntimeLimitService::DEFAULT_MAX_VALKEYS` and `DEFAULT_MAX_VALKEY_MEMORY_MB`: 0
+ * and 0 unless the server sets `SAKALA_VALKEY_DEFAULT_MAX_COUNT` or
+ * `SAKALA_VALKEY_DEFAULT_MAX_MEMORY_MB`, because a store holds its memory for as long as it exists.
+ */
+export const SERVER_DEFAULT_MAX_VALKEYS = 0;
+export const SERVER_DEFAULT_VALKEY_MEMORY_MB = 0;
+
+/** Valkey runs only where the server turned it on; the help says so instead of promising it. */
+const VALKEY_FLAG_NOTE =
+	'Hanya berlaku kalau server menyalakan Valkey terkelola (SAKALA_VALKEY_ENABLED).';
 
 /** Managed databases are a limited pilot; the help says so instead of promising them. */
 const DATABASE_PILOT_NOTE =
@@ -166,6 +180,22 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_BUCKET_STORAGE_MB_RANGE,
 		hint: `Jumlah kuota semua bucket di workspace, dipesan di disk server saat bucket dibuat. Menurunkannya tidak mengecilkan bucket yang ada, hanya menahan bucket baru dan kenaikan kuota; 0 berarti tidak ada bucket baru. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_BUCKET_STORAGE_MB)} MB kalau tidak diubah).`,
+		optional: true
+	},
+	{
+		key: 'max_valkeys',
+		label: 'Valkey',
+		group: 'optional',
+		...MAX_VALKEYS_RANGE,
+		hint: `Valkey terkelola per workspace. 0 berarti workspace ini tidak bisa membuat Valkey. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_VALKEYS} kalau tidak diubah, jadi Valkey dibuka per workspace). ${VALKEY_FLAG_NOTE}`,
+		optional: true
+	},
+	{
+		key: 'max_valkey_memory_mb',
+		label: 'Memori Valkey (MB)',
+		group: 'optional',
+		...MAX_VALKEY_MEMORY_MB_RANGE,
+		hint: `Jumlah ukuran semua Valkey di workspace (32, 64, atau 128 MB per Valkey), dicadangkan di server sejak Valkey dibuat. Menurunkannya tidak mengecilkan Valkey yang ada, hanya menahan Valkey baru dan pembesaran; 0 berarti tidak ada Valkey baru. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_VALKEY_MEMORY_MB)} MB kalau tidak diubah).`,
 		optional: true
 	}
 ];

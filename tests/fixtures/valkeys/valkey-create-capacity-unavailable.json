@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Server Valkey sedang tidak punya ruang memori untuk ukuran ini. Coba ukuran yang lebih kecil, atau coba lagi nanti.",
+		"code": "VALKEY_CAPACITY_UNAVAILABLE"
+	}
+}

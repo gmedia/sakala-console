@@ -24,6 +24,7 @@ import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
 import { VARIABLE_BUILD_REASONS, type VariableBuildDecision } from './variable-build';
+import { valkeyDeployRefusalMessage } from '$lib/features/valkeys/deploy-refusals';
 
 export type RuntimeStatusPresentation = {
 	label: string;
@@ -319,6 +320,8 @@ export const WORKER_PROCESSES_UNSUPPORTED_MESSAGE =
  * words.
  */
 export function getDeployErrorMessage(error: unknown, fallback: string): string {
+	const valkeyRefusal = valkeyDeployRefusalMessage(error);
+	if (valkeyRefusal) return valkeyRefusal;
 	if (error instanceof ApiError) {
 		if (error.code === PROJECT_RELEASE_COMMAND_UNSUPPORTED) {
 			return RELEASE_COMMAND_UNSUPPORTED_MESSAGE;

@@ -1,0 +1,36 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a210b0-2ae7-7a14-a43b-519e3a155837",
+			"name": "cache-gagal",
+			"mode": "cache",
+			"status": "failed",
+			"region": "jkt",
+			"maxmemory_mb": 32,
+			"pending_maxmemory_mb": null,
+			"usage": {
+				"used_memory_bytes": null,
+				"evicted_keys": null,
+				"errorstat_oom": null,
+				"connected_clients": null,
+				"aof_last_write_status": null,
+				"container_status": null,
+				"restart_count": null,
+				"checked_at": null
+			},
+			"projects": [],
+			"connection": null,
+			"last_failure": {
+				"command": "CreateValkey",
+				"code": "valkey_capacity_exceeded",
+				"user_fixable": false,
+				"summary": "Server Valkey tidak punya cukup ruang memori untuk ukuran ini. Coba ukuran yang lebih kecil, atau hubungi operator Sakala.",
+				"failed_at": "2026-11-25T03:12:00+00:00"
+			},
+			"password_rotation": null,
+			"created_at": "2026-11-25T03:12:00+00:00",
+			"updated_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}
