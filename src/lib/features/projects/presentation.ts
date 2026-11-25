@@ -24,7 +24,7 @@ import { RELEASE_COMMAND_LABEL } from './build-help';
 import { getReplicaHealth, MIN_REPLICAS, REPLICAS_COPY, type ReplicaHealth } from './replicas';
 import { ACTIVE_DEPLOYMENT_STATUSES, type Deployment, type Project } from './type';
 import { VARIABLE_BUILD_REASONS, type VariableBuildDecision } from './variable-build';
-import { valkeyDeployRefusalMessage } from '$lib/features/valkeys/presentation';
+import { valkeyDeployRefusalMessage } from '$lib/features/valkeys/deploy-refusals';
 
 export type RuntimeStatusPresentation = {
 	label: string;
