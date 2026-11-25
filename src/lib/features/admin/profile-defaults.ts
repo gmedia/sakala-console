@@ -30,6 +30,14 @@ export const MAX_DATABASE_STORAGE_MB_RANGE = { min: 0, max: 1024 * 1024 } as con
 export const MAX_BUCKETS_RANGE = { min: 0, max: 100 } as const;
 export const MAX_BUCKET_STORAGE_MB_RANGE = { min: 0, max: 1024 * 1024 } as const;
 
+/**
+ * The ranges sakala-api accepts for the Valkey limits (StoreLimitProfileRequest,
+ * `LimitProfile::MAX_VALKEYS_CEILING` and `MAX_VALKEY_MEMORY_MB_CEILING`, which is the ceiling times
+ * the 512 MB an agent accepts per store). `0` allows none; empty follows the server's setting.
+ */
+export const MAX_VALKEYS_RANGE = { min: 0, max: 20 } as const;
+export const MAX_VALKEY_MEMORY_MB_RANGE = { min: 0, max: 20 * 512 } as const;
+
 export type ProfileNumbers = Pick<
 	LimitProfile,
 	| 'max_projects'
