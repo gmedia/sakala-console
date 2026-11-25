@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Workspace ini belum bisa membuat Valkey. Minta admin mengaktifkannya lewat profil batas workspace.",
+		"code": "VALKEY_LIMIT_EXCEEDED",
+		"limit": 0,
+		"current": 0
+	}
+}

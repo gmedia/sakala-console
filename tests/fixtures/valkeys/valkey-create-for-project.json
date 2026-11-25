@@ -1,0 +1,36 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a210b0-2a5d-733f-a40b-19a5a1fbc3fe",
+			"name": "katalog-api",
+			"mode": "cache",
+			"status": "provisioning",
+			"region": "jkt",
+			"maxmemory_mb": 32,
+			"pending_maxmemory_mb": null,
+			"usage": {
+				"used_memory_bytes": null,
+				"evicted_keys": null,
+				"errorstat_oom": null,
+				"connected_clients": null,
+				"aof_last_write_status": null,
+				"container_status": null,
+				"restart_count": null,
+				"checked_at": null
+			},
+			"projects": [
+				{
+					"id": "01a210b0-28c4-7e7e-8fd7-cf4f41081b01",
+					"name": "katalog-api",
+					"slug": "katalog-api"
+				}
+			],
+			"connection": null,
+			"last_failure": null,
+			"password_rotation": null,
+			"created_at": "2026-11-25T03:12:00+00:00",
+			"updated_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

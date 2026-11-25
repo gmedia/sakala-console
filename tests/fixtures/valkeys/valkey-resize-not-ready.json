@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Valkey ini gagal dibuat, jadi tidak bisa dipakai. Hapus lalu buat yang baru.",
+		"code": "VALKEY_NOT_READY",
+		"status": "failed"
+	}
+}

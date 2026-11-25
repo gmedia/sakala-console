@@ -1,0 +1,33 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a210b0-2ab5-773f-82b1-2bff1733a904",
+			"name": "sesi-lama",
+			"mode": "persistent",
+			"status": "locked",
+			"region": "jkt",
+			"maxmemory_mb": 64,
+			"pending_maxmemory_mb": null,
+			"usage": {
+				"used_memory_bytes": 4194304,
+				"evicted_keys": null,
+				"errorstat_oom": null,
+				"connected_clients": 0,
+				"aof_last_write_status": "ok",
+				"container_status": "running",
+				"restart_count": 0,
+				"checked_at": "2026-11-25T03:09:00+00:00"
+			},
+			"projects": [],
+			"connection": {
+				"host": "10.213.0.2",
+				"port": 6379
+			},
+			"last_failure": null,
+			"password_rotation": null,
+			"created_at": "2026-11-25T03:12:00+00:00",
+			"updated_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

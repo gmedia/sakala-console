@@ -1,0 +1,15 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"valkey_id": "01a210b0-2959-7cc0-8b20-c59e107ba414",
+			"project": {
+				"id": "01a210b0-28b6-74ed-822e-42aff90b7e35",
+				"name": "toko-kopi-web",
+				"slug": "toko-kopi-web"
+			},
+			"redeploy_required": true,
+			"attached_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

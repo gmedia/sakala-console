@@ -1,0 +1,11 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Proyek ini berjalan di server lain, sedangkan Valkey antrean-toko hanya bisa dijangkau dari server tempat Valkey itu berada. Buat Valkey baru untuk proyek ini.",
+		"code": "VALKEY_NODE_MISMATCH",
+		"valkey": {
+			"id": "01a210b0-2959-7cc0-8b20-c59e107ba414",
+			"name": "antrean-toko"
+		}
+	}
+}

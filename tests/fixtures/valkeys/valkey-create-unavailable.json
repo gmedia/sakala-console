@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Server yang bisa menjalankan Valkey untuk permintaan ini belum tersedia. Coba lagi nanti, atau hubungi operator Sakala.",
+		"code": "VALKEY_UNAVAILABLE"
+	}
+}

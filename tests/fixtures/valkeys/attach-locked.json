@@ -1,0 +1,7 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Valkey ini dikunci admin Sakala, jadi belum bisa dipasang ke proyek. Hubungi admin untuk membukanya.",
+		"code": "VALKEY_LOCKED"
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Proyek ini berjalan di server lain, sedangkan Valkey sesi-lama hanya bisa dijangkau dari server tempat Valkey itu berada. Buat Valkey baru untuk proyek ini.",
+		"code": "VALKEY_NODE_MISMATCH",
+		"valkey": {
+			"id": "01a210b0-2ab5-773f-82b1-2bff1733a904",
+			"name": "sesi-lama"
+		}
+	}
+}

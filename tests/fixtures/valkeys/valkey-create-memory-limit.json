@@ -1,0 +1,10 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Ukuran 128 MB melebihi sisa jatah memori Valkey workspace ini (96 dari 160 MB sudah dipakai store lain). Pilih ukuran yang lebih kecil, kecilkan atau hapus store lain, atau minta admin menaikkan jatahnya.",
+		"code": "VALKEY_MEMORY_LIMIT_EXCEEDED",
+		"limit_mb": 160,
+		"current_mb": 96,
+		"requested_mb": 128
+	}
+}

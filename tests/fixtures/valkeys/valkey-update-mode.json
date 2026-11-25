@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom nama wajib diisi saat maxmemory mb kosong. (dan 2 kesalahan lainnya)",
+		"errors": {
+			"name": ["Kolom nama wajib diisi saat maxmemory mb kosong."],
+			"maxmemory_mb": ["Kolom maxmemory mb wajib diisi saat nama kosong."],
+			"mode": ["Kolom mode tidak boleh diisi."]
+		}
+	}
+}

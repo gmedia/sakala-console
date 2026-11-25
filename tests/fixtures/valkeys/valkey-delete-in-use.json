@@ -1,0 +1,14 @@
+{
+	"status": 409,
+	"body": {
+		"message": "Valkey ini masih dipasang ke proyek. Lepas dulu dari semua proyek, lalu hapus.",
+		"code": "VALKEY_IN_USE",
+		"projects": [
+			{
+				"id": "01a210b0-28b6-74ed-822e-42aff90b7e35",
+				"name": "toko-kopi-web",
+				"slug": "toko-kopi-web"
+			}
+		]
+	}
+}
