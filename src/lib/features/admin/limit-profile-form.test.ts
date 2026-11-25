@@ -28,7 +28,8 @@ describe('limit profile form', () => {
 			'max_buckets',
 			'max_bucket_storage_mb',
 			'max_valkeys',
-			'max_valkey_memory_mb'
+			'max_valkey_memory_mb',
+			'max_custom_domains'
 		]);
 		for (const field of PROFILE_NUMBER_FIELDS) {
 			expect(Boolean(field.optional), field.key).toBe(field.group === 'optional');
@@ -79,8 +80,24 @@ describe('limit profile form', () => {
 			max_bucket_storage_mb: null,
 			max_valkeys: null,
 			max_valkey_memory_mb: null,
+			max_custom_domains: null,
 			default_region: null
 		});
+	});
+
+	it('sends max_custom_domains, says the server allows one unless told otherwise, and caps it like the API', () => {
+		const values = { ...emptyProfileValues(), max_custom_domains: '0' };
+		expect(hasOptionalValue(values)).toBe(true);
+		expect(profilePayload('Pilot', values)).toMatchObject({ max_custom_domains: 0 });
+		const domains = PROFILE_NUMBER_FIELDS.find((field) => field.key === 'max_custom_domains');
+		expect(domains).toMatchObject({ label: 'Custom domain', min: 0, max: 100 });
+		expect(domains?.hint).toMatch(/ikut bawaan server \(1 kalau tidak diubah/);
+		expect(domains?.hint).toMatch(/SAKALA_CUSTOM_DOMAINS_ENABLED/);
+		expect(
+			invalidProfileLabels('Pilot', { ...values, max_custom_domains: '101' }).includes(
+				'Custom domain'
+			)
+		).toBe(true);
 	});
 
 	it('sends the Valkey limits, says the server opens none unless told to, and caps them like the API', () => {

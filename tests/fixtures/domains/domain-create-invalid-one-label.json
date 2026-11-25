@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Nama domain harus punya minimal dua bagian, misalnya contoh.com.",
+		"errors": {
+			"hostname": ["Nama domain harus punya minimal dua bagian, misalnya contoh.com."]
+		}
+	}
+}

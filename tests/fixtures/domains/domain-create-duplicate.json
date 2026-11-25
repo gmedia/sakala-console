@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "www.kopi-senja.com sudah ada di daftar domain proyek ini.",
+		"errors": {
+			"hostname": ["www.kopi-senja.com sudah ada di daftar domain proyek ini."]
+		}
+	}
+}

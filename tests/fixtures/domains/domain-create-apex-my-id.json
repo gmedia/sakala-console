@@ -1,0 +1,42 @@
+{
+	"status": 201,
+	"body": {
+		"data": {
+			"id": "01a211fe-8992-729f-bef2-6a70308b9d3d",
+			"project_id": "01a211fe-8975-735c-815e-34c62906d952",
+			"hostname": "rina.my.id",
+			"kind": "apex",
+			"status": "pending",
+			"target": "edge.sakala.app",
+			"dns_records": [
+				{
+					"type": "TXT",
+					"name": "_sakala.rina.my.id",
+					"value": "sakala-verify=9dbe989d1cdcc078e65faf1198728fa9"
+				},
+				{
+					"type": "ALIAS",
+					"name": "rina.my.id",
+					"value": "edge.sakala.app"
+				}
+			],
+			"last_check": {
+				"checked_at": null,
+				"reasons": [],
+				"routing_match": null
+			},
+			"next_check_at": "2026-11-25T03:12:00+00:00",
+			"verified_at": null,
+			"failing_since": null,
+			"disable_at": null,
+			"failed_at": null,
+			"disabled_at": null,
+			"reactivation_ends_at": null,
+			"admin_disabled": false,
+			"admin_disabled_reason": null,
+			"released_at": null,
+			"waiting_for_node": false,
+			"created_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

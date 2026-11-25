@@ -14,6 +14,9 @@
 		type VariablesState
 	} from '../../overview/topology';
 	import { useDismissedSteps } from '../../overview/use-dismissed-steps.svelte';
+	import { useProjectCustomDomains } from '$lib/features/domains/availability.svelte';
+	import { SETTINGS_SECTION_IDS } from '../../settings-anchors';
+	import { settingsHref } from '../../overview/links';
 	import DomainCard from './DomainCard.svelte';
 	import NextStepsCard from './NextStepsCard.svelte';
 	import OverviewMetricsCard from './OverviewMetricsCard.svelte';
@@ -27,6 +30,7 @@
 	const recentQuery = createRecentDeploymentsQuery(() => projectId);
 	const variablesQuery = createEnvironmentVariablesQuery(() => projectId);
 	const access = useProjectAccess(() => projectQuery.data);
+	const customDomains = useProjectCustomDomains(() => projectQuery.data);
 	const dismissed = useDismissedSteps(() => projectId);
 
 	const project = $derived(projectQuery.data);
@@ -40,7 +44,10 @@
 	});
 	const topology = $derived(
 		project && header
-			? deriveTopology(project, header, variables, { edge: SAKALA_EDGE_IN_FRONT })
+			? deriveTopology(project, header, variables, {
+					edge: SAKALA_EDGE_IN_FRONT,
+					customDomain: customDomains.serving
+				})
 			: null
 	);
 	const steps = $derived(
@@ -73,6 +80,13 @@
 						defaultDomain={project.default_domain}
 						reachable={address.reachable}
 						unreachableNote={address.note}
+						custom={customDomains.enabled
+							? {
+									domains: customDomains.domains,
+									manageHref: settingsHref(projectId, SETTINGS_SECTION_IDS.domains),
+									canManage: !access.readOnly
+								}
+							: null}
 					/>
 					<NextStepsCard {projectId} {steps} onDismiss={dismissed.dismiss} />
 				</div>

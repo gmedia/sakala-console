@@ -59,6 +59,7 @@
 	import { useWorkloadAvailability } from '$lib/features/workloads/availability.svelte';
 	import ProcessesSection from '$lib/features/workloads/components/ProcessesSection.svelte';
 	import SchedulesSection from '$lib/features/workloads/components/SchedulesSection.svelte';
+	import { customDomainsEnabled, DOMAIN_COPY } from '$lib/features/domains/presentation';
 
 	let { projectId }: { projectId: string } = $props();
 
@@ -67,7 +68,18 @@
 	const pilotLimits = createPilotLimitsQuery();
 	// Workers and schedules (ADR-022) appear only where the installation turned them on.
 	const workloads = useWorkloadAvailability(() => projectQuery.data);
-	const sections = $derived(settingsSections(workloads));
+	// Custom domains (ADR-024) likewise, from the same workspace limits. The section is loaded only
+	// when they are on: it carries the Public Suffix List, which no other page needs.
+	const loadDomainsSection = () =>
+		import('$lib/features/domains/components/ProjectDomainsSection.svelte');
+	const domainsOn = $derived(customDomainsEnabled(workloads.limits));
+	const sections = $derived(
+		settingsSections({
+			workers: workloads.workers,
+			schedules: workloads.schedules,
+			domains: domainsOn
+		})
+	);
 	const framework = $derived(projectQuery.data?.stack?.framework ?? null);
 	const deleteMutation = createDeleteProjectMutation();
 	const updateMutation = createUpdateProjectMutation();
@@ -322,6 +334,22 @@
 {/snippet}
 
 {#snippet workloadSections(readOnly: boolean)}
+	{#if domainsOn}
+		{#await loadDomainsSection()}
+			<div class="skeleton h-40 w-full rounded-card" role="status" aria-label="Memuat domain"></div>
+		{:then { default: ProjectDomainsSection }}
+			<ProjectDomainsSection
+				{projectId}
+				defaultDomain={projectQuery.data?.default_domain ?? null}
+				limits={workloads.limits}
+				{readOnly}
+			/>
+		{:catch}
+			<p class="text-sm text-muted" data-testid="domains-unavailable">
+				{DOMAIN_COPY.sectionLoadFailed}
+			</p>
+		{/await}
+	{/if}
 	{#if workloads.workers}
 		<ProcessesSection
 			{projectId}

@@ -146,6 +146,8 @@ export const limitProfileSchema = z.object({
 	max_valkeys: z.number().nullable().optional(),
 	/** MB of `maxmemory` the workspace's stores may reserve: `null` follows the server, `0` allows none. */
 	max_valkey_memory_mb: z.number().nullable().optional(),
+	/** Custom domains per workspace (ADR-024): `null` follows the server (1 unless set), `0` allows none. */
+	max_custom_domains: z.number().nullable().optional(),
 	workspaces_count: z.number().optional(),
 	created_at: z.string().nullable(),
 	updated_at: z.string().nullable()
@@ -256,6 +258,7 @@ export type LimitProfileFields = Pick<
 	| 'max_bucket_storage_mb'
 	| 'max_valkeys'
 	| 'max_valkey_memory_mb'
+	| 'max_custom_domains'
 >;
 
 export async function listLimitProfiles(params: QueryParams) {

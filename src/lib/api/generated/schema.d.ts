@@ -605,6 +605,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/custom-domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Custom domains of every project, newest first, with status and the last check's reasons */
+        get: operations["customDomain.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/custom-domains/{domain}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable a domain with a reason, for abuse such as phishing. It stops routing at once and never comes back on its
+         *     own until enabled again; the project's people are told the reason
+         */
+        post: operations["customDomain.disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/custom-domains/{domain}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lift an admin disable. The domain stays `disabled`, is checked at once, and becomes `verified` again when its DNS
+         *     passes
+         */
+        post: operations["customDomain.enable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/app/workspaces/{workspace}/databases": {
         parameters: {
             query?: never;
@@ -1813,6 +1870,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/app/projects/{project}/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's custom domains, oldest first; deleted ones are gone */
+        get: operations["v1.app.projects.domains.index"];
+        put?: never;
+        /**
+         * Add a custom domain. It is `pending` with a new token until its DNS records are published and pass a check;
+         *     Sakala checks every minute for the first 30 minutes. A name verified on another project is refused with `409
+         *     DOMAIN_TAKEN`; a pending claim elsewhere does not block
+         */
+        post: operations["v1.app.projects.domains.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/domains/{domain}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check the domain's DNS now and apply the result, as the scheduled check would; a disabled domain whose DNS
+         *     passes is active again. At most 6 per minute per domain (`429` beyond)
+         */
+        post: operations["v1.app.projects.domains.check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app/projects/{project}/domains/{domain}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete the domain. It stops routing within about 10 seconds; `<slug>.<project domain>` is not affected */
+        delete: operations["v1.app.projects.domains.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/app/projects/{project}/metrics": {
         parameters: {
             query?: never;
@@ -2732,7 +2848,7 @@ export interface components {
              * @description An `AgentCommandType`, for example `DeployProject`, `StopProject`, `CleanupRuntime`.
              * @enum {string}
              */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey" | "UpdateProjectDomains";
             /**
              * @description `Pending`, `Claimed`, `Running`, `Succeeded`, `Failed`, `Cancelled`, or `Expired`.
              * @enum {string}
@@ -2834,6 +2950,20 @@ export interface components {
             last_seen_at: string | null;
             created_at: string | null;
             updated_at: string | null;
+        };
+        /** AdminCustomDomainResource */
+        AdminCustomDomainResource: {
+            /** @description The claim, as `GET app/projects/{project}/domains` shows it. */
+            domain: components["schemas"]["ProjectDomainResource"];
+            /** @description The project the claim belongs to. */
+            project: {
+                id: string;
+                name: string;
+                slug: string;
+                workspace_id: string | null;
+            } | null;
+            /** @description The token is public in DNS; admins see who added the claim instead. */
+            created_by: number | null;
         };
         /** AdminDeploymentResource */
         AdminDeploymentResource: {
@@ -3176,7 +3306,7 @@ export interface components {
         AgentCommandResource: {
             id: string;
             /** @enum {string} */
-            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey";
+            type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey" | "UpdateProjectDomains";
             /** @enum {string} */
             status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             project_id: string | null;
@@ -3195,7 +3325,7 @@ export interface components {
          * @description Command types shared with sakala-agent protocol revision 4. Case order and values must match `sakala-agent-protocol::CommandType` exactly.
          * @enum {string}
          */
-        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey";
+        AgentCommandType: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey" | "UpdateProjectDomains";
         /** AgentHeartbeatRequest */
         AgentHeartbeatRequest: {
             /** @enum {string} */
@@ -3484,7 +3614,7 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey" | "UpdateProjectDomains";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             };
@@ -3846,6 +3976,19 @@ export interface components {
             } | null;
             created_at: string;
         };
+        /**
+         * CustomDomainStatus
+         * @description Where a custom domain claim stands (ADR-024). Only `verified` routes: the Edge serves it and the project's commands carry it. A claim is never deleted automatically; deleting is the user's (a soft delete).
+         *     | |
+         *     |---|
+         *     | `pending` <br/> Added; waiting until TXT, pointing, and CAA pass together. Checked every minute, then every 15 minutes. |
+         *     | `verified` <br/> TXT, pointing, and CAA passed; routed and re-checked every 6 hours. |
+         *     | `failed` <br/> A pending claim that did not pass within 72 hours. Checked again only on "check now". |
+         *     | `disabled` <br/> A verified domain that kept failing for 72 hours, or that an admin disabled. Not routed; checked daily for 30 days. |
+         *     | `released` <br/> A disabled claim another project verified the name for. It can never route again. |
+         * @enum {string}
+         */
+        CustomDomainStatus: "pending" | "verified" | "failed" | "disabled" | "released";
         /** DatabaseAttachmentResource */
         DatabaseAttachmentResource: {
             database_id: string;
@@ -4165,6 +4308,14 @@ export interface components {
          * @enum {string}
          */
         DesiredWorkloadState: "running" | "stopped" | "missing";
+        /**
+         * DisableCustomDomainRequest
+         * @description An admin disabling a custom domain (ADR-024); the reason is shown to the project's people.
+         */
+        DisableCustomDomainRequest: {
+            /** @description Why, in words the project's owners understand; it is in their notification and email. */
+            reason: string;
+        };
         /** DomainPreviewResource */
         DomainPreviewResource: {
             slug: string;
@@ -4178,7 +4329,10 @@ export interface components {
         EdgeRouteTableResource: {
             /** @description When the API built this table (RFC 3339); up to `SAKALA_EDGE_ROUTES_CACHE_SECONDS` old. */
             generated_at: string;
-            /** @description SHA-256 (lowercase hex) of `expected_minimum_routes`, `routes`, and `skipped_routes`; also the ETag. */
+            /**
+             * @description SHA-256 (lowercase hex) of `expected_minimum_routes`, `routes`, `skipped_routes`, and, while custom domains
+             *     are on, `expected_minimum_custom_routes` and `custom_routes`; also the ETag.
+             */
             revision: string;
             /** @description Routes the API built; a response with fewer `routes` is truncated and must be rejected. */
             expected_minimum_routes: number;
@@ -4196,6 +4350,22 @@ export interface components {
                 host: string;
                 project_id: string;
                 reason: string;
+            }[];
+            /**
+             * @description Verified custom domains of live projects that the Edge must serve (ADR-024). Present only while
+             *     `SAKALA_CUSTOM_DOMAINS_ENABLED` is on; part of `revision` then. A response with fewer `custom_routes` is
+             *     truncated and its custom part must be rejected.
+             */
+            expected_minimum_custom_routes?: number;
+            /**
+             * @description One route per verified custom domain, sorted by `host`. `upstreams` is empty when the project has no
+             *     workload on a node that serves custom domains; the Edge then answers 404 for it itself. Present only
+             *     while custom domains are on.
+             */
+            custom_routes?: {
+                host: string;
+                project_id: string;
+                upstreams: string[];
             }[];
         };
         /** EnvironmentVariableRequest */
@@ -4496,6 +4666,11 @@ export interface components {
              */
             max_valkey_memory_mb: number | null;
             /**
+             * @description Custom domains the workspace's projects may hold together. `null` follows the global
+             *     `SAKALA_CUSTOM_DOMAIN_DEFAULT_MAX_COUNT`; `0` allows none.
+             */
+            max_custom_domains: number | null;
+            /**
              * @description Worker containers the workspace may run at once. `null` follows the global
              *     `SAKALA_WORKER_DEFAULT_MAX_CONTAINERS`; `0` allows none.
              */
@@ -4656,6 +4831,13 @@ export interface components {
                 max_valkey_memory_mb: number;
                 /** @description MB the workspace's Valkey stores reserve now: the sum of their sizes, a pending growth included. */
                 current_valkey_memory_mb: number;
+                /**
+                 * @description Custom domains the workspace's projects may hold together, from its limit profile or the global
+                 *     setting (ADR-024); `0` allows none.
+                 */
+                max_custom_domains: number;
+                /** @description Custom domain claims that count towards `max_custom_domains`: pending, verified, failed, and disabled ones. */
+                current_custom_domains_count: number;
             };
             runtime_defaults: {
                 memory_mb: number;
@@ -4740,6 +4922,15 @@ export interface components {
                 sizes_mb: number[];
                 default_size_mb: number;
             };
+            /**
+             * @description Custom domains for projects on this installation (ADR-024). `enabled` follows
+             *     `SAKALA_CUSTOM_DOMAINS_ENABLED`; while it is false the domain endpoints answer 404. `target` is the name
+             *     a domain points at with a CNAME (or flattening, ALIAS, ANAME for an apex); never an IP address.
+             */
+            custom_domains: {
+                enabled: boolean;
+                target: string;
+            };
         };
         /** PilotValidationMetricsResource */
         PilotValidationMetricsResource: {
@@ -4762,11 +4953,82 @@ export interface components {
             command: {
                 id: string;
                 /** @enum {string} */
-                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey";
+                type: "InspectProject" | "DeployProject" | "RestartProject" | "StopProject" | "SleepProject" | "WakeProject" | "HealthCheck" | "RefreshRoute" | "ReconcileWorkload" | "CleanupRuntime" | "DrainNode" | "ResumeNode" | "CreateDatabase" | "DropDatabase" | "RotateDatabasePassword" | "LockDatabase" | "UnlockDatabase" | "InstallDatabaseExtension" | "CreateBucket" | "DeleteBucket" | "RotateBucketKey" | "SetBucketQuota" | "LockBucket" | "UnlockBucket" | "RunJob" | "CreateValkey" | "DeleteValkey" | "RotateValkeyPassword" | "LockValkey" | "UnlockValkey" | "ResizeValkey" | "UpdateProjectDomains";
                 /** @enum {string} */
                 status: "Pending" | "Claimed" | "Running" | "Succeeded" | "Failed" | "Cancelled" | "Expired";
             } | null;
             wake: components["schemas"]["UnsuspendWakeOutcome"] | null;
+        };
+        /** ProjectDomainResource */
+        ProjectDomainResource: {
+            id: string;
+            project_id: string;
+            /** @description Final lowercase ASCII form; an international name is punycode (`xn--`). */
+            hostname: string;
+            /**
+             * @description `apex` for a registrable domain (`contoh.com`), `subdomain` below one (`www.contoh.com`).
+             * @enum {string}
+             */
+            kind: "apex" | "subdomain";
+            /**
+             * @description `pending` until TXT, pointing, and CAA pass together; `verified` routes; `failed` when a pending claim
+             *     did not pass in 72 hours; `disabled` after 72 hours of failing checks or by an admin; `released` when
+             *     another project verified the name of this disabled claim.
+             * @enum {string}
+             */
+            status: "pending" | "verified" | "failed" | "disabled" | "released";
+            /** @description The stable name the domain points at (`SAKALA_CUSTOM_DOMAIN_TARGET`). Never an IP address. */
+            target: string;
+            /**
+             * @description The records to publish, exactly. `TXT` proves ownership and stays for as long as the domain is used.
+             *     `CNAME` points a subdomain. `ALIAS` points an apex: CNAME flattening, ALIAS, or ANAME, whichever the
+             *     DNS provider offers; without one, use `www` and redirect the apex at the provider.
+             */
+            dns_records: {
+                /** @enum {string} */
+                type: "TXT" | "CNAME" | "ALIAS";
+                name: string;
+                value: string;
+            }[];
+            /**
+             * @description What the last check found; `checked_at` null before the first. `reasons` is empty when it passed;
+             *     each item has a stable `code` and a `message` in Indonesian with what to change. `routing_match` is how
+             *     the last passing check found the domain pointed: `cname`, or `addresses` for an apex whose addresses
+             *     are Sakala's (flattening, or a literal A record that breaks when Sakala's addresses change).
+             */
+            last_check: {
+                checked_at: string | null;
+                reasons: {
+                    code: string;
+                    message: string;
+                }[];
+                /** @enum {string|null} */
+                routing_match: "cname" | "addresses" | null;
+            };
+            /** @description When the next automatic check runs; null when none is planned (failed, released, admin-disabled, or past 30 days disabled). */
+            next_check_at: string | null;
+            verified_at: string | null;
+            /** @description Set while a verified domain fails its checks: the first failing check since the last pass. */
+            failing_since: string | null;
+            /** @description When a failing verified domain is disabled if its DNS is not fixed; null otherwise. */
+            disable_at: string | null;
+            failed_at: string | null;
+            disabled_at: string | null;
+            /**
+             * @description Until when a disabled domain comes back on its own once its DNS passes; null when it does not (admin) or
+             *     is not disabled.
+             */
+            reactivation_ends_at: string | null;
+            /** @description True while an admin keeps the domain disabled; it then never comes back on its own. */
+            admin_disabled: boolean;
+            admin_disabled_reason: string | null;
+            released_at: string | null;
+            /**
+             * @description True when the domain is verified but the node that runs the project cannot serve custom domains yet
+             *     (an older agent): visitors get a 404 until the project runs on a node that can.
+             */
+            waiting_for_node: string;
+            created_at: string | null;
         };
         /**
          * ProjectMetricsRange
@@ -5593,6 +5855,12 @@ export interface components {
              */
             max_valkey_memory_mb?: number | null;
             /**
+             * @description Custom domains the workspace's projects may hold together (ADR-024), pending and disabled claims
+             *     included. `null` (the default) follows `SAKALA_CUSTOM_DOMAIN_DEFAULT_MAX_COUNT`; `0` allows none.
+             *     Lowering it never removes a domain; it only refuses new ones.
+             */
+            max_custom_domains?: number | null;
+            /**
              * @description Worker containers the workspace may run at once (ADR-022). They also count against
              *     `max_active_containers`. `null` (the default) follows `SAKALA_WORKER_DEFAULT_MAX_CONTAINERS`; `0` allows none.
              */
@@ -5625,6 +5893,21 @@ export interface components {
             source?: components["schemas"]["OnboardingSource"];
             /** @enum {unknown} */
             skip?: "yes" | "on" | "1" | 1 | "true" | true;
+        };
+        /**
+         * StoreProjectDomainRequest
+         * @description A custom domain to add to a project (ADR-024). The name is normalized
+         *     (CustomDomainNameParser) and refused with the reason when it cannot be a
+         *     custom domain.
+         */
+        StoreProjectDomainRequest: {
+            /**
+             * @description The domain, for example `www.contoh.com` or `contoh.com`. Case, a trailing dot, a scheme, a path, and a
+             *     port are dropped; an international name is stored as punycode (`xn--`). Refused: IP addresses,
+             *     wildcards, one-label names, public suffixes such as `ac.id` or `my.id`, unknown suffixes, and names
+             *     under Sakala's own zones.
+             */
+            hostname: string;
         };
         /**
          * StoreProjectProcessRequest
@@ -6260,6 +6543,8 @@ export interface components {
                 max_valkeys: number;
                 /** @description Effective MB of `maxmemory` the Valkey stores may reserve together. `0` allows no new allocation. */
                 max_valkey_memory_mb: number;
+                /** @description Effective custom domains, from the profile or the global setting. `0` allows none. */
+                max_custom_domains: number;
                 /** @description Effective worker containers at once, from the profile or the global setting. `0` allows none. */
                 max_worker_containers: number;
                 /** @description Effective enabled schedules, from the profile or the global setting. `0` allows none. */
@@ -6294,6 +6579,8 @@ export interface components {
                 valkeys: number;
                 /** @description MB of `maxmemory` the workspace's Valkey stores reserve (allocated, not used). */
                 valkey_memory_mb: number;
+                /** @description Custom domain claims that count towards `max_custom_domains`. */
+                custom_domains: number;
             };
         };
         /** WorkspaceResource */
@@ -6446,6 +6733,24 @@ export interface components {
                      * @enum {string}
                      */
                     reason?: "overlap" | "concurrency_limit" | "project_suspended" | "project_deleted" | "no_live_deployment" | "node_unsupported" | "dispatcher_late" | "not_started";
+                };
+            };
+        };
+        /** @description The name (`hostname`, in final form) is active on another project. It must be deleted there before any other project can claim it. A pending claim elsewhere never blocks. */
+        CustomDomainTakenException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview, in Indonesian. */
+                    message: string;
+                    /**
+                     * @description The name (`hostname`, in final form) is active on another project. It must be deleted there before any other project can claim it. A pending claim elsewhere never blocks.
+                     * @enum {string}
+                     */
+                    code: "DOMAIN_TAKEN";
+                    hostname: string;
                 };
             };
         };
@@ -8275,6 +8580,164 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "customDomain.index": {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                /** @description Matches the hostname, case-insensitively. */
+                search?: string;
+                status?: components["schemas"]["CustomDomainStatus"];
+                project_id?: string;
+                workspace_id?: string;
+                /** @description `true` for verified domains whose checks are failing (`failing_since` set), `false` to leave them out. */
+                failing?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `AdminCustomDomainResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminCustomDomainResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            current_page: number;
+                            from: number | null;
+                            last_page: number;
+                            /** @description Generated paginator links. */
+                            links: {
+                                url: string | null;
+                                label: string;
+                                active: boolean;
+                            }[];
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description Number of the last item in the slice. */
+                            to: number | null;
+                            /** @description Total number of items being paginated. */
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "customDomain.disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The domain ID */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisableCustomDomainRequest"];
+            };
+        };
+        responses: {
+            /** @description `AdminCustomDomainResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminCustomDomainResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "customDomain.enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The domain ID */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `AdminCustomDomainResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminCustomDomainResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
             /** @description Too many requests */
             429: {
                 headers: {
@@ -12554,6 +13017,201 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.domains.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ProjectDomainResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectDomainResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.domains.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreProjectDomainRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProjectDomainResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectDomainResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            409: components["responses"]["CustomDomainTakenException"];
+            /**
+             * @description The workspace holds as many custom domains as its limit allows (`limit`, `current`); pending, failed, and disabled ones count. `limit` 0 means the workspace may not add custom domains.
+             *
+             *     Validation error
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview, in Indonesian. */
+                        message: string;
+                        /**
+                         * @description The workspace holds as many custom domains as its limit allows (`limit`, `current`); pending, failed, and disabled ones count. `limit` 0 means the workspace may not add custom domains.
+                         * @enum {string}
+                         */
+                        code: "CUSTOM_DOMAIN_LIMIT_EXCEEDED";
+                        limit: number;
+                        current: number;
+                    } | {
+                        /** @description Errors overview. */
+                        message: string;
+                        /** @description A detailed description of each field that failed validation. */
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.domains.check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The domain ID */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProjectDomainResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProjectDomainResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "v1.app.projects.domains.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The project ID */
+                project: string;
+                /** @description The domain ID */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
             /** @description Too many requests */
             429: {
                 headers: {

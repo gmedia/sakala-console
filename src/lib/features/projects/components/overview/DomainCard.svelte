@@ -4,7 +4,10 @@
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import Button from '$lib/components/ui/Button.svelte';
 	import BreakableUrl from '$lib/components/ui/BreakableUrl.svelte';
+	import Badge from '$lib/components/ui/Badge.svelte';
+	import type { ProjectDomain } from '$lib/api/resources/project-domains';
 	import { CUSTOM_DOMAIN_ROADMAP_URL } from '$lib/config/project';
+	import { domainStatusView } from '$lib/features/domains/presentation';
 	import { copyWithToast, URL_COPY_MESSAGES } from '$lib/utils/clipboard';
 	import { ADDRESS_SECTION_ID } from '../../overview/links';
 	import { getPublicUrlLabel } from '../../presentation';
@@ -18,9 +21,18 @@
 		reachable: boolean;
 		/** Why it cannot be opened yet, when it cannot. */
 		unreachableNote: string | null;
+		/**
+		 * The project's custom domains (ADR-024) and where to manage them, or `null` while the
+		 * installation has them off, which keeps the roadmap note.
+		 */
+		custom?: {
+			domains: ProjectDomain[] | undefined;
+			manageHref: string;
+			canManage: boolean;
+		} | null;
 	};
 
-	let { publicUrl, defaultDomain, reachable, unreachableNote }: Props = $props();
+	let { publicUrl, defaultDomain, reachable, unreachableNote, custom = null }: Props = $props();
 
 	const COPIED_MS = 2_000;
 
@@ -28,8 +40,11 @@
 		title: 'Alamat dan domain',
 		defaultLabel: 'Alamat bawaan',
 		defaultNote: 'Dibuat otomatis dari nama proyek.',
-		customLabel: 'Domain sendiri',
+		customLabel: 'Custom domain',
 		customNote: 'Belum tersedia. Memakai domainmu sendiri ada di roadmap Sakala.',
+		customNone: 'Belum ada.',
+		customAdd: 'Tambah domain',
+		customManage: 'Atur domain',
 		roadmap: 'Lihat roadmap',
 		copy: 'Salin',
 		copied: 'Disalin',
@@ -95,17 +110,50 @@
 		</div>
 		<div class="flex flex-col gap-1.5 border-t border-border pt-4">
 			<dt class="text-xs font-medium text-muted">{COPY.customLabel}</dt>
-			<dd class="flex flex-col gap-1 text-sm text-foreground">
-				<span>{COPY.customNote}</span>
-				<a
-					href={CUSTOM_DOMAIN_ROADMAP_URL}
-					target="_blank"
-					rel="external noopener noreferrer"
-					class="inline-flex min-h-6 items-center self-start font-medium text-primary-dark underline underline-offset-2"
+			{#if custom}
+				<dd
+					class="flex flex-col gap-2 text-sm text-foreground"
+					data-testid="overview-custom-domains"
 				>
-					{COPY.roadmap}<span class="sr-only">(tab baru)</span>
-				</a>
-			</dd>
+					{#if custom.domains?.length}
+						<ul class="flex flex-col gap-1.5">
+							{#each custom.domains as domain (domain.id)}
+								{@const view = domainStatusView(domain)}
+								<li class="flex flex-wrap items-center gap-x-2 gap-y-1">
+									<span class="min-w-0 font-mono text-sm font-medium wrap-anywhere">
+										{domain.hostname}
+									</span>
+									<Badge tone={view.tone}>{view.label}</Badge>
+								</li>
+							{/each}
+						</ul>
+					{:else if custom.domains}
+						<span class="text-muted">{COPY.customNone}</span>
+					{/if}
+					{#if custom.canManage || custom.domains?.length}
+						<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a hash -->
+						<a
+							href={custom.manageHref}
+							class="inline-flex min-h-6 items-center self-start font-medium text-primary-dark underline underline-offset-2"
+						>
+							{custom.domains?.length ? COPY.customManage : COPY.customAdd}
+						</a>
+						<!-- eslint-enable svelte/no-navigation-without-resolve -->
+					{/if}
+				</dd>
+			{:else}
+				<dd class="flex flex-col gap-1 text-sm text-foreground">
+					<span>{COPY.customNote}</span>
+					<a
+						href={CUSTOM_DOMAIN_ROADMAP_URL}
+						target="_blank"
+						rel="external noopener noreferrer"
+						class="inline-flex min-h-6 items-center self-start font-medium text-primary-dark underline underline-offset-2"
+					>
+						{COPY.roadmap}<span class="sr-only">(tab baru)</span>
+					</a>
+				</dd>
+			{/if}
 		</div>
 	</dl>
 </section>

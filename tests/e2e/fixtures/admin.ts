@@ -78,6 +78,17 @@ export async function mockAdminApi(page: Page, { role = 'admin', override }: Opt
 		)
 	) as Fixture;
 	await page.route('**/api/v1/app/regions', (route) => fulfill(route, regions));
+	// The admin menu asks whether custom domains are on (ADR-024); here they are off, as on a
+	// server without the flag. tests/e2e/domains.spec.ts answers with them on.
+	const limitsOff = JSON.parse(
+		readFileSync(
+			fileURLToPath(
+				new URL('../../fixtures/domains/pilot-limits-domains-off.json', import.meta.url)
+			),
+			'utf8'
+		)
+	) as Fixture;
+	await page.route(/\/api\/v1\/app\/pilot-limits(\?.*)?$/, (route) => fulfill(route, limitsOff));
 	await page.route(/\/api\/v1\/admin\//, (route) => {
 		const request = route.request();
 		const url = new URL(request.url());

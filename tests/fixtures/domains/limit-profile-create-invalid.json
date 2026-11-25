@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Kolom max custom domains harus bernilai 0 sampai 100.",
+		"errors": {
+			"max_custom_domains": ["Kolom max custom domains harus bernilai 0 sampai 100."]
+		}
+	}
+}

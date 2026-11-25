@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Domain di bawah sakala.app milik Sakala dan tidak bisa dipakai sebagai custom domain. Alamat proyekmu di Sakala sudah aktif tanpa perlu ditambahkan.",
+		"errors": {
+			"hostname": [
+				"Domain di bawah sakala.app milik Sakala dan tidak bisa dipakai sebagai custom domain. Alamat proyekmu di Sakala sudah aktif tanpa perlu ditambahkan."
+			]
+		}
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Setiap bagian nama domain hanya boleh berisi huruf, angka, dan tanda hubung, tidak diawali atau diakhiri tanda hubung, dan paling panjang 63 karakter.",
+		"errors": {
+			"hostname": [
+				"Setiap bagian nama domain hanya boleh berisi huruf, angka, dan tanda hubung, tidak diawali atau diakhiri tanda hubung, dan paling panjang 63 karakter."
+			]
+		}
+	}
+}

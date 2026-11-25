@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Nama domain paling panjang 253 karakter.",
+		"errors": {
+			"hostname": ["Nama domain paling panjang 253 karakter."]
+		}
+	}
+}

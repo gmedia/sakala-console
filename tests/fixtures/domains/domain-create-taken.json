@@ -1,0 +1,8 @@
+{
+	"status": 409,
+	"body": {
+		"message": "www.kopi-senja.com sudah aktif di proyek lain di Sakala. Satu domain hanya bisa aktif di satu proyek. Kalau proyek itu milikmu, hapus dulu domainnya di sana.",
+		"code": "DOMAIN_TAKEN",
+		"hostname": "www.kopi-senja.com"
+	}
+}

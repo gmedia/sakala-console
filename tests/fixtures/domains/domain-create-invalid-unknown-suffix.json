@@ -1,0 +1,11 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Akhiran domain ini tidak dikenal. Pakai domain yang sudah kamu daftarkan di registrar, misalnya contoh.com atau nama.my.id.",
+		"errors": {
+			"hostname": [
+				"Akhiran domain ini tidak dikenal. Pakai domain yang sudah kamu daftarkan di registrar, misalnya contoh.com atau nama.my.id."
+			]
+		}
+	}
+}

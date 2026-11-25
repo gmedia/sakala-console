@@ -1,0 +1,82 @@
+{
+	"status": 200,
+	"body": {
+		"data": {
+			"id": "01a211fe-89c9-7ef9-84e6-09fba7b9e421",
+			"name": "kopi-senja",
+			"slug": "kopi-senja",
+			"repository_provider": "github",
+			"thumbnail_url": null,
+			"repository_url": "https://github.com/sakala-demo/in-earum-nesciunt-ratione",
+			"repository_full_name": "sakala-demo/in-earum-nesciunt-ratione",
+			"repository_source": "public_url",
+			"github_installation_id": null,
+			"github_repository_id": null,
+			"branch": "main",
+			"default_domain": "in-earum-nesciunt-ratione.run.sakala.localhost",
+			"public_url": "http://in-earum-nesciunt-ratione.run.sakala.localhost",
+			"status": "draft",
+			"runtime_status": "running",
+			"suspension": null,
+			"detected_port": null,
+			"configured_port": null,
+			"effective_port": 3000,
+			"serving_port": null,
+			"replicas": 1,
+			"max_replicas": 1,
+			"serving_replicas": 1,
+			"replicas_ready": null,
+			"region": null,
+			"build_command": null,
+			"start_command": null,
+			"release_command": null,
+			"root_directory": null,
+			"auto_deploy": false,
+			"auto_deploy_pause": null,
+			"restart": null,
+			"redeploy_required": false,
+			"active_deployment_id": "01a211fe-89cd-78dd-96c4-662c7a8de5d6",
+			"latest_deployment": {
+				"id": "01a211fe-89cd-78dd-96c4-662c7a8de5d6",
+				"sequence": 1,
+				"status": "succeeded",
+				"branch": "main",
+				"commit_sha": "b1c2d3e4f5a6978877869504a3b2c1d0e9f8a7b6",
+				"commit_message": "feat: live version",
+				"created_at": "2026-11-25T03:12:00+00:00",
+				"finished_at": null
+			},
+			"preview_status": "unavailable",
+			"inspection": null,
+			"stack": null,
+			"inspection_error_code": null,
+			"variable_changes": {
+				"requires_build": true,
+				"reason": "unknown_stack",
+				"build_time_prefixes": [
+					"NEXT_PUBLIC_",
+					"NUXT_PUBLIC_",
+					"VITE_",
+					"REACT_APP_",
+					"VUE_APP_",
+					"GATSBY_",
+					"EXPO_PUBLIC_",
+					"PUBLIC_",
+					"RAILPACK_"
+				],
+				"build_time_keys": ["NODE_ENV"]
+			},
+			"last_deployed_at": null,
+			"databases": [],
+			"buckets": [],
+			"workspace": {
+				"id": "01a211fe-89c4-7a6a-8b28-1511cb2f4279",
+				"name": "PT Waluyo (Persero) Tbk",
+				"slug": "team-92654",
+				"type": "team"
+			},
+			"created_at": "2026-11-25T03:12:00+00:00",
+			"updated_at": "2026-11-25T03:12:00+00:00"
+		}
+	}
+}

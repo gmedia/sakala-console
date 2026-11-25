@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Workspace ini belum bisa memakai custom domain. Minta admin Sakala membukanya lewat profil batas workspace.",
+		"code": "CUSTOM_DOMAIN_LIMIT_EXCEEDED",
+		"limit": 0,
+		"current": 0
+	}
+}

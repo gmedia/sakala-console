@@ -1,0 +1,9 @@
+{
+	"status": 422,
+	"body": {
+		"message": "Bagian nama domain yang diawali xn-- bukan nama internasional yang valid.",
+		"errors": {
+			"hostname": ["Bagian nama domain yang diawali xn-- bukan nama internasional yang valid."]
+		}
+	}
+}

@@ -19,12 +19,18 @@ const READY: VariablesState = { state: 'ready', count: 3 };
 
 function topologyOf(
 	overrides: Partial<Project> = {},
-	options: { variables?: VariablesState; deployments?: unknown[]; edge?: boolean } = {}
+	options: {
+		variables?: VariablesState;
+		deployments?: unknown[];
+		edge?: boolean;
+		customDomain?: string | null;
+	} = {}
 ) {
 	const subject = project(overrides);
 	const header = deriveProjectHeaderState(subject, (options.deployments ?? []) as Deployment[]);
 	return deriveTopology(subject, header, options.variables ?? READY, {
-		edge: options.edge ?? true
+		edge: options.edge ?? true,
+		customDomain: options.customDomain
 	});
 }
 
@@ -147,6 +153,21 @@ describe('a deploy over a live version', () => {
 			activity: { label: 'Men-deploy versi baru', tone: 'running' },
 			tone: 'live'
 		});
+	});
+});
+
+describe('a custom domain (ADR-024)', () => {
+	it('is the address when active, with the Sakala address in its detail', () => {
+		const address = block(topologyOf({}, { customDomain: 'www.kopi-senja.com' }), 'address');
+		expect(address).toMatchObject({ fact: 'www.kopi-senja.com', mono: true });
+		expect(address?.detail.value).toBe('www.kopi-senja.com');
+		expect(address?.detail.body).toEqual([TOPOLOGY_COPY.customAddress('toko-kopi-web.sakala.app')]);
+	});
+
+	it('leaves the Sakala address when there is none', () => {
+		expect(block(topologyOf({}, { customDomain: null }), 'address')?.fact).toBe(
+			'toko-kopi-web.sakala.app'
+		);
 	});
 });
 

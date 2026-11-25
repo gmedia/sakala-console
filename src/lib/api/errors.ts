@@ -156,6 +156,17 @@ export const WORKLOAD_ERROR_CODES = {
 	scheduleRunNotOpen: 'SCHEDULE_RUN_NOT_OPEN'
 } as const;
 
+/**
+ * Refusals of a project's custom domains (CustomDomainRuleException in sakala-api, ADR-024). Their
+ * extra fields are read through `parseDomainRefusal()` in `api/resources/domain-refusals.ts`.
+ */
+export const CUSTOM_DOMAIN_ERROR_CODES = {
+	/** 422: one claim more than `max_custom_domains`; `limit` 0 means the workspace may add none. */
+	limitExceeded: 'CUSTOM_DOMAIN_LIMIT_EXCEEDED',
+	/** 409: the name is active (`verified`) on another project. Carries `hostname`. */
+	taken: 'DOMAIN_TAKEN'
+} as const;
+
 export type ValidationErrors = Record<string, string[]>;
 
 export type ApiErrorMeta = {
