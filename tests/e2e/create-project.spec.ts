@@ -709,7 +709,7 @@ test.describe('pilot limits', () => {
 
 		const limits = page.getByText(/memori 256 MB dan CPU 0,5 vCPU/);
 		await expect(limits).toBeHidden();
-		await page.getByText('Pelajari', { exact: true }).first().click();
+		await page.locator('summary').filter({ hasText: 'batas pilot' }).click();
 		await expect(limits).toBeVisible();
 	});
 
