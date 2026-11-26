@@ -22,7 +22,7 @@
 	import DatabaseExtensionsCard from './DatabaseExtensionsCard.svelte';
 	import DatabaseOverviewCard from './DatabaseOverviewCard.svelte';
 	import DatabaseProjectsCard from './DatabaseProjectsCard.svelte';
-	import DatabaseSettingsCard from './DatabaseSettingsCard.svelte';
+	import DatabaseDangerZone from './DatabaseDangerZone.svelte';
 	import DatabasePanel from './DatabasePanel.svelte';
 	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
 	import { DATABASE_PANEL_COPY } from '../panel';
@@ -81,7 +81,7 @@
 		<DatabasePanel {database} canManage={access.canManage} />
 	{/snippet}
 	{#snippet danger()}
-		<DatabaseSettingsCard {database} {workspaceId} parts="delete" />
+		<DatabaseDangerZone {database} {workspaceId} />
 	{/snippet}
 	<!-- The form template: the database's cards left, the panel right, deleting last on every screen. -->
 	<FormPageLayout
@@ -96,6 +96,8 @@
 		{/if}
 		<DatabaseOverviewCard
 			{database}
+			{workspaceId}
+			canManage={access.canManage}
 			storageQuotaMb={limitsQuery.data?.quotas.max_database_storage_mb}
 			workspaceStorage={quota?.storage ?? null}
 		/>
@@ -109,8 +111,5 @@
 		/>
 		<DatabaseConnectionCard {database} {workspaceId} {access} />
 		<DatabaseExtensionsCard {database} {workspaceId} {access} />
-		{#if access.canManage}
-			<DatabaseSettingsCard {database} {workspaceId} parts="edit" />
-		{/if}
 	</FormPageLayout>
 {/if}

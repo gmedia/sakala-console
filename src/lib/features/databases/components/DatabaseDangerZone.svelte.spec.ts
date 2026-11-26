@@ -10,7 +10,7 @@ import {
 } from '$lib/api/resources/databases';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import { errorFromDatabaseFixture, getDatabaseFixture } from '$lib/testing/database-fixtures';
-import DatabaseSettingsCard from './DatabaseSettingsCard.svelte';
+import DatabaseDangerZone from './DatabaseDangerZone.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('$lib/config/public', () => ({
@@ -28,7 +28,7 @@ const deleting = parseDatabase(getDatabaseFixture('database-delete').body);
 
 const renderCard = (database: Database) =>
 	render(QueryTestHost, {
-		props: { component: DatabaseSettingsCard, props: { database, workspaceId: 'ws-1' } }
+		props: { component: DatabaseDangerZone, props: { database, workspaceId: 'ws-1' } }
 	});
 
 beforeEach(() => {
@@ -36,7 +36,7 @@ beforeEach(() => {
 	vi.mocked(goto).mockClear();
 });
 
-describe('DatabaseSettingsCard', () => {
+describe('DatabaseDangerZone', () => {
 	it('blocks deleting while projects are attached, and says which', async () => {
 		renderCard(attached);
 		await expect.element(page.getByTestId('delete-database')).toBeDisabled();

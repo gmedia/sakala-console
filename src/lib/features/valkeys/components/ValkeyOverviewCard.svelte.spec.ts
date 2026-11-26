@@ -1,9 +1,7 @@
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { goto } from '$app/navigation';
 import {
-	deleteValkey,
 	parseValkey,
 	parseValkeyList,
 	updateValkey,
@@ -11,71 +9,66 @@ import {
 } from '$lib/api/resources/valkeys';
 import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import { errorFromValkeyFixture, getValkeyFixture } from '$lib/testing/valkey-fixtures';
-import ValkeySettingsCard from './ValkeySettingsCard.svelte';
+import ValkeyOverviewCard from './ValkeyOverviewCard.svelte';
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('$app/navigation', () => ({
+	goto: vi.fn(),
+	replaceState: vi.fn(),
+	afterNavigate: vi.fn()
+}));
+vi.mock('$app/state', () => ({ page: { url: new URL('http://app.test/valkeys/v'), state: {} } }));
 vi.mock('$lib/config/public', () => ({
 	publicConfig: { apiUrl: 'http://api.test', appUrl: 'http://app.test' }
 }));
 vi.mock('$lib/api/resources/valkeys', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api/resources/valkeys')>()),
-	deleteValkey: vi.fn(),
 	updateValkey: vi.fn()
 }));
 
 const all = parseValkeyList(getValkeyFixture('valkeys').body);
 const queue = all.find((valkey) => valkey.name === 'antrean-toko')!;
-const locked = all.find((valkey) => valkey.name === 'sesi-lama')!;
 const cache = parseValkey(getValkeyFixture('valkey-show-cache').body);
 const pending = parseValkey(getValkeyFixture('valkey-show-pending-resize').body);
 
-const renderCard = (valkey: Valkey, availableMb: number | null = 0) =>
+const renderCard = (valkey: Valkey, availableMb: number | null = 0, canManage = true) =>
 	render(QueryTestHost, {
 		props: {
-			component: ValkeySettingsCard,
-			props: { valkey, workspaceId: 'ws-1', sizes: [32, 64, 128], availableMb }
+			component: ValkeyOverviewCard,
+			props: { valkey, workspaceId: 'ws-1', canManage, sizes: [32, 64, 128], availableMb }
 		}
 	});
 
+const editSize = () => page.getByRole('button', { name: 'Ubah ukuran Valkey' });
+
 beforeEach(() => {
-	vi.mocked(deleteValkey).mockReset();
 	vi.mocked(updateValkey).mockReset();
-	vi.mocked(goto).mockClear();
 });
 
-describe('ValkeySettingsCard', () => {
-	it('blocks deleting while projects are attached, and says which', async () => {
-		renderCard(queue);
-		await expect.element(page.getByTestId('delete-valkey')).toBeDisabled();
-		await expect
-			.element(page.getByTestId('valkey-delete-blocked'))
-			.toHaveTextContent(/Masih dipasang ke toko-kopi-web/);
+describe('ValkeyOverviewCard editing in place', () => {
+	it('gives a viewer the values without any way to edit them', async () => {
+		renderCard(queue, 0, false);
+		await expect.element(page.getByTestId('valkey-size-value')).toHaveTextContent('64 MB');
+		await expect.element(page.getByRole('button', { name: /^Ubah/ })).not.toBeInTheDocument();
 	});
 
-	it('deletes a free store after its name is typed', async () => {
-		vi.mocked(deleteValkey).mockResolvedValue(parseValkey(getValkeyFixture('valkey-delete').body));
-		renderCard(locked);
-		await page.getByTestId('delete-valkey').click();
-		const confirm = page.getByRole('button', { name: 'Hapus Valkey ini' });
-		await expect.element(confirm).toBeDisabled();
-		await page.getByLabelText(/untuk konfirmasi/).fill('sesi-lama');
-		await confirm.click();
-		expect(deleteValkey).toHaveBeenCalledWith('ws-1', locked.id);
-		await expect.poll(() => vi.mocked(goto).mock.calls.length).toBe(1);
-	});
-
-	it('offers only the sizes that fit the workspace, counting the store own size', async () => {
+	it('offers only the sizes that fit the workspace, with the current one focused', async () => {
 		renderCard(queue, 0);
+		await editSize().click();
 		const group = page.getByTestId('valkey-size-options');
 		await expect.element(group.getByRole('radio', { name: '32 MB' })).toBeEnabled();
 		await expect.element(group.getByRole('radio', { name: '64 MB' })).toBeChecked();
+		await expect.element(group.getByRole('radio', { name: '64 MB' })).toHaveFocus();
 		await expect.element(group.getByRole('radio', { name: '128 MB' })).toBeDisabled();
 		await expect.element(group).toHaveTextContent(/Melebihi sisa jatah memori workspace/);
+		await userEvent.keyboard('{Escape}');
+		await expect.element(group).not.toBeInTheDocument();
+		await expect.element(editSize()).toHaveFocus();
 	});
 
 	it('warns before shrinking, in the words of the mode, and sends the new size', async () => {
 		vi.mocked(updateValkey).mockResolvedValue(parseValkey(getValkeyFixture('valkey-resize').body));
 		renderCard(queue, 96);
+		await editSize().click();
 		await page.getByRole('radio', { name: '32 MB' }).click();
 		await expect
 			.element(page.getByTestId('valkey-resize-shrink'))
@@ -87,16 +80,28 @@ describe('ValkeySettingsCard', () => {
 	it('says a cache store drops keys when shrunk, and shows a refused growth in words', async () => {
 		vi.mocked(updateValkey).mockRejectedValue(errorFromValkeyFixture('valkey-resize-memory-limit'));
 		renderCard(cache, null);
+		await editSize().click();
 		await page.getByRole('radio', { name: '128 MB' }).click();
 		await page.getByTestId('save-valkey-size').click();
 		await expect.element(page.getByRole('alert')).toHaveTextContent(/melebihi sisa jatah memori/);
 	});
 
-	it('waits for a resize on its way', async () => {
+	it('shows a resize on its way beside the size, and waits for it', async () => {
 		renderCard(pending, 96);
+		await expect.element(page.getByTestId('valkey-size-value')).toHaveTextContent(/menjadi/);
+		await editSize().click();
 		await expect
 			.element(page.getByTestId('valkey-size-options'))
 			.toHaveTextContent(/masih diterapkan/);
 		await expect.element(page.getByTestId('save-valkey-size')).toBeDisabled();
+	});
+
+	it('renames in place', async () => {
+		vi.mocked(updateValkey).mockResolvedValue({ ...queue, name: 'antrean-baru' });
+		renderCard(queue);
+		await page.getByRole('button', { name: 'Ubah nama Valkey' }).click();
+		await page.getByLabelText('Nama Valkey', { exact: true }).fill('antrean-baru');
+		await page.getByRole('button', { name: 'Simpan nama' }).click();
+		expect(updateValkey).toHaveBeenCalledWith('ws-1', queue.id, { name: 'antrean-baru' });
 	});
 });

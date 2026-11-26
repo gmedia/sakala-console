@@ -6,7 +6,7 @@ import { bucketUsageMeter } from './presentation';
 /** Ids on the bucket's page the panel's next steps land on. */
 export const BUCKET_ANCHORS = {
 	projects: 'bucket-projects',
-	quota: 'bucket-quota-settings'
+	quota: 'bucket-quota'
 } as const;
 
 /** The words of the bucket page's side panel and fact line (docs/UI_GUIDELINES.md, text budget). */

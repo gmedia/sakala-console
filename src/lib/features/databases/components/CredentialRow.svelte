@@ -33,7 +33,7 @@
 </script>
 
 <div
-	class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2.5 sm:grid-cols-[8.5rem_minmax(0,1fr)_auto]"
+	class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2.5 sm:grid-cols-[8.5rem_minmax(0,1fr)_auto] lg:py-1"
 >
 	<dt class="text-xs font-medium text-muted sm:text-sm">{label}</dt>
 	<dd

@@ -2,26 +2,72 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Warning from 'phosphor-svelte/lib/Warning';
+	import { tick } from 'svelte';
 	import { VALKEY_MODE, AOF_WRITE_FAILED, type Valkey } from '$lib/api/resources/valkeys';
+	import InlineEditButton from '$lib/components/ui/InlineEditButton.svelte';
+	import InlineRenameForm from '$lib/components/ui/InlineRenameForm.svelte';
+	import { openAtAnchor } from '$lib/components/ui/inline-edit.svelte';
 	import StorageBar from '$lib/features/databases/components/StorageBar.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
-	import { VALKEY_PANEL_COPY as FACTS } from '../panel';
+	import { createUpdateValkeyMutation } from '../mutations';
+	import { VALKEY_ANCHORS, VALKEY_PANEL_COPY as FACTS } from '../panel';
 	import ValkeyModeLabel from './ValkeyModeLabel.svelte';
+	import ValkeyResizeForm from './ValkeyResizeForm.svelte';
 	import ValkeyStatusBadge from './ValkeyStatusBadge.svelte';
 	import {
 		LOCKED_COPY,
 		VALKEY_COPY,
+		VALKEY_NAME_MAX_LENGTH,
 		formatMegabytes,
 		pendingResizeText,
 		provisioningSteps,
 		separateFailure,
 		valkeyMemoryMeter,
+		valkeyErrorMessage,
 		valkeyMemoryNotice,
 		valkeyStatusView
 	} from '../presentation';
 
-	let { valkey }: { valkey: Valkey } = $props();
+	type Props = {
+		valkey: Valkey;
+		workspaceId: string;
+		/** Owners and members rename and resize; viewers see the values only. */
+		canManage: boolean;
+		sizes: number[];
+		/** MB the workspace may still reserve besides this store; `null` when the API decides. */
+		availableMb: number | null;
+	};
+
+	let { valkey, workspaceId, canManage, sizes, availableMb }: Props = $props();
+
+	const EDITOR_IDS = { name: 'valkey-rename', size: 'valkey-resize-editor' } as const;
+	const renameMutation = createUpdateValkeyMutation();
+
+	// Renaming and resizing are rare, one field each: they open in place, next to their value.
+	let editing = $state<'name' | 'size' | null>(null);
+	let nameTrigger = $state<HTMLElement | null>(null);
+	let sizeTrigger = $state<HTMLElement | null>(null);
+
+	async function close() {
+		const trigger = editing === 'name' ? nameTrigger : sizeTrigger;
+		editing = null;
+		await tick();
+		trigger?.focus();
+	}
+
+	function toggle(part: 'name' | 'size') {
+		if (editing === part) void close();
+		else editing = part;
+	}
+
+	// The panel's "Perbesar ukuran" links here.
+	openAtAnchor(
+		VALKEY_ANCHORS.resize,
+		EDITOR_IDS.size,
+		() => canManage,
+		() => (editing = 'size')
+	);
 
 	const countFormat = new Intl.NumberFormat('id-ID');
 	/** A reading the node has not sent yet, or one that does not apply to this mode. */
@@ -47,16 +93,77 @@
 >
 	<!-- The store's facts in one line of badges and values, like a project's header. -->
 	<div class="flex min-w-0 flex-col gap-2">
-		<h2 id="valkey-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
-			{valkey.name}
-		</h2>
+		<div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+			<h2
+				id="valkey-overview-title"
+				class="min-w-0 font-mono text-xl wrap-anywhere text-foreground"
+			>
+				{valkey.name}
+			</h2>
+			{#if canManage}
+				<InlineEditButton
+					subject="nama Valkey"
+					expanded={editing === 'name'}
+					controls={EDITOR_IDS.name}
+					onclick={() => toggle('name')}
+					bind:ref={nameTrigger}
+					testid="edit-valkey-name"
+				/>
+			{/if}
+		</div>
+		{#if editing === 'name'}
+			<InlineRenameForm
+				id={EDITOR_IDS.name}
+				label="Nama Valkey"
+				hint="Hanya nama tampilan. Koneksi dan variabel proyek tidak berubah."
+				value={valkey.name}
+				maxLength={VALKEY_NAME_MAX_LENGTH}
+				noun="Valkey"
+				save={(name) =>
+					renameMutation.mutateAsync({ workspaceId, valkeyId: valkey.id, payload: { name } })}
+				errorMessage={(error) =>
+					valkeyErrorMessage(
+						error,
+						'rename',
+						'Nama Valkey belum diganti. Muat ulang halaman, lalu simpan lagi.'
+					)}
+				onClose={close}
+				testid="valkey-rename"
+			/>
+		{/if}
 		<p
 			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
 			data-testid="valkey-facts"
 		>
 			<ValkeyStatusBadge {valkey} />
 			<ValkeyModeLabel mode={valkey.mode} />
-			<span class="text-foreground tabular-nums">{formatMegabytes(valkey.maxmemory_mb)}</span>
+			<!-- The value and its Ubah wrap together, so the action never lands on a line of its own. -->
+			<span class="inline-flex items-center gap-1">
+				<span
+					id={VALKEY_ANCHORS.resize}
+					class="scroll-mt-4 text-foreground tabular-nums"
+					data-testid="valkey-size-value"
+				>
+					{formatMegabytes(valkey.maxmemory_mb)}
+					{#if valkey.pending_maxmemory_mb !== null}
+						<span class="text-muted">
+							menjadi {formatMegabytes(valkey.pending_maxmemory_mb)}<span class="sr-only"
+								>, sedang diterapkan</span
+							>
+						</span>
+					{/if}
+				</span>
+				{#if canManage}
+					<InlineEditButton
+						subject="ukuran Valkey"
+						expanded={editing === 'size'}
+						controls={EDITOR_IDS.size}
+						onclick={() => toggle('size')}
+						bind:ref={sizeTrigger}
+						testid="edit-valkey-size"
+					/>
+				{/if}
+			</span>
 			<span aria-hidden="true">·</span>
 			{#if valkey.region}
 				<span class="font-mono text-foreground">{valkey.region}</span>
@@ -72,6 +179,16 @@
 				<span>{FACTS.created(formatDate(valkey.created_at))}</span>
 			{/if}
 		</p>
+		{#if editing === 'size'}
+			<ValkeyResizeForm
+				id={EDITOR_IDS.size}
+				{valkey}
+				{workspaceId}
+				{sizes}
+				{availableMb}
+				onClose={close}
+			/>
+		{/if}
 	</div>
 
 	<!-- Polite, so the change from Menyiapkan to Siap is heard without moving focus. -->
@@ -180,7 +297,7 @@
 		</p>
 	{/if}
 
-	<dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+	<dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 		<div class="flex min-w-0 flex-col gap-1 sm:col-span-2">
 			<dt class="text-xs text-muted">Memori terpakai</dt>
 			<dd>
@@ -188,19 +305,6 @@
 					<StorageBar {meter} label={`Memori ${valkey.name} yang terpakai`} />
 				{:else}
 					<span class="text-sm text-foreground">{VALKEY_COPY.notMeasured}</span>
-				{/if}
-			</dd>
-		</div>
-		<div class="flex min-w-0 flex-col gap-1">
-			<dt class="text-xs text-muted">Ukuran</dt>
-			<dd class="text-sm text-foreground tabular-nums" data-testid="valkey-size-value">
-				{formatMegabytes(valkey.maxmemory_mb)}
-				{#if valkey.pending_maxmemory_mb !== null}
-					<span class="text-muted">
-						menjadi {formatMegabytes(valkey.pending_maxmemory_mb)}<span class="sr-only"
-							>, sedang diterapkan</span
-						>
-					</span>
 				{/if}
 			</dd>
 		</div>

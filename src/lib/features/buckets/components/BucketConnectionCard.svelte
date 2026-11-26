@@ -95,10 +95,13 @@
 	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
 		<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
 			<h2 id="bucket-connection-title" class="text-base text-foreground">Koneksi</h2>
-			<p class="text-sm text-muted">{BUCKET_COPY.publicEndpoint}</p>
-			<LearnMore topic="alamat publik bucket">
-				<p>{BUCKET_COPY.publicEndpointWhy}</p>
-			</LearnMore>
+			<!-- "Pelajari" sits beside the line it explains, and takes its own line once open. -->
+			<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 [&>details[open]]:basis-full">
+				<p class="text-sm text-muted">{BUCKET_COPY.publicEndpoint}</p>
+				<LearnMore topic="alamat publik bucket">
+					<p>{BUCKET_COPY.publicEndpointWhy}</p>
+				</LearnMore>
+			</div>
 		</div>
 		{#if access.canViewCredentials && onNode}
 			{#if credentials}

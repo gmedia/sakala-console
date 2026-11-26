@@ -21,7 +21,7 @@
 	import BucketConnectionCard from './BucketConnectionCard.svelte';
 	import BucketOverviewCard from './BucketOverviewCard.svelte';
 	import BucketProjectsCard from './BucketProjectsCard.svelte';
-	import BucketSettingsCard from './BucketSettingsCard.svelte';
+	import BucketDangerZone from './BucketDangerZone.svelte';
 	import BucketPanel from './BucketPanel.svelte';
 	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
 	import { BUCKET_PANEL_COPY } from '../panel';
@@ -86,7 +86,7 @@
 		<BucketPanel {bucket} canManage={access.canManage} {maxQuotaMb} />
 	{/snippet}
 	{#snippet danger()}
-		<BucketSettingsCard {bucket} {workspaceId} {maxQuotaMb} parts="delete" />
+		<BucketDangerZone {bucket} {workspaceId} />
 	{/snippet}
 	<!-- The form template: the bucket's cards left, the panel right, deleting last on every screen. -->
 	<FormPageLayout
@@ -97,7 +97,7 @@
 		{#if !access.canManage}
 			<p class="text-sm text-muted" data-testid="bucket-viewer-note">{BUCKET_COPY.viewerNote}</p>
 		{/if}
-		<BucketOverviewCard {bucket} />
+		<BucketOverviewCard {bucket} {workspaceId} canManage={access.canManage} {maxQuotaMb} />
 		<BucketProjectsCard
 			{bucket}
 			{workspaceId}
@@ -107,8 +107,5 @@
 			onChanged={addNotices}
 		/>
 		<BucketConnectionCard {bucket} {workspaceId} {access} />
-		{#if access.canManage}
-			<BucketSettingsCard {bucket} {workspaceId} {maxQuotaMb} parts="edit" />
-		{/if}
 	</FormPageLayout>
 {/if}

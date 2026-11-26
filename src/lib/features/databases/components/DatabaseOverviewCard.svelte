@@ -2,10 +2,16 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Warning from 'phosphor-svelte/lib/Warning';
+	import { tick } from 'svelte';
 	import type { Database } from '$lib/api/resources/databases';
+	import InlineEditButton from '$lib/components/ui/InlineEditButton.svelte';
+	import InlineRenameForm from '$lib/components/ui/InlineRenameForm.svelte';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
 	import { cn } from '$lib/utils/cn';
+	import { createRenameDatabaseMutation } from '../mutations';
 	import {
+		DATABASE_NAME_MAX_LENGTH,
+		databaseErrorMessage,
 		databaseStatusView,
 		engineLabel,
 		formatDatabaseSize,
@@ -19,13 +25,35 @@
 
 	type Props = {
 		database: Database;
+		workspaceId: string;
+		/** Owners and members rename; viewers see the name only. */
+		canManage: boolean;
 		/** The workspace's storage quota in MB, when the API reports it. */
 		storageQuotaMb?: number;
 		/** The workspace's total, which the lock compares against the quota. */
 		workspaceStorage?: { label: string } | null;
 	};
 
-	let { database, storageQuotaMb, workspaceStorage = null }: Props = $props();
+	let {
+		database,
+		workspaceId,
+		canManage,
+		storageQuotaMb,
+		workspaceStorage = null
+	}: Props = $props();
+
+	const RENAME_EDITOR_ID = 'database-rename';
+	const renameMutation = createRenameDatabaseMutation();
+
+	// Renaming is rare and one field, so it opens in place under the name instead of a card.
+	let renaming = $state(false);
+	let renameTrigger = $state<HTMLElement | null>(null);
+
+	async function closeRename() {
+		renaming = false;
+		await tick();
+		renameTrigger?.focus();
+	}
 
 	const countFormat = new Intl.NumberFormat('id-ID');
 
@@ -41,9 +69,43 @@
 >
 	<!-- The database's facts in one line of badges and values, like a project's header. -->
 	<div class="flex min-w-0 flex-col gap-2">
-		<h2 id="database-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
-			{database.name}
-		</h2>
+		<div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+			<h2
+				id="database-overview-title"
+				class="min-w-0 font-mono text-xl wrap-anywhere text-foreground"
+			>
+				{database.name}
+			</h2>
+			{#if canManage}
+				<InlineEditButton
+					subject="nama database"
+					expanded={renaming}
+					controls={RENAME_EDITOR_ID}
+					onclick={() => (renaming = !renaming)}
+					bind:ref={renameTrigger}
+					testid="edit-database-name"
+				/>
+			{/if}
+		</div>
+		{#if renaming}
+			<InlineRenameForm
+				id={RENAME_EDITOR_ID}
+				label="Nama database"
+				hint="Nama di server database tidak ikut berubah."
+				value={database.name}
+				maxLength={DATABASE_NAME_MAX_LENGTH}
+				noun="database"
+				save={(name) => renameMutation.mutateAsync({ workspaceId, databaseId: database.id, name })}
+				errorMessage={(error) =>
+					databaseErrorMessage(
+						error,
+						'rename',
+						'Nama database belum diganti. Muat ulang halaman, lalu simpan lagi.'
+					)}
+				onClose={closeRename}
+				testid="database-rename"
+			/>
+		{/if}
 		<p
 			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
 			data-testid="database-facts"

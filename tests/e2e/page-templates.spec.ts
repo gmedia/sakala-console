@@ -655,8 +655,15 @@ test.describe('the page templates', () => {
 		const steps = page.getByTestId('bucket-next-steps').getByRole('link');
 		await expect(steps).toHaveText(['Pasang ke proyek', 'Naikkan kuota']);
 		await steps.nth(1).click();
-		await expect(page).toHaveURL(/#bucket-quota-settings$/);
-		await expect(page.getByLabel('Kuota (MB)')).toBeInViewport();
+		// The step opens the quota editor beside the quota, with its field focused.
+		const quota = page.getByLabel('Kuota (MB)');
+		await expect(quota).toBeFocused();
+		await expect(quota).toBeInViewport();
+		// The same step opens the editor again, although the address already has its anchor.
+		await page.keyboard.press('Escape');
+		await expect(quota).toHaveCount(0);
+		await steps.nth(1).click();
+		await expect(quota).toBeFocused();
 
 		await RESOURCE_PAGES['database-unattached'].open(page);
 		await page.getByTestId('database-next-steps').getByRole('link').click();
@@ -678,5 +685,52 @@ test.describe('the page templates', () => {
 		await expect(toolbar.getByTestId('bucket-quota-count')).toBeVisible();
 		await expect(toolbar.getByRole('meter')).toBeVisible();
 		await expect(toolbar.getByTestId('create-bucket')).toBeVisible();
+	});
+	test('rename, size, and quota open in place, by keyboard, and stay above the floor', async ({
+		page
+	}) => {
+		for (const width of Object.values(WIDTHS)) {
+			await page.setViewportSize({ width, height: 900 });
+			for (const [open, button, field] of [
+				[RESOURCE_PAGES['database-attached'].open, 'Ubah nama database', 'Nama database'],
+				[RESOURCE_PAGES['bucket-attached'].open, 'Ubah kuota bucket', 'Kuota (MB)'],
+				[RESOURCE_PAGES['bucket-attached'].open, 'Ubah nama bucket', 'Nama bucket'],
+				[
+					async (p: Page) => {
+						await mockValkeyApi(p, { valkeys: [queueValkey(), cacheValkey()] });
+						await p.goto(`/valkeys/${QUEUE_ID}`);
+						await expect(p.getByTestId('valkey-facts')).toBeVisible();
+					},
+					'Ubah ukuran Valkey',
+					null
+				],
+				[
+					async (p: Page) => {
+						await mockValkeyApi(p, { valkeys: [queueValkey(), cacheValkey()] });
+						await p.goto(`/valkeys/${QUEUE_ID}`);
+						await expect(p.getByTestId('valkey-facts')).toBeVisible();
+					},
+					'Ubah nama Valkey',
+					'Nama Valkey'
+				]
+			] as const) {
+				await open(page);
+				const trigger = page.getByRole('button', { name: button });
+				await trigger.focus();
+				await page.keyboard.press('Enter');
+				await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+				const focused = field
+					? page.getByLabel(field, { exact: true })
+					: page.getByRole('radio', { checked: true });
+				await expect(focused, `${button} at ${width} px`).toBeFocused();
+				const audit = await auditDom(page, 24, width < 768 ? 44 : 24);
+				expect.soft(audit.overflow, `${button} at ${width} px: overflow`).toEqual([]);
+				expect.soft(audit.contrast, `${button} at ${width} px: contrast`).toEqual([]);
+				expect.soft(audit.targets, `${button} at ${width} px: targets`).toEqual([]);
+				await page.keyboard.press('Escape');
+				await expect(trigger).toBeFocused();
+				await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+			}
+		}
 	});
 });
