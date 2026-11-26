@@ -2,11 +2,12 @@
 	// The guide is a page on the landing site, outside this app's routes.
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { page } from '$app/state';
-	import Archive from 'phosphor-svelte/lib/Archive';
+	import { BucketIcon } from '$lib/components/icons';
 	import ArrowSquareOut from 'phosphor-svelte/lib/ArrowSquareOut';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import {
 		BUCKET_GUIDE_ANCHORS,
@@ -129,7 +130,7 @@
 		role="status"
 		data-testid="buckets-unavailable"
 	>
-		<Archive size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
+		<BucketIcon size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-sm font-medium text-foreground">{BUCKET_COPY.unavailableTitle}</p>
 			<p class="text-sm text-muted">{BUCKET_COPY.unavailableBody}</p>
@@ -176,7 +177,7 @@
 		/>
 	{:else if !featurePresent}
 		<EmptyState
-			icon={Archive}
+			icon={BucketIcon}
 			tone="muted"
 			title={BUCKET_COPY.unavailableTitle}
 			description="Server Sakala ini belum mendukung bucket terkelola."
@@ -194,7 +195,7 @@
 	{:else if buckets.length === 0 && closed}
 		<div class="flex flex-col gap-3" data-testid="buckets-closed">
 			<EmptyState
-				icon={Archive}
+				icon={BucketIcon}
 				tone="muted"
 				title={BUCKET_COPY.noQuota}
 				description={BUCKET_COPY.noQuotaBody}
@@ -203,7 +204,7 @@
 		</div>
 	{:else if buckets.length === 0 && unavailable}
 		<EmptyState
-			icon={Archive}
+			icon={BucketIcon}
 			tone="muted"
 			title={BUCKET_COPY.unavailableTitle}
 			description={BUCKET_COPY.unavailableBody}
@@ -211,7 +212,7 @@
 	{:else if buckets.length === 0}
 		{@render projectBanner()}
 		<EmptyState
-			icon={Archive}
+			icon={BucketIcon}
 			tone={access.canManage ? 'neutral' : 'muted'}
 			title={`Belum ada bucket di ${workspaceName}`}
 			description="Bucket menyimpan berkas yang harus bertahan, misalnya foto yang di-upload pengguna. Buat satu, lalu pasang ke proyek: Sakala menambahkan variabel AWS_* ke aplikasimu saat deploy berikutnya."
@@ -224,27 +225,33 @@
 			<p class="text-sm text-muted" data-testid="bucket-viewer-note">{BUCKET_COPY.viewerNote}</p>
 		{/if}
 	{:else}
-		{@render projectBanner()}
-		{#if unavailable}
-			{@render unavailableNotice()}
-		{/if}
-		<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-			<p class="max-w-2xl text-sm text-muted">
-				Penyimpanan berkas yang kompatibel dengan S3, milik <span
-					class="wrap-anywhere text-foreground">{workspaceName}</span
-				>. Satu bucket bisa dipasang ke beberapa proyek, dan tetap ada walaupun proyeknya dihapus.
-			</p>
+		{#snippet toolbar()}
+			<div class="flex min-w-0 flex-1 basis-64 flex-col gap-2">
+				<p class="text-sm text-muted" data-testid="buckets-intro">
+					Penyimpanan berkas S3 milik <span class="wrap-anywhere text-foreground"
+						>{workspaceName}</span
+					>; tetap ada walaupun proyeknya dihapus.
+				</p>
+				{#if !access.canManage}
+					<p class="text-sm text-muted" data-testid="bucket-viewer-note">
+						{BUCKET_COPY.viewerNote}
+					</p>
+				{:else if quota}
+					<BucketQuotaSummary {quota} {workspaceName} showBlockedReason={!siteAdmin} compact />
+				{/if}
+			</div>
 			{#if canCreate}
 				<div class="shrink-0">{@render createButton()}</div>
 			{/if}
-		</div>
-		{#if quota}
-			<BucketQuotaSummary {quota} {workspaceName} showBlockedReason={!siteAdmin} />
-		{/if}
-		{#if !access.canManage}
-			<p class="text-sm text-muted" data-testid="bucket-viewer-note">{BUCKET_COPY.viewerNote}</p>
-		{/if}
-		<BucketList {buckets} workspaceId={active.id} projectId={project?.id} />
+		{/snippet}
+		<!-- The list template: the quota and the primary action above, the list across the width. -->
+		<ListPageLayout {toolbar}>
+			{@render projectBanner()}
+			{#if unavailable}
+				{@render unavailableNotice()}
+			{/if}
+			<BucketList {buckets} workspaceId={active.id} projectId={project?.id} />
+		</ListPageLayout>
 	{/if}
 </div>
 

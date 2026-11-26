@@ -1,7 +1,6 @@
 <script lang="ts">
 	// Project links come from resolveRoute() in ../routes.ts.
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import Plugs from 'phosphor-svelte/lib/Plugs';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import { toast } from 'svelte-sonner';
@@ -10,7 +9,9 @@
 		DatabaseAttachment,
 		DatabaseProjectRef
 	} from '$lib/api/resources/databases';
+	import { DeployIcon } from '$lib/components/icons';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import type { DatabaseAccess } from '../access';
 	import { createDetachDatabaseMutation } from '../mutations';
@@ -21,6 +22,7 @@
 		type RedeployNotice
 	} from '../presentation';
 	import { projectHref, projectVariablesHref } from '../routes';
+	import { DATABASE_ANCHORS } from '../panel';
 	import AttachProjectDialog from './AttachProjectDialog.svelte';
 
 	type Props = {
@@ -116,17 +118,21 @@
 </script>
 
 <section
-	class="surface-card flex min-w-0 flex-col gap-4 p-4 sm:p-6"
+	id={DATABASE_ANCHORS.projects}
+	class="surface-card flex min-w-0 scroll-mt-4 flex-col gap-4 p-4 sm:p-6"
 	aria-labelledby="database-projects-title"
 	data-testid="database-projects"
 >
 	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
 		<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
 			<h2 id="database-projects-title" class="text-base text-foreground">Proyek terpasang</h2>
-			<p class="text-sm text-muted">
-				Proyek yang terpasang menerima variabel koneksi database ini saat deploy berikutnya. Satu
-				proyek memakai satu database.
-			</p>
+			<p class="text-sm text-muted">Menerima DATABASE_URL saat deploy berikutnya.</p>
+			<LearnMore topic="memasang database ke proyek">
+				<p>
+					Proyek yang terpasang menerima variabel koneksi database ini saat deploy berikutnya. Satu
+					proyek memakai satu database.
+				</p>
+			</LearnMore>
 		</div>
 		{#if access.canManage}
 			<div class="flex flex-col items-start gap-1">
@@ -191,11 +197,7 @@
 					class="flex min-w-0 flex-col gap-2 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
 				>
 					<p class="flex min-w-0 items-start gap-2 text-sm text-foreground">
-						<ArrowsClockwise
-							size={16}
-							class="mt-0.5 shrink-0 text-warning-dark"
-							aria-hidden="true"
-						/>
+						<DeployIcon size={16} class="mt-0.5 shrink-0 text-warning-dark" aria-hidden="true" />
 						<span class="wrap-anywhere">{redeployNoticeText(notice)}</span>
 					</p>
 					<a

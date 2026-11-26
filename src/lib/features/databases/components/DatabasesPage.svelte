@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Database from 'phosphor-svelte/lib/Database';
+	import { DatabaseIcon } from '$lib/components/icons';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { isAdmin } from '$lib/features/admin/access';
@@ -70,7 +71,7 @@
 		role="status"
 		data-testid="databases-unavailable"
 	>
-		<Database size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
+		<DatabaseIcon size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-sm font-medium text-foreground">{DATABASE_COPY.unavailableTitle}</p>
 			<p class="text-sm text-muted">{DATABASE_COPY.unavailableBody}</p>
@@ -115,7 +116,7 @@
 		/>
 	{:else if databases.length === 0 && unavailable}
 		<EmptyState
-			icon={Database}
+			icon={DatabaseIcon}
 			tone="muted"
 			title={DATABASE_COPY.unavailableTitle}
 			description={DATABASE_COPY.unavailableBody}
@@ -123,7 +124,7 @@
 	{:else if databases.length === 0}
 		{@render projectBanner()}
 		<EmptyState
-			icon={Database}
+			icon={DatabaseIcon}
 			tone={access.canManage ? 'neutral' : 'muted'}
 			title={`Belum ada database di ${workspaceName}`}
 			description={`Database PostgreSQL terkelola milik workspace ini, terpisah dari proyek. Buat satu, lalu pasang ke proyek: Sakala menambahkan ${DATABASE_VARIABLES[0]} dan variabel DB_* ke aplikasimu saat deploy berikutnya.`}
@@ -138,33 +139,37 @@
 			</p>
 		{/if}
 	{:else}
-		{@render projectBanner()}
-		{#if unavailable}
-			{@render unavailableNotice()}
-		{/if}
-		<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-			<p class="max-w-2xl text-sm text-muted">
-				PostgreSQL terkelola milik <span class="wrap-anywhere text-foreground">{workspaceName}</span
-				>. Satu database bisa dipasang ke beberapa proyek, dan tetap ada walaupun proyeknya dihapus.
-			</p>
+		{#snippet toolbar()}
+			<div class="flex min-w-0 flex-1 basis-64 flex-col gap-2">
+				<p class="text-sm text-muted" data-testid="databases-intro">
+					PostgreSQL milik <span class="wrap-anywhere text-foreground">{workspaceName}</span>; tetap
+					ada walaupun proyeknya dihapus.
+				</p>
+				{#if !access.canManage}
+					<p class="text-sm text-muted" data-testid="database-viewer-note">
+						{DATABASE_COPY.viewerNote}
+					</p>
+				{:else if quota}
+					<DatabaseQuotaSummary {quota} {workspaceName} showBlockedReason={!siteAdmin} compact />
+				{/if}
+			</div>
 			{#if canCreate}
 				<div class="shrink-0">{@render createButton()}</div>
 			{/if}
-		</div>
-		{#if quota}
-			<DatabaseQuotaSummary {quota} {workspaceName} showBlockedReason={!siteAdmin} />
-		{/if}
-		{#if !access.canManage}
-			<p class="text-sm text-muted" data-testid="database-viewer-note">
-				{DATABASE_COPY.viewerNote}
-			</p>
-		{/if}
-		<DatabaseList
-			{databases}
-			workspaceId={active.id}
-			projectId={project?.id}
-			storageQuotaMb={limitsQuery.data?.quotas.max_database_storage_mb}
-		/>
+		{/snippet}
+		<!-- The list template: the quota and the primary action above, the list across the width. -->
+		<ListPageLayout {toolbar}>
+			{@render projectBanner()}
+			{#if unavailable}
+				{@render unavailableNotice()}
+			{/if}
+			<DatabaseList
+				{databases}
+				workspaceId={active.id}
+				projectId={project?.id}
+				storageQuotaMb={limitsQuery.data?.quotas.max_database_storage_mb}
+			/>
+		</ListPageLayout>
 	{/if}
 </div>
 

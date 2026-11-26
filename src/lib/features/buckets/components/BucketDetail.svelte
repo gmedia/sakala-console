@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import Archive from 'phosphor-svelte/lib/Archive';
+	import { BucketIcon } from '$lib/components/icons';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import { ApiError } from '$lib/api/errors';
 	import { useCurrentUser } from '$lib/features/auth/queries';
@@ -22,7 +22,9 @@
 	import BucketOverviewCard from './BucketOverviewCard.svelte';
 	import BucketProjectsCard from './BucketProjectsCard.svelte';
 	import BucketSettingsCard from './BucketSettingsCard.svelte';
-	import BucketUsageHintCard from './BucketUsageHintCard.svelte';
+	import BucketPanel from './BucketPanel.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import { BUCKET_PANEL_COPY } from '../panel';
 
 	type Props = { workspaceId: string | null; bucketId: string };
 
@@ -69,7 +71,7 @@
 	</div>
 {:else if bucketQuery.isError || !bucket}
 	<ErrorBlock
-		icon={Archive}
+		icon={BucketIcon}
 		title={notFound ? 'Bucket tidak ditemukan' : 'Bucket belum bisa dimuat'}
 		description={bucketErrorMessage(
 			bucketQuery.error,
@@ -80,27 +82,33 @@
 		links={[{ label: 'Lihat semua bucket', href: resolve('/buckets') }]}
 	/>
 {:else}
-	<div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
-		<div class="flex min-w-0 flex-col gap-4 lg:gap-6">
-			{#if !access.canManage}
-				<p class="text-sm text-muted" data-testid="bucket-viewer-note">{BUCKET_COPY.viewerNote}</p>
-			{/if}
-			<BucketOverviewCard {bucket} />
-			<BucketProjectsCard
-				{bucket}
-				{workspaceId}
-				{access}
-				{notices}
-				preselectedProjectId={route.projectId}
-				onChanged={addNotices}
-			/>
-			<BucketConnectionCard {bucket} {workspaceId} {access} />
-		</div>
-		<aside class="flex min-w-0 flex-col gap-4 lg:gap-6" aria-label="Petunjuk dan pengaturan bucket">
-			<BucketUsageHintCard />
-			{#if access.canManage}
-				<BucketSettingsCard {bucket} {workspaceId} {maxQuotaMb} />
-			{/if}
-		</aside>
-	</div>
+	{#snippet panel()}
+		<BucketPanel {bucket} canManage={access.canManage} {maxQuotaMb} />
+	{/snippet}
+	{#snippet danger()}
+		<BucketSettingsCard {bucket} {workspaceId} {maxQuotaMb} parts="delete" />
+	{/snippet}
+	<!-- The form template: the bucket's cards left, the panel right, deleting last on every screen. -->
+	<FormPageLayout
+		panelLabel={BUCKET_PANEL_COPY.label}
+		{panel}
+		after={access.canManage ? danger : undefined}
+	>
+		{#if !access.canManage}
+			<p class="text-sm text-muted" data-testid="bucket-viewer-note">{BUCKET_COPY.viewerNote}</p>
+		{/if}
+		<BucketOverviewCard {bucket} />
+		<BucketProjectsCard
+			{bucket}
+			{workspaceId}
+			{access}
+			{notices}
+			preselectedProjectId={route.projectId}
+			onChanged={addNotices}
+		/>
+		<BucketConnectionCard {bucket} {workspaceId} {access} />
+		{#if access.canManage}
+			<BucketSettingsCard {bucket} {workspaceId} {maxQuotaMb} parts="edit" />
+		{/if}
+	</FormPageLayout>
 {/if}

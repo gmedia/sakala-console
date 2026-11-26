@@ -18,9 +18,12 @@
 		provisioningSteps,
 		separateFailure
 	} from '../presentation';
+	import { BUCKET_PANEL_COPY as FACTS } from '../panel';
 	import BucketStatusBadge from './BucketStatusBadge.svelte';
 
 	let { bucket }: { bucket: Bucket } = $props();
+
+	const countFormat = new Intl.NumberFormat('id-ID');
 
 	const view = $derived(bucketStatusView(bucket));
 	const failure = $derived(separateFailure(bucket));
@@ -35,26 +38,43 @@
 	aria-labelledby="bucket-overview-title"
 	data-testid="bucket-overview"
 >
-	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
-		<div class="flex min-w-0 flex-col gap-1">
-			<h2 id="bucket-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
-				{bucket.name}
-			</h2>
-			<p class="flex flex-wrap gap-x-1.5 text-sm text-muted">
-				<span>S3, privat</span>
+	<!-- The bucket's facts in one line of badges and values, like a project's header. -->
+	<div class="flex min-w-0 flex-col gap-2">
+		<h2 id="bucket-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
+			{bucket.name}
+		</h2>
+		<p
+			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
+			data-testid="bucket-facts"
+		>
+			<BucketStatusBadge {bucket} />
+			<span class="text-foreground">{FACTS.kind}</span>
+			<span aria-hidden="true">·</span>
+			<span class="text-foreground tabular-nums" data-testid="bucket-quota-value">
+				{FACTS.quota(formatMegabytes(bucket.quota_mb))}
+				{#if bucket.pending_quota_mb !== null}
+					<span class="text-muted">
+						menjadi {formatMegabytes(bucket.pending_quota_mb)}<span class="sr-only"
+							>, sedang diterapkan</span
+						>
+					</span>
+				{/if}
+			</span>
+			<span aria-hidden="true">·</span>
+			{#if bucket.region}
+				<span class="font-mono text-foreground">{bucket.region}</span>
+			{:else}
+				<span>{FACTS.autoRegion}</span>
+			{/if}
+			<span aria-hidden="true">·</span>
+			<span data-testid="bucket-facts-projects"
+				>{FACTS.projects(countFormat.format(bucket.projects.length))}</span
+			>
+			{#if bucket.created_at}
 				<span aria-hidden="true">·</span>
-				{#if bucket.region}
-					<span>region <span class="font-mono text-foreground">{bucket.region}</span></span>
-				{:else}
-					<span>region dipilih otomatis</span>
-				{/if}
-				{#if bucket.created_at}
-					<span aria-hidden="true">·</span>
-					<span>dibuat {formatDate(bucket.created_at)}</span>
-				{/if}
-			</p>
-		</div>
-		<BucketStatusBadge {bucket} />
+				<span>{FACTS.created(formatDate(bucket.created_at))}</span>
+			{/if}
+		</p>
 	</div>
 
 	<!-- Polite, so the change from Menyiapkan to Siap is heard without moving focus. -->
@@ -137,7 +157,7 @@
 		</p>
 	{/if}
 
-	<dl class="grid gap-4 sm:grid-cols-3">
+	<dl class="grid gap-4 sm:grid-cols-2">
 		<div class="flex min-w-0 flex-col gap-1">
 			<dt class="text-xs text-muted">Pemakaian</dt>
 			<dd>
@@ -145,19 +165,6 @@
 					<StorageBar {meter} label={`Isi ${bucket.name} terhadap kuotanya`} />
 				{:else}
 					<span class="text-sm text-foreground">{BUCKET_COPY.notMeasured}</span>
-				{/if}
-			</dd>
-		</div>
-		<div class="flex min-w-0 flex-col gap-1">
-			<dt class="text-xs text-muted">Kuota</dt>
-			<dd class="text-sm text-foreground tabular-nums" data-testid="bucket-quota-value">
-				{formatMegabytes(bucket.quota_mb)}
-				{#if bucket.pending_quota_mb !== null}
-					<span class="text-muted">
-						→ {formatMegabytes(bucket.pending_quota_mb)}<span class="sr-only"
-							>, sedang diterapkan</span
-						>
-					</span>
 				{/if}
 			</dd>
 		</div>

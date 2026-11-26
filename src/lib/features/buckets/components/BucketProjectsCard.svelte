@@ -1,13 +1,15 @@
 <script lang="ts">
 	// Project links come from resolveRoute() in the database routes helpers.
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import Plugs from 'phosphor-svelte/lib/Plugs';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import { toast } from 'svelte-sonner';
 	import type { Bucket, BucketAttachment, BucketProjectRef } from '$lib/api/resources/buckets';
+	import { DeployIcon } from '$lib/components/icons';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import { BUCKET_ANCHORS } from '../panel';
 	import type { BucketAccess } from '../access';
 	import { createDetachBucketMutation } from '../mutations';
 	import { projectHref, projectVariablesHref } from '$lib/features/databases/routes';
@@ -112,17 +114,21 @@
 </script>
 
 <section
-	class="surface-card flex min-w-0 flex-col gap-4 p-4 sm:p-6"
+	id={BUCKET_ANCHORS.projects}
+	class="surface-card flex min-w-0 scroll-mt-4 flex-col gap-4 p-4 sm:p-6"
 	aria-labelledby="bucket-projects-title"
 	data-testid="bucket-projects"
 >
 	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
 		<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
 			<h2 id="bucket-projects-title" class="text-base text-foreground">Proyek terpasang</h2>
-			<p class="text-sm text-muted">
-				Proyek yang terpasang menerima variabel AWS_* bucket ini saat deploy berikutnya. Satu proyek
-				memakai satu bucket.
-			</p>
+			<p class="text-sm text-muted">Menerima variabel AWS_* saat deploy berikutnya.</p>
+			<LearnMore topic="memasang bucket ke proyek">
+				<p>
+					Proyek yang terpasang menerima variabel AWS_* bucket ini saat deploy berikutnya. Satu
+					proyek memakai satu bucket.
+				</p>
+			</LearnMore>
 		</div>
 		{#if access.canManage}
 			<div class="flex flex-col items-start gap-1">
@@ -191,11 +197,7 @@
 					class="flex min-w-0 flex-col gap-2 rounded-control border border-warning/30 bg-warning/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
 				>
 					<p class="flex min-w-0 items-start gap-2 text-sm text-foreground">
-						<ArrowsClockwise
-							size={16}
-							class="mt-0.5 shrink-0 text-warning-dark"
-							aria-hidden="true"
-						/>
+						<DeployIcon size={16} class="mt-0.5 shrink-0 text-warning-dark" aria-hidden="true" />
 						<span class="wrap-anywhere">{bucketRedeployNoticeText(notice)}</span>
 					</p>
 					<a

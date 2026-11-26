@@ -13,6 +13,7 @@
 		separateFailure,
 		storageMeter
 	} from '../presentation';
+	import { DATABASE_PANEL_COPY as FACTS } from '../panel';
 	import DatabaseStatusBadge from './DatabaseStatusBadge.svelte';
 	import StorageBar from './StorageBar.svelte';
 
@@ -26,6 +27,8 @@
 
 	let { database, storageQuotaMb, workspaceStorage = null }: Props = $props();
 
+	const countFormat = new Intl.NumberFormat('id-ID');
+
 	const view = $derived(databaseStatusView(database));
 	const failure = $derived(separateFailure(database));
 	const steps = $derived(database.status === 'provisioning' ? provisioningSteps(database) : []);
@@ -36,26 +39,32 @@
 	aria-labelledby="database-overview-title"
 	data-testid="database-overview"
 >
-	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
-		<div class="flex min-w-0 flex-col gap-1">
-			<h2 id="database-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
-				{database.name}
-			</h2>
-			<p class="flex flex-wrap gap-x-1.5 text-sm text-muted">
-				<span>{engineLabel(database.engine)}</span>
+	<!-- The database's facts in one line of badges and values, like a project's header. -->
+	<div class="flex min-w-0 flex-col gap-2">
+		<h2 id="database-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
+			{database.name}
+		</h2>
+		<p
+			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
+			data-testid="database-facts"
+		>
+			<DatabaseStatusBadge {database} />
+			<span class="text-foreground">{engineLabel(database.engine)}</span>
+			<span aria-hidden="true">·</span>
+			{#if database.region}
+				<span class="font-mono text-foreground">{database.region}</span>
+			{:else}
+				<span data-testid="database-region-auto">{FACTS.autoRegion}</span>
+			{/if}
+			<span aria-hidden="true">·</span>
+			<span data-testid="database-facts-projects"
+				>{FACTS.projects(countFormat.format(database.projects.length))}</span
+			>
+			{#if database.created_at}
 				<span aria-hidden="true">·</span>
-				{#if database.region}
-					<span>region <span class="font-mono text-foreground">{database.region}</span></span>
-				{:else}
-					<span data-testid="database-region-auto">region dipilih otomatis</span>
-				{/if}
-				{#if database.created_at}
-					<span aria-hidden="true">·</span>
-					<span>dibuat {formatDate(database.created_at)}</span>
-				{/if}
-			</p>
-		</div>
-		<DatabaseStatusBadge {database} />
+				<span>{FACTS.created(formatDate(database.created_at))}</span>
+			{/if}
+		</p>
 	</div>
 
 	<!-- Polite, so the change from Menyiapkan to Siap is heard without moving focus. -->

@@ -9,6 +9,7 @@
 		type DatabaseExtension
 	} from '$lib/api/resources/databases';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import type { DatabaseAccess } from '../access';
 	import { createInstallExtensionMutation } from '../mutations';
 	import {
@@ -61,9 +62,10 @@
 >
 	<div class="flex min-w-0 flex-col gap-1">
 		<h2 id="database-extensions-title" class="text-base text-foreground">Extension</h2>
-		<p class="text-sm text-muted">
-			Extension PostgreSQL yang boleh dipasang di database ini. {DATABASE_COPY.extensionsNote}
-		</p>
+		<p class="text-sm text-muted">{DATABASE_COPY.extensionsLead}</p>
+		<LearnMore topic="extension yang sudah terpasang">
+			<p>{DATABASE_COPY.extensionsNote}</p>
+		</LearnMore>
 	</div>
 
 	{#if access.canManage && !onNode}

@@ -1,6 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { mockEveryRoute } from './fixtures/all-routes';
+import { BUCKET_ID, mockBucketApi, spareBucket } from './fixtures/buckets';
+import { DATABASE_ID, mockDatabaseApi, sampleDatabases } from './fixtures/databases';
 import { auditDom } from './fixtures/dom-audit';
 import { capturedDomain, domainStates, mockDomainsApi, type MockDomain } from './fixtures/domains';
 import { PROJECT_ID } from './fixtures/project-detail';
@@ -147,6 +149,21 @@ const REGIONS = {
 		mainColumn: ['[data-testid="list-page"]', '#main-content > div'],
 		content: ['#main-content'],
 		page: ['body']
+	},
+	database: {
+		mainColumn: ['[data-testid="form-page-main"]', 'div:has(> [data-testid="database-overview"])'],
+		content: ['#main-content'],
+		page: ['body']
+	},
+	bucket: {
+		mainColumn: ['[data-testid="form-page-main"]', 'div:has(> [data-testid="bucket-overview"])'],
+		content: ['#main-content'],
+		page: ['body']
+	},
+	list: {
+		mainColumn: ['[data-testid="list-page"]', '#main-content > div'],
+		content: ['#main-content'],
+		page: ['body']
 	}
 } satisfies Record<string, Record<string, string[]>>;
 
@@ -263,6 +280,79 @@ test.describe('valkey and project list screenshots and word counts', () => {
 	}
 });
 
+/** A database no project uses yet: the state in which its panel suggests a next step. */
+const unattachedDatabases = () =>
+	sampleDatabases().map((database, index) =>
+		index === 0 ? { ...database, projects: [] } : database
+	);
+
+/** Detail and list pages of databases and buckets, in the states that change what they show. */
+const RESOURCE_PAGES = {
+	'database-attached': {
+		regions: REGIONS.database,
+		open: async (page: Page) => {
+			await mockDatabaseApi(page);
+			await page.goto(`/databases/${DATABASE_ID}`);
+			await expect(page.getByTestId('database-overview')).toBeVisible();
+		}
+	},
+	'database-unattached': {
+		regions: REGIONS.database,
+		open: async (page: Page) => {
+			await mockDatabaseApi(page, { databases: unattachedDatabases() });
+			await page.goto(`/databases/${DATABASE_ID}`);
+			await expect(page.getByTestId('database-overview')).toBeVisible();
+		}
+	},
+	'bucket-attached': {
+		regions: REGIONS.bucket,
+		open: async (page: Page) => {
+			await mockBucketApi(page);
+			await page.goto(`/buckets/${BUCKET_ID}`);
+			await expect(page.getByTestId('bucket-overview')).toBeVisible();
+		}
+	},
+	'bucket-nearly-full': {
+		regions: REGIONS.bucket,
+		open: async (page: Page) => {
+			await mockBucketApi(page);
+			await page.goto(`/buckets/${spareBucket().id}`);
+			await expect(page.getByTestId('bucket-overview')).toBeVisible();
+		}
+	},
+	databases: {
+		regions: REGIONS.list,
+		open: async (page: Page) => {
+			await mockDatabaseApi(page);
+			await page.goto('/databases');
+			await expect(page.getByTestId('database-row').first()).toBeVisible();
+		}
+	},
+	buckets: {
+		regions: REGIONS.list,
+		open: async (page: Page) => {
+			await mockBucketApi(page);
+			await page.goto('/buckets');
+			await expect(page.getByTestId('bucket-row').first()).toBeVisible();
+		}
+	}
+} as const;
+
+test.describe('database and bucket screenshots and word counts', () => {
+	test.skip(!SHOTS_DIR, 'Only when SETTINGS_SHOTS names a folder.');
+
+	for (const [name, { regions, open }] of Object.entries(RESOURCE_PAGES)) {
+		for (const [label, width] of Object.entries(WIDTHS)) {
+			test(`${name} at ${width} px`, async ({ page }) => {
+				await page.setViewportSize({ width, height: 900 });
+				await open(page);
+				await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => undefined);
+				await capture(page, `${name}-${label}-${width}`, regions);
+			});
+		}
+	}
+});
+
 test.describe('the page templates', () => {
 	/** Every page and state the templates were applied to, opened the way a person would. */
 	const PAGES: [string, (page: Page) => Promise<void>][] = [
@@ -301,7 +391,10 @@ test.describe('the page templates', () => {
 				await page.goto('/projects');
 				await expect(page.getByTestId('list-page')).toBeVisible();
 			}
-		]
+		],
+		...Object.entries(RESOURCE_PAGES).map(
+			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
+		)
 	];
 
 	for (const [name, open] of PAGES) {
@@ -533,5 +626,57 @@ test.describe('the page templates', () => {
 		await expect(page.getByText('REDIS_CLIENT=predis')).toBeHidden();
 		await page.getByTestId('valkey-usage-laravel').locator('summary').click();
 		await expect(page.getByText('REDIS_CLIENT=predis')).toBeVisible();
+	});
+	test('the database and bucket pages follow the same template: facts under the name, deleting last', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
+		for (const [kind, open, label, facts] of [
+			['database', RESOURCE_PAGES['database-unattached'].open, 'database', 'PostgreSQL'],
+			['bucket', RESOURCE_PAGES['bucket-nearly-full'].open, 'bucket', 'kuota 100 MB']
+		] as const) {
+			await open(page);
+			await expect(page.getByTestId(`${kind}-facts`)).toContainText(facts);
+			await expect(page.getByTestId(`${kind}-facts-projects`)).toHaveText('0 proyek');
+			const panel = (await page.getByTestId('form-page-panel').boundingBox())!;
+			const danger = (await page.getByTestId(`${kind}-danger-zone`).boundingBox())!;
+			expect(danger.y, `${kind} delete after the panel`).toBeGreaterThan(panel.y + panel.height);
+			const aside = page.getByRole('complementary', { name: `Langkah dan bantuan ${label}` });
+			await expect(aside.getByRole('heading', { level: 2 })).toHaveText(['Berikutnya', 'Bantuan']);
+			// Steps go away by themselves once done, so they have no button to hide them.
+			await expect(page.getByTestId(`${kind}-next-steps`).getByRole('button')).toHaveCount(0);
+			await expect(page.getByText('Ringkasan', { exact: true })).toHaveCount(0);
+		}
+	});
+
+	test('a next step lands on its card', async ({ page }) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await RESOURCE_PAGES['bucket-nearly-full'].open(page);
+		const steps = page.getByTestId('bucket-next-steps').getByRole('link');
+		await expect(steps).toHaveText(['Pasang ke proyek', 'Naikkan kuota']);
+		await steps.nth(1).click();
+		await expect(page).toHaveURL(/#bucket-quota-settings$/);
+		await expect(page.getByLabel('Kuota (MB)')).toBeInViewport();
+
+		await RESOURCE_PAGES['database-unattached'].open(page);
+		await page.getByTestId('database-next-steps').getByRole('link').click();
+		await expect(page).toHaveURL(/#database-projects$/);
+		await expect(page.getByTestId('attach-project')).toBeInViewport();
+	});
+
+	test('the database and bucket lists show the quota as a badge and a meter beside the action', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await RESOURCE_PAGES.databases.open(page);
+		const toolbar = page.getByTestId('list-page-toolbar');
+		await expect(toolbar.getByTestId('database-quota-count')).toHaveText('2 dari 3 database');
+		await expect(toolbar.getByRole('meter')).toBeVisible();
+		await expect(toolbar.getByTestId('create-database')).toBeVisible();
+
+		await RESOURCE_PAGES.buckets.open(page);
+		await expect(toolbar.getByTestId('bucket-quota-count')).toBeVisible();
+		await expect(toolbar.getByRole('meter')).toBeVisible();
+		await expect(toolbar.getByTestId('create-bucket')).toBeVisible();
 	});
 });

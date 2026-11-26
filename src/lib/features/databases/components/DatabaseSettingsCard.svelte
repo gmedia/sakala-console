@@ -11,9 +11,20 @@
 	import { DATABASE_NAME_MAX_LENGTH, databaseErrorMessage } from '../presentation';
 	import { databasesHref } from '../routes';
 
-	type Props = { database: Database; workspaceId: string };
+	type Props = {
+		database: Database;
+		workspaceId: string;
+		/**
+		 * Which part to show: renaming goes in the page's column and the delete last, after the panel
+		 * on a narrow screen (docs/UI_GUIDELINES.md). Both by default.
+		 */
+		parts?: 'all' | 'edit' | 'delete';
+	};
 
-	let { database, workspaceId }: Props = $props();
+	let { database, workspaceId, parts = 'all' }: Props = $props();
+
+	const showEdit = $derived(parts !== 'delete');
+	const showDelete = $derived(parts !== 'edit');
 
 	const renameMutation = createRenameDatabaseMutation();
 	const deleteMutation = createDeleteDatabaseMutation();
@@ -92,106 +103,110 @@
 	}
 </script>
 
-<section
-	class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
-	aria-labelledby="database-settings-title"
->
-	<h2 id="database-settings-title" class="text-base text-foreground">Ganti nama</h2>
-	<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
-		<FormField
-			id="database-rename"
-			label="Nama database"
-			bind:value={name}
-			hint="Nama di server database tidak ikut berubah."
-			error={nameError}
-			autocomplete="off"
-			spellcheck={false}
-			oninput={() => (nameError = null)}
-		/>
+{#if showEdit}
+	<section
+		class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
+		aria-labelledby="database-settings-title"
+	>
+		<h2 id="database-settings-title" class="text-base text-foreground">Ganti nama</h2>
+		<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
+			<FormField
+				id="database-rename"
+				label="Nama database"
+				bind:value={name}
+				hint="Nama di server database tidak ikut berubah."
+				error={nameError}
+				autocomplete="off"
+				spellcheck={false}
+				oninput={() => (nameError = null)}
+			/>
+			<Button
+				type="submit"
+				variant="secondary"
+				size="sm"
+				class="self-start"
+				disabled={renameMutation.isPending || name.trim() === database.name}
+			>
+				{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
+			</Button>
+		</form>
+	</section>
+{/if}
+
+{#if showDelete}
+	<section
+		class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
+		aria-labelledby="database-danger-title"
+		data-testid="database-danger-zone"
+	>
+		<h2 id="database-danger-title" class="text-base text-error-dark">Hapus database</h2>
+		<p class="text-sm text-foreground">
+			Menghapus database dan semua datanya dari server. Tindakan ini tidak bisa dibatalkan.
+		</p>
+		{#if deleteBlocked}
+			<p id="delete-blocked" class="text-sm text-foreground" data-testid="delete-blocked">
+				Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
+				semua proyek dulu, supaya aplikasi yang berjalan tidak kehilangan datanya tanpa sengaja.
+			</p>
+		{:else if alreadyDeleting}
+			<p class="text-sm text-muted">Database ini sedang dihapus.</p>
+		{/if}
 		<Button
-			type="submit"
-			variant="secondary"
+			variant="danger"
 			size="sm"
 			class="self-start"
-			disabled={renameMutation.isPending || name.trim() === database.name}
+			bind:ref={deleteTrigger}
+			disabled={deleteBlocked}
+			aria-describedby={deleteBlocked ? 'delete-blocked' : undefined}
+			onclick={openDelete}
+			data-testid="delete-database"
 		>
-			{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
+			<Trash size={16} aria-hidden="true" />
+			Hapus database
 		</Button>
-	</form>
-</section>
+	</section>
 
-<section
-	class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
-	aria-labelledby="database-danger-title"
-	data-testid="database-danger-zone"
->
-	<h2 id="database-danger-title" class="text-base text-error-dark">Hapus database</h2>
-	<p class="text-sm text-foreground">
-		Menghapus database dan semua datanya dari server. Tindakan ini tidak bisa dibatalkan.
-	</p>
-	{#if deleteBlocked}
-		<p id="delete-blocked" class="text-sm text-foreground" data-testid="delete-blocked">
-			Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
-			semua proyek dulu, supaya aplikasi yang berjalan tidak kehilangan datanya tanpa sengaja.
-		</p>
-	{:else if alreadyDeleting}
-		<p class="text-sm text-muted">Database ini sedang dihapus.</p>
-	{/if}
-	<Button
-		variant="danger"
-		size="sm"
-		class="self-start"
-		bind:ref={deleteTrigger}
-		disabled={deleteBlocked}
-		aria-describedby={deleteBlocked ? 'delete-blocked' : undefined}
-		onclick={openDelete}
-		data-testid="delete-database"
+	<Dialog
+		bind:open={deleteOpen}
+		title={`Hapus ${database.name}?`}
+		confirmLabel={deleteMutation.isPending ? 'Menghapus...' : 'Hapus database ini'}
+		variant="destructive"
+		loading={deleteMutation.isPending}
+		confirmDisabled={!canConfirmDelete}
+		initialFocus={() => confirmInput}
+		returnFocus={() => deleteTrigger}
+		footerClass="flex-col-reverse sm:flex-row"
+		class="max-w-lg"
+		onConfirm={remove}
 	>
-		<Trash size={16} aria-hidden="true" />
-		Hapus database
-	</Button>
-</section>
-
-<Dialog
-	bind:open={deleteOpen}
-	title={`Hapus ${database.name}?`}
-	confirmLabel={deleteMutation.isPending ? 'Menghapus...' : 'Hapus database ini'}
-	variant="destructive"
-	loading={deleteMutation.isPending}
-	confirmDisabled={!canConfirmDelete}
-	initialFocus={() => confirmInput}
-	returnFocus={() => deleteTrigger}
-	footerClass="flex-col-reverse sm:flex-row"
-	class="max-w-lg"
-	onConfirm={remove}
->
-	<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="delete-dialog">
-		<p>
-			Database dan semua tabel serta datanya dihapus dari server database. Setelah itu tidak bisa
-			dipulihkan dari Console.
-		</p>
-		<div class="flex flex-col gap-1.5">
-			<label for="delete-database-confirm" class="font-medium">
-				Ketik <strong class="font-mono font-semibold wrap-anywhere">{database.name}</strong> untuk konfirmasi
-			</label>
-			<input
-				bind:this={confirmInput}
-				bind:value={confirmText}
-				id="delete-database-confirm"
-				type="text"
-				autocomplete="off"
-				spellcheck="false"
-				class="control-input font-mono"
-				onkeydown={(event) => {
-					if (event.key === 'Enter') {
-						event.preventDefault();
-						void remove();
-					}
-				}}
-			/>
+		<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="delete-dialog">
+			<p>
+				Database dan semua tabel serta datanya dihapus dari server database. Setelah itu tidak bisa
+				dipulihkan dari Console.
+			</p>
+			<div class="flex flex-col gap-1.5">
+				<label for="delete-database-confirm" class="font-medium">
+					Ketik <strong class="font-mono font-semibold wrap-anywhere">{database.name}</strong> untuk konfirmasi
+				</label>
+				<input
+					bind:this={confirmInput}
+					bind:value={confirmText}
+					id="delete-database-confirm"
+					type="text"
+					autocomplete="off"
+					spellcheck="false"
+					class="control-input font-mono"
+					onkeydown={(event) => {
+						if (event.key === 'Enter') {
+							event.preventDefault();
+							void remove();
+						}
+					}}
+				/>
+			</div>
+			{#if deleteError}
+				<p role="alert" class="text-error-dark">{deleteError}</p>
+			{/if}
 		</div>
-		{#if deleteError}
-			<p role="alert" class="text-error-dark">{deleteError}</p>
-		{/if}
-	</div>
-</Dialog>
+	</Dialog>
+{/if}

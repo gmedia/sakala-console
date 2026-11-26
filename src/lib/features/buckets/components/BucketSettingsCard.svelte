@@ -16,6 +16,7 @@
 		formatMegabytes,
 		isOnNode
 	} from '../presentation';
+	import { BUCKET_ANCHORS } from '../panel';
 	import { bucketsHref } from '../routes';
 
 	type Props = {
@@ -23,9 +24,17 @@
 		workspaceId: string;
 		/** The most MB this bucket may have, its own quota included; `null` when the API decides. */
 		maxQuotaMb: number | null;
+		/**
+		 * Which part to show: renaming and the quota go in the page's column and the delete last, after
+		 * the panel on a narrow screen (docs/UI_GUIDELINES.md). Both by default.
+		 */
+		parts?: 'all' | 'edit' | 'delete';
 	};
 
-	let { bucket, workspaceId, maxQuotaMb }: Props = $props();
+	let { bucket, workspaceId, maxQuotaMb, parts = 'all' }: Props = $props();
+
+	const showEdit = $derived(parts !== 'delete');
+	const showDelete = $derived(parts !== 'edit');
 
 	const renameMutation = createUpdateBucketMutation();
 	const quotaMutation = createUpdateBucketMutation();
@@ -172,170 +181,176 @@
 	}
 </script>
 
-<section
-	class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
-	aria-labelledby="bucket-settings-title"
->
-	<h2 id="bucket-settings-title" class="text-base text-foreground">Ganti nama</h2>
-	<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
-		<FormField
-			id="bucket-rename"
-			label="Nama bucket"
-			bind:value={name}
-			hint="Nama bucket di server dan variabel AWS_BUCKET tidak ikut berubah."
-			error={nameError}
-			autocomplete="off"
-			spellcheck={false}
-			oninput={() => (nameError = null)}
-		/>
-		<Button
-			type="submit"
-			variant="secondary"
-			size="sm"
-			class="self-start"
-			disabled={renameMutation.isPending || name.trim() === bucket.name}
-		>
-			{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
-		</Button>
-	</form>
-</section>
-
-<section
-	class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
-	aria-labelledby="bucket-quota-title"
-	data-testid="bucket-quota-settings"
->
-	<h2 id="bucket-quota-title" class="text-base text-foreground">Ubah kuota</h2>
-	<form class="flex flex-col gap-3" novalidate onsubmit={changeQuota}>
-		<div class="flex flex-col gap-1.5">
-			<label for="bucket-quota-change" class="text-sm font-medium text-foreground">Kuota (MB)</label
-			>
-			<input
-				id="bucket-quota-change"
-				type="text"
-				inputmode="numeric"
+{#if showEdit}
+	<section
+		class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
+		aria-labelledby="bucket-settings-title"
+	>
+		<h2 id="bucket-settings-title" class="text-base text-foreground">Ganti nama</h2>
+		<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
+			<FormField
+				id="bucket-rename"
+				label="Nama bucket"
+				bind:value={name}
+				hint="Nama bucket di server dan variabel AWS_BUCKET tidak ikut berubah."
+				error={nameError}
 				autocomplete="off"
-				bind:value={quota}
-				disabled={Boolean(quotaBlocked)}
-				class="control-input tabular-nums"
-				aria-invalid={quotaError ? 'true' : undefined}
-				aria-describedby={quotaError ? 'bucket-quota-change-error' : 'bucket-quota-change-hint'}
-				oninput={() => (quotaError = null)}
+				spellcheck={false}
+				oninput={() => (nameError = null)}
 			/>
-			{#if quotaError}
-				<p id="bucket-quota-change-error" class="text-xs text-error-dark" role="alert">
-					{quotaError}
-				</p>
-			{:else}
-				<p id="bucket-quota-change-hint" class="text-xs text-foreground/70">
-					{quotaBlocked ??
-						(maxQuotaMb === null
-							? 'Kuota diambil dari jatah penyimpanan workspace.'
-							: `Paling besar ${formatMegabytes(maxQuotaMb)} dari jatah penyimpanan workspace.`)}
+			<Button
+				type="submit"
+				variant="secondary"
+				size="sm"
+				class="self-start"
+				disabled={renameMutation.isPending || name.trim() === bucket.name}
+			>
+				{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
+			</Button>
+		</form>
+	</section>
+
+	<section
+		id={BUCKET_ANCHORS.quota}
+		class="surface-card flex min-w-0 scroll-mt-4 flex-col gap-3 p-4 sm:p-5"
+		aria-labelledby="bucket-quota-title"
+		data-testid="bucket-quota-settings"
+	>
+		<h2 id="bucket-quota-title" class="text-base text-foreground">Ubah kuota</h2>
+		<form class="flex flex-col gap-3" novalidate onsubmit={changeQuota}>
+			<div class="flex flex-col gap-1.5">
+				<label for="bucket-quota-change" class="text-sm font-medium text-foreground"
+					>Kuota (MB)</label
+				>
+				<input
+					id="bucket-quota-change"
+					type="text"
+					inputmode="numeric"
+					autocomplete="off"
+					bind:value={quota}
+					disabled={Boolean(quotaBlocked)}
+					class="control-input tabular-nums"
+					aria-invalid={quotaError ? 'true' : undefined}
+					aria-describedby={quotaError ? 'bucket-quota-change-error' : 'bucket-quota-change-hint'}
+					oninput={() => (quotaError = null)}
+				/>
+				{#if quotaError}
+					<p id="bucket-quota-change-error" class="text-xs text-error-dark" role="alert">
+						{quotaError}
+					</p>
+				{:else}
+					<p id="bucket-quota-change-hint" class="text-xs text-foreground/70">
+						{quotaBlocked ??
+							(maxQuotaMb === null
+								? 'Kuota diambil dari jatah penyimpanan workspace.'
+								: `Paling besar ${formatMegabytes(maxQuotaMb)} dari jatah penyimpanan workspace.`)}
+					</p>
+				{/if}
+			</div>
+			{#if belowUsage && !quotaError}
+				<p
+					class="rounded-control border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground"
+					role="status"
+					data-testid="bucket-quota-below-usage"
+				>
+					Kuota ini lebih kecil dari isi bucket sekarang. Upload baru ditolak sampai ada berkas yang
+					dihapus dan isinya di bawah kuota.
 				</p>
 			{/if}
-		</div>
-		{#if belowUsage && !quotaError}
-			<p
-				class="rounded-control border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground"
-				role="status"
-				data-testid="bucket-quota-below-usage"
+			<Button
+				type="submit"
+				variant="secondary"
+				size="sm"
+				class="self-start"
+				disabled={quotaMutation.isPending ||
+					Boolean(quotaBlocked) ||
+					quota.trim() === String(bucket.quota_mb)}
 			>
-				Kuota ini lebih kecil dari isi bucket sekarang. Upload baru ditolak sampai ada berkas yang
-				dihapus dan isinya di bawah kuota.
+				{quotaMutation.isPending ? 'Menyimpan...' : 'Simpan kuota'}
+			</Button>
+		</form>
+	</section>
+{/if}
+
+{#if showDelete}
+	<section
+		class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
+		aria-labelledby="bucket-danger-title"
+		data-testid="bucket-danger-zone"
+	>
+		<h2 id="bucket-danger-title" class="text-base text-error-dark">Hapus bucket</h2>
+		<p class="text-sm text-foreground">
+			Menghapus bucket dan semua berkas di dalamnya dari server. Tindakan ini tidak bisa dibatalkan.
+		</p>
+		{#if deleteBlocked}
+			<p
+				id="bucket-delete-blocked"
+				class="text-sm text-foreground"
+				data-testid="bucket-delete-blocked"
+			>
+				Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
+				semua proyek dulu, supaya aplikasi yang berjalan tidak kehilangan berkasnya tanpa sengaja.
 			</p>
+		{:else if alreadyDeleting}
+			<p class="text-sm text-muted">Bucket ini sedang dihapus.</p>
 		{/if}
 		<Button
-			type="submit"
-			variant="secondary"
+			variant="danger"
 			size="sm"
 			class="self-start"
-			disabled={quotaMutation.isPending ||
-				Boolean(quotaBlocked) ||
-				quota.trim() === String(bucket.quota_mb)}
+			bind:ref={deleteTrigger}
+			disabled={deleteBlocked}
+			aria-describedby={deleteBlocked ? 'bucket-delete-blocked' : undefined}
+			onclick={openDelete}
+			data-testid="delete-bucket"
 		>
-			{quotaMutation.isPending ? 'Menyimpan...' : 'Simpan kuota'}
+			<Trash size={16} aria-hidden="true" />
+			Hapus bucket
 		</Button>
-	</form>
-</section>
+	</section>
 
-<section
-	class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
-	aria-labelledby="bucket-danger-title"
-	data-testid="bucket-danger-zone"
->
-	<h2 id="bucket-danger-title" class="text-base text-error-dark">Hapus bucket</h2>
-	<p class="text-sm text-foreground">
-		Menghapus bucket dan semua berkas di dalamnya dari server. Tindakan ini tidak bisa dibatalkan.
-	</p>
-	{#if deleteBlocked}
-		<p
-			id="bucket-delete-blocked"
-			class="text-sm text-foreground"
-			data-testid="bucket-delete-blocked"
-		>
-			Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
-			semua proyek dulu, supaya aplikasi yang berjalan tidak kehilangan berkasnya tanpa sengaja.
-		</p>
-	{:else if alreadyDeleting}
-		<p class="text-sm text-muted">Bucket ini sedang dihapus.</p>
-	{/if}
-	<Button
-		variant="danger"
-		size="sm"
-		class="self-start"
-		bind:ref={deleteTrigger}
-		disabled={deleteBlocked}
-		aria-describedby={deleteBlocked ? 'bucket-delete-blocked' : undefined}
-		onclick={openDelete}
-		data-testid="delete-bucket"
+	<Dialog
+		bind:open={deleteOpen}
+		title={`Hapus ${bucket.name}?`}
+		confirmLabel={deleteMutation.isPending ? 'Menghapus...' : 'Hapus bucket ini'}
+		variant="destructive"
+		loading={deleteMutation.isPending}
+		confirmDisabled={!canConfirmDelete}
+		initialFocus={() => confirmInput}
+		returnFocus={() => deleteTrigger}
+		footerClass="flex-col-reverse sm:flex-row"
+		class="max-w-lg"
+		onConfirm={remove}
 	>
-		<Trash size={16} aria-hidden="true" />
-		Hapus bucket
-	</Button>
-</section>
-
-<Dialog
-	bind:open={deleteOpen}
-	title={`Hapus ${bucket.name}?`}
-	confirmLabel={deleteMutation.isPending ? 'Menghapus...' : 'Hapus bucket ini'}
-	variant="destructive"
-	loading={deleteMutation.isPending}
-	confirmDisabled={!canConfirmDelete}
-	initialFocus={() => confirmInput}
-	returnFocus={() => deleteTrigger}
-	footerClass="flex-col-reverse sm:flex-row"
-	class="max-w-lg"
-	onConfirm={remove}
->
-	<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="delete-bucket-dialog">
-		<p>
-			Bucket dan semua berkasnya dihapus dari server penyimpanan saat itu juga, dan secret key-nya
-			berhenti berlaku. Setelah itu tidak bisa dipulihkan dari Console. Backup operator menyimpan
-			salinan paling lama sekitar dua minggu.
-		</p>
-		<div class="flex flex-col gap-1.5">
-			<label for="delete-bucket-confirm" class="font-medium">
-				Ketik <strong class="font-mono font-semibold wrap-anywhere">{bucket.name}</strong> untuk konfirmasi
-			</label>
-			<input
-				bind:this={confirmInput}
-				bind:value={confirmText}
-				id="delete-bucket-confirm"
-				type="text"
-				autocomplete="off"
-				spellcheck="false"
-				class="control-input font-mono"
-				onkeydown={(event) => {
-					if (event.key === 'Enter') {
-						event.preventDefault();
-						void remove();
-					}
-				}}
-			/>
+		<div class="flex flex-col gap-3 text-sm text-foreground" data-testid="delete-bucket-dialog">
+			<p>
+				Bucket dan semua berkasnya dihapus dari server penyimpanan saat itu juga, dan secret key-nya
+				berhenti berlaku. Setelah itu tidak bisa dipulihkan dari Console. Backup operator menyimpan
+				salinan paling lama sekitar dua minggu.
+			</p>
+			<div class="flex flex-col gap-1.5">
+				<label for="delete-bucket-confirm" class="font-medium">
+					Ketik <strong class="font-mono font-semibold wrap-anywhere">{bucket.name}</strong> untuk konfirmasi
+				</label>
+				<input
+					bind:this={confirmInput}
+					bind:value={confirmText}
+					id="delete-bucket-confirm"
+					type="text"
+					autocomplete="off"
+					spellcheck="false"
+					class="control-input font-mono"
+					onkeydown={(event) => {
+						if (event.key === 'Enter') {
+							event.preventDefault();
+							void remove();
+						}
+					}}
+				/>
+			</div>
+			{#if deleteError}
+				<p role="alert" class="text-error-dark">{deleteError}</p>
+			{/if}
 		</div>
-		{#if deleteError}
-			<p role="alert" class="text-error-dark">{deleteError}</p>
-		{/if}
-	</div>
-</Dialog>
+	</Dialog>
+{/if}

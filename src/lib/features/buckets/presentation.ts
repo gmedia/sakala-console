@@ -46,12 +46,12 @@ export const BUCKET_COPY = {
 	quotaHint: 'Upload yang melewati kuota ditolak. Kuota diambil dari jatah penyimpanan workspace.',
 	privateNote:
 		'Bucket ini privat. Browser membuka berkas lewat link sementara yang dibuat aplikasimu.',
-	publicEndpoint:
-		'Alamat ini bisa dijangkau dari internet, jadi siapa pun yang memegang secret key bisa membaca dan menulis isi bucket. Jangan menaruhnya di repository.',
+	publicEndpoint: 'Terbuka dari internet. Jangan taruh secret key di repository.',
+	publicEndpointWhy:
+		'Alamat ini bisa dijangkau dari internet, jadi siapa pun yang memegang secret key bisa membaca dan menulis isi bucket.',
 	credentialsAudit:
 		'Setiap kali secret key ditampilkan, Sakala mencatatnya di log audit workspace.',
-	credentialsOwnerOnly:
-		'Secret key hanya bisa dilihat pemilik workspace. Proyek yang terpasang menerimanya otomatis saat deploy.',
+	credentialsOwnerOnly: 'Secret key hanya bisa dilihat pemilik workspace.',
 	credentialsNotReady: 'Detail koneksi tersedia setelah bucket siap.',
 	endpointMissing: 'Belum dilaporkan',
 	endpointPending:
@@ -59,6 +59,7 @@ export const BUCKET_COPY = {
 	reveal: 'Tampilkan secret key',
 	envBlockTitle: 'Untuk .env di laptop',
 	envBlockCopy: 'Salin semua',
+	envBlockNote: 'Hanya untuk laptop atau server lain; proyek terpasang sudah menerimanya.',
 	filesystemDiskHint:
 		'Supaya upload Laravel otomatis masuk bucket, tambahkan variabel FILESYSTEM_DISK=s3.',
 	backupNote:
@@ -330,7 +331,7 @@ export function bucketQuota(quotas: Partial<QuotaFields> | undefined): BucketQuo
 
 export const KEY_ROTATION_COPY = {
 	title: 'Ganti secret key',
-	lead: 'Buat secret key baru kalau yang lama mungkin bocor. Access key ID tetap sama.',
+	lead: 'Buat secret key baru kalau yang lama mungkin bocor.',
 	action: 'Ganti secret key',
 	dialogTitle: 'Ganti secret key bucket?',
 	dialogConfirm: 'Ganti secret key',
