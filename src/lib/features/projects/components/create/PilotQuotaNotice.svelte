@@ -24,7 +24,10 @@
 		{notice.message}
 	</p>
 {:else if notice && compact}
-	<Badge tone="neutral"><span data-testid="project-quota-badge">{notice.badge}</span></Badge>
+	<!-- Its own width in a column too (the wizard), not stretched across it. -->
+	<Badge tone="neutral" class="w-fit"
+		><span data-testid="project-quota-badge">{notice.badge}</span></Badge
+	>
 {:else if notice}
 	<p class="text-sm text-muted">{notice.message}</p>
 {/if}

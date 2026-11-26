@@ -274,8 +274,8 @@ describe('ProjectOverview, states', () => {
 		await expect
 			.element(page.getByTestId('overview-deployments'))
 			.toHaveTextContent('Belum ada deployment.');
-		await expect.element(page.getByTestId('next-step-release-command')).toBeVisible();
-		await expect.element(page.getByTestId('next-step-auto-deploy')).toBeVisible();
+		await expect.element(page.getByTestId('overview-next-steps-release-command')).toBeVisible();
+		await expect.element(page.getByTestId('overview-next-steps-auto-deploy')).toBeVisible();
 		expect(requests).not.toContain(`${BASE}/metrics`);
 	});
 
@@ -348,22 +348,36 @@ describe('ProjectOverview, behaviour', () => {
 		await expect.element(trigger).toHaveFocus();
 	});
 
-	it('hides a suggestion for this project and remembers it', async () => {
-		project = { ...baseProject, auto_deploy: false };
+	it('hides a step for this project, remembers it, and offers it back', async () => {
+		project = { ...baseProject, auto_deploy: false, replicas: 1, max_replicas: 3 };
 		await renderOverview();
 
+		const steps = page.getByTestId('overview-next-steps');
+		await expect.element(steps.getByRole('heading', { name: 'Berikutnya' })).toBeVisible();
+		// A label and a link, without a sentence under it.
+		await expect
+			.element(steps.getByRole('link', { name: 'Nyalakan auto-deploy' }))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/general#auto-deploy`);
 		await userEvent.click(
-			page.getByRole('button', { name: 'Sembunyikan saran: Nyalakan auto-deploy' })
+			page.getByRole('button', { name: 'Sembunyikan langkah Nyalakan auto-deploy' })
 		);
 		await expect
-			.element(
-				page.getByText('Saran disembunyikan. Tidak ada saran lain untuk proyek ini sekarang.')
-			)
-			.toBeVisible();
-		await expect.element(page.getByRole('heading', { name: 'Langkah berikutnya' })).toHaveFocus();
+			.element(page.getByTestId('overview-next-steps-auto-deploy'))
+			.not.toBeInTheDocument();
+		// Focus moves to the step that took its place.
+		await expect
+			.element(page.getByRole('button', { name: 'Sembunyikan langkah Tambah replika' }))
+			.toHaveFocus();
 		expect(JSON.parse(localStorage.getItem(dismissalStorageKey(PROJECT_ID)) ?? '[]')).toEqual([
 			'auto-deploy'
 		]);
+
+		await userEvent.click(
+			page.getByRole('button', { name: 'Tampilkan langkah yang disembunyikan' })
+		);
+		await expect.element(page.getByTestId('overview-next-steps-auto-deploy')).toBeVisible();
+		await expect.element(steps.getByRole('heading', { name: 'Berikutnya' })).toHaveFocus();
+		expect(JSON.parse(localStorage.getItem(dismissalStorageKey(PROJECT_ID)) ?? '[]')).toEqual([]);
 	});
 
 	it('suggests nothing to a viewer of a team project', async () => {

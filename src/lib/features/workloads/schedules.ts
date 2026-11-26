@@ -53,16 +53,21 @@ export const SCHEDULE_COPY = {
 	loadMore: 'Muat run sebelumnya',
 	historyKept: 'Sakala menyimpan 100 run terakhir setiap jadwal, dan log-nya selama 7 hari.',
 	nameLabel: 'Nama',
-	nameHint: 'Untuk dikenali di Sakala, misalnya Laporan harian.',
 	commandLabel: 'Perintah',
-	commandHint:
+	/** The one line under the field; the full rule is `commandLearn`, behind "Pelajari". */
+	commandHint: 'Harus selesai sendiri.',
+	commandLearn:
 		'Dijalankan sekali dengan sh -c di container baru dari image yang live, dengan variabel proyek. Harus selesai sendiri.',
 	whenLabel: 'Kapan',
 	presetsLabel: 'Pilihan cepat',
 	customPreset: 'Kustom',
 	expressionLabel: 'Ekspresi cron',
-	expressionHint:
+	/** The preview under the field reads the expression back, so the hint is an example only. */
+	expressionHint: 'Contoh: 30 2 * * *.',
+	expressionLearn:
 		'Lima bagian: menit, jam, tanggal, bulan, hari. Contoh 30 2 * * * untuk setiap hari pukul 02.30.',
+	/** The "Pelajari" at the end of the form's first two sections. */
+	formLearnTopic: 'perintah dan ekspresi cron',
 	previewTitle: 'Tiga run berikutnya',
 	previewNone: 'Ekspresi ini tidak pernah jatuh tempo.',
 	advancedToggle: 'Zona waktu dan batas waktu',

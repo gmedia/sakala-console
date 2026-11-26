@@ -13,6 +13,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import FormField from '$lib/components/ui/FormField.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
+	import FocusedPageLayout from '$lib/components/layout/templates/FocusedPageLayout.svelte';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { isAdmin } from '$lib/features/admin/access';
 	import { createRegionsQuery } from '$lib/features/databases/queries';
@@ -29,6 +31,7 @@
 	import { createCreateValkeyMutation } from '../mutations';
 	import {
 		RECOMMENDED_VALKEY_MODE,
+		QUOTA_COPY,
 		VALKEY_COPY,
 		VALKEY_NAME_MAX_LENGTH,
 		defaultValkeySize,
@@ -107,10 +110,11 @@
 		sizeApplied = true;
 	});
 
+	// How the size is reserved from the workspace sits behind "Pelajari" at the end of the form.
 	const sizeHint = $derived(
 		availableMb === null
-			? 'Batas memori Valkey ini. Bisa diubah nanti.'
-			: `Batas memori Valkey ini, dicadangkan dari jatah workspace sejak dibuat. Sisa jatah: ${formatMegabytes(availableMb)}. Bisa diubah nanti.`
+			? 'Bisa diubah nanti.'
+			: `Sisa jatah: ${formatMegabytes(availableMb)}. Bisa diubah nanti.`
 	);
 
 	const workspaceName = $derived(workspacePhrase(active));
@@ -179,7 +183,8 @@
 	}
 </script>
 
-<div class="flex w-full max-w-reading flex-col gap-4">
+<!-- One form, one button: the focused template, centred. -->
+<FocusedPageLayout>
 	<a
 		href={backHref}
 		class="inline-flex min-h-control-sm w-fit items-center gap-1.5 rounded-control text-sm font-medium text-foreground/70 hover:text-foreground max-lg:min-h-control-lg"
@@ -230,9 +235,7 @@
 				<h2 id="create-valkey-title" class="font-display text-xl font-semibold text-foreground">
 					{project ? VALKEY_COPY.createForProject : VALKEY_COPY.create}
 				</h2>
-				<p class="text-sm text-foreground/70">
-					{VALKEY_COPY.whatIs}
-				</p>
+				<p class="text-sm text-foreground/70">{VALKEY_COPY.createLead}</p>
 			</div>
 
 			{#if project}
@@ -285,14 +288,21 @@
 							{#if region === AUTO}
 								{regionAutoHint(active?.default_region ?? null)}
 							{/if}
-							{VALKEY_COPY.regionHint}
+							{VALKEY_COPY.regionShortHint}
 						</p>
 					</div>
 				{/if}
 
-				<p class="text-xs text-muted">
-					{VALKEY_COPY.privateNote} Milik <span class="wrap-anywhere">{workspaceName}</span>.
-				</p>
+				<div class="flex flex-col gap-1">
+					<p class="text-sm text-muted">
+						{VALKEY_COPY.ownerLine} <span class="wrap-anywhere">{workspaceName}</span>.
+					</p>
+					<LearnMore topic={VALKEY_COPY.createLearnTopic}>
+						<p>{VALKEY_COPY.privateNote}</p>
+						<p>{VALKEY_COPY.regionHint}</p>
+						<p>{QUOTA_COPY.reservedHint}</p>
+					</LearnMore>
+				</div>
 
 				<div class="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
 					{#if formError}
@@ -325,4 +335,4 @@
 			</form>
 		</section>
 	{/if}
-</div>
+</FocusedPageLayout>

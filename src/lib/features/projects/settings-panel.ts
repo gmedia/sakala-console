@@ -8,7 +8,7 @@ import { processSuggestion } from '$lib/features/workloads/processes';
 import { scheduleSuggestion } from '$lib/features/workloads/schedules';
 import { RELEASE_COMMAND_LABEL } from './build-help';
 import { MAX_PANEL_STEPS, type PanelHelpLink } from '$lib/components/panel/panel';
-import { deriveNextSteps, type NextStepId } from './overview/next-steps';
+import { deriveNextSteps, NEXT_STEP_LABELS, type NextStepId } from './overview/next-steps';
 import {
 	SETTINGS_ANCHORS,
 	SETTINGS_PAGES,
@@ -48,14 +48,14 @@ export type SettingsStep = {
 
 const STEPS: Record<SettingsStepId, Omit<SettingsStep, 'id'>> = {
 	'release-command': {
-		label: `Atur ${RELEASE_COMMAND_LABEL.toLowerCase()}`,
+		label: NEXT_STEP_LABELS.releaseCommand,
 		anchor: SETTINGS_ANCHORS.releaseCommand
 	},
 	domain: { label: 'Pasang custom domain', anchor: SETTINGS_SECTION_IDS.domains },
 	worker: { label: 'Tambah worker antrean', anchor: SETTINGS_SECTION_IDS.processes },
 	schedule: { label: 'Buat jadwal Laravel', anchor: SETTINGS_SECTION_IDS.schedules },
-	'auto-deploy': { label: 'Nyalakan auto-deploy', anchor: SETTINGS_ANCHORS.autoDeploy },
-	replicas: { label: 'Tambah replika', anchor: SETTINGS_ANCHORS.replicas }
+	'auto-deploy': { label: NEXT_STEP_LABELS.autoDeploy, anchor: SETTINGS_ANCHORS.autoDeploy },
+	replicas: { label: NEXT_STEP_LABELS.replicas, anchor: SETTINGS_ANCHORS.replicas }
 };
 
 const ORDER: readonly SettingsStepId[] = [

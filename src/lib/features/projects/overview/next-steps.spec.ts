@@ -4,9 +4,9 @@ import type { Project } from '../type';
 import {
 	deriveNextSteps,
 	dismissalStorageKey,
+	hiddenNextStepCount,
 	MAX_NEXT_STEPS,
 	readDismissedSteps,
-	RELEASE_COMMAND_DOCS_URL,
 	writeDismissedSteps,
 	type DismissalStorage,
 	type NextStepContext
@@ -69,25 +69,20 @@ describe('next steps', () => {
 			...context,
 			variablesCount: 0
 		});
-		expect(step.action).toEqual({
-			label: 'Isi dari .env.example',
-			target: 'variables',
-			anchor: 'isi-dari-env-example'
-		});
+		expect(step.label).toBe('Isi dari .env.example');
+		expect(step.action).toEqual({ target: 'variables', anchor: 'isi-dari-env-example' });
 		const [older] = deriveNextSteps(quiet({ inspection }), { ...context, variablesCount: 0 });
-		expect(older.action).toEqual({ label: 'Buka Variabel', target: 'variables' });
+		expect(older.label).toBe('Isi environment variable');
+		expect(older.action).toEqual({ target: 'variables' });
 	});
 
-	it('suggests a release command for Laravel without one, with the command and the guide', () => {
+	it('suggests a release command for Laravel without one', () => {
 		const [step] = deriveNextSteps(quiet({ stack: laravel }), context);
-		expect(step.id).toBe('release-command');
-		expect(step.command).toBe('php artisan migrate --force');
-		expect(step.action).toEqual({
+		expect(step).toEqual({
+			id: 'release-command',
 			label: 'Atur release command',
-			target: 'settings',
-			anchor: 'releaseCommand'
+			action: { target: 'settings', anchor: 'releaseCommand' }
 		});
-		expect(step.docs?.href).toBe(RELEASE_COMMAND_DOCS_URL);
 		expect(ids(quiet({ stack: laravel, release_command: 'php artisan migrate --force' }))).toEqual(
 			[]
 		);
@@ -97,16 +92,31 @@ describe('next steps', () => {
 	it('suggests auto-deploy only where the GitHub App can send pushes', () => {
 		expect(ids(quiet({ auto_deploy: false }))).toEqual(['auto-deploy']);
 		expect(ids(quiet({ auto_deploy: false, repository_source: 'public_url' }))).toEqual([]);
-		expect(deriveNextSteps(quiet({ auto_deploy: false }), context)[0].body).toContain(
-			'branch main'
-		);
 	});
 
 	it('mentions replicas only when the workspace allows more than one and the project runs one', () => {
 		expect(ids(quiet({ max_replicas: 3 }))).toEqual(['replicas']);
 		expect(ids(quiet({ max_replicas: 3, replicas: 2 }))).toEqual([]);
-		expect(deriveNextSteps(quiet({ max_replicas: 3 }), context)[0].body).toContain(
-			'sampai 3 replika'
+	});
+
+	it('labels every step in four words at most, as the panel card asks', () => {
+		const everything = quiet({ inspection, stack: laravel, auto_deploy: false, max_replicas: 3 });
+		const all = deriveNextSteps(everything, { ...context, variablesCount: 0 }, new Set(['x']));
+		const replicas = deriveNextSteps(quiet({ max_replicas: 3 }), context);
+		for (const step of [...all, ...replicas]) {
+			expect(step.label.split(/\s+/).length, step.id).toBeLessThanOrEqual(4);
+		}
+	});
+
+	it('counts the hidden steps that still apply, so they can be offered back', () => {
+		const everything = quiet({ inspection, stack: laravel, auto_deploy: false, max_replicas: 3 });
+		const ctx = { ...context, variablesCount: 0 };
+		expect(hiddenNextStepCount(everything, ctx, new Set())).toBe(0);
+		// A hidden step that no longer applies is not counted.
+		expect(hiddenNextStepCount(quiet(), context, new Set(['auto-deploy']))).toBe(0);
+		expect(hiddenNextStepCount(everything, ctx, new Set(['auto-deploy', 'replicas']))).toBe(2);
+		expect(hiddenNextStepCount(everything, { ...ctx, readOnly: true }, new Set(['replicas']))).toBe(
+			0
 		);
 	});
 

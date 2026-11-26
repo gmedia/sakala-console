@@ -270,15 +270,19 @@ test.describe('project overview', () => {
 
 		const steps = page.getByTestId('overview-next-steps').getByRole('listitem');
 		await expect(steps).toHaveCount(3);
-		await page.getByRole('button', { name: 'Sembunyikan saran: Nyalakan auto-deploy' }).click();
+		await page.getByRole('button', { name: 'Sembunyikan langkah Nyalakan auto-deploy' }).click();
 		await expect(steps).toHaveCount(3);
-		await expect(page.getByTestId('next-step-auto-deploy')).toHaveCount(0);
-		await expect(page.getByRole('heading', { name: 'Langkah berikutnya' })).toBeFocused();
+		await expect(page.getByTestId('overview-next-steps-auto-deploy')).toHaveCount(0);
+		// The step that took its place gets the focus, and the hidden one can be brought back.
+		await expect(
+			page.getByRole('button', { name: 'Sembunyikan langkah Tambah replika' })
+		).toBeFocused();
+		await expect(page.getByTestId('panel-restore-steps')).toBeVisible();
 
 		await page.reload();
 		await expect(page.getByTestId('project-overview')).toBeVisible();
-		await expect(page.getByTestId('next-step-replicas')).toBeVisible();
-		await expect(page.getByTestId('next-step-auto-deploy')).toHaveCount(0);
+		await expect(page.getByTestId('overview-next-steps-replicas')).toBeVisible();
+		await expect(page.getByTestId('overview-next-steps-auto-deploy')).toHaveCount(0);
 	});
 
 	test('the next steps link to the field they are about', async ({ page }) => {

@@ -6,6 +6,7 @@
 	import CalendarBlank from 'phosphor-svelte/lib/CalendarBlank';
 	import type { ProjectSchedule } from '$lib/api/resources/schedules';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import FocusedPageLayout from '$lib/components/layout/templates/FocusedPageLayout.svelte';
 	import { createProjectQuery } from '$lib/features/projects/queries';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import { useWorkloadAvailability } from '../availability.svelte';
@@ -53,7 +54,8 @@
 	}
 </script>
 
-<div class="flex w-full max-w-reading flex-col gap-4">
+<!-- One form, one button: the focused template, centred. -->
+<FocusedPageLayout>
 	<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus an anchor -->
 	<a
 		href={editing ? scheduleHref(projectId, scheduleId) : schedulesHref(projectId)}
@@ -100,4 +102,4 @@
 			/>
 		</section>
 	{/if}
-</div>
+</FocusedPageLayout>

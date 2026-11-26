@@ -7,6 +7,7 @@
 	import type { ProjectSchedule } from '$lib/api/resources/schedules';
 	import Button from '$lib/components/ui/Button.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import ToggleField from '$lib/components/ui/ToggleField.svelte';
 	import type { ResolvedPathname } from '$app/types';
 	import { describeCron, nextCronRuns } from '../cron';
@@ -211,7 +212,6 @@
 		<FormField
 			id={ids.name}
 			label={SCHEDULE_COPY.nameLabel}
-			hint={SCHEDULE_COPY.nameHint}
 			placeholder="Laporan harian"
 			autocomplete="off"
 			bind:value={() => draft.name, (value) => update('name', value)}
@@ -235,7 +235,8 @@
 			{SCHEDULE_COPY.whenLabel}
 		</legend>
 		<fieldset class="clear-both flex flex-col gap-2">
-			<legend class="mb-2 text-sm font-medium text-foreground">{SCHEDULE_COPY.presetsLabel}</legend>
+			<!-- Named for screen readers; on screen the chips under "Kapan" read as choices already. -->
+			<legend class="sr-only">{SCHEDULE_COPY.presetsLabel}</legend>
 			<div class="flex flex-wrap gap-2">
 				{#each [...presets, { id: CRON_PRESET_IDS.custom, label: SCHEDULE_COPY.customPreset, expression: '' }] as preset (preset.id)}
 					<label
@@ -294,6 +295,19 @@
 				{/if}
 			{/if}
 		</div>
+		<!-- One "Pelajari" for the command and the cron format, so each field keeps a one-line hint. -->
+		<LearnMore topic={SCHEDULE_COPY.formLearnTopic}>
+			<dl class="flex flex-col gap-2">
+				<div>
+					<dt class="font-medium text-foreground">{SCHEDULE_COPY.commandLabel}</dt>
+					<dd>{SCHEDULE_COPY.commandLearn}</dd>
+				</div>
+				<div>
+					<dt class="font-medium text-foreground">{SCHEDULE_COPY.expressionLabel}</dt>
+					<dd>{SCHEDULE_COPY.expressionLearn}</dd>
+				</div>
+			</dl>
+		</LearnMore>
 	</fieldset>
 
 	<section class="border-t border-border pt-3" aria-labelledby="{ids.advanced}-toggle">

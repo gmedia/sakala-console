@@ -28,6 +28,7 @@ import {
 	succeededEvents,
 	succeededLogLines
 } from './fixtures/realistic-logs';
+import { mockWizardApi } from './fixtures/create-project';
 import { attachedDatabase, laravelInspection } from './fixtures/wizard-env-database';
 import { cacheValkey, mockValkeyApi, QUEUE_ID, queueValkey } from './fixtures/valkeys';
 import { mockWorkspaceApi, TEAM } from './fixtures/workspaces';
@@ -785,6 +786,169 @@ test.describe('account, workspace, and auth screenshots and word counts', () => 
 	}
 });
 
+/** A Laravel project that was never deployed: the overview suggests the most next steps for it. */
+const newLaravelProject = () => ({
+	...laravelProject,
+	status: 'draft',
+	runtime_status: 'not_deployed',
+	active_deployment_id: null,
+	serving_replicas: null,
+	last_deployed_at: null,
+	auto_deploy: false,
+	max_replicas: 3,
+	inspection: {
+		repository_url: laravelProject.repository_url,
+		commit_sha: 'a3f2c9d',
+		dockerfile_found: false,
+		env_example_found: true,
+		compose_found: false,
+		manifests: ['composer.json'],
+		package_manager: 'composer',
+		inspected_at: '2026-11-19T01:00:00Z'
+	}
+});
+
+/** A live Laravel project with a release command, history, and variables: one step left. */
+const liveLaravelProject = () => ({
+	...laravelProject,
+	replicas: 2,
+	max_replicas: 3,
+	serving_replicas: 2,
+	replicas_ready: 2,
+	release_command: 'php artisan migrate --force',
+	auto_deploy: false
+});
+
+/** The wizard up to step 2, as a person gets there: pick the first repository, then Lanjut. */
+async function openWizardConfigure(page: Page) {
+	await mockWizardApi(page);
+	await page.goto('/projects/new');
+	await page.getByRole('radio', { name: /rani\/repo-1\b/ }).click();
+	await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
+	await expect(page.getByRole('heading', { name: 'Persiapan deployment' })).toBeVisible();
+	await expect(page.getByTestId('domain-preview')).not.toHaveText(/Memeriksa/);
+}
+
+const FOCUSED_OR = (old: string) => ({
+	mainColumn: [FOCUSED, old],
+	content: ['#main-content'],
+	page: ['body']
+});
+const LIST_OR = (old: string) => ({
+	mainColumn: ['[data-testid="list-page"]', old],
+	content: ['#main-content'],
+	page: ['body']
+});
+
+/** The wizard, the project overview, the schedule form, and the Valkey list and create page. */
+const LEFTOVER_PAGES: Record<
+	string,
+	{ regions: Record<string, string[]>; open: (page: Page) => Promise<void> }
+> = {
+	'project-new-repository': {
+		regions: FOCUSED_OR(APP_CONTENT),
+		open: async (page) => {
+			await mockWizardApi(page);
+			await page.goto('/projects/new');
+			await expect(page.getByRole('radio', { name: /rani\/repo-1\b/ })).toBeVisible();
+		}
+	},
+	'project-new-configure': {
+		regions: FOCUSED_OR(APP_CONTENT),
+		open: openWizardConfigure
+	},
+	'project-new-advanced': {
+		regions: FOCUSED_OR(APP_CONTENT),
+		open: async (page) => {
+			await openWizardConfigure(page);
+			await page.getByRole('button', { name: /Pengaturan lanjutan/ }).click();
+			await expect(page.getByLabel(/^Start command/)).toBeVisible();
+		}
+	},
+	'overview-new': {
+		regions: LIST_OR(TAB_CONTENT),
+		open: async (page) => {
+			await mockProjectApi(page, {
+				project: newLaravelProject,
+				deploymentList: () => [],
+				envList: () => []
+			});
+			await page.goto(`/projects/${PROJECT_ID}`);
+			await expect(page.getByTestId('project-overview')).toBeVisible();
+			// The old card and the panel card name the step differently; either one, loaded.
+			await expect(
+				page
+					.getByTestId('next-step-env-example')
+					.or(page.getByTestId('overview-next-steps-env-example'))
+			).toBeVisible();
+		}
+	},
+	'overview-live': {
+		regions: LIST_OR(TAB_CONTENT),
+		open: async (page) => {
+			await mockProjectApi(page, {
+				project: liveLaravelProject,
+				deploymentList: HISTORY,
+				envList: () => VARIABLES,
+				metrics: () => ({ body: sampleMetrics() })
+			});
+			await page.goto(`/projects/${PROJECT_ID}`);
+			await expect(page.getByTestId('project-overview')).toBeVisible();
+			await expect(page.locator('[data-testid="project-overview"] canvas').first()).toBeVisible();
+		}
+	},
+	'schedule-new': {
+		regions: FOCUSED_OR(TAB_CONTENT),
+		open: async (page) => {
+			await mockProjectApi(page, { project: () => laravelProject });
+			await mockWorkloadApi(page, workloadState());
+			await page.goto(`${SETTINGS_URL}/schedules/new`);
+			await expect(page.getByTestId('schedule-preview').getByRole('listitem')).toHaveCount(3);
+		}
+	},
+	'schedule-edit': {
+		regions: FOCUSED_OR(TAB_CONTENT),
+		open: async (page) => {
+			const state = workloadState();
+			await mockProjectApi(page, { project: () => laravelProject });
+			await mockWorkloadApi(page, state);
+			await page.goto(`${SETTINGS_URL}/schedules/${state.schedules[0].id as string}/edit`);
+			await expect(page.getByTestId('schedule-form')).toBeVisible();
+		}
+	},
+	valkeys: {
+		regions: LIST_OR(APP_CONTENT),
+		open: async (page) => {
+			await mockValkeyApi(page, { valkeys: [queueValkey(), cacheValkey()] });
+			await page.goto('/valkeys');
+			await expect(page.getByTestId('valkey-row').first()).toBeVisible();
+		}
+	},
+	'valkeys-new': {
+		regions: FOCUSED_OR(APP_CONTENT),
+		open: async (page) => {
+			await mockValkeyApi(page, { valkeys: [queueValkey()] });
+			await page.goto('/valkeys/new');
+			await expect(page.getByTestId('create-valkey-form')).toBeVisible();
+		}
+	}
+};
+
+test.describe('wizard, overview, schedule form, and Valkey screenshots and word counts', () => {
+	test.skip(!SHOTS_DIR, 'Only when SETTINGS_SHOTS names a folder.');
+
+	for (const [name, { regions, open }] of Object.entries(LEFTOVER_PAGES)) {
+		for (const [label, width] of Object.entries(WIDTHS)) {
+			test(`${name} at ${width} px`, async ({ page }) => {
+				await page.setViewportSize({ width, height: 900 });
+				await open(page);
+				await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => undefined);
+				await capture(page, `${name}-${label}-${width}`, regions);
+			});
+		}
+	}
+});
+
 test.describe('the page templates', () => {
 	/** Every page and state the templates were applied to, opened the way a person would. */
 	const PAGES: [string, (page: Page) => Promise<void>][] = [
@@ -831,6 +995,9 @@ test.describe('the page templates', () => {
 			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
 		),
 		...Object.entries(ACCOUNT_PAGES).map(
+			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
+		),
+		...Object.entries(LEFTOVER_PAGES).map(
 			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
 		)
 	];
@@ -1421,5 +1588,75 @@ test.describe('the page templates', () => {
 		]);
 		const list = (await page.getByTestId('list-page').boundingBox())!;
 		expect(list.width).toBeLessThanOrEqual(48 * 16);
+	});
+
+	test('the wizard, the schedule form, and the Valkey form sit centred in the content', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		for (const name of ['project-new-repository', 'schedule-new', 'valkeys-new'] as const) {
+			await LEFTOVER_PAGES[name].open(page);
+			const column = (await page.getByTestId('focused-page').boundingBox())!;
+			const content = (await page.locator('#main-content').boundingBox())!;
+			const columnCentre = column.x + column.width / 2;
+			const contentCentre = content.x + content.width / 2;
+			expect(Math.abs(columnCentre - contentCentre), name).toBeLessThanOrEqual(2);
+		}
+	});
+
+	test('the overview’s next steps are the panel card: links only, hidden ones offered back', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await LEFTOVER_PAGES['overview-new'].open(page);
+		await expect(page.getByTestId('list-page')).toBeVisible();
+		const steps = page.getByTestId('overview-next-steps');
+		await expect(steps.getByRole('heading', { level: 2 })).toHaveText('Berikutnya');
+		await expect(steps.getByRole('link')).toHaveText([
+			'Isi environment variable',
+			'Atur release command',
+			'Nyalakan auto-deploy'
+		]);
+		// No sentence under a step: the why is where the link leads.
+		await expect(steps.locator('p')).toHaveCount(0);
+
+		await steps.getByRole('button', { name: 'Sembunyikan langkah Atur release command' }).click();
+		await expect(steps.getByRole('link')).toHaveText([
+			'Isi environment variable',
+			'Nyalakan auto-deploy',
+			'Tambah replika'
+		]);
+		await page.getByTestId('panel-restore-steps').click();
+		await expect(steps.getByRole('link')).toHaveText([
+			'Isi environment variable',
+			'Atur release command',
+			'Nyalakan auto-deploy'
+		]);
+	});
+
+	test('the Valkey list puts its quota beside the create button, as databases do', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await LEFTOVER_PAGES.valkeys.open(page);
+		const toolbar = page.getByTestId('list-page-toolbar');
+		await expect(toolbar.getByTestId('valkeys-intro')).toContainText('kompatibel dengan Redis');
+		await expect(toolbar.getByTestId('valkey-quota-count')).toHaveText('2 dari 3 Valkey');
+		await expect(toolbar.getByTestId('create-valkey')).toBeVisible();
+		await expect(page.getByRole('heading', { name: /Jatah Valkey/ })).toHaveCount(0);
+	});
+
+	test('the wizard and the schedule form keep the long help one click away', async ({ page }) => {
+		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
+		await LEFTOVER_PAGES['project-new-advanced'].open(page);
+		await expect(page.getByText(/Kosong berarti diambil dari EXPOSE/)).toBeHidden();
+		await page.locator('#wizard-advanced summary').click();
+		await expect(page.getByText(/Kosong berarti diambil dari EXPOSE/)).toBeVisible();
+
+		await LEFTOVER_PAGES['schedule-new'].open(page);
+		await expect(page.getByText('Contoh: 30 2 * * *.')).toBeVisible();
+		await expect(page.getByText(/Lima bagian: menit, jam/)).toBeHidden();
+		await page.getByTestId('schedule-form').locator('summary').click();
+		await expect(page.getByText(/Lima bagian: menit, jam/)).toBeVisible();
 	});
 });

@@ -6,6 +6,7 @@
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { isAdmin } from '$lib/features/admin/access';
@@ -148,49 +149,58 @@
 			title={VALKEY_COPY.unavailableTitle}
 			description={VALKEY_COPY.unavailableBody}
 		/>
-	{:else}
+	{:else if valkeys.length === 0}
 		{@render projectBanner()}
-		{#if unavailable}
-			<p
-				class="flex items-start gap-3 rounded-control border border-border bg-background-soft px-4 py-3 text-sm text-foreground"
-				role="status"
-				data-testid="valkeys-unavailable"
-			>
-				<Memory size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
-				<span>
-					<span class="font-medium">{VALKEY_COPY.unavailableTitle}.</span>
-					{VALKEY_COPY.unavailableBody}
-				</span>
-			</p>
-		{/if}
-		{#if valkeys.length === 0}
-			<EmptyState
-				icon={Memory}
-				tone={access.canManage ? 'neutral' : 'muted'}
-				title={`Belum ada Valkey di ${workspaceName}`}
-				description={`${VALKEY_COPY.whatIs} Buat satu, lalu pasang ke proyek: Sakala menambahkan REDIS_URL dan variabel REDIS_* lainnya saat deploy berikutnya.`}
-				action={canStart ? createLink : undefined}
-			/>
-		{:else}
-			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-				<p class="max-w-2xl text-sm text-muted" data-testid="valkeys-intro">
-					{VALKEY_COPY.whatIs} Milik
-					<span class="wrap-anywhere text-foreground">{workspaceName}</span>, bisa dipasang ke
-					beberapa proyek, dan tetap ada walaupun proyeknya dihapus.
-				</p>
-				{#if canStart}
-					<div class="shrink-0">{@render createLink()}</div>
-				{/if}
-			</div>
-		{/if}
+		<EmptyState
+			icon={Memory}
+			tone={access.canManage ? 'neutral' : 'muted'}
+			title={`Belum ada Valkey di ${workspaceName}`}
+			description={`${VALKEY_COPY.whatIs} Buat satu, lalu pasang ke proyek: Sakala menambahkan REDIS_URL dan variabel REDIS_* lainnya saat deploy berikutnya.`}
+			action={canStart ? createLink : undefined}
+		/>
 		{#if quota}
 			<ValkeyQuotaSummary {quota} {workspaceName} showBlockedReason={!siteAdmin} />
 		{/if}
 		{#if !access.canManage}
 			<p class="text-sm text-muted" data-testid="valkey-viewer-note">{VALKEY_COPY.viewerNote}</p>
 		{/if}
-		{#if valkeys.length > 0}
+	{:else}
+		{#snippet toolbar()}
+			<div class="flex min-w-0 flex-1 basis-64 flex-col gap-2">
+				<p class="text-sm text-muted" data-testid="valkeys-intro">
+					{VALKEY_COPY.listIntro}
+					<span class="wrap-anywhere text-foreground">{workspaceName}</span>; tetap ada walaupun
+					proyeknya dihapus.
+				</p>
+				{#if !access.canManage}
+					<p class="text-sm text-muted" data-testid="valkey-viewer-note">
+						{VALKEY_COPY.viewerNote}
+					</p>
+				{:else if quota}
+					<ValkeyQuotaSummary {quota} {workspaceName} showBlockedReason={!siteAdmin} compact />
+				{/if}
+			</div>
+			{#if canStart}
+				<div class="shrink-0">{@render createLink()}</div>
+			{/if}
+		{/snippet}
+		<!-- The list template, as for databases and buckets: quota and the primary action above. -->
+		<ListPageLayout {toolbar}>
+			{@render projectBanner()}
+			{#if unavailable}
+				<p
+					class="flex items-start gap-3 rounded-control border border-border bg-background-soft px-4 py-3 text-sm text-foreground"
+					role="status"
+					data-testid="valkeys-unavailable"
+				>
+					<Memory size={20} class="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
+					<span>
+						<span class="font-medium">{VALKEY_COPY.unavailableTitle}.</span>
+						{VALKEY_COPY.unavailableBody}
+					</span>
+				</p>
+			{/if}
 			<ValkeyList {valkeys} workspaceId={active.id} projectId={project?.id} />
-		{/if}
+		</ListPageLayout>
 	{/if}
 </div>

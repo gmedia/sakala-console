@@ -52,8 +52,9 @@ export const RELEASE_COMMAND_PLACEHOLDER = 'Tidak ada';
 export const ROOT_DIRECTORY_PLACEHOLDER = 'Root repository';
 
 /**
- * The one line under each settings field (maintainer, 2026-11-25: less text on screen). The full
- * explanations above stay one click away, behind "Pelajari" in the same section.
+ * The one line under each settings field (maintainer, 2026-11-25: less text on screen), also used by
+ * the create wizard. The full explanations above stay one click away, behind "Pelajari" in the same
+ * section.
  */
 export const SETTINGS_FIELD_HINTS = {
 	autoDeploy: 'Deploy otomatis setiap push ke branch ini.',
@@ -62,7 +63,9 @@ export const SETTINGS_FIELD_HINTS = {
 	port: (current: number) => `Sekarang ${current}.`,
 	buildCommand: BUILD_COMMAND_EXAMPLE,
 	startCommand: START_COMMAND_EXAMPLE,
-	releaseCommand: 'Sekali tiap deploy, misalnya migration.'
+	releaseCommand: 'Sekali tiap deploy, misalnya migration.',
+	/** The wizard has no port yet to name, so its hint says what the app must do. */
+	portNew: 'Aplikasimu harus mendengarkan di variabel PORT.'
 } as const;
 
 /** The rows behind "Pelajari" in Build dan start that no single field owns. */
@@ -72,4 +75,15 @@ export const SETTINGS_LEARN_COPY = {
 	appliesTerm: 'Kapan berlaku',
 	applies: 'Mulai deployment berikutnya. Redeploy juga menyimpan perubahan yang belum tersimpan.',
 	releaseGuide: `Panduan ${RELEASE_COMMAND_LABEL.toLowerCase()}`
+} as const;
+
+/** The create wizard's step 2, in the same budget as the settings pages. */
+export const WIZARD_CONFIGURE_COPY = {
+	lead: 'Periksa nama dan branch; sisanya dideteksi dari repository.',
+	nameHint: 'Bisa diganti nanti di Pengaturan.',
+	advancedLead: 'Port, command, dan root directory. Boleh dikosongkan.',
+	/** What each "Pelajari" explains, read after its label by screen readers. */
+	learnAutoDeploy: 'auto-deploy dan batas pilot',
+	learnPilot: 'batas pilot',
+	learnFields: 'port dan command'
 } as const;

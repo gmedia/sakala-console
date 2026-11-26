@@ -437,7 +437,7 @@ test.describe('team workspaces', () => {
 
 		const picker = page.getByLabel('Workspace', { exact: true });
 		await expect(picker).toHaveValue(TEAM.id);
-		await expect(page.getByText(`Workspace ${TEAM.name} memakai 1 dari 5 proyek`)).toBeVisible();
+		await expect(page.getByTestId('project-quota-badge')).toHaveText('Kuota tim: 1 dari 5 proyek');
 
 		await page.getByRole('radio', { name: /rani\/repo-1\b/ }).click();
 		await page.getByRole('button', { name: 'Lanjut', exact: true }).click();

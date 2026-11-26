@@ -43,10 +43,10 @@
 	data-testid="overview-topology"
 >
 	<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-		<div class="flex min-w-0 flex-col gap-0.5">
-			<h2 id="overview-topology-title" class="text-base text-foreground">{TOPOLOGY_COPY.title}</h2>
-			<p class="text-sm text-muted">{TOPOLOGY_COPY.lead}</p>
-		</div>
+		<!-- The title says what the diagram is; a lead line under it only repeated it. -->
+		<h2 id="overview-topology-title" class="min-w-0 text-base text-foreground">
+			{TOPOLOGY_COPY.title}
+		</h2>
 		<p class="text-xs text-muted">{TOPOLOGY_COPY.hint}</p>
 	</div>
 	<!-- The whole diagram in words, for screen readers; sighted readers get the canvas. -->

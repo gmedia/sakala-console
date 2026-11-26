@@ -22,7 +22,7 @@
 <PanelHelp testid="schedule-help">
 	<LearnMore topic={COPY.howItRuns} label={COPY.howItRuns}>
 		<p>{SCHEDULE_COPY.introLearn}</p>
-		<p>{SCHEDULE_COPY.commandHint}</p>
+		<p>{SCHEDULE_COPY.commandLearn}</p>
 	</LearnMore>
 	<LearnMore topic={COPY.history} label={COPY.history}>
 		<p>{SCHEDULE_COPY.historyKept}</p>

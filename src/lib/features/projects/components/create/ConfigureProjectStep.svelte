@@ -10,6 +10,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import FormField from '$lib/components/ui/FormField.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
+	import { PANEL_COPY } from '$lib/components/panel/panel';
 	import ToggleField from '$lib/components/ui/ToggleField.svelte';
 	import { getCreateProjectContext } from '$lib/features/projects/create/createProjectContext';
 	import {
@@ -23,18 +25,20 @@
 	import {
 		AUTO_DEPLOY_HELP,
 		AUTO_DEPLOY_UNAVAILABLE_HELP,
-		BUILD_COMMAND_EXAMPLE,
 		BUILD_COMMAND_HELP,
 		DETECTED_PLACEHOLDER,
 		PORT_HELP,
+		RELEASE_COMMAND_DOCS_URL,
 		RELEASE_COMMAND_EXAMPLE,
 		RELEASE_COMMAND_HELP,
 		RELEASE_COMMAND_LABEL,
 		RELEASE_COMMAND_PLACEHOLDER,
 		ROOT_DIRECTORY_HELP,
 		ROOT_DIRECTORY_PLACEHOLDER,
-		START_COMMAND_EXAMPLE,
-		START_COMMAND_HELP
+		SETTINGS_FIELD_HINTS as HINTS,
+		SETTINGS_LEARN_COPY as LEARN,
+		START_COMMAND_HELP,
+		WIZARD_CONFIGURE_COPY as COPY
 	} from '../../build-help';
 	import type { CreateIntent } from '../../create/createProjectState.svelte';
 	import BranchCombobox from './BranchCombobox.svelte';
@@ -246,10 +250,17 @@
 	});
 </script>
 
+{#snippet learnRow(term: string, explanation: string)}
+	<div>
+		<dt class="font-medium text-foreground">{term}</dt>
+		<dd>{explanation}</dd>
+	</div>
+{/snippet}
+
 <form bind:this={formEl} class="mt-3 flex flex-col gap-4" onsubmit={handleSubmit} novalidate>
 	<div>
 		<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Persiapan deployment</h2>
-		<p>Periksa nama dan branch. Port dan perintah dideteksi Sakala dari repository.</p>
+		<p class="text-sm text-foreground/70">{COPY.lead}</p>
 	</div>
 
 	{#if wizard.starterExample}
@@ -259,7 +270,7 @@
 	{#if workspacePicker}
 		{@render workspacePicker()}
 	{:else}
-		<PilotQuotaNotice limits={pilotLimits} />
+		<PilotQuotaNotice limits={pilotLimits} compact />
 	{/if}
 
 	{#if apiErrors.general}
@@ -295,7 +306,7 @@
 				label="Nama proyek"
 				bind:value={wizard.projectName}
 				error={nameError}
-				hint="Diambil dari nama repository, dan bisa diganti kapan saja lewat tab Pengaturan."
+				hint={COPY.nameHint}
 				oninput={() => (nameTouched = true)}
 			/>
 			<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs" aria-live="polite">
@@ -355,12 +366,21 @@
 		{#if isGithub}
 			<ToggleField
 				title="Auto-deploy"
-				description={AUTO_DEPLOY_HELP}
+				description={HINTS.autoDeploy}
 				checked={wizard.autoDeploy}
 				onToggle={() => (wizard.autoDeploy = !wizard.autoDeploy)}
 			/>
 		{:else}
 			<p class="py-3 text-sm text-foreground/70">{AUTO_DEPLOY_UNAVAILABLE_HELP}</p>
+		{/if}
+		<!-- The full auto-deploy rule and the pilot's resources: rarely needed, one click away. -->
+		{#if isGithub || pilotLimits}
+			<div class="pb-3">
+				<LearnMore topic={isGithub ? COPY.learnAutoDeploy : COPY.learnPilot}>
+					{#if isGithub}<p>{AUTO_DEPLOY_HELP}</p>{/if}
+					{#if pilotLimits}<p>{formatPilotRuntime(pilotLimits)}</p>{/if}
+				</LearnMore>
+			</div>
 		{/if}
 		<!-- Automatic detection fills these in. They only open by themselves when one needs fixing. -->
 		<div class="border-t border-border pt-3">
@@ -377,10 +397,7 @@
 					aria-hidden="true"
 				/>
 			</button>
-			<p class="text-sm text-foreground/70">
-				Port, build command, start command, release command, dan root directory. Boleh dikosongkan.
-				Sakala mendeteksi port dan command dari repository, kecuali release command.
-			</p>
+			<p class="text-sm text-foreground/70">{COPY.advancedLead}</p>
 			<div id="wizard-advanced" class="mt-3 flex-col gap-5 {advancedVisible ? 'flex' : 'hidden'}">
 				<div>
 					<FormField
@@ -390,7 +407,7 @@
 						inputmode="numeric"
 						placeholder={DETECTED_PLACEHOLDER}
 						error={fieldError('configured_port')}
-						hint={PORT_HELP}
+						hint={HINTS.portNew}
 					/>
 				</div>
 				<div>
@@ -401,7 +418,7 @@
 						placeholder={DETECTED_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('build_command')}
-						hint={`${BUILD_COMMAND_HELP} ${BUILD_COMMAND_EXAMPLE}`}
+						hint={HINTS.buildCommand}
 						inputClass="font-mono"
 					/>
 				</div>
@@ -413,7 +430,7 @@
 						placeholder={DETECTED_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('start_command')}
-						hint={`${START_COMMAND_HELP} ${START_COMMAND_EXAMPLE}`}
+						hint={HINTS.startCommand}
 						inputClass="font-mono"
 					/>
 				</div>
@@ -425,7 +442,7 @@
 						placeholder={RELEASE_COMMAND_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('release_command')}
-						hint={`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`}
+						hint={HINTS.releaseCommand}
 						inputClass="font-mono"
 					/>
 				</div>
@@ -437,17 +454,33 @@
 						placeholder={ROOT_DIRECTORY_PLACEHOLDER}
 						spellcheck={false}
 						error={fieldError('root_directory')}
-						hint={ROOT_DIRECTORY_HELP}
+						hint={HINTS.rootDirectory}
 						inputClass="font-mono"
 					/>
 				</div>
+				<LearnMore topic={COPY.learnFields}>
+					<dl class="flex flex-col gap-2">
+						{@render learnRow(LEARN.emptyTerm, LEARN.empty)}
+						{@render learnRow('Port', PORT_HELP)}
+						{@render learnRow('Build command', BUILD_COMMAND_HELP)}
+						{@render learnRow('Start command', START_COMMAND_HELP)}
+						{@render learnRow(
+							RELEASE_COMMAND_LABEL,
+							`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`
+						)}
+						{@render learnRow('Root directory', ROOT_DIRECTORY_HELP)}
+					</dl>
+					<a
+						href={RELEASE_COMMAND_DOCS_URL}
+						target="_blank"
+						rel="external noopener noreferrer"
+						class="inline-flex min-h-6 items-center self-start font-medium text-primary-dark underline underline-offset-2"
+						>{LEARN.releaseGuide}<span class="sr-only">&nbsp;{PANEL_COPY.newTab}</span></a
+					>
+				</LearnMore>
 			</div>
 		</div>
 	</Card>
-
-	{#if pilotLimits}
-		<p class="text-sm text-foreground/70">{formatPilotRuntime(pilotLimits)}</p>
-	{/if}
 
 	<WizardStepFooter>
 		<Button

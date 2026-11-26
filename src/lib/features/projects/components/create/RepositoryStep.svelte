@@ -199,10 +199,8 @@
 </script>
 
 <div class="mt-3 flex flex-col gap-4">
-	<div>
-		<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Pilih repository</h2>
-		<p>Pilih repository yang ingin kamu deploy ke Sakala.</p>
-	</div>
+	<!-- The heading says the task; a lead line under it only repeated it. -->
+	<h2 tabindex="-1" data-step-heading class="text-xl outline-none">Pilih repository</h2>
 
 	<RepositorySourceTab bind:value={wizard.repositorySource} />
 
