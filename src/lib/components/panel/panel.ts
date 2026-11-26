@@ -6,7 +6,15 @@ export const PANEL_COPY = {
 	summary: 'Ringkasan',
 	next: 'Berikutnya',
 	help: 'Bantuan',
-	newTab: '(tab baru)'
+	newTab: '(tab baru)',
+	dismissStep: (label: string) => `Sembunyikan langkah ${label}`,
+	restoreSteps: 'Tampilkan langkah yang disembunyikan'
+} as const;
+
+/** Where focus goes once steps are hidden or shown again; one panel per page, so ids are fixed. */
+export const PANEL_IDS = {
+	nextHeading: 'panel-next-steps-title',
+	restore: 'panel-restore-steps'
 } as const;
 
 /** More than three suggestions turns a nudge into a to-do list (Hick's Law). */

@@ -149,6 +149,22 @@ describe('hidden suggestions in storage', () => {
 		expect(readDismissedSteps(storage, 'p-2')).toEqual(new Set());
 	});
 
+	it('remembers per person, so a shared browser keeps each choice apart', () => {
+		const storage = memoryStorage();
+		writeDismissedSteps(storage, 'p-1', new Set(['replicas']), 7);
+		expect(readDismissedSteps(storage, 'p-1', 7)).toEqual(new Set(['replicas']));
+		expect(readDismissedSteps(storage, 'p-1', 8)).toEqual(new Set());
+		expect(dismissalStorageKey('p-1', 7)).toBe('sakala.overview-dismissed-steps.7.p-1');
+	});
+
+	it('still reads a choice made before it was kept per person, until the person changes it', () => {
+		const storage = memoryStorage({ [dismissalStorageKey('p-1')]: '["auto-deploy"]' });
+		expect(readDismissedSteps(storage, 'p-1', 7)).toEqual(new Set(['auto-deploy']));
+		// A restore writes an empty list, which wins over the old key from then on.
+		writeDismissedSteps(storage, 'p-1', new Set(), 7);
+		expect(readDismissedSteps(storage, 'p-1', 7)).toEqual(new Set());
+	});
+
 	it('forgets quietly when storage holds junk, refuses, or is missing', () => {
 		expect(readDismissedSteps(memoryStorage({ [dismissalStorageKey('p')]: '{oops' }), 'p')).toEqual(
 			new Set()

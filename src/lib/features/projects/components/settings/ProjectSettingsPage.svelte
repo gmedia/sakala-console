@@ -2,6 +2,7 @@
 	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
 	import PanelHelp from '$lib/components/panel/PanelHelp.svelte';
 	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import PanelRestoreLink from '$lib/components/panel/PanelRestoreLink.svelte';
 	import { customDomainsEnabled, DOMAIN_COPY } from '$lib/features/domains/presentation';
 	import { useWorkloadAvailability } from '$lib/features/workloads/availability.svelte';
 	import ProcessesSection from '$lib/features/workloads/components/ProcessesSection.svelte';
@@ -76,9 +77,20 @@
 </svelte:head>
 
 {#snippet panel()}
-	<PanelNextSteps steps={nextSteps.steps} testid="settings-next-steps" />
+	<PanelNextSteps
+		steps={nextSteps.steps}
+		testid="settings-next-steps"
+		onDismiss={nextSteps.dismiss}
+		hiddenCount={nextSteps.hiddenCount}
+		onRestore={nextSteps.restore}
+	/>
 	{#if helpLinks.length > 0}
-		<PanelHelp links={helpLinks} testid="settings-help" />
+		<PanelHelp links={helpLinks} testid="settings-help">
+			<!-- Every step hidden: the way back sits with the guides, and nowhere on a page without them. -->
+			{#if nextSteps.steps.length === 0 && nextSteps.hiddenCount > 0}
+				<PanelRestoreLink onRestore={nextSteps.restore} />
+			{/if}
+		</PanelHelp>
 	{/if}
 {/snippet}
 

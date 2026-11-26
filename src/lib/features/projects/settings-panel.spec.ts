@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { LARAVEL_QUEUE_WORKER } from '$lib/features/workloads/processes';
 import { LARAVEL_SCHEDULER } from '$lib/features/workloads/schedules';
 import { MAX_PANEL_STEPS as MAX_NEXT_STEPS } from '$lib/components/panel/panel';
-import { deriveSettingsSteps, type SettingsStepContext } from './settings-panel';
+import {
+	deriveSettingsSteps,
+	hiddenSettingsStepCount,
+	type SettingsStepContext
+} from './settings-panel';
 import { SETTINGS_ANCHORS, SETTINGS_SECTION_IDS } from './settings-anchors';
 
 const laravel = {
@@ -80,6 +84,14 @@ describe('the settings panel next steps', () => {
 			'worker',
 			'schedule'
 		]);
+	});
+
+	it('counts hidden steps that still apply, and lets the next one take the free place', () => {
+		const context = { ...allOn, dismissed: new Set(['release-command', 'auto-deploy']) };
+		// auto-deploy does not apply to this project, so only one hidden step counts.
+		expect(hiddenSettingsStepCount(laravel, context)).toBe(1);
+		expect(ids(laravel, context)).toEqual(['domain', 'worker', 'schedule']);
+		expect(hiddenSettingsStepCount(laravel, allOn)).toBe(0);
 	});
 
 	it('gives a viewer and a suspended project nothing', () => {

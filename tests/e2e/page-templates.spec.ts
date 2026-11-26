@@ -192,6 +192,13 @@ const SUB_PAGES = [
  */
 const SUBPAGES = Boolean(process.env.SETTINGS_SUBPAGES);
 
+/** One screenshot at the window's own size, for the pull request; only with SETTINGS_SHOTS. */
+async function screenshot1440(page: Page, name: string) {
+	if (!SHOTS_DIR) return;
+	mkdirSync(SHOTS_DIR, { recursive: true });
+	await page.screenshot({ path: `${SHOTS_DIR}/${name}.png` });
+}
+
 test.describe('settings screenshots and word counts', () => {
 	test.skip(!SHOTS_DIR, 'Only when SETTINGS_SHOTS names a folder.');
 
@@ -413,6 +420,76 @@ test.describe('the page templates', () => {
 			.click();
 		await expect(page).toHaveURL(`${SETTINGS_URL}/processes`);
 		await expect(page.getByTestId('processes-section')).toBeVisible();
+	});
+
+	test('a hidden step stays hidden after a reload, for this person and project, until restored', async ({
+		page
+	}) => {
+		await mockState(page, 'on-new');
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await page.goto(`${SETTINGS_URL}/general`);
+		await settled(page);
+		const steps = page.getByTestId('settings-next-steps');
+		await expect(steps.getByRole('link', { name: 'Atur release command' })).toBeVisible();
+
+		await steps.getByRole('button', { name: 'Sembunyikan langkah Atur release command' }).click();
+		await expect(steps.getByRole('link', { name: 'Atur release command' })).toHaveCount(0);
+		// Focus stays in the list, on the step that took its place.
+		await expect(
+			steps.getByRole('button', { name: 'Sembunyikan langkah Pasang custom domain' })
+		).toBeFocused();
+		// The next step that applies takes the free place.
+		await expect(steps.getByRole('link')).toHaveText([
+			'Pasang custom domain',
+			'Tambah worker antrean',
+			'Buat jadwal Laravel'
+		]);
+		await screenshot1440(page, 'settings-dismiss-1440');
+
+		await page.reload();
+		await settled(page);
+		await expect(steps.getByRole('link', { name: 'Pasang custom domain' })).toBeVisible();
+		await expect(steps.getByRole('link', { name: 'Atur release command' })).toHaveCount(0);
+		// Kept under the signed-in user's id and the project's id.
+		expect(
+			await page.evaluate(
+				(key) => window.localStorage.getItem(key),
+				`sakala.overview-dismissed-steps.1.${PROJECT_ID}`
+			)
+		).toBe('["release-command"]');
+
+		await page.getByRole('button', { name: 'Tampilkan langkah yang disembunyikan' }).click();
+		await expect(steps.getByRole('link', { name: 'Atur release command' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Berikutnya' })).toBeFocused();
+		await expect(
+			page.getByRole('button', { name: 'Tampilkan langkah yang disembunyikan' })
+		).toHaveCount(0);
+	});
+
+	test('with every step hidden, only Bantuan stays, holding the way back', async ({ page }) => {
+		await mockState(page, 'on-new');
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await page.goto(`${SETTINGS_URL}/general`);
+		await settled(page);
+		const steps = page.getByTestId('settings-next-steps');
+		const restore = page.getByRole('button', { name: 'Tampilkan langkah yang disembunyikan' });
+		// Five steps apply to a new Laravel project; each hidden one lets the next take its place.
+		for (let hidden = 0; hidden < 5; hidden++) {
+			await steps
+				.getByRole('button', { name: /^Sembunyikan langkah / })
+				.first()
+				.click();
+		}
+		await expect(steps).toHaveCount(0);
+		await expect(page.getByTestId('settings-help').getByRole('button')).toHaveText(
+			'Tampilkan langkah yang disembunyikan'
+		);
+		await expect(restore).toBeFocused();
+
+		// A page without guides then has no panel at all.
+		await page.goto(`${SETTINGS_URL}/domain`);
+		await expect(page.getByTestId('domains-section')).toBeVisible();
+		await expect(page.getByRole('complementary', { name: 'Langkah dan bantuan' })).toHaveCount(0);
 	});
 
 	test('with the flags off nothing asks for domains, workers, or schedules', async ({ page }) => {

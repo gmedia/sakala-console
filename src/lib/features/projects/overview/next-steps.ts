@@ -131,33 +131,53 @@ export type DismissalStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 const STORAGE_PREFIX = 'sakala.overview-dismissed-steps';
 
-/** Per project: hiding a suggestion on one project says nothing about another. */
-export function dismissalStorageKey(projectId: string): string {
-	return `${STORAGE_PREFIX}.${projectId}`;
+/** Whose choice it is: hiding a step on a shared browser says nothing about another person. */
+export type DismissalOwner = string | number | null | undefined;
+
+/**
+ * Per person and per project: hiding a suggestion on one project says nothing about another. The
+ * key without a person is the one used before choices were kept per person; it is still read once,
+ * so a step hidden then stays hidden.
+ */
+export function dismissalStorageKey(projectId: string, owner?: DismissalOwner): string {
+	return owner === null || owner === undefined
+		? `${STORAGE_PREFIX}.${projectId}`
+		: `${STORAGE_PREFIX}.${owner}.${projectId}`;
+}
+
+function parseIds(raw: string | null): Set<string> | null {
+	if (raw === null) return null;
+	const parsed: unknown = JSON.parse(raw);
+	return new Set(
+		Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
+	);
 }
 
 /** Storage can be missing, refuse access, or hold junk; any of those only forgets the choice. */
 export function readDismissedSteps(
 	storage: DismissalStorage | null,
-	projectId: string
+	projectId: string,
+	owner?: DismissalOwner
 ): Set<string> {
 	try {
-		const parsed: unknown = JSON.parse(storage?.getItem(dismissalStorageKey(projectId)) ?? '[]');
-		return new Set(
-			Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
-		);
+		const own = parseIds(storage?.getItem(dismissalStorageKey(projectId, owner)) ?? null);
+		if (own) return own;
+		const legacy = owner === null || owner === undefined ? null : dismissalStorageKey(projectId);
+		return (legacy && parseIds(storage?.getItem(legacy) ?? null)) || new Set();
 	} catch {
 		return new Set();
 	}
 }
 
+/** An empty set is written too: it is how a restore outlives the key from before. */
 export function writeDismissedSteps(
 	storage: DismissalStorage | null,
 	projectId: string,
-	ids: ReadonlySet<string>
+	ids: ReadonlySet<string>,
+	owner?: DismissalOwner
 ): void {
 	try {
-		storage?.setItem(dismissalStorageKey(projectId), JSON.stringify([...ids]));
+		storage?.setItem(dismissalStorageKey(projectId, owner), JSON.stringify([...ids]));
 	} catch {
 		// Hiding still holds for this visit.
 	}

@@ -71,7 +71,7 @@ type StepProject = Parameters<typeof deriveNextSteps>[0] & Pick<Project, 'stack'
 
 export type SettingsStepContext = {
 	readOnly: boolean;
-	/** Suggestions hidden on the overview stay hidden here: one choice, one place to make it. */
+	/** Steps this person hid, here or on the overview: one choice, wherever it was made. */
 	dismissed?: ReadonlySet<string>;
 	/** The project's custom domains, `undefined` while the feature is off or the list loads. */
 	domains?: readonly { status: string }[];
@@ -91,6 +91,29 @@ export function deriveSettingsSteps(
 	project: StepProject,
 	context: SettingsStepContext
 ): SettingsStep[] {
+	return applicableSettingsSteps(project, context)
+		.filter((id) => !context.dismissed?.has(id))
+		.slice(0, MAX_PANEL_STEPS)
+		.map((id) => ({ id, ...STEPS[id] }));
+}
+
+/**
+ * How many steps that would apply now this person hid; the panel offers to show them again only
+ * while there is something to show.
+ */
+export function hiddenSettingsStepCount(
+	project: StepProject,
+	context: SettingsStepContext
+): number {
+	return applicableSettingsSteps(project, context).filter((id) => context.dismissed?.has(id))
+		.length;
+}
+
+/** Every step that applies now, in priority order, hidden or not. */
+function applicableSettingsSteps(
+	project: StepProject,
+	context: SettingsStepContext
+): SettingsStepId[] {
 	if (context.readOnly || project.status === 'suspended') return [];
 	const framework = project.stack?.framework?.toLowerCase() ?? null;
 	const applies = new Set<string>(
@@ -110,9 +133,7 @@ export function deriveSettingsSteps(
 	if (context.schedules && scheduleSuggestion(framework, context.schedules)) {
 		applies.add('schedule');
 	}
-	return ORDER.filter((id) => applies.has(id) && !context.dismissed?.has(id))
-		.slice(0, MAX_PANEL_STEPS)
-		.map((id) => ({ id, ...STEPS[id] }));
+	return ORDER.filter((id) => applies.has(id));
 }
 
 const DEPLOY_GUIDE = { label: 'Deploy pertama', href: DEPLOY_GUIDE_URL };

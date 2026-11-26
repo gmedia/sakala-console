@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+import PanelNextStepsTestHost from '$lib/components/panel/PanelNextStepsTestHost.svelte';
 import { MAX_PANEL_STEPS, PANEL_COPY } from '$lib/components/panel/panel';
 import FocusedPageLayout from './FocusedPageLayout.svelte';
 import FormPageLayout from './FormPageLayout.svelte';
@@ -74,6 +75,46 @@ describe('PanelNextSteps', () => {
 
 		await expect
 			.element(page.getByRole('heading', { name: PANEL_COPY.next }))
+			.not.toBeInTheDocument();
+	});
+
+	it('offers no way to hide steps unless the page keeps the choice', async () => {
+		render(PanelNextSteps, { steps: ['a'].map(step) });
+
+		await expect.element(page.getByRole('link', { name: 'Langkah a' })).toBeVisible();
+		await expect.element(page.getByRole('button')).not.toBeInTheDocument();
+	});
+
+	it('hides a step with its own button, moving focus to the next one', async () => {
+		render(PanelNextStepsTestHost, { steps: ['a', 'b', 'c'].map(step) });
+
+		await page.getByRole('button', { name: PANEL_COPY.dismissStep('Langkah a') }).click();
+		await expect.element(page.getByRole('link', { name: 'Langkah a' })).not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('button', { name: PANEL_COPY.dismissStep('Langkah b') }))
+			.toHaveFocus();
+		await expect.element(page.getByRole('button', { name: PANEL_COPY.restoreSteps })).toBeVisible();
+
+		// The last one in the list hands focus to the one before it.
+		await page.getByRole('button', { name: PANEL_COPY.dismissStep('Langkah c') }).click();
+		await expect
+			.element(page.getByRole('button', { name: PANEL_COPY.dismissStep('Langkah b') }))
+			.toHaveFocus();
+	});
+
+	it('shows hidden steps again from the restore link, then focuses the list', async () => {
+		render(PanelNextStepsTestHost, { steps: ['a', 'b'].map(step) });
+		await expect
+			.element(page.getByRole('button', { name: PANEL_COPY.restoreSteps }))
+			.not.toBeInTheDocument();
+
+		await page.getByRole('button', { name: PANEL_COPY.dismissStep('Langkah a') }).click();
+		await page.getByRole('button', { name: PANEL_COPY.restoreSteps }).click();
+
+		await expect.element(page.getByRole('link', { name: 'Langkah a' })).toBeVisible();
+		await expect.element(page.getByRole('heading', { name: PANEL_COPY.next })).toHaveFocus();
+		await expect
+			.element(page.getByRole('button', { name: PANEL_COPY.restoreSteps }))
 			.not.toBeInTheDocument();
 	});
 });

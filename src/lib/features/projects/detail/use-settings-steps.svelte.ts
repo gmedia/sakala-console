@@ -6,7 +6,7 @@ import { createProcessesQuery, createSchedulesQuery } from '$lib/features/worklo
 import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 import { settingsHref } from '../overview/links';
 import { useDismissedSteps } from '../overview/use-dismissed-steps.svelte';
-import { deriveSettingsSteps } from '../settings-panel';
+import { deriveSettingsSteps, hiddenSettingsStepCount } from '../settings-panel';
 import type { Project } from '../type';
 
 /**
@@ -25,27 +25,41 @@ export function useSettingsSteps(
 	const schedulesQuery = createSchedulesQuery(projectId, () => features().schedules);
 	const dismissed = useDismissedSteps(projectId);
 
-	const steps = $derived.by<PanelStep[]>(() => {
-		const current = project();
-		if (!current) return [];
+	const context = $derived.by(() => {
 		const { limits, workers, schedules } = features();
-		return deriveSettingsSteps(current, {
+		return {
 			readOnly: access.readOnly,
 			dismissed: dismissed.ids,
 			domains: customDomains.domains,
 			domainQuota: domainQuota(limits),
 			processes: workers ? processesQuery.data : undefined,
 			schedules: schedules ? schedulesQuery.data : undefined
-		}).map((step) => ({
+		};
+	});
+
+	const steps = $derived.by<PanelStep[]>(() => {
+		const current = project();
+		if (!current) return [];
+		return deriveSettingsSteps(current, context).map((step) => ({
 			id: step.id,
 			label: step.label,
 			href: settingsHref(current.id, step.anchor)
 		}));
 	});
+	const hiddenCount = $derived.by(() => {
+		const current = project();
+		return current ? hiddenSettingsStepCount(current, context) : 0;
+	});
 
 	return {
 		get steps(): PanelStep[] {
 			return steps;
-		}
+		},
+		/** Steps that would apply but were hidden, so the panel can offer them back. */
+		get hiddenCount(): number {
+			return hiddenCount;
+		},
+		dismiss: (id: string) => dismissed.dismiss(id),
+		restore: () => dismissed.restore()
 	};
 }
