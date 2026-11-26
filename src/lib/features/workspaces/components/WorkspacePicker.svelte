@@ -51,4 +51,5 @@
 		</p>
 	</div>
 {/if}
-<PilotQuotaNotice {limits} workspaceName={teamName} />
+<!-- A badge while there is room; the sentence only once the quota stops a new project. -->
+<PilotQuotaNotice {limits} workspaceName={teamName} compact />

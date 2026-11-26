@@ -41,6 +41,7 @@
 	import EnvRetryStep from './EnvRetryStep.svelte';
 	import FirstDeployStep from './FirstDeployStep.svelte';
 	import RepositoryStep from './RepositoryStep.svelte';
+	import FocusedPageLayout from '$lib/components/layout/templates/FocusedPageLayout.svelte';
 
 	const REPOSITORIES_PER_PAGE = 5;
 	/** Query parameters this wizard reads: the project it created, whether to deploy, an example. */
@@ -294,9 +295,12 @@
 	/>
 {/snippet}
 
-<!-- The page title in the header already says "Proyek baru", so there is no breadcrumb repeating it. -->
-<div class="flex flex-col items-center justify-center">
-	<div class="w-full max-w-2xl" bind:this={container}>
+<!--
+	The focused template: one centred column at reading width. The page title in the header already
+	says "Proyek baru", so there is no breadcrumb repeating it.
+-->
+<FocusedPageLayout>
+	<div class="w-full" bind:this={container}>
 		<CreateProjectStepper currentStep={stepperStep} />
 
 		<div class="mx-2 mt-4 flex flex-col gap-2">
@@ -374,4 +378,4 @@
 			{/if}
 		</div>
 	</div>
-</div>
+</FocusedPageLayout>

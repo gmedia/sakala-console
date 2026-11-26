@@ -109,7 +109,6 @@ export type TopologyOptions = {
 
 export const TOPOLOGY_COPY = {
 	title: 'Alur pengunjung',
-	lead: 'Jalur pengunjung sampai ke aplikasimu',
 	hint: 'Pilih kotak untuk melihat penjelasannya.',
 	pathLabel: 'Jalur dari alamat ke aplikasi',
 	groups: { network: 'Jaringan', attached: 'Terpasang' },

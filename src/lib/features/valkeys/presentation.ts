@@ -61,7 +61,11 @@ export const VALKEY_COPY = {
 	/** One line for people who know Redis but not Valkey (Jakob's Law). */
 	whatIs:
 		'Valkey adalah penyimpanan key-value di memori yang kompatibel dengan Redis, jadi driver redis di Laravel dan library seperti ioredis atau BullMQ bisa langsung memakainya.',
-	nameHint: 'Hanya untuk ditampilkan di Sakala, misalnya nama aplikasi yang memakainya.',
+	/** The list's one-line intro, followed by the workspace name (as on databases and buckets). */
+	listIntro: 'Penyimpanan key-value kompatibel dengan Redis, milik',
+	/** The create form's one line; the full `whatIs` stays on the first-run empty state. */
+	createLead: 'Penyimpanan key-value di memori, kompatibel dengan Redis.',
+	nameHint: 'Hanya untuk ditampilkan di Sakala.',
 	privateNote:
 		'Valkey hanya bisa dijangkau dari proyek yang terpasang, lewat network privat di server yang sama. Tidak ada alamat publik.',
 	credentialsAudit: 'Setiap kali password ditampilkan, Sakala mencatatnya di log audit workspace.',
@@ -87,7 +91,12 @@ export const VALKEY_COPY = {
 		'Valkey terkelola masih dibuka bertahap per workspace, karena memorinya terpakai terus selama Valkey ada. Minta admin Sakala mengaktifkannya lewat profil batas workspace.',
 	regionAuto: 'Otomatis',
 	regionHint:
-		'Valkey hanya bisa dipakai proyek yang berjalan di server yang sama, jadi pilih region tempat proyeknya berjalan.'
+		'Valkey hanya bisa dipakai proyek yang berjalan di server yang sama, jadi pilih region tempat proyeknya berjalan.',
+	/** The create form's region hint; why it matters is behind "Pelajari". */
+	regionShortHint: 'Pilih region tempat proyeknya berjalan.',
+	/** The create form's closing line, followed by the workspace name. */
+	ownerLine: 'Hanya bisa dijangkau dari proyek yang terpasang. Milik',
+	createLearnTopic: 'jaringan, region, dan jatah memori'
 } as const;
 
 /* ---------- Feature availability (progressive disclosure) ---------- */

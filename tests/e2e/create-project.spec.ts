@@ -703,11 +703,14 @@ test.describe('pilot limits', () => {
 		expect(calls.createProject).toHaveLength(0);
 	});
 
-	test('shows the runtime limits on the configuration step', async ({ page }) => {
+	test('keeps the runtime limits on the configuration step, behind Pelajari', async ({ page }) => {
 		await mockWizardApi(page);
 		await chooseFirstRepository(page);
 
-		await expect(page.getByText(/memori 256 MB dan CPU 0,5 vCPU/)).toBeVisible();
+		const limits = page.getByText(/memori 256 MB dan CPU 0,5 vCPU/);
+		await expect(limits).toBeHidden();
+		await page.getByText('Pelajari', { exact: true }).first().click();
+		await expect(limits).toBeVisible();
 	});
 
 	test('a refusal the page did not foresee comes through in Indonesian', async ({ page }) => {

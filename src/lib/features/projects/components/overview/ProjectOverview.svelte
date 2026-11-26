@@ -1,4 +1,7 @@
 <script lang="ts">
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
+	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import type { PanelStep } from '$lib/components/panel/panel';
 	import { SAKALA_EDGE_IN_FRONT } from '$lib/config/project';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import {
@@ -7,7 +10,7 @@
 		createRecentDeploymentsQuery
 	} from '../../queries';
 	import { deriveProjectHeaderState, getProjectPublicUrl } from '../../presentation';
-	import { deriveNextSteps } from '../../overview/next-steps';
+	import { deriveNextSteps, hiddenNextStepCount } from '../../overview/next-steps';
 	import {
 		deriveTopology,
 		getAddressAvailability,
@@ -16,9 +19,8 @@
 	import { useDismissedSteps } from '../../overview/use-dismissed-steps.svelte';
 	import { useProjectCustomDomains } from '$lib/features/domains/availability.svelte';
 	import { SETTINGS_SECTION_IDS } from '../../settings-anchors';
-	import { settingsHref } from '../../overview/links';
+	import { nextStepHref, settingsHref } from '../../overview/links';
 	import DomainCard from './DomainCard.svelte';
-	import NextStepsCard from './NextStepsCard.svelte';
 	import OverviewMetricsCard from './OverviewMetricsCard.svelte';
 	import RecentDeploymentsCard from './RecentDeploymentsCard.svelte';
 	import TopologyCard from './TopologyCard.svelte';
@@ -50,14 +52,22 @@
 				})
 			: null
 	);
-	const steps = $derived(
+	const stepContext = $derived({
+		variablesCount: variablesQuery.data?.length ?? null,
+		readOnly: access.readOnly
+	});
+	// The same Berikutnya card as the settings pages: a short label per step, the why at the link.
+	const steps = $derived<PanelStep[]>(
 		project
-			? deriveNextSteps(
-					project,
-					{ variablesCount: variablesQuery.data?.length ?? null, readOnly: access.readOnly },
-					dismissed.ids
-				)
+			? deriveNextSteps(project, stepContext, dismissed.ids).map((step) => ({
+					id: step.id,
+					label: step.label,
+					href: nextStepHref(step.action, projectId)
+				}))
 			: []
+	);
+	const hiddenSteps = $derived(
+		project ? hiddenNextStepCount(project, stepContext, dismissed.ids) : 0
 	);
 	const address = $derived(
 		project && header ? getAddressAvailability(project, header) : { reachable: false, note: null }
@@ -65,34 +75,43 @@
 </script>
 
 {#if project && header && topology}
-	<div class="flex w-full min-w-0 flex-col gap-4" data-testid="project-overview">
-		<TopologyCard {projectId} {topology} />
+	<!-- The list template: full width, the diagram and charts across it; facts stay in the header. -->
+	<ListPageLayout>
+		<div class="flex w-full min-w-0 flex-col gap-4" data-testid="project-overview">
+			<TopologyCard {projectId} {topology} />
 
-		<div class="@container">
-			<div class="grid gap-4 @4xl:grid-cols-3">
-				<div class="flex min-w-0 flex-col gap-4 @4xl:col-span-2">
-					<OverviewMetricsCard {projectId} runtimeStatus={project.runtime_status} />
-					<RecentDeploymentsCard {projectId} />
-				</div>
-				<div class="flex min-w-0 flex-col gap-4">
-					<DomainCard
-						publicUrl={getProjectPublicUrl(project)}
-						defaultDomain={project.default_domain}
-						reachable={address.reachable}
-						unreachableNote={address.note}
-						custom={customDomains.enabled
-							? {
-									domains: customDomains.domains,
-									manageHref: settingsHref(projectId, SETTINGS_SECTION_IDS.domains),
-									canManage: !access.readOnly
-								}
-							: null}
-					/>
-					<NextStepsCard {projectId} {steps} onDismiss={dismissed.dismiss} />
+			<div class="@container">
+				<div class="grid gap-4 @4xl:grid-cols-3">
+					<div class="flex min-w-0 flex-col gap-4 @4xl:col-span-2">
+						<OverviewMetricsCard {projectId} runtimeStatus={project.runtime_status} />
+						<RecentDeploymentsCard {projectId} />
+					</div>
+					<div class="flex min-w-0 flex-col gap-4">
+						<DomainCard
+							publicUrl={getProjectPublicUrl(project)}
+							defaultDomain={project.default_domain}
+							reachable={address.reachable}
+							unreachableNote={address.note}
+							custom={customDomains.enabled
+								? {
+										domains: customDomains.domains,
+										manageHref: settingsHref(projectId, SETTINGS_SECTION_IDS.domains),
+										canManage: !access.readOnly
+									}
+								: null}
+						/>
+						<PanelNextSteps
+							{steps}
+							testid="overview-next-steps"
+							onDismiss={dismissed.dismiss}
+							hiddenCount={hiddenSteps}
+							onRestore={dismissed.restore}
+						/>
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
+	</ListPageLayout>
 {:else if projectQuery.isPending}
 	<div class="flex flex-col gap-4" role="status">
 		<span class="sr-only">Memuat ringkasan proyek...</span>

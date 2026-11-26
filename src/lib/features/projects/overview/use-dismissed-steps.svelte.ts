@@ -12,7 +12,7 @@ function browserStorage(): DismissalStorage | null {
 
 /**
  * The suggestions this person hid for one project, remembered in `localStorage` under their user id
- * and the project id. The overview's "Langkah berikutnya" and the settings pages' "Berikutnya" share
+ * and the project id. The "Berikutnya" card on the overview and on the settings pages share
  * it: one choice, wherever it was made.
  */
 export function useDismissedSteps(projectId: () => string) {

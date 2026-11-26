@@ -233,14 +233,12 @@
 				<span class="sm:hidden">Tambah variabel</span>
 			</Button>
 		</div>
-		<label class="flex items-center gap-2 text-sm">
+		<!-- The label is the checkbox's target: 24 px, and 44 px on touch layouts (WCAG 2.5.8). -->
+		<label class="flex min-h-6 items-center gap-2 text-sm max-lg:min-h-control-lg">
 			<input type="checkbox" bind:checked={newIsSecret} class="size-4" />
-			Simpan sebagai secret, nilainya disembunyikan setelah disimpan
+			Simpan sebagai secret (nilainya disembunyikan)
 		</label>
 	</div>
 
-	<p class="text-sm text-foreground/70">
-		Tidak wajib diisi sekarang. Bisa ditambah atau diubah kapan saja lewat tab Variabel di halaman
-		proyek.
-	</p>
+	<p class="text-xs text-foreground/70">Bisa diubah nanti di tab Variabel.</p>
 </fieldset>
