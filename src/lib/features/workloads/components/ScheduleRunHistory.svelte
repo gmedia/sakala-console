@@ -187,12 +187,12 @@
 						</div>
 					</div>
 
-					<!-- Why a run failed asks for a fix; why one was missed or skipped is only context. -->
+					<!-- Same size for every run; why one was missed or skipped is quieter context, a failure asks for a fix. -->
 					{#if explanation}
 						<p
 							class={runStatusView(run.status).tone === 'error'
 								? 'text-sm text-foreground'
-								: 'text-xs text-foreground/70'}
+								: 'text-sm text-foreground/70'}
 						>
 							{explanation}
 						</p>
