@@ -1,6 +1,12 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { mockEveryRoute } from './fixtures/all-routes';
+import {
+	INVITATION_ID,
+	mockEveryRoute,
+	mockSignedOutRoutes,
+	signedInUser,
+	TEAM_ID
+} from './fixtures/all-routes';
 import { BUCKET_ID, mockBucketApi, spareBucket } from './fixtures/buckets';
 import { DATABASE_ID, mockDatabaseApi, sampleDatabases } from './fixtures/databases';
 import { auditDom } from './fixtures/dom-audit';
@@ -24,6 +30,7 @@ import {
 } from './fixtures/realistic-logs';
 import { attachedDatabase, laravelInspection } from './fixtures/wizard-env-database';
 import { cacheValkey, mockValkeyApi, QUEUE_ID, queueValkey } from './fixtures/valkeys';
+import { mockWorkspaceApi, TEAM } from './fixtures/workspaces';
 import {
 	laravelProject,
 	mockWorkloadApi,
@@ -548,6 +555,236 @@ test.describe('project page screenshots and word counts', () => {
 	}
 });
 
+/** Every way in and the legal versions, as an installation with email delivery on answers. */
+async function mockAuthOptions(page: Page) {
+	await page.route('**/api/v1/auth/options', (route) =>
+		route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify({
+				data: {
+					email_delivery_enabled: true,
+					providers: { github: true, google: true },
+					legal: {
+						terms_version: 'syarat-v1',
+						acceptable_use_version: 'penggunaan-wajar-v1',
+						privacy_notice_version: 'privasi-v1'
+					}
+				}
+			})
+		})
+	);
+}
+
+/** The team workspace's limits as sakala-api answers them (tests/fixtures/workspaces). */
+const TEAM_LIMITS = (
+	JSON.parse(
+		readFileSync(new URL('../fixtures/workspaces/pilot-limits-team.json', import.meta.url), 'utf8')
+	) as { body: unknown }
+).body;
+
+/** The signed-in account pages, with the same data as the every-route audit. */
+async function signedIn(page: Page, overrides: Record<string, unknown> = {}) {
+	await mockEveryRoute(page);
+	await mockAuthOptions(page);
+	// The account's own limits (deleting the account names the retention days).
+	await page.route(/\/api\/v1\/app\/pilot-limits$/, (route) =>
+		route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify(TEAM_LIMITS)
+		})
+	);
+	if (Object.keys(overrides).length > 0) {
+		await page.route('**/api/v1/auth/user', (route) =>
+			route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({ data: { ...signedInUser, ...overrides } })
+			})
+		);
+	}
+}
+
+async function signedOut(page: Page) {
+	await mockSignedOutRoutes(page);
+	await mockAuthOptions(page);
+}
+
+/**
+ * Where to count on the account, workspace, and auth pages: the template's column, or on the old
+ * pages the element that held the same content.
+ */
+const accountRegions = (...main: string[]) => ({
+	mainColumn: main,
+	content: ['#main-content'],
+	page: ['body']
+});
+const FORM_MAIN = '[data-testid="form-page-main"]';
+const FOCUSED = '[data-testid="focused-page"]';
+const APP_CONTENT = '#main-content > div';
+const AUTH_COLUMN = 'main .max-w-md';
+const STATUS_COLUMN = 'main#main-content';
+
+/** The account pages, workspace, notifications, invitations, feedback, onboarding, and auth. */
+const ACCOUNT_PAGES: Record<
+	string,
+	{ regions: Record<string, string[]>; open: (page: Page) => Promise<void> }
+> = {
+	'settings-profile': {
+		regions: accountRegions(FORM_MAIN, APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto('/settings');
+			await expect(page.getByLabel('Nama lengkap')).toHaveValue(signedInUser.name);
+		}
+	},
+	'settings-account': {
+		regions: accountRegions(FORM_MAIN, APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto('/settings?tab=account');
+			await expect(page.getByLabel('Email baru')).toBeVisible();
+		}
+	},
+	'settings-notifications': {
+		regions: accountRegions(FORM_MAIN, APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto('/settings?tab=notifications');
+			await expect(page.getByRole('switch', { name: 'Semua notifikasi lonceng' })).toBeVisible();
+		}
+	},
+	workspace: {
+		regions: accountRegions(FORM_MAIN, APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto(`/workspaces/${TEAM_ID}`);
+			await expect(page.getByTestId('member-row').first()).toBeVisible();
+			await expect(page.getByTestId('invitation-row').first()).toBeVisible();
+		}
+	},
+	notifications: {
+		regions: accountRegions('[data-testid="list-page"]', APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto('/notifications');
+			await expect(page.getByText('Deployment toko-kopi-web gagal saat build.')).toBeVisible();
+			await expect(page.getByTestId('my-invitations')).toBeVisible();
+		}
+	},
+	invitations: {
+		regions: accountRegions(FOCUSED, APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto('/workspace-invitations');
+			await expect(page.getByTestId('invitation-card')).toBeVisible();
+		}
+	},
+	'invitation-link': {
+		regions: accountRegions(FOCUSED, APP_CONTENT),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto(`/workspace-invitations/${INVITATION_ID}?token=t`);
+			await expect(page.getByTestId('invitation-card')).toBeVisible();
+		}
+	},
+	feedback: {
+		regions: accountRegions(FOCUSED, '#main-content > div', '#main-content'),
+		open: async (page) => {
+			await signedIn(page);
+			await page.goto('/feedback');
+			await expect(page.getByLabel('Masukanmu')).toBeVisible();
+		}
+	},
+	onboarding: {
+		regions: accountRegions(FOCUSED, 'main#main-content > div'),
+		open: async (page) => {
+			await signedIn(page, { onboarding_completed_at: null });
+			await page.goto('/onboarding');
+			await expect(page.getByRole('heading', { name: 'Selamat datang di Sakala' })).toBeVisible();
+		}
+	},
+	login: {
+		regions: accountRegions(AUTH_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/login');
+			await expect(page.getByRole('button', { name: 'Masuk dengan GitHub' })).toBeVisible();
+		}
+	},
+	register: {
+		regions: accountRegions(AUTH_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/register');
+			await expect(page.getByLabel('Nama lengkap')).toBeVisible();
+		}
+	},
+	'forgot-password': {
+		regions: accountRegions(AUTH_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/forgot-password');
+			await expect(page.getByLabel('Email')).toBeVisible();
+		}
+	},
+	'reset-password': {
+		regions: accountRegions(AUTH_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/reset-password?token=t&email=rani%40sakala.local');
+			await expect(page.getByLabel('Kata sandi baru', { exact: true })).toBeVisible();
+		}
+	},
+	'email-verified': {
+		regions: accountRegions(STATUS_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/email-verified?status=success');
+			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		}
+	},
+	'email-verified-error': {
+		regions: accountRegions(STATUS_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/email-verified?status=error');
+			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		}
+	},
+	'email-changed': {
+		regions: accountRegions(STATUS_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto('/email-changed?status=success');
+			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		}
+	},
+	unsubscribe: {
+		regions: accountRegions(STATUS_COLUMN),
+		open: async (page) => {
+			await signedOut(page);
+			await page.goto(
+				'/notifications/unsubscribe?category=deployment_failure&user=1&expires=1&signature=s'
+			);
+			await expect(page.getByRole('button', { name: 'Ya, matikan email ini' })).toBeVisible();
+		}
+	}
+};
+
+test.describe('account, workspace, and auth screenshots and word counts', () => {
+	test.skip(!SHOTS_DIR, 'Only when SETTINGS_SHOTS names a folder.');
+
+	for (const [name, { regions, open }] of Object.entries(ACCOUNT_PAGES)) {
+		for (const [label, width] of Object.entries(WIDTHS)) {
+			test(`${name} at ${width} px`, async ({ page }) => {
+				await page.setViewportSize({ width, height: 900 });
+				await open(page);
+				await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => undefined);
+				await capture(page, `${name}-${label}-${width}`, regions);
+			});
+		}
+	}
+});
+
 test.describe('the page templates', () => {
 	/** Every page and state the templates were applied to, opened the way a person would. */
 	const PAGES: [string, (page: Page) => Promise<void>][] = [
@@ -591,6 +828,9 @@ test.describe('the page templates', () => {
 			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
 		),
 		...Object.entries(PROJECT_PAGES).map(
+			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
+		),
+		...Object.entries(ACCOUNT_PAGES).map(
 			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
 		)
 	];
@@ -1044,5 +1284,142 @@ test.describe('the page templates', () => {
 		await dialog.getByRole('button', { name: 'Hapus jadwal' }).click();
 		await expect(page).toHaveURL(`${SETTINGS_URL}/schedules`);
 		expect(state.requests.some((request) => request.method === 'DELETE')).toBe(true);
+	});
+
+	test('account settings use the form template: guides in the panel, deleting last on its tab', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
+		await ACCOUNT_PAGES['settings-account'].open(page);
+		const panel = page.getByRole('complementary', { name: 'Bantuan akun' });
+		await expect(panel.getByRole('heading', { level: 2 })).toHaveText(['Bantuan']);
+		await expect(panel.getByRole('link')).toHaveText([
+			/Pemberitahuan Privasi/,
+			/Syarat Layanan/,
+			/Kebijakan Penggunaan Wajar/
+		]);
+		// Deleting the account is last, under the panel on a phone.
+		const panelBox = (await page.getByTestId('form-page-panel').boundingBox())!;
+		const danger = (await page.getByTestId('delete-account-zone').boundingBox())!;
+		expect(danger.y).toBeGreaterThan(panelBox.y + panelBox.height);
+		// What the data file holds stays folded until asked for.
+		await expect(page.getByText(/Log deployment dan jejak audit tidak termasuk/)).toBeHidden();
+		await page.getByTestId('account-data-contents').locator('summary').click();
+		await expect(page.getByText(/Log deployment dan jejak audit tidak termasuk/)).toBeVisible();
+
+		// The sections wrap at 320 px, every link inside the window and 44 px tall.
+		const nav = page.getByRole('navigation', { name: 'Bagian pengaturan akun' });
+		for (const link of await nav.getByRole('link').all()) {
+			const box = (await link.boundingBox())!;
+			expect(box.x + box.width).toBeLessThanOrEqual(WIDTHS.narrow);
+			expect(box.height).toBeGreaterThanOrEqual(44);
+		}
+
+		// The other tabs have no danger zone, and the same guides.
+		for (const name of ['settings-profile', 'settings-notifications'] as const) {
+			await ACCOUNT_PAGES[name].open(page);
+			await expect(page.getByTestId('form-page-after'), name).toHaveCount(0);
+			await expect(page.getByTestId('account-help'), name).toBeVisible();
+		}
+		// One card, three named groups of switches (the folded explanation is a group of its own).
+		await expect(
+			page.getByTestId('notification-categories').locator('div[role="group"]')
+		).toHaveText([/^Aktivitas proyek/, /^Tim/, /^Keamanan akun/]);
+	});
+
+	test('the profile shows the email and join date in one line under the photo', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await ACCOUNT_PAGES['settings-profile'].open(page);
+		await expect(page.getByTestId('profile-facts')).toHaveText(
+			/rani@sakala\.local\s*·\s*bergabung 1 Januari 2026/
+		);
+		await page.getByRole('link', { name: 'Ganti email' }).click();
+		await expect(page).toHaveURL('/settings?tab=account');
+		await expect(page.getByLabel('Email baru')).toBeVisible();
+	});
+
+	test('the workspace page: role, profile, and usage under the name, leaving and deleting last', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.narrow, height: 900 });
+		await ACCOUNT_PAGES.workspace.open(page);
+		await expect(page.getByTestId('workspace-facts')).toHaveText(
+			/Peranmu:\s*Pemilik\s*Workspace tim\s*·\s*profil Magang GMEDIA/
+		);
+		await expect(page.getByTestId('workspace-quotas').getByRole('listitem')).toHaveText([
+			'1 dari 5 proyek',
+			'0 dari 2 deployment berjalan',
+			'0 dari 3 aplikasi aktif'
+		]);
+		const aside = page.getByRole('complementary', { name: 'Bantuan workspace' });
+		await expect(aside.getByRole('heading', { level: 2 })).toHaveText(['Bantuan']);
+		await expect(aside.getByRole('link', { name: /Batas pilot/ })).toHaveAttribute(
+			'href',
+			/batas-pilot#batas-per-workspace$/
+		);
+		const panel = (await page.getByTestId('form-page-panel').boundingBox())!;
+		const danger = (await page.getByTestId('workspace-danger-zone').boundingBox())!;
+		expect(danger.y).toBeGreaterThan(panel.y + panel.height);
+		// A button that cannot be used yet says why, right under it.
+		await expect(page.getByRole('button', { name: 'Hapus workspace' })).toHaveAccessibleDescription(
+			/masih punya 1 proyek/
+		);
+	});
+
+	test('the workspace name opens in place, by keyboard, and sends only the name', async ({
+		page
+	}) => {
+		const patches: unknown[] = [];
+		page.on('request', (request) => {
+			if (request.method() === 'PATCH' && /\/workspaces\/[^/]+$/.test(request.url())) {
+				patches.push(request.postDataJSON());
+			}
+		});
+		for (const width of Object.values(WIDTHS)) {
+			await page.setViewportSize({ width, height: 900 });
+			await mockWorkspaceApi(page, { persona: 'owner' });
+			await page.goto(`/workspaces/${TEAM.id}`);
+			const trigger = page.getByRole('button', { name: 'Ubah nama workspace' });
+			await trigger.focus();
+			await page.keyboard.press('Enter');
+			await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+			const field = page.getByLabel('Nama workspace', { exact: true });
+			await expect(field).toBeFocused();
+			const audit = await auditDom(page, 24, width < 768 ? 44 : 24);
+			expect.soft(audit.overflow, `rename at ${width} px: overflow`).toEqual([]);
+			expect.soft(audit.contrast, `rename at ${width} px: contrast`).toEqual([]);
+			expect.soft(audit.targets, `rename at ${width} px: targets`).toEqual([]);
+			await page.keyboard.press('Escape');
+			await expect(trigger).toBeFocused();
+		}
+		await page.getByRole('button', { name: 'Ubah nama workspace' }).click();
+		await page.getByLabel('Nama workspace', { exact: true }).fill('Tim Kelas Web');
+		await page.keyboard.press('Enter');
+		await expect(page.getByRole('heading', { name: 'Tim Kelas Web' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Ubah nama workspace' })).toBeFocused();
+		expect(patches).toEqual([{ name: 'Tim Kelas Web' }]);
+	});
+
+	test('one-decision pages are centred; notifications keep to reading width', async ({ page }) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		for (const name of ['invitations', 'invitation-link', 'feedback', 'onboarding'] as const) {
+			await ACCOUNT_PAGES[name].open(page);
+			const column = (await page.getByTestId('focused-page').boundingBox())!;
+			const main = (await page.locator('#main-content').boundingBox())!;
+			const left = column.x - main.x;
+			const right = main.x + main.width - (column.x + column.width);
+			// Centred in the content area, which is the whole window on onboarding.
+			expect(Math.abs(left - right), name).toBeLessThan(2);
+		}
+		await ACCOUNT_PAGES.notifications.open(page);
+		await expect(page.getByTestId('list-page-toolbar').getByRole('button')).toHaveText([
+			'Semua',
+			'Belum dibaca',
+			'Tandai semua telah dibaca'
+		]);
+		const list = (await page.getByTestId('list-page').boundingBox())!;
+		expect(list.width).toBeLessThanOrEqual(48 * 16);
 	});
 });

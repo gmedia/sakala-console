@@ -39,3 +39,18 @@ describe('unsubscribe links', () => {
 		expect(unsubscribeOutcomeCopy(unsubscribeOutcome(error)).description).toContain('30 detik');
 	});
 });
+
+describe('the unsubscribe outcomes', () => {
+	it.each([
+		{ kind: 'invalid' },
+		{ kind: 'account_deleted' },
+		{ kind: 'not_emailed' },
+		{ kind: 'rate_limited', retryAfterSeconds: 30 },
+		{ kind: 'rate_limited' },
+		{ kind: 'offline' },
+		{ kind: 'unknown' }
+	] as const)('say one sentence for $kind (docs/UI_GUIDELINES.md)', (outcome) => {
+		const { description } = unsubscribeOutcomeCopy(outcome);
+		expect(description.split(/(?<=[.!?])\s+(?=\S)/)).toHaveLength(1);
+	});
+});

@@ -22,6 +22,11 @@ export function workspaceLimitRows(limits: Pick<PilotLimits, 'quotas'>): LimitRo
 	return rows;
 }
 
+/** A usage row as one badge under the workspace's name: "1 dari 5 proyek". */
+export function limitBadgeLabel(limit: Pick<LimitRow, 'label' | 'used' | 'max'>): string {
+	return `${count.format(limit.used)} dari ${count.format(limit.max)} ${limit.label.toLowerCase()}`;
+}
+
 function row(label: string, used: number, max: number): LimitRow {
 	return { label, used, max, reached: used >= max };
 }

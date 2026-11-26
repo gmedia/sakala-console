@@ -444,7 +444,8 @@ test.describe('account settings', () => {
 		await page.getByRole('button', { name: 'Ubah email' }).click();
 
 		await expect(page.getByText('Cek email baru')).toBeVisible();
-		await expect(page.getByText(/Email saat ini:\s*rani@sakala\.local/)).toBeVisible();
+		// The current address stays under the Email title until the new one is confirmed.
+		await expect(page.getByText(/Sekarang\s*rani@sakala\.local/)).toBeVisible();
 		expect(bodies).toEqual([{ email: 'baru@sakala.local', current_password: 'kata-sandi' }]);
 	});
 
@@ -687,7 +688,7 @@ test.describe('profile', () => {
 
 		await page.goto('/profile');
 
-		await expect(page.getByLabel('Bergabung sejak')).toHaveValue('15 Maret 2026');
+		await expect(page.getByTestId('profile-facts')).toContainText('bergabung 15 Maret 2026');
 	});
 
 	test('the photo dialog traps focus, closes on Esc, and gives focus back', async ({ page }) => {

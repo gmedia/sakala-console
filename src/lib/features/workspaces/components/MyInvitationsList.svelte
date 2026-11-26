@@ -39,6 +39,6 @@
 		icon={EnvelopeSimple}
 		tone="muted"
 		title="Tidak ada undangan"
-		description="Undangan workspace tim untuk email akunmu muncul di sini. Undangan yang dikirim ke email lain dibuka lewat tautan di email itu."
+		description="Undangan ke email akunmu muncul di sini. Undangan ke email lain dibuka lewat tautan di emailnya."
 	/>
 {/if}

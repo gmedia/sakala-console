@@ -49,41 +49,39 @@ export function unsubscribeOutcomeCopy(outcome: UnsubscribeOutcome): {
 			return {
 				title: 'Tautan ini tidak bisa dipakai',
 				description:
-					'Tautannya tidak lengkap atau sudah diubah, jadi emailmu tidak dimatikan. Buka lagi tautan dari email aslinya, atau atur email di pengaturan notifikasi setelah masuk.',
+					'Emailmu belum dimatikan; buka lagi tautan dari email aslinya, atau atur di pengaturan notifikasi.',
 				canRetry: false
 			};
 		case 'account_deleted':
 			return {
 				title: 'Akun ini sudah dihapus',
-				description:
-					'Akun pemilik tautan ini sudah tidak ada, jadi Sakala tidak mengirim email lagi ke sana.',
+				description: 'Sakala tidak mengirim email lagi ke alamat ini.',
 				canRetry: false
 			};
 		case 'not_emailed':
 			return {
 				title: 'Kategori ini tidak diatur lewat email',
-				description:
-					'Email untuk kategori ini hanya dikirim kalau penting, misalnya perubahan keamanan akun, jadi tidak bisa dimatikan dari sini.',
+				description: 'Email kategori ini hanya dikirim kalau penting, jadi tidak bisa dimatikan.',
 				canRetry: false
 			};
 		case 'rate_limited':
 			return {
 				title: 'Terlalu banyak permintaan',
 				description: outcome.retryAfterSeconds
-					? `Coba lagi dalam ${outcome.retryAfterSeconds} detik. Emailmu belum dimatikan.`
-					: 'Coba lagi sebentar lagi. Emailmu belum dimatikan.',
+					? `Emailmu belum dimatikan; coba lagi dalam ${outcome.retryAfterSeconds} detik.`
+					: 'Emailmu belum dimatikan; coba lagi sebentar lagi.',
 				canRetry: true
 			};
 		case 'offline':
 			return {
 				title: 'Sakala tidak bisa dihubungi',
-				description: 'Periksa koneksi internetmu, lalu coba lagi. Emailmu belum dimatikan.',
+				description: 'Emailmu belum dimatikan; periksa koneksi internetmu, lalu coba lagi.',
 				canRetry: true
 			};
 		default:
 			return {
 				title: 'Emailmu belum dimatikan',
-				description: 'Ada kendala di server Sakala. Coba lagi sebentar lagi.',
+				description: 'Ada kendala di server Sakala; coba lagi sebentar lagi.',
 				canRetry: true
 			};
 	}

@@ -91,8 +91,7 @@
 	{:else if !hasLink}
 		<div class="space-y-3 rounded-control border border-error/30 bg-error-50 p-6" role="alert">
 			<p class="text-sm text-error">
-				Tautan reset ini tidak lengkap, atau halaman ini sudah dimuat ulang. Minta tautan baru
-				supaya kamu bisa membuat kata sandi baru.
+				Tautan ini tidak lengkap, atau halamannya sudah dimuat ulang.
 			</p>
 			<a
 				href={resolve('/forgot-password')}
@@ -105,7 +104,7 @@
 		<form class="space-y-4" onsubmit={handleSubmit} novalidate>
 			{#if errors.general}
 				<div
-					class="space-y-1 rounded-control border border-error/30 bg-error-50 p-3 text-xs font-medium text-error"
+					class="space-y-1 rounded-control border border-error/30 bg-error-50 p-3 text-sm font-medium text-error"
 					role="alert"
 				>
 					<p>{errors.general}</p>

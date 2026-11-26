@@ -26,7 +26,7 @@
 		showDeliveryNotice
 			? {
 					...EMAIL_VERIFIED_CONTENT.error,
-					description: 'Tautan ini salah atau sudah kedaluwarsa, jadi emailmu belum terverifikasi.'
+					description: 'Tautan ini salah atau sudah kedaluwarsa.'
 				}
 			: EMAIL_VERIFIED_CONTENT[status]
 	);

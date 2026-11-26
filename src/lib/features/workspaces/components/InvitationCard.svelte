@@ -129,7 +129,8 @@
 			</h2>
 			<p class="text-sm text-foreground">
 				{invitation.invited_by?.name ?? 'Pemilik workspace'} mengundangmu sebagai
-				<strong class="font-medium">{ROLE_LABELS[invitation.role].toLowerCase()}</strong>.
+				<strong class="font-medium">{ROLE_LABELS[invitation.role].toLowerCase()}</strong>, berlaku
+				sampai <time datetime={invitation.expires_at}>{formatDate(invitation.expires_at)}</time>.
 			</p>
 			<p class="text-sm text-muted">{ROLE_DESCRIPTIONS[invitation.role]}</p>
 			{#if restricted && !blocked}
@@ -137,17 +138,12 @@
 					Undangan sebagai pemilik hanya bisa diterima dari akun dengan email yang diundang.
 				</p>
 			{/if}
-			<p class="text-xs text-muted">
-				Berlaku sampai <time datetime={invitation.expires_at}
-					>{formatDate(invitation.expires_at)}</time
-				>.
-			</p>
 		</div>
 	</div>
 
 	{#if outcome === 'declined'}
 		<p role="status" class="text-sm text-foreground">
-			Undangan ditolak. Kalau berubah pikiran, minta pemilik workspace mengundangmu lagi.
+			Undangan ditolak. Untuk bergabung nanti, minta undangan baru.
 		</p>
 	{:else if outcome === 'accepted'}
 		<p role="status" class="text-sm text-foreground">
