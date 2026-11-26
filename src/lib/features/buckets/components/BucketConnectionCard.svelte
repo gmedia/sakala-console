@@ -4,10 +4,10 @@
 	import Copy from 'phosphor-svelte/lib/Copy';
 	import Eye from 'phosphor-svelte/lib/Eye';
 	import EyeSlash from 'phosphor-svelte/lib/EyeSlash';
-	import Globe from 'phosphor-svelte/lib/Globe';
 	import LockSimple from 'phosphor-svelte/lib/LockSimple';
 	import type { Bucket, BucketCredentials } from '$lib/api/resources/buckets';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import CredentialRow from '$lib/features/databases/components/CredentialRow.svelte';
 	import { copyWithToast } from '$lib/utils/clipboard';
 	import type { BucketAccess } from '../access';
@@ -95,10 +95,13 @@
 	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
 		<div class="flex min-w-0 flex-1 basis-64 flex-col gap-1">
 			<h2 id="bucket-connection-title" class="text-base text-foreground">Koneksi</h2>
-			<p class="flex items-start gap-2 text-sm text-muted">
-				<Globe size={16} class="mt-0.5 shrink-0" aria-hidden="true" />
-				<span>{BUCKET_COPY.publicEndpoint}</span>
-			</p>
+			<!-- "Pelajari" sits beside the line it explains, and takes its own line once open. -->
+			<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 [&>details[open]]:basis-full">
+				<p class="text-sm text-muted">{BUCKET_COPY.publicEndpoint}</p>
+				<LearnMore topic="alamat publik bucket">
+					<p>{BUCKET_COPY.publicEndpointWhy}</p>
+				</LearnMore>
+			</div>
 		</div>
 		{#if access.canViewCredentials && onNode}
 			{#if credentials}
@@ -176,10 +179,7 @@
 					<pre
 						class="overflow-x-auto rounded-control bg-background-soft px-3 py-2 font-mono text-xs text-foreground"
 						aria-label="Variabel bucket untuk file .env">{envBlock}</pre>
-					<p class="text-xs text-muted">
-						Proyek yang terpasang sudah menerima variabel ini otomatis. Salin hanya untuk laptop
-						atau server lain.
-					</p>
+					<p class="text-xs text-muted">{BUCKET_COPY.envBlockNote}</p>
 				</div>
 			{/if}
 		{:else}
@@ -194,7 +194,7 @@
 	{/if}
 
 	<div class="flex flex-col gap-1">
-		<p class="text-xs font-medium text-muted">Variabel yang diterima proyek terpasang</p>
+		<p class="text-xs font-medium text-muted">Variabel untuk proyek terpasang</p>
 		<ul class="flex flex-wrap gap-1.5" aria-label="Variabel bucket">
 			{#each BUCKET_VARIABLES as name (name)}
 				<li

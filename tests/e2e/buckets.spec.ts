@@ -207,6 +207,7 @@ test.describe('bucket journeys', () => {
 	test('changes the quota and shows it landing', async ({ page }) => {
 		const { calls } = await mockBucketApi(page);
 		await page.goto(detailUrl());
+		await page.getByRole('button', { name: 'Ubah kuota bucket' }).click();
 		await page.getByLabel('Kuota (MB)').fill('512');
 		await page.getByRole('button', { name: 'Simpan kuota' }).click();
 		await expect(page.getByTestId('bucket-quota-value')).toContainText('512 MB');

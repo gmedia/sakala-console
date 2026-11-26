@@ -140,7 +140,7 @@
 	{/if}
 
 	<div class="flex flex-col gap-1">
-		<p class="text-xs font-medium text-muted">Variabel yang diterima proyek terpasang</p>
+		<p class="text-xs font-medium text-muted">Variabel untuk proyek terpasang</p>
 		<ul class="flex flex-wrap gap-1.5" aria-label="Variabel koneksi">
 			{#each DATABASE_VARIABLES as name (name)}
 				<li

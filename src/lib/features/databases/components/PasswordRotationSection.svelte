@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
+	import { RotateCredentialIcon } from '$lib/components/icons';
 	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import { toast } from 'svelte-sonner';
@@ -74,7 +74,7 @@
 				onclick={openDialog}
 				data-testid="rotate-password"
 			>
-				<ArrowsClockwise size={16} aria-hidden="true" />
+				<RotateCredentialIcon size={16} aria-hidden="true" />
 				{ROTATION_COPY.action}
 			</Button>
 		</div>

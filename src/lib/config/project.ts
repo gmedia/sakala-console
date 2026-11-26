@@ -67,6 +67,12 @@ export function bucketGuideUrl(anchor?: BucketGuideAnchor | null): string {
 	return docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.managedBuckets, anchor);
 }
 
+/**
+ * sakala-landing's `src/content/docs/database-terkelola.md`: what a managed database gives, the
+ * injected variables, migrations, rotation, extensions, limits, and backup.
+ */
+export const DATABASE_GUIDE_URL = docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.managedDatabases);
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = siteLinks.abuseEmail;
 

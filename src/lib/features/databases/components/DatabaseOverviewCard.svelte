@@ -2,10 +2,16 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Warning from 'phosphor-svelte/lib/Warning';
+	import { tick } from 'svelte';
 	import type { Database } from '$lib/api/resources/databases';
+	import InlineEditButton from '$lib/components/ui/InlineEditButton.svelte';
+	import InlineRenameForm from '$lib/components/ui/InlineRenameForm.svelte';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
 	import { cn } from '$lib/utils/cn';
+	import { createRenameDatabaseMutation } from '../mutations';
 	import {
+		DATABASE_NAME_MAX_LENGTH,
+		databaseErrorMessage,
 		databaseStatusView,
 		engineLabel,
 		formatDatabaseSize,
@@ -13,18 +19,43 @@
 		separateFailure,
 		storageMeter
 	} from '../presentation';
+	import { DATABASE_PANEL_COPY as FACTS } from '../panel';
 	import DatabaseStatusBadge from './DatabaseStatusBadge.svelte';
 	import StorageBar from './StorageBar.svelte';
 
 	type Props = {
 		database: Database;
+		workspaceId: string;
+		/** Owners and members rename; viewers see the name only. */
+		canManage: boolean;
 		/** The workspace's storage quota in MB, when the API reports it. */
 		storageQuotaMb?: number;
 		/** The workspace's total, which the lock compares against the quota. */
 		workspaceStorage?: { label: string } | null;
 	};
 
-	let { database, storageQuotaMb, workspaceStorage = null }: Props = $props();
+	let {
+		database,
+		workspaceId,
+		canManage,
+		storageQuotaMb,
+		workspaceStorage = null
+	}: Props = $props();
+
+	const RENAME_EDITOR_ID = 'database-rename';
+	const renameMutation = createRenameDatabaseMutation();
+
+	// Renaming is rare and one field, so it opens in place under the name instead of a card.
+	let renaming = $state(false);
+	let renameTrigger = $state<HTMLElement | null>(null);
+
+	async function closeRename() {
+		renaming = false;
+		await tick();
+		renameTrigger?.focus();
+	}
+
+	const countFormat = new Intl.NumberFormat('id-ID');
 
 	const view = $derived(databaseStatusView(database));
 	const failure = $derived(separateFailure(database));
@@ -36,26 +67,66 @@
 	aria-labelledby="database-overview-title"
 	data-testid="database-overview"
 >
-	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
-		<div class="flex min-w-0 flex-col gap-1">
-			<h2 id="database-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
+	<!-- The database's facts in one line of badges and values, like a project's header. -->
+	<div class="flex min-w-0 flex-col gap-2">
+		<div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+			<h2
+				id="database-overview-title"
+				class="min-w-0 font-mono text-xl wrap-anywhere text-foreground"
+			>
 				{database.name}
 			</h2>
-			<p class="flex flex-wrap gap-x-1.5 text-sm text-muted">
-				<span>{engineLabel(database.engine)}</span>
-				<span aria-hidden="true">·</span>
-				{#if database.region}
-					<span>region <span class="font-mono text-foreground">{database.region}</span></span>
-				{:else}
-					<span data-testid="database-region-auto">region dipilih otomatis</span>
-				{/if}
-				{#if database.created_at}
-					<span aria-hidden="true">·</span>
-					<span>dibuat {formatDate(database.created_at)}</span>
-				{/if}
-			</p>
+			{#if canManage}
+				<InlineEditButton
+					subject="nama database"
+					expanded={renaming}
+					controls={RENAME_EDITOR_ID}
+					onclick={() => (renaming = !renaming)}
+					bind:ref={renameTrigger}
+					testid="edit-database-name"
+				/>
+			{/if}
 		</div>
-		<DatabaseStatusBadge {database} />
+		{#if renaming}
+			<InlineRenameForm
+				id={RENAME_EDITOR_ID}
+				label="Nama database"
+				hint="Nama di server database tidak ikut berubah."
+				value={database.name}
+				maxLength={DATABASE_NAME_MAX_LENGTH}
+				noun="database"
+				save={(name) => renameMutation.mutateAsync({ workspaceId, databaseId: database.id, name })}
+				errorMessage={(error) =>
+					databaseErrorMessage(
+						error,
+						'rename',
+						'Nama database belum diganti. Muat ulang halaman, lalu simpan lagi.'
+					)}
+				onClose={closeRename}
+				testid="database-rename"
+			/>
+		{/if}
+		<p
+			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
+			data-testid="database-facts"
+		>
+			<DatabaseStatusBadge {database} />
+			<span class="text-foreground">{engineLabel(database.engine)}</span>
+			<span aria-hidden="true">·</span>
+			{#if database.region}
+				<span class="font-mono text-foreground">{database.region}</span>
+			{:else}
+				<span data-testid="database-region-auto">{FACTS.autoRegion}</span>
+			{/if}
+			<span aria-hidden="true">·</span>
+			<span data-testid="database-facts-projects"
+				>{FACTS.projects(countFormat.format(database.projects.length))}</span
+			>
+			{#if database.created_at}
+				<span aria-hidden="true">·</span>
+				<span>{FACTS.created(formatDate(database.created_at))}</span>
+			{/if}
+		</p>
 	</div>
 
 	<!-- Polite, so the change from Menyiapkan to Siap is heard without moving focus. -->

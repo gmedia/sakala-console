@@ -2,32 +2,19 @@
 	import { goto } from '$app/navigation';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { toast } from 'svelte-sonner';
-	import { getFieldError } from '$lib/api/errors';
 	import type { Database } from '$lib/api/resources/databases';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
-	import FormField from '$lib/components/ui/FormField.svelte';
-	import { createDeleteDatabaseMutation, createRenameDatabaseMutation } from '../mutations';
-	import { DATABASE_NAME_MAX_LENGTH, databaseErrorMessage } from '../presentation';
+	import { createDeleteDatabaseMutation } from '../mutations';
+	import { databaseErrorMessage } from '../presentation';
 	import { databasesHref } from '../routes';
 
+	/** Deleting the database: last on the page, after the panel on a narrow screen. */
 	type Props = { database: Database; workspaceId: string };
 
 	let { database, workspaceId }: Props = $props();
 
-	const renameMutation = createRenameDatabaseMutation();
 	const deleteMutation = createDeleteDatabaseMutation();
-
-	let name = $state('');
-	let nameError = $state<string | null>(null);
-	let lastName = '';
-	$effect(() => {
-		// Follows the saved name, without undoing what the user is typing.
-		if (database.name !== lastName) {
-			lastName = database.name;
-			name = database.name;
-		}
-	});
 
 	let deleteOpen = $state(false);
 	let deleteTrigger = $state<HTMLElement | null>(null);
@@ -39,33 +26,6 @@
 	const deleteBlocked = $derived(database.projects.length > 0);
 	const alreadyDeleting = $derived(database.status === 'deleting');
 	const canConfirmDelete = $derived(confirmText.trim() === database.name);
-
-	async function rename(event: SubmitEvent) {
-		event.preventDefault();
-		const trimmed = name.trim();
-		nameError = null;
-		if (!trimmed) {
-			nameError = 'Isi nama database.';
-			return;
-		}
-		if (trimmed.length > DATABASE_NAME_MAX_LENGTH) {
-			nameError = `Nama database paling panjang ${DATABASE_NAME_MAX_LENGTH} karakter.`;
-			return;
-		}
-		if (trimmed === database.name) return;
-		try {
-			await renameMutation.mutateAsync({ workspaceId, databaseId: database.id, name: trimmed });
-			toast.success(`Nama database diganti menjadi ${trimmed}.`);
-		} catch (error) {
-			nameError =
-				getFieldError(error, 'name') ??
-				databaseErrorMessage(
-					error,
-					'rename',
-					'Nama database belum diganti. Muat ulang halaman, lalu simpan lagi.'
-				);
-		}
-	}
 
 	function openDelete() {
 		confirmText = '';
@@ -93,63 +53,38 @@
 </script>
 
 <section
-	class="surface-card flex min-w-0 flex-col gap-3 p-4 sm:p-5"
-	aria-labelledby="database-settings-title"
->
-	<h2 id="database-settings-title" class="text-base text-foreground">Ganti nama</h2>
-	<form class="flex flex-col gap-3" novalidate onsubmit={rename}>
-		<FormField
-			id="database-rename"
-			label="Nama database"
-			bind:value={name}
-			hint="Nama di server database tidak ikut berubah."
-			error={nameError}
-			autocomplete="off"
-			spellcheck={false}
-			oninput={() => (nameError = null)}
-		/>
-		<Button
-			type="submit"
-			variant="secondary"
-			size="sm"
-			class="self-start"
-			disabled={renameMutation.isPending || name.trim() === database.name}
-		>
-			{renameMutation.isPending ? 'Menyimpan...' : 'Simpan nama'}
-		</Button>
-	</form>
-</section>
-
-<section
 	class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
 	aria-labelledby="database-danger-title"
 	data-testid="database-danger-zone"
 >
-	<h2 id="database-danger-title" class="text-base text-error-dark">Hapus database</h2>
-	<p class="text-sm text-foreground">
-		Menghapus database dan semua datanya dari server. Tindakan ini tidak bisa dibatalkan.
-	</p>
+	<div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+		<div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+			<h2 id="database-danger-title" class="text-base text-error-dark">Hapus database</h2>
+			<p class="text-sm text-foreground">
+				Semua datanya ikut terhapus dan tidak bisa dikembalikan.
+			</p>
+		</div>
+		<Button
+			variant="danger"
+			size="sm"
+			bind:ref={deleteTrigger}
+			disabled={deleteBlocked}
+			aria-describedby={deleteBlocked ? 'delete-blocked' : undefined}
+			onclick={openDelete}
+			data-testid="delete-database"
+		>
+			<Trash size={16} aria-hidden="true" />
+			Hapus database
+		</Button>
+	</div>
 	{#if deleteBlocked}
 		<p id="delete-blocked" class="text-sm text-foreground" data-testid="delete-blocked">
 			Masih dipasang ke <span class="font-medium wrap-anywhere">{attachedNames}</span>. Lepas dari
-			semua proyek dulu, supaya aplikasi yang berjalan tidak kehilangan datanya tanpa sengaja.
+			semua proyek dulu.
 		</p>
 	{:else if alreadyDeleting}
 		<p class="text-sm text-muted">Database ini sedang dihapus.</p>
 	{/if}
-	<Button
-		variant="danger"
-		size="sm"
-		class="self-start"
-		bind:ref={deleteTrigger}
-		disabled={deleteBlocked}
-		aria-describedby={deleteBlocked ? 'delete-blocked' : undefined}
-		onclick={openDelete}
-		data-testid="delete-database"
-	>
-		<Trash size={16} aria-hidden="true" />
-		Hapus database
-	</Button>
 </section>
 
 <Dialog

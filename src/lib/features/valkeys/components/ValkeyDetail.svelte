@@ -24,7 +24,7 @@
 	import ValkeyConnectionCard from './ValkeyConnectionCard.svelte';
 	import ValkeyOverviewCard from './ValkeyOverviewCard.svelte';
 	import ValkeyProjectsCard from './ValkeyProjectsCard.svelte';
-	import ValkeySettingsCard from './ValkeySettingsCard.svelte';
+	import ValkeyDangerZone from './ValkeyDangerZone.svelte';
 	import ValkeyPanel from './ValkeyPanel.svelte';
 	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
 	import { VALKEY_PANEL_COPY } from '../panel';
@@ -98,7 +98,7 @@
 		<ValkeyPanel {valkey} canManage={access.canManage} />
 	{/snippet}
 	{#snippet danger()}
-		<ValkeySettingsCard {valkey} {workspaceId} {sizes} {availableMb} parts="delete" />
+		<ValkeyDangerZone {valkey} {workspaceId} />
 	{/snippet}
 	<!-- The form template: the store's cards left, the panel right, deleting last on every screen. -->
 	<FormPageLayout
@@ -109,7 +109,7 @@
 		{#if !access.canManage}
 			<p class="text-sm text-muted" data-testid="valkey-viewer-note">{VALKEY_COPY.viewerNote}</p>
 		{/if}
-		<ValkeyOverviewCard {valkey} />
+		<ValkeyOverviewCard {valkey} {workspaceId} canManage={access.canManage} {sizes} {availableMb} />
 		<ValkeyProjectsCard
 			{valkey}
 			{workspaceId}
@@ -119,8 +119,5 @@
 			onChanged={addNotices}
 		/>
 		<ValkeyConnectionCard {valkey} {workspaceId} {access} />
-		{#if access.canManage}
-			<ValkeySettingsCard {valkey} {workspaceId} {sizes} {availableMb} parts="edit" />
-		{/if}
 	</FormPageLayout>
 {/if}

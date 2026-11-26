@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Links come from resolveRoute() in ../routes.ts.
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
+	import { DeployIcon } from '$lib/components/icons';
 	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import Info from 'phosphor-svelte/lib/Info';
@@ -108,7 +108,7 @@
 				disabled={redeployMutation.isPending || !projectQuery.data}
 				aria-label={`${copy.redeploy} ${project.name}`}
 			>
-				<ArrowsClockwise size={16} aria-hidden="true" />
+				<DeployIcon size={16} aria-hidden="true" />
 				{redeployMutation.isPending ? copy.redeploying : copy.redeploy}
 			</Button>
 		{/if}

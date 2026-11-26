@@ -72,20 +72,15 @@ export const DATABASE_COPY = {
 	notMeasured: 'Belum diukur',
 	noProjects: 'Belum dipasang ke proyek',
 	redeployLink: 'Buka proyek untuk redeploy',
-	privateNetwork:
-		'Alamat ini hanya bisa dijangkau aplikasi yang berjalan di Sakala, bukan dari laptop atau layanan luar.',
+	privateNetwork: 'Hanya bisa dijangkau aplikasi di Sakala, bukan dari laptop.',
 	credentialsAudit: 'Setiap kali password ditampilkan, Sakala mencatatnya di log audit workspace.',
-	credentialsOwnerOnly:
-		'Password dan DATABASE_URL hanya bisa dilihat pemilik workspace. Proyek yang terpasang tetap menerima keduanya otomatis saat deploy.',
+	credentialsOwnerOnly: 'Password dan DATABASE_URL hanya bisa dilihat pemilik workspace.',
 	credentialsNotReady: 'Detail koneksi tersedia setelah database siap.',
 	endpointMissing: 'Belum dilaporkan',
 	endpointPending:
 		'Server database belum melaporkan alamatnya. Muat ulang halaman ini beberapa saat lagi.',
 	reveal: 'Tampilkan password',
-	releaseTitle: 'Migration lewat release command',
-	releaseBody:
-		'Sakala tidak menjalankan migration sendiri. Isi release command di pengaturan proyek: perintah itu jalan sekali setiap deploy, setelah build dan sebelum versi baru menerima trafik.',
-	releaseDocs: 'Baca panduan release command',
+	extensionsLead: 'Extension PostgreSQL yang boleh dipasang di database ini.',
 	extensionsNote:
 		'Daftar extension yang sudah terpasang belum ditampilkan di sini. Memasang ulang extension yang sudah ada aman dan tidak mengubah apa pun.',
 	viewerNote: 'Kamu pengamat di workspace ini, jadi hanya bisa melihat database-nya.',

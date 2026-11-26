@@ -105,7 +105,7 @@ test('a database on a node without a region reads Otomatis, never "tanpa region"
 	await expect(page.getByRole('main')).toContainText('Otomatis');
 
 	await page.goto(detailUrl());
-	await expect(page.getByTestId('database-region-auto')).toHaveText('region dipilih otomatis');
+	await expect(page.getByTestId('database-region-auto')).toHaveText('region otomatis');
 	await expect(page.getByTestId('database-overview')).not.toContainText('tanpa region');
 });
 
@@ -429,12 +429,16 @@ test.describe('database detail', () => {
 	test('points migrations to the release command', async ({ page }) => {
 		await mockDatabaseApi(page);
 		await page.goto(detailUrl());
-		const hint = page.getByTestId('database-release-hint');
-		await expect(hint).toContainText('php artisan migrate --force');
-		await expect(hint.getByRole('link', { name: /Baca panduan release command/ })).toHaveAttribute(
+		const help = page.getByTestId('database-help');
+		await expect(help.getByRole('link', { name: /Release command/ })).toHaveAttribute(
 			'href',
 			'https://sakala.dev/docs/perintah-rilis'
 		);
+		// Folded until asked for, like every how-to in the panel.
+		const hint = page.getByTestId('database-release-hint');
+		await expect(hint.getByText('php artisan migrate --force')).toBeHidden();
+		await hint.locator('summary').click();
+		await expect(hint).toContainText('php artisan migrate --force');
 	});
 
 	test('says so when the database no longer exists', async ({ page }) => {

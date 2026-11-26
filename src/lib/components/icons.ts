@@ -9,6 +9,8 @@ export { default as BucketIcon } from 'phosphor-svelte/lib/Archive';
 export { default as ValkeyIcon } from 'phosphor-svelte/lib/Memory';
 export { default as DomainIcon } from 'phosphor-svelte/lib/Globe';
 export { default as DeployIcon } from 'phosphor-svelte/lib/ArrowsClockwise';
+/** Replacing a password or secret key; deploy keeps the circular arrows to itself. */
+export { default as RotateCredentialIcon } from 'phosphor-svelte/lib/Key';
 export { default as WorkerIcon } from 'phosphor-svelte/lib/Cpu';
 export { default as ScheduleIcon } from 'phosphor-svelte/lib/CalendarBlank';
 export { default as ErrorIcon } from 'phosphor-svelte/lib/WarningCircle';
@@ -18,3 +20,5 @@ export { default as SuggestionIcon } from 'phosphor-svelte/lib/Lightbulb';
 /** Guides and documentation: the sidebar's Panduan and every panel's Bantuan. */
 export { default as GuideIcon } from 'phosphor-svelte/lib/BookOpenText';
 export { default as SettingsIcon } from 'phosphor-svelte/lib/GearSix';
+/** Opens a small inline editor next to a value, such as a name or a size. */
+export { default as EditIcon } from 'phosphor-svelte/lib/PencilSimple';

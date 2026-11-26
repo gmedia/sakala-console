@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import Database from 'phosphor-svelte/lib/Database';
+	import { DatabaseIcon } from '$lib/components/icons';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import { ApiError } from '$lib/api/errors';
 	import { useCurrentUser } from '$lib/features/auth/queries';
@@ -22,8 +22,10 @@
 	import DatabaseExtensionsCard from './DatabaseExtensionsCard.svelte';
 	import DatabaseOverviewCard from './DatabaseOverviewCard.svelte';
 	import DatabaseProjectsCard from './DatabaseProjectsCard.svelte';
-	import DatabaseSettingsCard from './DatabaseSettingsCard.svelte';
-	import ReleaseCommandHint from './ReleaseCommandHint.svelte';
+	import DatabaseDangerZone from './DatabaseDangerZone.svelte';
+	import DatabasePanel from './DatabasePanel.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import { DATABASE_PANEL_COPY } from '../panel';
 
 	type Props = { workspaceId: string | null; databaseId: string };
 
@@ -64,7 +66,7 @@
 	</div>
 {:else if databaseQuery.isError || !database}
 	<ErrorBlock
-		icon={Database}
+		icon={DatabaseIcon}
 		title={notFound ? 'Database tidak ditemukan' : 'Database belum bisa dimuat'}
 		description={databaseErrorMessage(
 			databaseQuery.error,
@@ -75,37 +77,39 @@
 		links={[{ label: 'Lihat semua database', href: resolve('/databases') }]}
 	/>
 {:else}
-	<div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
-		<div class="flex min-w-0 flex-col gap-4 lg:gap-6">
-			{#if !access.canManage}
-				<p class="text-sm text-muted" data-testid="database-viewer-note">
-					{DATABASE_COPY.viewerNote}
-				</p>
-			{/if}
-			<DatabaseOverviewCard
-				{database}
-				storageQuotaMb={limitsQuery.data?.quotas.max_database_storage_mb}
-				workspaceStorage={quota?.storage ?? null}
-			/>
-			<DatabaseProjectsCard
-				{database}
-				{workspaceId}
-				{access}
-				{notices}
-				preselectedProjectId={route.projectId}
-				onChanged={addNotices}
-			/>
-			<DatabaseConnectionCard {database} {workspaceId} {access} />
-			<DatabaseExtensionsCard {database} {workspaceId} {access} />
-		</div>
-		<aside
-			class="flex min-w-0 flex-col gap-4 lg:gap-6"
-			aria-label="Petunjuk dan pengaturan database"
-		>
-			<ReleaseCommandHint />
-			{#if access.canManage}
-				<DatabaseSettingsCard {database} {workspaceId} />
-			{/if}
-		</aside>
-	</div>
+	{#snippet panel()}
+		<DatabasePanel {database} canManage={access.canManage} />
+	{/snippet}
+	{#snippet danger()}
+		<DatabaseDangerZone {database} {workspaceId} />
+	{/snippet}
+	<!-- The form template: the database's cards left, the panel right, deleting last on every screen. -->
+	<FormPageLayout
+		panelLabel={DATABASE_PANEL_COPY.label}
+		{panel}
+		after={access.canManage ? danger : undefined}
+	>
+		{#if !access.canManage}
+			<p class="text-sm text-muted" data-testid="database-viewer-note">
+				{DATABASE_COPY.viewerNote}
+			</p>
+		{/if}
+		<DatabaseOverviewCard
+			{database}
+			{workspaceId}
+			canManage={access.canManage}
+			storageQuotaMb={limitsQuery.data?.quotas.max_database_storage_mb}
+			workspaceStorage={quota?.storage ?? null}
+		/>
+		<DatabaseProjectsCard
+			{database}
+			{workspaceId}
+			{access}
+			{notices}
+			preselectedProjectId={route.projectId}
+			onChanged={addNotices}
+		/>
+		<DatabaseConnectionCard {database} {workspaceId} {access} />
+		<DatabaseExtensionsCard {database} {workspaceId} {access} />
+	</FormPageLayout>
 {/if}

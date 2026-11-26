@@ -281,6 +281,7 @@ test.describe('Valkey journeys', () => {
 	test('resizes and shows it landing', async ({ page }) => {
 		const { calls } = await mockValkeyApi(page);
 		await page.goto(detailUrl());
+		await page.getByRole('button', { name: 'Ubah ukuran Valkey' }).click();
 		await page.getByTestId('valkey-resize').getByText('128 MB').click();
 		await page.getByTestId('save-valkey-size').click();
 		await expect
@@ -524,6 +525,7 @@ test.describe('screenshots', () => {
 			await shot('rotation-completed');
 
 			await page.goto(detailUrl('valkey-cache'));
+			await page.getByRole('button', { name: 'Ubah ukuran Valkey' }).click();
 			await page.getByTestId('valkey-resize').getByText('128 MB').click();
 			await shot('detail-cache-warning-resize');
 
