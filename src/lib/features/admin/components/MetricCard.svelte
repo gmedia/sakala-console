@@ -9,8 +9,8 @@
 	type Props = {
 		label: string;
 		value: string;
-		/** What the number counts, in one sentence. */
-		help: string;
+		/** What the number counts, in one sentence; pages that fold it behind "Pelajari" leave it out. */
+		help?: string;
 		trend?: Trend | null;
 		icon?: Component<{ size?: number; 'aria-hidden'?: 'true' }>;
 		tone?: 'primary' | 'error';
@@ -72,6 +72,8 @@
 			<p class="font-display text-3xl font-semibold text-foreground">{value}</p>
 		{/if}
 		<p class="mt-1 text-sm font-medium text-foreground">{label}</p>
-		<p class="mt-1 text-xs text-muted">{help}</p>
+		{#if help}
+			<p class="mt-1 text-xs text-muted">{help}</p>
+		{/if}
 	</div>
 </article>

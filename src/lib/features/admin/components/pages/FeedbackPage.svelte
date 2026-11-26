@@ -4,6 +4,7 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { AdminFeedback, FeedbackStatus } from '$lib/api/resources/admin/audit';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
@@ -63,117 +64,119 @@
 	}
 </script>
 
-<AdminPageHeader
-	title="Masukan"
-	crumbs={[{ label: 'Masukan' }]}
-	description="Masukan yang dikirim pengguna dari Console. Tandai yang sudah ditindaklanjuti supaya tidak dibaca dua kali."
-/>
+<AdminPageHeader title="Masukan" crumbs={[{ label: 'Masukan' }]} />
 
-<ListToolbar
-	id="feedback"
-	searchLabel="Cari isi masukan"
-	search={list.search}
-	onSearch={(value) => url.update({ search: value }, { replace: true })}
-	{hasFilters}
-	onReset={() => url.update({ search: null, status: null, category: null })}
->
-	{#snippet filters()}
-		<FilterSelect
-			id="feedback-status"
-			label="Status"
-			value={list.status}
-			options={FEEDBACK_STATUS_OPTIONS}
-			onChange={(value) => url.update({ status: value })}
-		/>
-		<FilterSelect
-			id="feedback-category"
-			label="Kategori"
-			value={list.category}
-			options={FEEDBACK_CATEGORY_OPTIONS}
-			onChange={(value) => url.update({ category: value })}
-		/>
+<ListPageLayout>
+	{#snippet controls()}
+		<ListToolbar
+			id="feedback"
+			searchLabel="Cari isi masukan"
+			search={list.search}
+			onSearch={(value) => url.update({ search: value }, { replace: true })}
+			{hasFilters}
+			onReset={() => url.update({ search: null, status: null, category: null })}
+		>
+			{#snippet filters()}
+				<FilterSelect
+					id="feedback-status"
+					label="Status"
+					value={list.status}
+					options={FEEDBACK_STATUS_OPTIONS}
+					onChange={(value) => url.update({ status: value })}
+				/>
+				<FilterSelect
+					id="feedback-category"
+					label="Kategori"
+					value={list.category}
+					options={FEEDBACK_CATEGORY_OPTIONS}
+					onChange={(value) => url.update({ category: value })}
+				/>
+			{/snippet}
+		</ListToolbar>
 	{/snippet}
-</ListToolbar>
 
-{#if query.isError && !query.data}
-	<AdminError error={query.error} what="masukan" onRetry={() => query.refetch()} />
-{:else}
-	<AdminTable
-		caption="Daftar masukan"
-		columns={[
-			{ label: 'Masukan' },
-			{ label: 'Pengirim' },
-			{ label: 'Konteks' },
-			{ label: 'Dikirim' },
-			{ label: 'Status' }
-		]}
-		loading={query.isPending}
-		fetching={query.isPlaceholderData}
-		empty={query.data?.data.length === 0}
-		emptyTitle={hasFilters ? 'Tidak ada masukan yang cocok' : 'Belum ada masukan'}
-		emptyText={hasFilters ? 'Ubah pencarian atau hapus filter.' : ''}
-	>
-		{#snippet rows()}
-			{#each query.data?.data ?? [] as feedback (feedback.id)}
-				{@const status = feedbackStatus(feedback.status)}
-				<tr class="align-top">
-					<td class="max-w-md px-4 py-3">
-						<p class="text-xs font-medium text-muted">
-							{FEEDBACK_CATEGORIES[feedback.category] ?? feedback.category}
-						</p>
-						<!-- Written by the user: always text, never HTML. -->
-						<p class="mt-1 wrap-anywhere whitespace-pre-line">{feedback.message}</p>
-					</td>
-					<td class="px-4 py-3">
-						<a
-							href={resolve(`/admin/users/${String(feedback.user.id)}`)}
-							class="inline-flex min-h-6 items-center underline underline-offset-2"
-							>@{feedback.user.username}</a
-						>
-						<p class="text-xs text-muted">
-							{feedback.consent ? 'Boleh dihubungi' : 'Tidak minta dihubungi'}
-						</p>
-					</td>
-					<td class="px-4 py-3">
-						{#if feedback.project}
-							{#if feedback.project.deleted}{feedback.project.name} (dihapus){:else}
+	{#if query.isError && !query.data}
+		<AdminError error={query.error} what="masukan" onRetry={() => query.refetch()} />
+	{:else}
+		<div class="flex min-w-0 flex-col">
+			<AdminTable
+				caption="Daftar masukan"
+				columns={[
+					{ label: 'Masukan' },
+					{ label: 'Pengirim' },
+					{ label: 'Konteks' },
+					{ label: 'Dikirim' },
+					{ label: 'Status' }
+				]}
+				loading={query.isPending}
+				fetching={query.isPlaceholderData}
+				empty={query.data?.data.length === 0}
+				emptyTitle={hasFilters ? 'Tidak ada masukan yang cocok' : 'Belum ada masukan'}
+				emptyText={hasFilters ? 'Ubah pencarian atau hapus filter.' : ''}
+			>
+				{#snippet rows()}
+					{#each query.data?.data ?? [] as feedback (feedback.id)}
+						{@const status = feedbackStatus(feedback.status)}
+						<tr class="align-top">
+							<td class="max-w-md px-4 py-3">
+								<p class="text-xs font-medium text-muted">
+									{FEEDBACK_CATEGORIES[feedback.category] ?? feedback.category}
+								</p>
+								<!-- Written by the user: always text, never HTML. -->
+								<p class="mt-1 wrap-anywhere whitespace-pre-line">{feedback.message}</p>
+							</td>
+							<td class="px-4 py-3">
 								<a
-									href={resolve(`/admin/projects/${feedback.project.id}`)}
+									href={resolve(`/admin/users/${String(feedback.user.id)}`)}
 									class="inline-flex min-h-6 items-center underline underline-offset-2"
-									>{feedback.project.name}</a
+									>@{feedback.user.username}</a
 								>
-							{/if}
-						{:else}<span class="text-muted">Umum</span>{/if}
-						{#if feedback.deployment_id}
-							<p>
-								<a
-									href={resolve(`/admin/deployments/${feedback.deployment_id}`)}
-									class="inline-flex min-h-6 items-center text-xs underline underline-offset-2"
-									>Deployment terkait</a
-								>
-							</p>
-						{/if}
-					</td>
-					<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(feedback.created_at)}</td>
-					<td class="px-4 py-3">
-						<div class="flex flex-col items-start gap-2">
-							<Badge tone={status.tone}>{status.label}</Badge>
-							<Button size="sm" variant="secondary" onclick={() => edit(feedback)}>
-								Ubah status<span class="sr-only"> masukan dari @{feedback.user.username}</span>
-							</Button>
-						</div>
-					</td>
-				</tr>
-			{/each}
-		{/snippet}
-	</AdminTable>
-	<ListPagination
-		meta={query.data?.meta}
-		noun="masukan"
-		busy={query.isFetching}
-		onPageChange={(page) => url.update({ page })}
-	/>
-{/if}
+								<p class="text-xs text-muted">
+									{feedback.consent ? 'Boleh dihubungi' : 'Tidak minta dihubungi'}
+								</p>
+							</td>
+							<td class="px-4 py-3">
+								{#if feedback.project}
+									{#if feedback.project.deleted}{feedback.project.name} (dihapus){:else}
+										<a
+											href={resolve(`/admin/projects/${feedback.project.id}`)}
+											class="inline-flex min-h-6 items-center underline underline-offset-2"
+											>{feedback.project.name}</a
+										>
+									{/if}
+								{:else}<span class="text-muted">Umum</span>{/if}
+								{#if feedback.deployment_id}
+									<p>
+										<a
+											href={resolve(`/admin/deployments/${feedback.deployment_id}`)}
+											class="inline-flex min-h-6 items-center text-xs underline underline-offset-2"
+											>Deployment terkait</a
+										>
+									</p>
+								{/if}
+							</td>
+							<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(feedback.created_at)}</td>
+							<td class="px-4 py-3">
+								<div class="flex flex-col items-start gap-2">
+									<Badge tone={status.tone}>{status.label}</Badge>
+									<Button size="sm" variant="secondary" onclick={() => edit(feedback)}>
+										Ubah status<span class="sr-only"> masukan dari @{feedback.user.username}</span>
+									</Button>
+								</div>
+							</td>
+						</tr>
+					{/each}
+				{/snippet}
+			</AdminTable>
+			<ListPagination
+				meta={query.data?.meta}
+				noun="masukan"
+				busy={query.isFetching}
+				onPageChange={(page) => url.update({ page })}
+			/>
+		</div>
+	{/if}
+</ListPageLayout>
 
 <ReasonDialog
 	open={editing !== null}

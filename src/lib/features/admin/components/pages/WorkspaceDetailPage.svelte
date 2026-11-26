@@ -2,12 +2,14 @@
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
 	import LimitProfileDialog from '../LimitProfileDialog.svelte';
-	import QuotaCard from '../QuotaCard.svelte';
+	import AdminQuotaSummary from '../AdminQuotaSummary.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import { ADMIN_PANEL_COPY, deriveAdminWorkspaceSteps } from '../../panel';
 	import { createAdminWorkspaceQuery, createLimitProfileOptionsQuery } from '../../queries';
 	import { createAssignLimitProfileMutation } from '../../mutations';
 	import { useListUrl } from '../../list-url.svelte';
@@ -63,6 +65,7 @@
 		}
 	}
 
+	const steps = $derived(detail ? deriveAdminWorkspaceSteps(detail) : []);
 	const defaultLabel = $derived(workspace?.type === 'team' ? 'Default tim' : 'Default pribadi');
 </script>
 
@@ -74,24 +77,24 @@
 		{ label: workspace?.name ?? '...' }
 	]}
 >
-	{#if workspace}
-		<div class="flex flex-wrap items-center gap-2 text-sm text-muted">
-			<span>{workspace.slug}</span>
-			<Badge tone={workspace.type === 'team' ? 'running' : 'neutral'}
-				>{WORKSPACE_TYPE_LABELS[workspace.type] ?? workspace.type}</Badge
-			>
-			{#if workspace.personal_user}
-				<a
-					href={resolve(`/admin/users/${String(workspace.personal_user.id)}`)}
-					class="inline-flex min-h-6 items-center underline underline-offset-2"
-					>Milik @{workspace.personal_user.username}</a
+	{#if workspace && detail}
+		<div class="flex flex-col gap-2">
+			<div class="flex flex-wrap items-center gap-2 text-sm text-muted">
+				<span>{workspace.slug}</span>
+				<Badge tone={workspace.type === 'team' ? 'running' : 'neutral'}
+					>{WORKSPACE_TYPE_LABELS[workspace.type] ?? workspace.type}</Badge
 				>
-			{/if}
+				{#if workspace.personal_user}
+					<a
+						href={resolve(`/admin/users/${String(workspace.personal_user.id)}`)}
+						class="inline-flex min-h-6 items-center underline underline-offset-2"
+						>Milik @{workspace.personal_user.username}</a
+					>
+				{/if}
+			</div>
+			<AdminQuotaSummary quota={detail.quota} {defaultLabel} onEditProfile={() => openDialog()} />
 		</div>
 	{/if}
-	{#snippet actions()}
-		{#if workspace}<Button onclick={() => openDialog()}>Ubah profil batas</Button>{/if}
-	{/snippet}
 </AdminPageHeader>
 
 {#if query.isError}
@@ -99,12 +102,12 @@
 {:else if !detail || !workspace}
 	<div class="skeleton h-64 w-full" role="status" aria-label="Sedang memuat"></div>
 {:else}
-	<div class="grid gap-6 lg:grid-cols-3">
-		<section aria-labelledby="ws-quota" class="flex min-w-0 flex-col gap-3">
-			<h2 id="ws-quota" class="text-base">Batas dan pemakaian</h2>
-			<QuotaCard quota={detail.quota} {defaultLabel} />
-		</section>
-		<section aria-labelledby="ws-members" class="flex min-w-0 flex-col gap-3 lg:col-span-2">
+	{#snippet panel()}
+		<PanelNextSteps {steps} />
+	{/snippet}
+
+	<FormPageLayout panelLabel={ADMIN_PANEL_COPY.label} {panel}>
+		<section aria-labelledby="ws-members" class="flex min-w-0 flex-col gap-3">
 			<h2 id="ws-members" class="text-base">Anggota</h2>
 			<AdminTable
 				caption="Anggota workspace"
@@ -136,42 +139,42 @@
 				{/snippet}
 			</AdminTable>
 		</section>
-	</div>
 
-	<section aria-labelledby="ws-projects" class="mt-8 flex flex-col gap-3">
-		<h2 id="ws-projects" class="text-base">Proyek</h2>
-		<AdminTable
-			caption="Proyek workspace"
-			columns={[
-				{ label: 'Proyek' },
-				{ label: 'Runtime' },
-				{ label: 'Status' },
-				{ label: 'Dibuat' }
-			]}
-			empty={detail.projects.length === 0}
-			emptyTitle="Workspace ini belum punya proyek"
-		>
-			{#snippet rows()}
-				{#each detail.projects as project (project.id)}
-					{@const runtime = runtimeStatus(project.runtime_status)}
-					{@const status = projectStatus(project.status)}
-					<tr>
-						<td class="px-4 py-3">
-							<a
-								href={resolve(`/admin/projects/${project.id}`)}
-								class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
-								>{project.name}</a
-							>
-							<p class="text-xs text-muted">{project.slug}</p>
-						</td>
-						<td class="px-4 py-3"><Badge tone={runtime.tone}>{runtime.label}</Badge></td>
-						<td class="px-4 py-3"><Badge tone={status.tone}>{status.label}</Badge></td>
-						<td class="px-4 py-3 whitespace-nowrap">{formatWibDate(project.created_at)}</td>
-					</tr>
-				{/each}
-			{/snippet}
-		</AdminTable>
-	</section>
+		<section aria-labelledby="ws-projects" class="flex flex-col gap-3">
+			<h2 id="ws-projects" class="text-base">Proyek</h2>
+			<AdminTable
+				caption="Proyek workspace"
+				columns={[
+					{ label: 'Proyek' },
+					{ label: 'Runtime' },
+					{ label: 'Status' },
+					{ label: 'Dibuat' }
+				]}
+				empty={detail.projects.length === 0}
+				emptyTitle="Workspace ini belum punya proyek"
+			>
+				{#snippet rows()}
+					{#each detail.projects as project (project.id)}
+						{@const runtime = runtimeStatus(project.runtime_status)}
+						{@const status = projectStatus(project.status)}
+						<tr>
+							<td class="px-4 py-3">
+								<a
+									href={resolve(`/admin/projects/${project.id}`)}
+									class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
+									>{project.name}</a
+								>
+								<p class="text-xs text-muted">{project.slug}</p>
+							</td>
+							<td class="px-4 py-3"><Badge tone={runtime.tone}>{runtime.label}</Badge></td>
+							<td class="px-4 py-3"><Badge tone={status.tone}>{status.label}</Badge></td>
+							<td class="px-4 py-3 whitespace-nowrap">{formatWibDate(project.created_at)}</td>
+						</tr>
+					{/each}
+				{/snippet}
+			</AdminTable>
+		</section>
+	</FormPageLayout>
 
 	<LimitProfileDialog
 		open={dialogOpen}

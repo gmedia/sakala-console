@@ -9,6 +9,8 @@ export { default as BucketIcon } from 'phosphor-svelte/lib/Archive';
 export { default as ValkeyIcon } from 'phosphor-svelte/lib/Memory';
 export { default as DomainIcon } from 'phosphor-svelte/lib/Globe';
 export { default as DeployIcon } from 'phosphor-svelte/lib/ArrowsClockwise';
+/** Reading the page's data again ("Muat ulang"): one arrow, so it never reads as a deploy. */
+export { default as ReloadIcon } from 'phosphor-svelte/lib/ArrowClockwise';
 /** Replacing a password or secret key; deploy keeps the circular arrows to itself. */
 export { default as RotateCredentialIcon } from 'phosphor-svelte/lib/Key';
 export { default as WorkerIcon } from 'phosphor-svelte/lib/Cpu';

@@ -14,6 +14,7 @@
 		domainStatusView,
 		formatDomainTime
 	} from '$lib/features/domains/presentation';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
@@ -43,8 +44,6 @@
 
 	const COPY = {
 		title: 'Custom domain',
-		description:
-			'Domain milik pengguna yang diarahkan ke proyek. Nonaktifkan yang dipakai untuk penyalahgunaan.',
 		off: 'Custom domain tidak aktif di server ini',
 		offText: 'Server ini berjalan dengan SAKALA_CUSTOM_DOMAINS_ENABLED mati.',
 		disable: 'Nonaktifkan',
@@ -100,134 +99,138 @@
 	}
 </script>
 
-<AdminPageHeader
-	title={COPY.title}
-	crumbs={[{ label: COPY.title }]}
-	description={COPY.description}
-/>
+<AdminPageHeader title={COPY.title} crumbs={[{ label: COPY.title }]} />
 
 {#if limitsQuery.isPending}
 	<div class="skeleton h-40 w-full rounded-card" role="status" aria-label="Memuat"></div>
 {:else if !enabled}
 	<EmptyState title={COPY.off} description={COPY.offText} />
 {:else}
-	<ListToolbar
-		id="custom-domains"
-		searchLabel="Cari nama domain"
-		search={list.search}
-		onSearch={(value) => url.update({ search: value }, { replace: true })}
-		{hasFilters}
-		onReset={() => url.update({ search: null, status: null, failing: null })}
-	>
-		{#snippet filters()}
-			<FilterSelect
-				id="custom-domains-status"
-				label="Status"
-				value={list.status}
-				options={STATUS_OPTIONS}
-				onChange={(value) => url.update({ status: value })}
-			/>
-			<FilterSelect
-				id="custom-domains-failing"
-				label="Pemeriksaan"
-				value={list.failing}
-				options={[{ value: FAILING, label: 'DNS bermasalah' }]}
-				onChange={(value) => url.update({ failing: value })}
-			/>
+	<ListPageLayout>
+		{#snippet controls()}
+			<ListToolbar
+				id="custom-domains"
+				searchLabel="Cari nama domain"
+				search={list.search}
+				onSearch={(value) => url.update({ search: value }, { replace: true })}
+				{hasFilters}
+				onReset={() => url.update({ search: null, status: null, failing: null })}
+			>
+				{#snippet filters()}
+					<FilterSelect
+						id="custom-domains-status"
+						label="Status"
+						value={list.status}
+						options={STATUS_OPTIONS}
+						onChange={(value) => url.update({ status: value })}
+					/>
+					<FilterSelect
+						id="custom-domains-failing"
+						label="Pemeriksaan"
+						value={list.failing}
+						options={[{ value: FAILING, label: 'DNS bermasalah' }]}
+						onChange={(value) => url.update({ failing: value })}
+					/>
+				{/snippet}
+			</ListToolbar>
 		{/snippet}
-	</ListToolbar>
 
-	{#if listQuery.isError && !listQuery.data}
-		<AdminError
-			error={listQuery.error}
-			what="daftar custom domain"
-			onRetry={() => listQuery.refetch()}
-		/>
-	{:else}
-		<AdminTable
-			caption="Custom domain"
-			columns={[
-				{ label: 'Domain' },
-				{ label: 'Proyek' },
-				{ label: 'Status' },
-				{ label: 'Diperiksa' },
-				{ label: 'Aksi', srOnly: true }
-			]}
-			loading={listQuery.isPending}
-			fetching={listQuery.isPlaceholderData}
-			empty={listQuery.data?.data.length === 0}
-			emptyTitle={hasFilters ? 'Tidak ada domain yang cocok' : 'Belum ada custom domain'}
-			emptyText={hasFilters
-				? 'Ubah pencarian atau hapus filter.'
-				: 'Belum ada proyek yang menambahkan domain.'}
-		>
-			{#snippet rows()}
-				{#each listQuery.data?.data ?? [] as row (row.domain.id)}
-					{@const view = domainStatusView(row.domain)}
-					{@const note = detail(row)}
-					<tr class="hover:bg-background" data-testid="admin-custom-domain">
-						<td class="px-4 py-3">
-							<span class="font-mono font-medium wrap-anywhere">{row.domain.hostname}</span>
-						</td>
-						<td class="px-4 py-3">
-							{#if row.project}
-								<a
-									href={resolve(`/admin/projects/${row.project.id}`)}
-									class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
-									>{row.project.name}</a
-								>
-							{:else}-{/if}
-						</td>
-						<td class="px-4 py-3">
-							<Badge tone={view.tone}>{view.label}</Badge>
-							{#if note}
-								<p class="mt-1 line-clamp-2 max-w-xs text-xs wrap-anywhere text-muted">{note}</p>
-							{/if}
-						</td>
-						<td class="px-4 py-3 whitespace-nowrap">
-							{row.domain.last_check.checked_at
-								? formatDomainTime(row.domain.last_check.checked_at)
-								: '-'}
-						</td>
-						<td class="px-4 py-3 text-right">
-							{#if row.domain.admin_disabled}
-								<Button
-									variant="secondary"
-									size="sm"
-									onclick={() => {
-										enableError = '';
-										enabling = row;
-									}}
-									aria-label="{COPY.enable} {row.domain.hostname}"
-								>
-									{COPY.enable}
-								</Button>
-							{:else if row.domain.status !== DOMAIN_STATUS.released}
-								<Button
-									variant="secondary"
-									size="sm"
-									onclick={() => {
-										control.reset();
-										disabling = row;
-									}}
-									aria-label="{COPY.disable} {row.domain.hostname}"
-								>
-									{COPY.disable}
-								</Button>
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			{/snippet}
-		</AdminTable>
-		<ListPagination
-			meta={listQuery.data?.meta}
-			noun="domain"
-			busy={listQuery.isFetching}
-			onPageChange={(page) => url.update({ page })}
-		/>
-	{/if}
-	<span role="status" class="sr-only">{statusMessage}</span>
+		{#if listQuery.isError && !listQuery.data}
+			<AdminError
+				error={listQuery.error}
+				what="daftar custom domain"
+				onRetry={() => listQuery.refetch()}
+			/>
+		{:else}
+			<div class="flex min-w-0 flex-col">
+				<AdminTable
+					caption="Custom domain"
+					columns={[
+						{ label: 'Domain' },
+						{ label: 'Proyek' },
+						{ label: 'Status' },
+						{ label: 'Diperiksa' },
+						{ label: 'Aksi', srOnly: true }
+					]}
+					loading={listQuery.isPending}
+					fetching={listQuery.isPlaceholderData}
+					empty={listQuery.data?.data.length === 0}
+					emptyTitle={hasFilters ? 'Tidak ada domain yang cocok' : 'Belum ada custom domain'}
+					emptyText={hasFilters
+						? 'Ubah pencarian atau hapus filter.'
+						: 'Belum ada proyek yang menambahkan domain.'}
+				>
+					{#snippet rows()}
+						{#each listQuery.data?.data ?? [] as row (row.domain.id)}
+							{@const view = domainStatusView(row.domain)}
+							{@const note = detail(row)}
+							<tr class="hover:bg-background" data-testid="admin-custom-domain">
+								<td class="px-4 py-3">
+									<span class="font-mono font-medium wrap-anywhere">{row.domain.hostname}</span>
+								</td>
+								<td class="px-4 py-3">
+									{#if row.project}
+										<a
+											href={resolve(`/admin/projects/${row.project.id}`)}
+											class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
+											>{row.project.name}</a
+										>
+									{:else}-{/if}
+								</td>
+								<td class="px-4 py-3">
+									<Badge tone={view.tone}>{view.label}</Badge>
+									{#if note}
+										<p class="mt-1 line-clamp-2 max-w-xs text-xs wrap-anywhere text-muted">
+											{note}
+										</p>
+									{/if}
+								</td>
+								<td class="px-4 py-3 whitespace-nowrap">
+									{row.domain.last_check.checked_at
+										? formatDomainTime(row.domain.last_check.checked_at)
+										: '-'}
+								</td>
+								<td class="px-4 py-3 text-right">
+									{#if row.domain.admin_disabled}
+										<Button
+											variant="secondary"
+											size="sm"
+											onclick={() => {
+												enableError = '';
+												enabling = row;
+											}}
+											aria-label="{COPY.enable} {row.domain.hostname}"
+										>
+											{COPY.enable}
+										</Button>
+									{:else if row.domain.status !== DOMAIN_STATUS.released}
+										<Button
+											variant="secondary"
+											size="sm"
+											onclick={() => {
+												control.reset();
+												disabling = row;
+											}}
+											aria-label="{COPY.disable} {row.domain.hostname}"
+										>
+											{COPY.disable}
+										</Button>
+									{/if}
+								</td>
+							</tr>
+						{/each}
+					{/snippet}
+				</AdminTable>
+				<ListPagination
+					meta={listQuery.data?.meta}
+					noun="domain"
+					busy={listQuery.isFetching}
+					onPageChange={(page) => url.update({ page })}
+				/>
+			</div>
+		{/if}
+		<span role="status" class="sr-only">{statusMessage}</span>
+	</ListPageLayout>
 {/if}
 
 <ReasonDialog

@@ -7,7 +7,14 @@
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
+	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import PanelHelp from '$lib/components/panel/PanelHelp.svelte';
+	import { WORKSPACE_LIMITS_GUIDE_URL } from '$lib/config/project';
+	import { ADMIN_PANEL_COPY } from '../../panel';
 	import { ApiError, getErrorMessage, getFieldError } from '$lib/api/errors';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
@@ -22,6 +29,8 @@
 		emptyProfileValues,
 		hasOptionalValue,
 		invalidProfileLabels,
+		OPTIONAL_EMPTY_RULE,
+		REGION_HINT,
 		PROFILE_GROUPS,
 		PROFILE_NUMBER_FIELDS,
 		profileFieldProblem,
@@ -181,9 +190,22 @@
 		!isNew
 			? 'Batas baru langsung berlaku untuk semua workspace yang memakai profil ini. Yang sudah terlewati tidak dibatalkan.'
 			: returnTarget
-				? `Profil baru belum dipakai siapa pun. Setelah dibuat, kamu kembali ke ${returnTarget.kind === 'workspaces' ? 'workspace' : 'pengguna'} tadi untuk memasangnya.`
-				: 'Profil baru belum dipakai siapa pun sampai kamu memasangnya ke workspace.'
+				? `Setelah dibuat, kamu kembali ke ${returnTarget.kind === 'workspaces' ? 'workspace' : 'pengguna'} tadi untuk memasangnya.`
+				: undefined
 	);
+	// Where to look next while editing: the workspaces the change reaches.
+	const steps = $derived(
+		!isNew && profileId
+			? [
+					{
+						id: 'workspaces',
+						label: 'Lihat workspace pemakai',
+						href: `${resolve('/admin/workspaces')}?${new URLSearchParams({ limit_profile_id: profileId })}`
+					}
+				]
+			: []
+	);
+	const helpLinks = [{ label: 'Batas pilot', href: WORKSPACE_LIMITS_GUIDE_URL }];
 	const backHref = $derived(
 		returnTarget
 			? returnTarget.kind === 'workspaces'
@@ -228,6 +250,9 @@
 		}
 	}
 
+	/** Numbers side by side: each input is narrow, and one per row made the page twice as tall. */
+	const FIELD_GRID = 'grid gap-5 @lg:grid-cols-2 @2xl:grid-cols-3';
+
 	const groupFields = (group: ProfileFieldGroup) =>
 		PROFILE_NUMBER_FIELDS.filter((field) => field.group === group);
 </script>
@@ -248,7 +273,7 @@
 			inputmode="numeric"
 			min={field.min}
 			max={field.max}
-			class="control-input max-w-60 tabular-nums"
+			class="control-input tabular-nums"
 			bind:value={values[field.key]}
 			required={!field.optional}
 			oninput={() => {
@@ -263,7 +288,7 @@
 			id={`profile-${field.key}-hint`}
 			class="text-xs {message ? 'text-error-base' : 'text-foreground/70'}"
 		>
-			{message ?? field.hint}
+			{message ?? field.short ?? field.hint}
 		</p>
 	</div>
 {/snippet}
@@ -277,7 +302,7 @@
 		<!-- Only regions the API reports, so nothing the placement could never honour is offered. -->
 		<select
 			id="profile-default_region"
-			class="control-input max-w-60"
+			class="control-input"
 			bind:value={region}
 			onchange={() => (optionalOpen = true)}
 			aria-invalid={message ? 'true' : undefined}
@@ -299,8 +324,7 @@
 			{:else if (regionsQuery.data ?? []).length === 0 && !regionsQuery.isPending}
 				Belum ada node yang melaporkan region, jadi proyek dan database berjalan di node mana saja.
 			{:else}
-				Proyek dan database baru di workspace ini memakai region ini kalau tidak memilih sendiri.
-				Proyek yang sudah berjalan tetap di node-nya sampai di-deploy ulang ke node lain.
+				{REGION_HINT.short}
 			{/if}
 			{#if region && !(regionsQuery.data ?? []).includes(region) && regionsQuery.isSuccess}
 				Region {region} sekarang tidak punya node aktif.
@@ -312,12 +336,21 @@
 <AdminPageHeader
 	{title}
 	documentTitle={profileQuery.data ? `${title}: ${profileQuery.data.name}` : title}
-	description={isNew ? consequence : undefined}
+	description={consequence}
 	crumbs={[
 		{ label: 'Profil batas', href: listHref },
 		{ label: isNew ? 'Profil baru' : (profileQuery.data?.name ?? 'Ubah') }
 	]}
-/>
+>
+	<!-- Editing changes every workspace on the profile at once, so the page says how many. -->
+	{#if !isNew && profileQuery.data}
+		<Badge tone="neutral" class="whitespace-normal"
+			>Profil {profileQuery.data.name}, dipakai {formatNumber(
+				profileQuery.data.workspaces_count ?? 0
+			)} workspace</Badge
+		>
+	{/if}
+</AdminPageHeader>
 
 {#if !isNew && profileQuery.isError}
 	<AdminError
@@ -331,160 +364,173 @@
 		<div class="skeleton h-64 w-full"></div>
 	</div>
 {:else}
-	<form
-		bind:this={formEl}
-		class="flex max-w-reading flex-col gap-6"
-		novalidate
-		aria-label={title}
-		onsubmit={handleSubmit}
-	>
-		<!-- Editing changes every workspace on the profile at once, so the page says which and how many. -->
-		{#if !isNew && profileQuery.data}
-			<div class="rounded-control border border-border bg-surface px-4 py-3">
-				<p class="text-xs text-muted">Berlaku untuk</p>
-				<p class="text-sm font-semibold wrap-anywhere text-foreground">
-					Profil {profileQuery.data.name}, dipakai {formatNumber(
-						profileQuery.data.workspaces_count ?? 0
-					)} workspace
-				</p>
-				<p class="mt-1 text-sm text-foreground">{consequence}</p>
-			</div>
-		{/if}
+	{#snippet panel()}
+		<PanelNextSteps {steps} />
+		<PanelHelp links={helpLinks} />
+	{/snippet}
 
-		<div class="space-y-1.5">
-			<label for="profile-name" class="block text-sm font-medium">
-				Nama <span class="font-normal text-foreground/70">(wajib)</span>
-			</label>
-			<input
-				id="profile-name"
-				bind:this={nameInput}
-				class="control-input"
-				bind:value={name}
-				maxlength="100"
-				autocomplete="off"
-				aria-invalid={nameError ? 'true' : undefined}
-				aria-describedby="profile-name-hint"
-			/>
-			<p
-				id="profile-name-hint"
-				class="text-xs {nameError ? 'text-error-base' : 'text-foreground/70'}"
-			>
-				{nameError ?? 'Unik, paling panjang 100 karakter. Misalnya Pilot, Kelas, atau Magang.'}
-			</p>
-		</div>
-
-		{#if prefill}
-			<p class="rounded-control border border-border bg-surface px-3 py-2 text-sm">
-				{prefill === 'workspace'
-					? 'Angka di bawah sudah diisi dengan batas Default tim yang berlaku di workspace tadi. Ubah yang perlu.'
-					: 'Angka di bawah sudah diisi dengan batas default tim bawaan Sakala. Server bisa memakai angka lain lewat konfigurasi, jadi ubah yang perlu.'}
-			</p>
-		{/if}
-
-		{#each PROFILE_GROUPS as group (group.id)}
-			<section
-				aria-labelledby="{uid}-{group.id}"
-				class="surface-card flex flex-col gap-5 p-4 sm:p-6"
-				data-testid="profile-group-{group.id}"
-			>
-				{#if group.id === 'optional'}
-					<div>
-						<h2 id="{uid}-{group.id}" class="font-sans text-base font-semibold text-foreground">
-							<button
-								type="button"
-								class="flex min-h-control-lg w-full cursor-pointer items-center justify-between gap-2 rounded-control text-left lg:min-h-control-md"
-								aria-expanded={optionalVisible}
-								aria-controls="{uid}-{group.id}-fields"
-								onclick={() => (optionalOpen = !optionalVisible)}
-							>
-								<span>{group.title}</span>
-								<CaretDown
-									size={16}
-									class={optionalVisible ? 'shrink-0 rotate-180' : 'shrink-0'}
-									aria-hidden="true"
-								/>
-							</button>
-						</h2>
-						<p class="text-sm text-foreground/70">{group.lead}</p>
-					</div>
-					<div id="{uid}-{group.id}-fields" class="flex flex-col gap-5" hidden={!optionalVisible}>
-						{#each groupFields(group.id) as field (field.key)}
-							{@render numberField(field)}
-						{/each}
-						{@render regionField()}
-					</div>
-				{:else}
-					<div>
-						<h2 id="{uid}-{group.id}" class="font-sans text-base font-semibold text-foreground">
-							{group.title}
-						</h2>
-						<p class="mt-1 text-sm text-foreground/70">{group.lead}</p>
-					</div>
-					{#each groupFields(group.id) as field (field.key)}
-						{@render numberField(field)}
-					{/each}
-				{/if}
-			</section>
-		{/each}
-
-		<div class="space-y-1.5">
-			<label for="{uid}-reason" class="block text-sm font-medium text-foreground">
-				Alasan <span class="font-normal text-foreground/70">(wajib)</span>
-			</label>
-			<p id="{uid}-reason-help" class="text-xs text-foreground/70">{REASON_HINT}</p>
-			<textarea
-				id="{uid}-reason"
-				bind:value={reason}
-				rows="3"
-				required
-				aria-invalid={reasonError ? 'true' : undefined}
-				aria-describedby="{uid}-reason-help {uid}-reason-status"
-				class="control-input resize-y"></textarea>
-			<p id="{uid}-reason-status" class="flex justify-between gap-3 text-xs">
-				<span class="text-error-base">{reasonError ?? ''}</span>
-				<span class="shrink-0 {reasonTooLong ? 'text-error-base' : 'text-muted'}"
-					>{reason.length}/{REASON_MAX}</span
-				>
-			</p>
-		</div>
-
-		<!-- Stays in view while the form scrolls, so the way out and the way forward are always there. -->
-		<div
-			class="sticky bottom-0 -mx-1 flex flex-col gap-3 border-t border-border bg-background px-1 py-4"
-			data-testid="profile-form-footer"
+	<FormPageLayout panelLabel={ADMIN_PANEL_COPY.label} {panel}>
+		<form
+			bind:this={formEl}
+			class="flex flex-col gap-6"
+			novalidate
+			aria-label={title}
+			onsubmit={handleSubmit}
 		>
-			{#if blockedText}
+			<div class="space-y-1.5">
+				<label for="profile-name" class="block text-sm font-medium">
+					Nama <span class="font-normal text-foreground/70">(wajib)</span>
+				</label>
+				<input
+					id="profile-name"
+					bind:this={nameInput}
+					class="control-input"
+					bind:value={name}
+					maxlength="100"
+					autocomplete="off"
+					aria-invalid={nameError ? 'true' : undefined}
+					aria-describedby="profile-name-hint"
+				/>
 				<p
-					id="{uid}-blocked"
-					class="rounded-control border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
-					role="alert"
+					id="profile-name-hint"
+					class="text-xs {nameError ? 'text-error-base' : 'text-foreground/70'}"
 				>
-					{blockedText}
+					{nameError ?? 'Unik. Contoh: Pilot, Kelas, atau Magang.'}
 				</p>
-			{/if}
-			{#if generalError}
-				<p
-					class="rounded-control border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
-					role="alert"
-				>
-					{generalError}
-				</p>
-			{/if}
-			<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-				<Button href={backHref} variant="secondary">Batal</Button>
-				<Button
-					type="submit"
-					disabled={saveMutation.isPending}
-					aria-busy={saveMutation.isPending}
-					aria-describedby={blockedText ? `${uid}-blocked` : undefined}
-				>
-					{#if saveMutation.isPending}
-						Menyimpan...
-					{:else}
-						{isNew ? 'Buat profil' : 'Simpan perubahan'}
-					{/if}
-				</Button>
 			</div>
-		</div>
-	</form>
+
+			{#if prefill}
+				<p class="rounded-control border border-border bg-surface px-3 py-2 text-sm">
+					{prefill === 'workspace'
+						? 'Diisi dengan batas Default tim yang berlaku di workspace tadi.'
+						: 'Diisi dengan batas default tim bawaan Sakala; server bisa memakai angka lain.'}
+				</p>
+			{/if}
+
+			{#each PROFILE_GROUPS as group (group.id)}
+				<section
+					aria-labelledby="{uid}-{group.id}"
+					class="surface-card @container flex flex-col gap-5 p-4 sm:p-6"
+					data-testid="profile-group-{group.id}"
+				>
+					{#if group.id === 'optional'}
+						<div>
+							<h2 id="{uid}-{group.id}" class="font-sans text-base font-semibold text-foreground">
+								<button
+									type="button"
+									class="flex min-h-control-lg w-full cursor-pointer items-center justify-between gap-2 rounded-control text-left lg:min-h-control-md"
+									aria-expanded={optionalVisible}
+									aria-controls="{uid}-{group.id}-fields"
+									onclick={() => (optionalOpen = !optionalVisible)}
+								>
+									<span>{group.title}</span>
+									<CaretDown
+										size={16}
+										class={optionalVisible ? 'shrink-0 rotate-180' : 'shrink-0'}
+										aria-hidden="true"
+									/>
+								</button>
+							</h2>
+							<p class="text-sm text-foreground/70">{group.lead}</p>
+						</div>
+						<div id="{uid}-{group.id}-fields" class="flex flex-col gap-5" hidden={!optionalVisible}>
+							<p class="text-sm text-foreground/70">{OPTIONAL_EMPTY_RULE}</p>
+							<div class={FIELD_GRID}>
+								{#each groupFields(group.id) as field (field.key)}
+									{@render numberField(field)}
+								{/each}
+								{@render regionField()}
+							</div>
+							<LearnMore topic="isian opsional" testid="profile-optional-learn">
+								<dl class="flex flex-col gap-2">
+									{#each groupFields(group.id) as field (field.key)}
+										<div>
+											<dt class="font-medium">{field.label}</dt>
+											<dd>{field.hint}</dd>
+										</div>
+									{/each}
+									<div>
+										<dt class="font-medium">Region bawaan</dt>
+										<dd>{REGION_HINT.full}</dd>
+									</div>
+								</dl>
+							</LearnMore>
+						</div>
+					{:else}
+						<div>
+							<h2 id="{uid}-{group.id}" class="font-sans text-base font-semibold text-foreground">
+								{group.title}
+							</h2>
+							<p class="mt-1 text-sm text-foreground/70">{group.lead}</p>
+						</div>
+						<div class={FIELD_GRID}>
+							{#each groupFields(group.id) as field (field.key)}
+								{@render numberField(field)}
+							{/each}
+						</div>
+					{/if}
+				</section>
+			{/each}
+
+			<div class="space-y-1.5">
+				<label for="{uid}-reason" class="block text-sm font-medium text-foreground">
+					Alasan <span class="font-normal text-foreground/70">(wajib)</span>
+				</label>
+				<p id="{uid}-reason-help" class="text-xs text-foreground/70">{REASON_HINT}</p>
+				<textarea
+					id="{uid}-reason"
+					bind:value={reason}
+					rows="3"
+					required
+					aria-invalid={reasonError ? 'true' : undefined}
+					aria-describedby="{uid}-reason-help {uid}-reason-status"
+					class="control-input resize-y"></textarea>
+				<p id="{uid}-reason-status" class="flex justify-between gap-3 text-xs">
+					<span class="text-error-base">{reasonError ?? ''}</span>
+					<span class="shrink-0 {reasonTooLong ? 'text-error-base' : 'text-muted'}"
+						>{reason.length}/{REASON_MAX}</span
+					>
+				</p>
+			</div>
+
+			<!-- Stays in view while the form scrolls, so the way out and the way forward are always there. -->
+			<div
+				class="sticky bottom-0 -mx-1 flex flex-col gap-3 border-t border-border bg-background px-1 py-4"
+				data-testid="profile-form-footer"
+			>
+				{#if blockedText}
+					<p
+						id="{uid}-blocked"
+						class="rounded-control border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
+						role="alert"
+					>
+						{blockedText}
+					</p>
+				{/if}
+				{#if generalError}
+					<p
+						class="rounded-control border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
+						role="alert"
+					>
+						{generalError}
+					</p>
+				{/if}
+				<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+					<Button href={backHref} variant="secondary">Batal</Button>
+					<Button
+						type="submit"
+						disabled={saveMutation.isPending}
+						aria-busy={saveMutation.isPending}
+						aria-describedby={blockedText ? `${uid}-blocked` : undefined}
+					>
+						{#if saveMutation.isPending}
+							Menyimpan...
+						{:else}
+							{isNew ? 'Buat profil' : 'Simpan perubahan'}
+						{/if}
+					</Button>
+				</div>
+			</div>
+		</form>
+	</FormPageLayout>
 {/if}

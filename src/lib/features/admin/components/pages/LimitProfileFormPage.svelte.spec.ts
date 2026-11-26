@@ -61,6 +61,8 @@ const renderEdit = () =>
 const field = (name: string) => page.getByRole('spinbutton', { name, exact: true });
 const nameField = () => page.getByRole('textbox', { name: 'Nama (wajib)' });
 const optionalToggle = () => page.getByRole('button', { name: 'Opsional' });
+/** The full rules of Opsional, behind its one "Pelajari". */
+const optionalRules = () => page.getByTestId('profile-optional-learn');
 const submit = (label = 'Buat profil') => page.getByRole('button', { name: label, exact: true });
 
 beforeEach(() => {
@@ -94,9 +96,10 @@ describe('the limit profile page', () => {
 
 		const builds = field('Build per jam (opsional)');
 		await expect.element(builds).toHaveValue(null);
+		await expect.element(builds).toHaveAccessibleDescription('Kosong berarti bawaan server (20).');
 		await expect
-			.element(builds)
-			.toHaveAccessibleDescription(
+			.element(optionalRules())
+			.toHaveTextContent(
 				'Deployment yang membangun image di workspace ini dalam 60 menit terakhir, termasuk yang gagal. Redeploy yang memakai ulang image tidak dihitung. Kosong berarti ikut bawaan server (20 kalau tidak diubah).'
 			);
 	});
@@ -275,7 +278,10 @@ describe('idle sleep in a limit profile', () => {
 		await expect.element(idleField()).toHaveValue(null);
 		await expect
 			.element(idleField())
-			.toHaveAccessibleDescription(
+			.toHaveAccessibleDescription('0 berarti proyek tidak pernah tidur.');
+		await expect
+			.element(optionalRules())
+			.toHaveTextContent(
 				'Kosong berarti ikut bawaan server, 0 berarti proyek tidak pernah tidur, atau 1 sampai 10.080 menit tanpa pengunjung.'
 			);
 	});
@@ -338,7 +344,10 @@ describe('replicas in a limit profile', () => {
 		await expect.element(replicasField()).toHaveValue(null);
 		await expect
 			.element(replicasField())
-			.toHaveAccessibleDescription(
+			.toHaveAccessibleDescription('1 sampai 10. Kosong berarti 1.');
+		await expect
+			.element(optionalRules())
+			.toHaveTextContent(
 				'Replika per proyek, 1 sampai 10. Kosong berarti 1, jadi replika tidak aktif. Semua replika satu proyek berjalan di satu node, yang bisa membatasinya lebih rendah.'
 			);
 	});
@@ -399,12 +408,16 @@ describe('databases and region in a limit profile', () => {
 		await expect.element(databases()).toHaveValue(null);
 		await expect
 			.element(databases())
-			.toHaveAccessibleDescription(
-				/0 berarti workspace ini tidak bisa membuat database.*pilot terbatas/
-			);
+			.toHaveAccessibleDescription('0 berarti tidak bisa membuat database.');
 		await expect
 			.element(storage())
-			.toHaveAccessibleDescription(/0 berarti semuanya dikunci.*512 MB kalau tidak diubah/);
+			.toHaveAccessibleDescription('Total semua database di workspace.');
+		await expect
+			.element(optionalRules())
+			.toHaveTextContent(/0 berarti workspace ini tidak bisa membuat database.*pilot terbatas/);
+		await expect
+			.element(optionalRules())
+			.toHaveTextContent(/0 berarti semuanya dikunci.*512 MB kalau tidak diubah/);
 	});
 
 	it('sends 0 databases as a value, and the region chosen from the API list', async () => {
@@ -441,7 +454,10 @@ describe('databases and region in a limit profile', () => {
 		const buckets = field('Bucket (opsional)');
 		await expect
 			.element(buckets)
-			.toHaveAccessibleDescription(
+			.toHaveAccessibleDescription('0 berarti tidak bisa membuat bucket.');
+		await expect
+			.element(optionalRules())
+			.toHaveTextContent(
 				/0 berarti workspace ini tidak bisa membuat bucket.*\(0 kalau tidak diubah/
 			);
 

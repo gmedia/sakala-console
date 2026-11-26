@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import Button from '$lib/components/ui/Button.svelte';
 	import { ApiError, NetworkError, getErrorMessage } from '$lib/api/errors';
 	import type {
 		AdminProject,
@@ -9,6 +8,7 @@
 	} from '$lib/api/resources/admin/projects';
 	import ReasonDialog from './ReasonDialog.svelte';
 	import { createProjectControlMutation } from '../mutations';
+	import { CONTROL_LABELS } from '../project-controls';
 
 	let { project }: { project: AdminProject } = $props();
 
@@ -20,11 +20,7 @@
 	let desiredState = $state<ReconcileOptions['desired_state']>('running');
 	let actions = $state<ReconcileOptions['actions']>([]);
 
-	const suspended = $derived(project.status === 'suspended');
-	const serving = $derived(project.active_deployment_id !== null);
-
 	type ActionCopy = {
-		label: string;
 		title: string;
 		consequence: string;
 		variant: 'default' | 'destructive';
@@ -33,28 +29,24 @@
 
 	const COPY = $derived<Record<ProjectControlAction, ActionCopy>>({
 		stop: {
-			label: 'Hentikan',
 			title: 'Hentikan workload proyek?',
 			consequence: `Node menghentikan container ${project.name} dan URL publiknya berhenti melayani. Status proyek tidak berubah, jadi pemilik bisa men-deploy lagi kapan saja.`,
 			variant: 'destructive',
 			done: 'Perintah stop dikirim ke node. Status runtime berubah setelah node melaporkan hasilnya.'
 		},
 		suspend: {
-			label: 'Tangguhkan',
 			title: 'Tangguhkan proyek?',
 			consequence: `${project.name} ditangguhkan: workload yang berjalan dihentikan, dan pemilik tidak bisa men-deploy atau mendeteksi ulang sampai penangguhan dibuka. Alasanmu dikirim apa adanya ke anggota workspace lewat notifikasi dan email, jadi jangan tulis identitas pelapor.`,
 			variant: 'destructive',
 			done: 'Proyek ditangguhkan. Kalau workload masih berjalan, node menghentikannya sebentar lagi.'
 		},
 		unsuspend: {
-			label: 'Buka penangguhan',
 			title: 'Buka penangguhan proyek?',
 			consequence: `${project.name} bisa di-deploy lagi. Workload tidak dinyalakan otomatis: pemilik diberi tahu lalu perlu men-deploy ulang.`,
 			variant: 'default',
 			done: 'Penangguhan dibuka. Pemilik perlu men-deploy ulang.'
 		},
 		reconcile: {
-			label: 'Rekonsiliasi',
 			title: 'Rekonsiliasi workload?',
 			consequence: `Node yang melayani ${project.name} mencocokkan workload dengan keadaan yang kamu pilih. Tanpa aksi yang dicentang, node hanya melaporkan perbedaannya.`,
 			variant: 'default',
@@ -62,17 +54,14 @@
 		}
 	});
 
-	const available = $derived<ProjectControlAction[]>(
-		suspended ? ['unsuspend'] : [...(serving ? (['reconcile', 'stop'] as const) : []), 'suspend']
-	);
-
 	const RECONCILE_ACTIONS: { value: ReconcileOptions['actions'][number]; label: string }[] = [
 		{ value: 'restore_route', label: 'Pasang ulang route publik' },
 		{ value: 'restart_log_follower', label: 'Nyalakan ulang pembaca log' },
 		{ value: 'cleanup_failed_candidate', label: 'Bersihkan container kandidat yang gagal' }
 	];
 
-	function open(next: ProjectControlAction) {
+	/** Opens the dialog for one action; the page owns the buttons (header and danger zone). */
+	export function open(next: ProjectControlAction) {
 		error = null;
 		desiredState = 'running';
 		actions = [];
@@ -116,37 +105,6 @@
 	}
 </script>
 
-<section aria-labelledby="controls-heading" class="surface-card flex flex-col gap-4 p-5">
-	<div>
-		<h2 id="controls-heading" class="text-base">Kontrol admin</h2>
-		<p class="mt-1 text-sm text-muted">
-			<strong class="text-foreground">Hentikan</strong> mematikan workload yang sedang melayani,
-			pemilik tetap bisa men-deploy lagi.
-			<strong class="text-foreground">Tangguhkan</strong> juga melarang deploy sampai admin membuka penangguhannya.
-			Semua aksi meminta alasan dan tercatat di audit.
-		</p>
-	</div>
-	<div class="flex flex-wrap gap-2">
-		{#each available as item (item)}
-			<!-- One filled button per screen: the destructive ones are outlined in red. -->
-			<Button
-				variant="secondary"
-				class={COPY[item].variant === 'destructive'
-					? 'text-error hover:border-error hover:text-error'
-					: undefined}
-				onclick={() => open(item)}
-			>
-				{COPY[item].label}
-			</Button>
-		{/each}
-	</div>
-	{#if !serving && !suspended}
-		<p class="text-xs text-muted">
-			Hentikan dan rekonsiliasi butuh deployment yang sedang melayani; proyek ini tidak punya.
-		</p>
-	{/if}
-</section>
-
 {#if action}
 	{@const copy = COPY[action]}
 	<ReasonDialog
@@ -155,7 +113,7 @@
 		title={copy.title}
 		subject={`${project.name}${project.workspace ? ` · workspace ${project.workspace.name}` : ''}`}
 		consequence={copy.consequence}
-		confirmLabel={copy.label}
+		confirmLabel={CONTROL_LABELS[action]}
 		variant={copy.variant}
 		{error}
 		{errorText}

@@ -10,7 +10,12 @@
 	import DescriptionList from '../DescriptionList.svelte';
 	import ReasonDialog from '../ReasonDialog.svelte';
 	import LimitProfileDialog from '../LimitProfileDialog.svelte';
-	import QuotaCard from '../QuotaCard.svelte';
+	import AdminQuotaSummary from '../AdminQuotaSummary.svelte';
+	import AdminEditButton from '../AdminEditButton.svelte';
+	import AdminDangerZone from '../AdminDangerZone.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import { ADMIN_PANEL_COPY, deriveAdminUserSteps } from '../../panel';
 	import AuditEventList from '../AuditEventList.svelte';
 	import { createAdminUserQuery, createLimitProfileOptionsQuery } from '../../queries';
 	import {
@@ -84,6 +89,18 @@
 
 	const subject = $derived(user ? `${user.name} (@${user.username})` : '');
 	const promoting = $derived(user?.role !== 'admin');
+	const steps = $derived(detail ? deriveAdminUserSteps(detail) : []);
+	const dangerActions = $derived(
+		user && !promoting && !isSelf
+			? [
+					{
+						id: 'revoke-admin',
+						label: 'Cabut peran admin',
+						onclick: () => open('role')
+					}
+				]
+			: []
+	);
 	const teamLimitText = $derived(String(teamLimitValue ?? '').trim());
 	const teamLimitInvalid = $derived(
 		!teamLimitDefault &&
@@ -96,24 +113,32 @@
 	documentTitle={user ? `${user.name} · Pengguna` : 'Pengguna'}
 	crumbs={[{ label: 'Pengguna', href: resolve('/admin/users') }, { label: user?.name ?? '...' }]}
 >
-	{#if user}
-		<div class="flex flex-wrap items-center gap-2 text-sm text-muted">
-			<span>@{user.username}</span>
-			<Badge tone={user.role === 'admin' ? 'running' : 'neutral'}
-				>{ROLE_LABELS[user.role] ?? user.role}</Badge
-			>
-			{#if !user.email_verified}<Badge tone="warning">Email belum terverifikasi</Badge>{/if}
+	{#if user && detail}
+		<div class="flex flex-col gap-2">
+			<div class="flex flex-wrap items-center gap-2 text-sm text-muted">
+				<span>@{user.username}</span>
+				<Badge tone={user.role === 'admin' ? 'running' : 'neutral'}
+					>{ROLE_LABELS[user.role] ?? user.role}</Badge
+				>
+				{#if !user.email_verified}<Badge tone="warning">Email belum terverifikasi</Badge>{/if}
+			</div>
+			{#if detail.personal_workspace_quota}
+				<AdminQuotaSummary
+					quota={detail.personal_workspace_quota}
+					defaultLabel="Default pribadi"
+					onEditProfile={() => open('profile')}
+				/>
+			{:else}
+				<div class="flex flex-wrap items-center gap-2 text-sm text-muted">
+					<span>Akun ini belum punya workspace pribadi.</span>
+					<AdminEditButton subject="profil batas" onclick={() => open('profile')} />
+				</div>
+			{/if}
 		</div>
 	{/if}
 	{#snippet actions()}
-		{#if user}
-			<Button variant="secondary" onclick={() => open('profile')}>Ubah profil batas</Button>
-			<Button variant="secondary" onclick={() => open('team-limit')}>Ubah batas tim</Button>
-			{#if promoting}
-				<Button onclick={() => open('role')}>Jadikan admin</Button>
-			{:else if !isSelf}
-				<Button variant="danger" onclick={() => open('role')}>Cabut peran admin</Button>
-			{/if}
+		{#if user && promoting}
+			<Button onclick={() => open('role')}>Jadikan admin</Button>
 		{/if}
 	{/snippet}
 </AdminPageHeader>
@@ -123,88 +148,101 @@
 {:else if !detail || !user}
 	<div class="skeleton h-64 w-full" role="status" aria-label="Sedang memuat"></div>
 {:else}
-	<div class="grid gap-6 lg:grid-cols-2">
-		<section aria-labelledby="account-heading" class="flex min-w-0 flex-col gap-3">
-			<h2 id="account-heading" class="text-base">Akun</h2>
-			<DescriptionList
-				items={[
-					{ label: 'Email', value: user.email },
-					{ label: 'Terdaftar', value: formatWibDateTime(user.created_at) },
-					{
-						label: 'Terakhir masuk',
-						value: user.last_login_at ? formatWibDateTime(user.last_login_at) : 'Belum pernah'
-					},
-					{
-						label: 'Onboarding',
-						value: user.onboarding_completed_at
-							? `Selesai ${formatWibDateTime(user.onboarding_completed_at)}`
-							: 'Belum selesai'
-					},
-					{ label: 'Tahu Sakala dari', value: onboardingSourceLabel(user.onboarding_source) },
-					{ label: 'Proyek yang dibuat', value: formatNumber(user.created_projects_count ?? 0) },
-					{
-						label: 'Tim yang dimiliki',
-						value: `${formatNumber(detail.owned_teams_count)} dari ${detail.effective_max_owned_teams === null ? 'tanpa batas' : formatNumber(detail.effective_max_owned_teams)}${user.max_owned_teams === null ? ' (default)' : ''}`
-					}
-				]}
-			/>
-		</section>
-		<section aria-labelledby="quota-heading" class="flex min-w-0 flex-col gap-3">
-			<h2 id="quota-heading" class="text-base">Batas workspace pribadi</h2>
-			{#if detail.personal_workspace_quota}
-				<QuotaCard quota={detail.personal_workspace_quota} defaultLabel="Default pribadi" />
-			{:else}
-				<p class="surface-card p-5 text-sm text-muted">Akun ini belum punya workspace pribadi.</p>
-			{/if}
-		</section>
-	</div>
+	{#snippet panel()}
+		<PanelNextSteps {steps} />
+	{/snippet}
 
-	<section aria-labelledby="workspaces-heading" class="mt-8 flex flex-col gap-3">
-		<h2 id="workspaces-heading" class="text-base">Workspace</h2>
-		<AdminTable
-			caption="Workspace pengguna ini"
-			columns={[
-				{ label: 'Workspace' },
-				{ label: 'Tipe' },
-				{ label: 'Peran' },
-				{ label: 'Proyek', class: 'text-right' },
-				{ label: 'Profil batas' }
+	{#snippet danger()}
+		<AdminDangerZone
+			body="Akun ini kehilangan akses ke area admin di permintaan berikutnya."
+			actions={dangerActions}
+		/>
+	{/snippet}
+
+	<FormPageLayout
+		panelLabel={ADMIN_PANEL_COPY.label}
+		{panel}
+		after={dangerActions.length ? danger : undefined}
+	>
+		<DescriptionList
+			columns={2}
+			items={[
+				{ label: 'Email', value: user.email },
+				{ label: 'Terdaftar', value: formatWibDateTime(user.created_at) },
+				{
+					label: 'Terakhir masuk',
+					value: user.last_login_at ? formatWibDateTime(user.last_login_at) : 'Belum pernah'
+				},
+				{
+					label: 'Onboarding',
+					value: user.onboarding_completed_at
+						? `Selesai ${formatWibDateTime(user.onboarding_completed_at)}`
+						: 'Belum selesai'
+				},
+				{ label: 'Tahu Sakala dari', value: onboardingSourceLabel(user.onboarding_source) },
+				{ label: 'Proyek yang dibuat', value: formatNumber(user.created_projects_count ?? 0) },
+				{ label: 'Tim yang dimiliki', content: ownedTeams }
 			]}
-			empty={detail.workspaces.length === 0}
-			emptyTitle="Belum ada workspace"
-		>
-			{#snippet rows()}
-				{#each detail.workspaces as workspace (workspace.id)}
-					<tr>
-						<td class="px-4 py-3">
-							<a
-								href={resolve(`/admin/workspaces/${workspace.id}`)}
-								class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
-								>{workspace.name}</a
-							>
-							<p class="text-xs text-muted">{workspace.slug}</p>
-						</td>
-						<td class="px-4 py-3">{WORKSPACE_TYPE_LABELS[workspace.type] ?? workspace.type}</td>
-						<td class="px-4 py-3"
-							>{workspace.role ? (MEMBER_ROLE_LABELS[workspace.role] ?? workspace.role) : '-'}</td
-						>
-						<td class="px-4 py-3 text-right tabular-nums"
-							>{formatNumber(workspace.projects_count)}</td
-						>
-						<td class="px-4 py-3">{workspace.limit_profile?.name ?? 'Default'}</td>
-					</tr>
-				{/each}
-			{/snippet}
-		</AdminTable>
-	</section>
+		/>
 
-	<section aria-labelledby="audit-heading" class="mt-8 flex flex-col gap-3">
-		<h2 id="audit-heading" class="text-base">Aktivitas terbaru</h2>
-		<p class="text-sm text-muted">
-			20 audit event terbaru tempat akun ini menjadi pelaku atau subjek.
-		</p>
-		<AuditEventList events={detail.recent_audit_events} />
-	</section>
+		<section aria-labelledby="workspaces-heading" class="flex flex-col gap-3">
+			<h2 id="workspaces-heading" class="text-base">Workspace</h2>
+			<AdminTable
+				caption="Workspace pengguna ini"
+				columns={[
+					{ label: 'Workspace' },
+					{ label: 'Tipe' },
+					{ label: 'Peran' },
+					{ label: 'Proyek', class: 'text-right' },
+					{ label: 'Profil batas' }
+				]}
+				empty={detail.workspaces.length === 0}
+				emptyTitle="Belum ada workspace"
+			>
+				{#snippet rows()}
+					{#each detail.workspaces as workspace (workspace.id)}
+						<tr>
+							<td class="px-4 py-3">
+								<a
+									href={resolve(`/admin/workspaces/${workspace.id}`)}
+									class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
+									>{workspace.name}</a
+								>
+								<p class="text-xs text-muted">{workspace.slug}</p>
+							</td>
+							<td class="px-4 py-3">{WORKSPACE_TYPE_LABELS[workspace.type] ?? workspace.type}</td>
+							<td class="px-4 py-3"
+								>{workspace.role ? (MEMBER_ROLE_LABELS[workspace.role] ?? workspace.role) : '-'}</td
+							>
+							<td class="px-4 py-3 text-right tabular-nums"
+								>{formatNumber(workspace.projects_count)}</td
+							>
+							<td class="px-4 py-3">{workspace.limit_profile?.name ?? 'Default'}</td>
+						</tr>
+					{/each}
+				{/snippet}
+			</AdminTable>
+		</section>
+
+		<section aria-labelledby="audit-heading" class="flex flex-col gap-3">
+			<div>
+				<h2 id="audit-heading" class="text-base">Aktivitas terbaru</h2>
+				<p class="text-sm text-muted">20 terakhir, sebagai pelaku atau subjek.</p>
+			</div>
+			<AuditEventList events={detail.recent_audit_events} />
+		</section>
+	</FormPageLayout>
+
+	{#snippet ownedTeams()}
+		<span class="inline-flex flex-wrap items-center justify-end gap-1">
+			{formatNumber(detail.owned_teams_count)} dari {detail.effective_max_owned_teams === null
+				? 'tanpa batas'
+				: formatNumber(detail.effective_max_owned_teams)}{user.max_owned_teams === null
+				? ' (default)'
+				: ''}
+			<AdminEditButton subject="batas tim" onclick={() => open('team-limit')} />
+		</span>
+	{/snippet}
 
 	<ReasonDialog
 		open={dialog === 'role'}

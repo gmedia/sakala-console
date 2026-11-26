@@ -70,8 +70,12 @@ test.describe('admin journeys', () => {
 		const calls = await mockAdminApi(page);
 		await page.goto('/admin');
 
-		await expect(page.getByText('Rentang: 5 Nov 2026 – 11 Nov 2026')).toBeVisible();
-		await expect(page.getByText('Dihitung 11 Nov 2026, 17.00 WIB')).toBeVisible();
+		// The range and the computed time, once in the header for every number on the page.
+		await expect(
+			page.getByText(
+				'5 Nov 2026 – 11 Nov 2026, hari penuh WIB · dihitung 11 Nov 2026, 17.00 WIB, dibaca ulang tiap 5 menit'
+			)
+		).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Perlu perhatian' })).toBeVisible();
 		await expect(page.getByText(/^2 deployment gagal \(67% dari yang selesai/)).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Validasi pilot' })).toBeVisible();
@@ -294,7 +298,7 @@ test.describe('admin journeys', () => {
 		});
 	});
 
-	test('the profile page shows its title, Nama, and the first group without scrolling, and keeps the buttons in view', async ({
+	test('the profile page shows its title, Nama, and both required groups without scrolling, and keeps the buttons in view', async ({
 		page
 	}) => {
 		await mockAdminApi(page);
@@ -312,7 +316,9 @@ test.describe('admin journeys', () => {
 		const field = await lastOfGroup.boundingBox();
 		expect(field!.y + field!.height).toBeLessThanOrEqual(footer!.y);
 		await expect(page.getByRole('button', { name: 'Buat profil' })).toBeInViewport();
-		await expect(page.getByLabel('Alasan')).not.toBeInViewport();
+		// The fields sit side by side, so the second group fits above the footer too.
+		const second = await page.getByTestId('profile-group-project').boundingBox();
+		expect(second!.y + second!.height).toBeLessThanOrEqual(footer!.y);
 	});
 
 	test('editing a profile opens its page with the saved numbers, and saving returns to the list', async ({
@@ -343,8 +349,10 @@ test.describe('admin journeys', () => {
 		await form.getByLabel('Nama (wajib)').fill('Kelas basis data');
 		await form.getByRole('button', { name: 'Opsional' }).click();
 		await expect(form.getByLabel('Database (opsional)')).toHaveAccessibleDescription(
-			/pilot terbatas/
+			'0 berarti tidak bisa membuat database.'
 		);
+		// The full rule, pilot note included, is one "Pelajari" at the end of Opsional.
+		await expect(form.getByTestId('profile-optional-learn')).toContainText('pilot terbatas');
 		await form.getByLabel('Database (opsional)').fill('3');
 		await form.getByLabel('Penyimpanan database (MB) (opsional)').fill('0');
 		await form.getByLabel('Region bawaan (opsional)').selectOption('jkt');

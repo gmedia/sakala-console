@@ -2,12 +2,14 @@
 	// Links here are resolve() output, some with a query string added, which the rule cannot follow.
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { resolve } from '$app/paths';
-	import ArrowsClockwise from 'phosphor-svelte/lib/ArrowsClockwise';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
 	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
 	import XCircle from 'phosphor-svelte/lib/XCircle';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
+	import { ReloadIcon } from '$lib/components/icons';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import TimeRangeFilter from '../TimeRangeFilter.svelte';
@@ -61,6 +63,49 @@
 		data?.new_user_sources.reduce((sum, row) => sum + row.count, 0) ?? 0
 	);
 
+	/** The pilot's five numbers; what each counts is folded under them. */
+	const PILOT_STATS = [
+		{
+			key: 'activated',
+			label: 'Aktivasi',
+			help: 'Pengguna yang menyelesaikan onboarding di rentang ini.'
+		},
+		{ key: 'unique', label: 'Pen-deploy unik', help: 'Pengguna berbeda yang meminta deployment.' },
+		{
+			key: 'repeat',
+			label: 'Pen-deploy berulang',
+			help: 'Pengguna yang meminta dua deployment atau lebih.'
+		},
+		{
+			key: 'success',
+			label: 'Keberhasilan deploy',
+			help: 'Berhasil dibagi berhasil ditambah gagal. Yang dibatalkan atau masih berjalan tidak dihitung.'
+		},
+		{
+			key: 'feedback',
+			label: 'Masukan',
+			help: 'Masukan yang dikirim lewat Console di rentang ini.'
+		}
+	] as const;
+
+	const pilotValues = $derived<Record<(typeof PILOT_STATS)[number]['key'], string>>({
+		activated: data ? formatNumber(data.pilot.activated_users) : '',
+		unique: data ? formatNumber(data.pilot.unique_deployers) : '',
+		repeat: data ? formatNumber(data.pilot.repeat_deployers) : '',
+		success: successRate ?? 'Belum ada',
+		feedback: data ? formatNumber(data.pilot.feedback_count) : ''
+	});
+
+	// The range and when the numbers were computed, once for the whole page.
+	const metaText = $derived(
+		[
+			`${rangeText}, hari penuh WIB`,
+			data ? `dihitung ${formatWibDateTime(data.generated_at)}, dibaca ulang tiap 5 menit` : null
+		]
+			.filter(Boolean)
+			.join(' · ')
+	);
+
 	type Attention = { key: string; text: string; href?: string; link?: string };
 
 	// What needs a look first: failing deploys, unanswered feedback, nodes that went quiet.
@@ -97,14 +142,9 @@
 	});
 </script>
 
-<AdminPageHeader
-	title="Overview"
-	description="Adopsi dan kesehatan Sakala dalam satu rentang waktu. Semua angka di halaman ini memakai rentang yang sama."
->
+<AdminPageHeader title="Overview">
 	{#snippet meta()}
-		{#if data}
-			<span>Dihitung {formatWibDateTime(data.generated_at)} · dibaca ulang tiap 5 menit</span>
-		{/if}
+		<span>{metaText}</span>
 	{/snippet}
 	{#snippet actions()}
 		<TimeRangeFilter
@@ -120,19 +160,16 @@
 			disabled={overviewQuery.isFetching}
 			onclick={() => overviewQuery.refetch()}
 		>
-			<ArrowsClockwise size={16} aria-hidden="true" />
+			<ReloadIcon size={16} aria-hidden="true" />
 			Muat ulang
 		</Button>
 	{/snippet}
-	<p class="text-sm text-foreground">
-		Rentang: <strong>{rangeText}</strong> <span class="text-muted">(hari penuh WIB)</span>
-	</p>
 </AdminPageHeader>
 
 {#if overviewQuery.isError && !data}
 	<AdminError error={overviewQuery.error} what="overview" onRetry={() => overviewQuery.refetch()} />
 {:else}
-	<div class="flex flex-col gap-6">
+	<ListPageLayout>
 		<section aria-labelledby="attention-heading" class="surface-card p-5">
 			<h2 id="attention-heading" class="text-base text-foreground">Perlu perhatian</h2>
 			{#if loading}
@@ -161,12 +198,11 @@
 			{/if}
 		</section>
 
-		<section aria-labelledby="period-heading">
+		<section aria-labelledby="period-heading" class="flex flex-col gap-3">
 			<h2 id="period-heading" class="sr-only">Angka rentang ini</h2>
 			<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 				<MetricCard
 					label="Pengguna baru"
-					help="Akun yang terdaftar di rentang ini. Panah: dibanding rentang sama panjang sebelumnya."
 					icon={UserPlus}
 					{loading}
 					value={formatNumber(data?.period.new_users ?? 0)}
@@ -174,7 +210,6 @@
 				/>
 				<MetricCard
 					label="Proyek baru"
-					help="Proyek yang dibuat di rentang ini, termasuk yang sudah dihapus."
 					icon={SquaresFour}
 					{loading}
 					value={formatNumber(data?.period.new_projects ?? 0)}
@@ -182,7 +217,6 @@
 				/>
 				<MetricCard
 					label="Deployment berhasil"
-					help="Deployment yang dibuat di rentang ini dan berstatus Berhasil."
 					icon={CheckCircle}
 					{loading}
 					value={formatNumber(outcomes?.succeeded ?? 0)}
@@ -192,7 +226,6 @@
 				/>
 				<MetricCard
 					label="Deployment gagal"
-					help="Deployment yang dibuat di rentang ini dan berstatus Gagal. Naik berarti memburuk."
 					icon={XCircle}
 					tone="error"
 					{loading}
@@ -202,25 +235,36 @@
 						: null}
 				/>
 			</div>
+			<LearnMore topic="cara angka dihitung">
+				<dl class="grid gap-x-3 gap-y-1 sm:grid-cols-[auto_1fr]">
+					<dt class="font-medium">Pengguna baru</dt>
+					<dd>
+						Akun yang terdaftar di rentang ini. Panah: dibanding rentang sama panjang sebelumnya.
+					</dd>
+					<dt class="font-medium">Proyek baru</dt>
+					<dd>Proyek yang dibuat di rentang ini, termasuk yang sudah dihapus.</dd>
+					<dt class="font-medium">Deployment berhasil</dt>
+					<dd>Deployment yang dibuat di rentang ini dan berstatus Berhasil.</dd>
+					<dt class="font-medium">Deployment gagal</dt>
+					<dd>Deployment yang dibuat di rentang ini dan berstatus Gagal. Naik berarti memburuk.</dd>
+				</dl>
+			</LearnMore>
 		</section>
 
 		<section aria-labelledby="pilot-heading" class="surface-card p-5">
 			<h2 id="pilot-heading" class="text-base text-foreground">Validasi pilot</h2>
-			<p class="mt-0.5 text-xs text-muted">
-				Apakah orang memakai Sakala sampai men-deploy, dan kembali lagi. {rangeText}.
-			</p>
 			<dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-				{#each [{ label: 'Aktivasi', value: data ? formatNumber(data.pilot.activated_users) : '', help: 'Pengguna yang menyelesaikan onboarding di rentang ini.' }, { label: 'Pen-deploy unik', value: data ? formatNumber(data.pilot.unique_deployers) : '', help: 'Pengguna berbeda yang meminta deployment.' }, { label: 'Pen-deploy berulang', value: data ? formatNumber(data.pilot.repeat_deployers) : '', help: 'Pengguna yang meminta dua deployment atau lebih.' }, { label: 'Keberhasilan deploy', value: successRate ?? 'Belum ada', help: 'Berhasil dibagi berhasil ditambah gagal. Yang dibatalkan atau masih berjalan tidak dihitung.' }, { label: 'Masukan', value: data ? formatNumber(data.pilot.feedback_count) : '', help: 'Masukan yang dikirim lewat Console di rentang ini.' }] as stat (stat.label)}
+				{#each PILOT_STATS as stat (stat.label)}
 					<div>
 						<dt class="text-sm font-medium text-foreground">{stat.label}</dt>
 						<dd class="mt-1">
 							{#if loading}
 								<span class="skeleton block h-7 w-12"></span>
 							{:else}
-								<span class="font-display text-2xl font-semibold text-foreground">{stat.value}</span
+								<span class="font-display text-2xl font-semibold text-foreground"
+									>{pilotValues[stat.key]}</span
 								>
 							{/if}
-							<span class="mt-1 block text-xs text-muted">{stat.help}</span>
 						</dd>
 					</div>
 				{/each}
@@ -233,13 +277,24 @@
 					proyek, {formatNumber(data.totals.active_projects)} proyek sedang melayani trafik.
 				</p>
 			{/if}
+			<div class="mt-3">
+				<LearnMore topic="validasi pilot">
+					<p>Apakah orang memakai Sakala sampai men-deploy, dan kembali lagi.</p>
+					<dl class="grid gap-x-3 gap-y-1 sm:grid-cols-[auto_1fr]">
+						{#each PILOT_STATS as stat (stat.label)}
+							<dt class="font-medium">{stat.label}</dt>
+							<dd>{stat.help}</dd>
+						{/each}
+					</dl>
+				</LearnMore>
+			</div>
 		</section>
 
 		<div class="grid gap-6 xl:grid-cols-5">
 			<ChartCard
 				class="xl:col-span-3"
 				title="Pertumbuhan pengguna"
-				subtitle={`Pendaftaran baru per ${growth?.unit ?? 'hari'}, ${rangeText}`}
+				subtitle={`Pendaftaran baru per ${growth?.unit ?? 'hari'}`}
 				{loading}
 				empty={growthTotal === 0}
 				emptyText="Tidak ada pendaftaran baru di rentang ini."
@@ -279,7 +334,7 @@
 			<ChartCard
 				class="xl:col-span-2"
 				title="Status deployment"
-				subtitle={`${formatNumber(outcomes?.total ?? 0)} deployment dibuat, ${rangeText}`}
+				subtitle={`${formatNumber(outcomes?.total ?? 0)} deployment dibuat`}
 				{loading}
 				empty={(outcomes?.total ?? 0) === 0}
 				emptyText="Tidak ada deployment di rentang ini."
@@ -322,7 +377,7 @@
 			<ChartCard
 				class="xl:col-span-3"
 				title="Alasan deployment gagal"
-				subtitle={`Kategori dari classifier API, ${rangeText}. Pilih kategori untuk melihat deployment-nya.`}
+				subtitle="Pilih kategori untuk melihat deployment-nya."
 				{loading}
 				empty={failedCategories.length === 0}
 				emptyText="Tidak ada deployment gagal di rentang ini."
@@ -352,7 +407,7 @@
 			<ChartCard
 				class="xl:col-span-2"
 				title="Sumber pengguna baru"
-				subtitle={`Jawaban onboarding "dari mana tahu Sakala", ${rangeText}`}
+				subtitle="Jawaban onboarding “dari mana tahu Sakala”"
 				{loading}
 				empty={sourceTotal === 0}
 				emptyText="Tidak ada pengguna baru di rentang ini."
@@ -367,5 +422,5 @@
 				/>
 			</ChartCard>
 		</div>
-	</div>
+	</ListPageLayout>
 {/if}

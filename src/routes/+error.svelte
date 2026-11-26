@@ -5,7 +5,7 @@
 	import { ApiError, NetworkError } from '$lib/api/errors';
 	import ErrorBlock from '$lib/components/feedback/ErrorBlock.svelte';
 	import { CONNECTION_ERROR_COPY } from '$lib/components/feedback/connection-copy';
-	import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
+	import { ReloadIcon } from '$lib/components/icons';
 	import CellSignalSlashIcon from 'phosphor-svelte/lib/CellSignalSlashIcon';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
@@ -53,7 +53,7 @@
 			{...CONNECTION_ERROR_COPY}
 			icon={CellSignalSlashIcon}
 			iconBackgroundClass="bg-background-soft"
-			buttonIcon={ArrowsClockwiseIcon}
+			buttonIcon={ReloadIcon}
 			buttonText="Muat ulang halaman"
 			onRetry={() => window.location.reload()}
 		/>
