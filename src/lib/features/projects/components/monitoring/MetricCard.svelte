@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import { MONITORING_COPY } from '../../monitoring/format';
 
 	type Props = {
@@ -8,13 +9,15 @@
 		title: string;
 		/** The newest value and the highest in the range, in words. Read instead of the canvas. */
 		summary: string;
-		/** What the axis means, or the limit, when the numbers need it. */
+		/** A fact the chart draws, such as the limit behind its dashed line. */
 		note?: string | null;
+		/** How the chart counts, folded behind "Pelajari" under the summary. */
+		learnMore?: string | null;
 		hasData: boolean;
 		chart: Snippet;
 	};
 
-	let { id, title, summary, note = null, hasData, chart }: Props = $props();
+	let { id, title, summary, note = null, learnMore = null, hasData, chart }: Props = $props();
 </script>
 
 <figure
@@ -28,6 +31,11 @@
 		<p id={`${id}-summary`} class="text-sm text-foreground">{summary}</p>
 		{#if note}
 			<p class="text-xs text-muted">{note}</p>
+		{/if}
+		{#if learnMore}
+			<LearnMore topic={MONITORING_COPY.learnTopic(title)}>
+				<p>{learnMore}</p>
+			</LearnMore>
 		{/if}
 	</figcaption>
 	{#if hasData}

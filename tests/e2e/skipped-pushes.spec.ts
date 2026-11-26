@@ -101,7 +101,11 @@ for (const width of [1280, 320]) {
 
 			const rows = page.locator('ul.divide-y > li');
 			await expect(rows).toHaveCount(4);
-			await expect(rows.nth(0)).toContainText('Dilewati — tidak ada perubahan di apps/web');
+			await expect(rows.nth(0)).toContainText('Tidak ada perubahan di apps/web');
+			// The status reads beside the title where there is no status column, and in it where there is.
+			await expect(
+				rows.nth(0).getByText('Dilewati', { exact: false }).filter({ visible: true })
+			).toHaveCount(1);
 			await expect(rows.nth(0)).toContainText('feat(api): endpoint pesanan');
 			await expect(rows.nth(0)).toContainText('abcdef1');
 			await expect(rows.nth(1)).toContainText('feat(web): halaman menu baru');
@@ -120,7 +124,11 @@ for (const width of [1280, 320]) {
 			const detail = page.getByTestId('skipped-push-detail');
 			await expect(detail).toBeVisible();
 			await expect(detail).toContainText('hanya mengubah file milik proyek lain');
-			await expect(detail).toContainText('File bersama di luar folder proyek mana pun');
+			await expect(detail).toContainText('perubahan di apps/web dan file bersama di root');
+			await expect(detail.getByRole('link', { name: /Panduan monorepo/ })).toHaveAttribute(
+				'href',
+				/\/monorepo#push-di-monorepo$/
+			);
 			await expect(detail).toContainText('7 file berubah');
 			await expect(detail).toContainText('apps/api/routes/api.php');
 			await expect(detail).toContainText('dan 2 file lainnya');

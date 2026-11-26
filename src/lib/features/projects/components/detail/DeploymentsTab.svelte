@@ -28,6 +28,7 @@
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
@@ -134,27 +135,26 @@
 	});
 </script>
 
-<div class="flex w-full flex-col gap-4">
-	{#if showControls}
-		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<ProjectFilter
-				bind:value={() => selectedFilter, changeFilter}
-				options={filterOptions}
-				name="Filter waktu"
-			/>
+{#snippet controls()}
+	<ProjectFilter
+		bind:value={() => selectedFilter, changeFilter}
+		options={filterOptions}
+		name="Filter waktu"
+	/>
 
-			<SearchInput
-				class="w-full sm:w-64"
-				placeholder="Cari deployment"
-				debounce={300}
-				onSearch={(value) => {
-					searchQuery = value;
-					currentPage = 1;
-				}}
-			/>
-		</div>
-	{/if}
+	<SearchInput
+		class="w-full sm:w-64"
+		placeholder="Cari deployment"
+		debounce={300}
+		onSearch={(value) => {
+			searchQuery = value;
+			currentPage = 1;
+		}}
+	/>
+{/snippet}
 
+<!-- The list template: the history across the full width; the project's facts stay in its header. -->
+<ListPageLayout controls={showControls ? controls : undefined}>
 	{#if query.isPending}
 		<ul class="surface-card divide-y divide-border" role="status">
 			<span class="sr-only">Memuat riwayat deployment...</span>
@@ -241,7 +241,7 @@
 
 		<Pagination {currentPage} {totalPages} onPageChange={(next) => (currentPage = next)} />
 	{/if}
-</div>
+</ListPageLayout>
 
 <RollbackDialog
 	plan={rollbackPlan}

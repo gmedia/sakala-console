@@ -510,9 +510,11 @@ test.describe('the project side', () => {
 
 		const section = page.getByTestId('database-variables');
 		await expect(section).toContainText('Dari database toko-kopi-db');
-		await expect(section.getByTestId('database-variable-DATABASE_URL')).toContainText(
-			'dari database toko-kopi-db, nilai disembunyikan'
-		);
+		await expect(
+			section
+				.getByTestId('database-variable-DATABASE_URL')
+				.getByRole('img', { name: 'Nilai dari database toko-kopi-db, disembunyikan' })
+		).toBeVisible();
 		await expect(section.getByTestId('database-variable-DB_HOST')).toContainText('Ditimpa proyek');
 		await expect(page.getByTestId('env-overrides-database')).toHaveText('Menimpa database');
 		await expect(page.getByTestId('database-release-hint-laravel')).toContainText(

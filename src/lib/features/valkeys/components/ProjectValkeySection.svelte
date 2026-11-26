@@ -1,13 +1,14 @@
 <script lang="ts">
 	// Links come from resolveRoute() in the routes helpers, some with a query string.
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import Memory from 'phosphor-svelte/lib/Memory';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import Warning from 'phosphor-svelte/lib/Warning';
 	import { toast } from 'svelte-sonner';
 	import { getErrorMessage } from '$lib/api/errors';
 	import { VALKEY_MODE, type ValkeyAttachment } from '$lib/api/resources/valkeys';
+	import { ValkeyIcon } from '$lib/components/icons';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import InjectedVariables from '$lib/features/projects/components/detail/InjectedVariables.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import { isLaravelStack } from '$lib/features/projects/build-help';
@@ -138,7 +139,7 @@
 				id="valkey-variables-title"
 				class="flex min-w-0 flex-wrap items-center gap-2 text-base text-foreground"
 			>
-				<Memory size={18} class="shrink-0 text-primary-dark" aria-hidden="true" />
+				<ValkeyIcon size={18} class="shrink-0 text-primary-dark" aria-hidden="true" />
 				<span class="min-w-0 wrap-anywhere">
 					Dari Valkey <span class="font-mono">{valkey.name}</span>
 				</span>
@@ -171,48 +172,13 @@
 				{/if}
 			</div>
 		</div>
-		<p class="text-sm text-muted">
-			Disuntik Sakala saat deploy, jadi tidak bisa diubah di sini dan nilainya tidak ditampilkan.
-			Variabel proyek dengan nama yang sama menang.
-		</p>
 		{#if valkey.status !== 'ready'}
 			<p class="text-sm text-foreground" data-testid="valkey-variables-status">
 				{view.description}
 			</p>
 		{/if}
 
-		<ul
-			class="@container flex w-full flex-col divide-y divide-border rounded-control border border-border bg-surface"
-		>
-			{#each rows as row (row.name)}
-				<li
-					class="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto] @2xl:px-6"
-					data-testid={`valkey-variable-${row.name}`}
-				>
-					<span class="min-w-0 font-mono text-sm font-semibold wrap-anywhere text-foreground">
-						{row.name}
-					</span>
-					<span
-						class="col-span-2 row-start-2 min-w-0 text-sm @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1"
-					>
-						{#if row.overridden}
-							<span class="text-foreground">
-								Nilai dari variabel proyek yang dipakai, bukan dari {valkey.name}.
-							</span>
-						{:else}
-							<span class="text-muted">dari Valkey {valkey.name}, nilai disembunyikan</span>
-						{/if}
-					</span>
-					<span class="col-start-2 row-start-1 @2xl:col-start-3">
-						{#if row.overridden}
-							<Badge tone="warning">Ditimpa proyek</Badge>
-						{:else}
-							<Badge tone="neutral">Otomatis</Badge>
-						{/if}
-					</span>
-				</li>
-			{/each}
-		</ul>
+		<InjectedVariables {rows} source={`Valkey ${valkey.name}`} testidPrefix="valkey-variable" />
 
 		{#if rows.some((row) => row.overridden)}
 			<p
@@ -220,10 +186,7 @@
 				data-testid="valkey-variables-conflict"
 			>
 				<Warning size={16} class="mt-0.5 shrink-0 text-warning-dark" aria-hidden="true" />
-				<span>
-					Hapus variabel proyek yang bertanda "Menimpa Valkey" di atas kalau aplikasimu harus
-					memakai Valkey ini. Network-nya tetap tersambung.
-				</span>
+				<span> Hapus variabel bertanda "Menimpa Valkey" agar Valkey ini yang dipakai. </span>
 			</p>
 		{/if}
 
@@ -244,10 +207,7 @@
 				class="flex flex-col gap-2 rounded-control border border-border bg-background-soft px-4 py-3 text-sm text-foreground"
 				data-testid="valkey-laravel-hint"
 			>
-				<p>
-					Laravel membaca REDIS_URL sendiri, tetapi antrean dan cache baru pindah ke Valkey kalau
-					diminta lewat variabel proyek.
-				</p>
+				<p>Antrean dan cache Laravel baru memakai Valkey lewat variabel proyek.</p>
 				{#each suggestions.different as item (item.key)}
 					<p data-testid={`valkey-laravel-different-${item.key}`}>
 						<code class="font-mono text-xs">{item.key}</code> sekarang
@@ -311,9 +271,8 @@
 {:else if showOffer && workspaceId}
 	<div class="mt-6 flex flex-col gap-2" data-testid="valkey-variables-offer">
 		<p class="text-sm text-muted">
-			Butuh Redis untuk antrean, cache, atau sesi? Pasang Valkey workspace ke proyek ini, dan Sakala
-			menambahkan <code class="font-mono text-xs text-foreground">REDIS_URL</code> serta variabel
-			<code class="font-mono text-xs text-foreground">REDIS_*</code> lainnya saat deploy.
+			Butuh Redis untuk antrean, cache, atau sesi? Sakala mengisi
+			<code class="font-mono text-xs text-foreground">REDIS_URL</code> saat deploy.
 		</p>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
 			<Button
@@ -323,7 +282,7 @@
 				onclick={() => (attachOpen = true)}
 				data-testid="attach-project-valkey"
 			>
-				<Memory size={16} aria-hidden="true" />
+				<ValkeyIcon size={16} aria-hidden="true" />
 				Pasang Valkey
 			</Button>
 			{#if canCreate}

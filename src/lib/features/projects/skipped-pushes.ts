@@ -11,11 +11,17 @@ export const SKIPPED_PUSH_COPY = {
 	heldStatus: 'Ditahan',
 	skippedQuestion: 'Kenapa push ini dilewati?',
 	heldQuestion: 'Kenapa push ini tidak di-deploy?',
-	heldTitle: 'Ditahan — auto-deploy sedang dijeda',
+	/** The status column says Dilewati or Ditahan, so the title says only why. */
+	heldTitle: 'Auto-deploy sedang dijeda',
+	skippedTitle: (folder: string) => `Tidak ada perubahan di ${folder}`,
 	heldReason: (sha: string) =>
-		`Push ini (commit ${sha}) tidak di-deploy karena auto-deploy sedang dijeda setelah rollback, supaya versi rollback tidak tertimpa.`,
+		`Commit ${sha} tidak di-deploy karena auto-deploy sedang dijeda setelah rollback, supaya versi rollback tidak tertimpa.`,
 	heldNext: (branch: string) =>
-		`Redeploy men-deploy commit terbaru di ${branch}. Kalau auto-deploy dinyalakan lagi, push berikutnya langsung di-deploy; push yang sudah ditahan tidak di-deploy sendiri.`,
+		`Redeploy men-deploy commit terbaru di ${branch}. Push yang ditahan tidak di-deploy sendiri.`,
+	skippedReason: 'hanya mengubah file milik proyek lain di repository ini.',
+	skippedRule: (folder: string) =>
+		`Proyek ini di-deploy oleh perubahan di ${folder} dan file bersama di root, seperti lockfile.`,
+	guide: 'Panduan monorepo',
 	heldFiles: (count: number) => `${count} file berubah:`
 } as const;
 
@@ -71,7 +77,7 @@ export function groupSkippedPushes(
 
 export function skippedPushTitle(skip: Pick<SkippedPush, 'root_directory' | 'reason'>): string {
 	if (isHeldPush(skip)) return SKIPPED_PUSH_COPY.heldTitle;
-	return `Dilewati — tidak ada perubahan di ${skip.root_directory}`;
+	return SKIPPED_PUSH_COPY.skippedTitle(skip.root_directory);
 }
 
 /** "3 file berubah" plus the files the API sent; the rest is a count, never invented. */

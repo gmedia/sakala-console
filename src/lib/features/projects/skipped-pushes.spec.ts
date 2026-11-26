@@ -62,7 +62,7 @@ describe('groupSkippedPushes', () => {
 
 describe('copy', () => {
 	it('names the folder the push did not touch', () => {
-		expect(skippedPushTitle(skip())).toBe('Dilewati — tidak ada perubahan di apps/web');
+		expect(skippedPushTitle(skip())).toBe('Tidak ada perubahan di apps/web');
 		expect(shortSha(skip().commit_sha)).toBe('1234567');
 	});
 
@@ -84,7 +84,7 @@ describe('a push held while auto-deploy is paused', () => {
 	it('says it was held, not that the folder had no changes', () => {
 		expect(isHeldPush(held)).toBe(true);
 		expect(isHeldPush(skip())).toBe(false);
-		expect(skippedPushTitle(held)).toBe('Ditahan — auto-deploy sedang dijeda');
+		expect(skippedPushTitle(held)).toBe('Auto-deploy sedang dijeda');
 	});
 
 	it('lists the files without claiming they belong to other projects', () => {

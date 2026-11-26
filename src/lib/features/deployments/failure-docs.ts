@@ -57,7 +57,8 @@ const SAKALA_SIDE_CODES: ReadonlySet<string> = new Set([
 ]);
 
 export const FAILURE_DOCS_COPY = {
-	link: 'Baca penjelasan kode ini',
+	/** Read after the code, which is the link's visible text. */
+	link: 'baca penjelasan kode ini',
 	newTab: '(tab baru)'
 } as const;
 

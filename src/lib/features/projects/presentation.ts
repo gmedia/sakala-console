@@ -395,6 +395,28 @@ export const REDEPLOY_REQUIRED_COPY = {
  * user saves (`decideVariableBuild`). Each build reason is a whole sentence, so no sentence is glued
  * together from parts.
  */
+/**
+ * The Variabel page's words (docs/UI_GUIDELINES.md, text budget): one line per section, the rest
+ * behind "Pelajari", and statuses as badges.
+ */
+export const VARIABLES_PAGE_COPY = {
+	readOnly: 'Nilai secret dan perubahan variabel hanya untuk pemilik dan anggota workspace.',
+	secret: 'Secret',
+	secretLabel: 'Simpan sebagai secret',
+	addHint: 'Nama otomatis jadi huruf besar. Enter menyimpan, Esc membatalkan.'
+} as const;
+
+/** The variables Sakala fills in for an attached database, bucket, or Valkey store. */
+export const INJECTED_VARIABLES_COPY = {
+	intro: 'Diisi Sakala saat deploy, tidak bisa diubah di sini.',
+	learn: 'Nilainya tidak ditampilkan. Variabel proyek dengan nama yang sama menang.',
+	learnTopic: (source: string) => `variabel dari ${source}`,
+	hiddenValue: (source: string) => `Nilai dari ${source}, disembunyikan`,
+	overridden: 'Ditimpa proyek',
+	overriddenValue: 'Nilai dari variabel proyek',
+	guide: 'Panduan variabel'
+} as const;
+
 export const VARIABLE_BUILD_COPY = {
 	reuse: 'Cukup restart dengan image yang sama (tanpa build).',
 	staticSite:

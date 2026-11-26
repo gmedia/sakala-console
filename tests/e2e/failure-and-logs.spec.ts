@@ -342,7 +342,7 @@ test.describe('a deployment that stops at "Mengecek aplikasi"', () => {
 			'href',
 			`/projects/${PROJECT_ID}/environments#isi-dari-env-example`
 		);
-		await expect(page.getByRole('link', { name: /Baca penjelasan kode ini/ })).toHaveAttribute(
+		await expect(page.getByRole('link', { name: /baca penjelasan kode ini/ })).toHaveAttribute(
 			'href',
 			'https://sakala.dev/docs/deploy-gagal#runtime_app_not_listening'
 		);
@@ -357,7 +357,7 @@ test.describe('a deployment that stops at "Mengecek aplikasi"', () => {
 		});
 		await page.goto(DETAIL_URL);
 
-		await expect(page.getByRole('link', { name: /Baca penjelasan kode ini/ })).toHaveAttribute(
+		await expect(page.getByRole('link', { name: /baca penjelasan kode ini/ })).toHaveAttribute(
 			'href',
 			'https://sakala.dev/docs/deploy-gagal#runtime_build_failed'
 		);

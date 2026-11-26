@@ -5,6 +5,7 @@
 	import Moon from 'phosphor-svelte/lib/Moon';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import {
 		PROJECT_METRICS_RANGES,
@@ -167,32 +168,33 @@
 	}
 </script>
 
-<div class="flex w-full min-w-0 flex-col gap-4">
-	<div class="flex flex-wrap items-center justify-between gap-3">
-		<div class="flex min-w-0 flex-col gap-0.5">
-			<p class="text-sm text-foreground">{MONITORING_COPY.intro}</p>
-			{#if freshness}
-				<p class="text-xs text-muted" data-testid="metrics-freshness">{freshness}</p>
-			{/if}
-		</div>
-		<RadioGroup.Root
-			value={currentRange}
-			onValueChange={selectRange}
-			orientation="horizontal"
-			aria-label={MONITORING_COPY.rangeLabel}
-			class="grid w-full grid-cols-5 rounded-control border border-border-strong bg-surface p-0.5 sm:inline-flex sm:w-auto"
-		>
-			{#each METRICS_RANGE_OPTIONS as option (option.value)}
-				<RadioGroup.Item
-					value={option.value}
-					class="min-h-control-lg rounded-control px-1 text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-foreground data-[state=checked]:bg-primary data-[state=checked]:text-white sm:min-h-control-sm sm:px-3"
-				>
-					{option.label}
-				</RadioGroup.Item>
-			{/each}
-		</RadioGroup.Root>
-	</div>
+{#snippet toolbar()}
+	<!-- When the charts were read on the left, the range on the right; the tab names what they show. -->
+	{#if freshness}
+		<p class="text-xs text-muted" data-testid="metrics-freshness">{freshness}</p>
+	{:else}
+		<span aria-hidden="true"></span>
+	{/if}
+	<RadioGroup.Root
+		value={currentRange}
+		onValueChange={selectRange}
+		orientation="horizontal"
+		aria-label={MONITORING_COPY.rangeLabel}
+		class="grid w-full grid-cols-5 rounded-control border border-border-strong bg-surface p-0.5 sm:inline-flex sm:w-auto"
+	>
+		{#each METRICS_RANGE_OPTIONS as option (option.value)}
+			<RadioGroup.Item
+				value={option.value}
+				class="min-h-control-lg rounded-control px-1 text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-foreground data-[state=checked]:bg-primary data-[state=checked]:text-white sm:min-h-control-sm sm:px-3"
+			>
+				{option.label}
+			</RadioGroup.Item>
+		{/each}
+	</RadioGroup.Root>
+{/snippet}
 
+<!-- The list template: the charts across the full width, under one toolbar. -->
+<ListPageLayout {toolbar}>
 	{#if sleeping}
 		<p
 			class="flex items-start gap-2 rounded-control border border-border bg-surface px-4 py-3 text-sm text-foreground"
@@ -275,7 +277,7 @@
 				id="cpu"
 				title={MONITORING_COPY.titles.cpu}
 				summary={cpuSummary(cpu, rangeOption)}
-				note={MONITORING_COPY.cpuNote}
+				learnMore={MONITORING_COPY.cpuNote}
 				hasData={hasPoints(cpu.columns)}
 			>
 				{#snippet chart()}
@@ -295,7 +297,7 @@
 				id="restarts"
 				title={MONITORING_COPY.titles.restarts}
 				summary={restartsSummary(restarts, rangeOption)}
-				note={MONITORING_COPY.restartsNote}
+				learnMore={MONITORING_COPY.restartsNote}
 				hasData={hasPoints(restarts.columns)}
 			>
 				{#snippet chart()}
@@ -375,4 +377,4 @@
 			</section>
 		{/if}
 	{/if}
-</div>
+</ListPageLayout>

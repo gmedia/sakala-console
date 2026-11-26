@@ -427,7 +427,7 @@ for (const width of [1440, 320]) {
 				]
 			});
 			const held = page.getByTestId('skipped-push-row');
-			await expect(held).toContainText('Ditahan — auto-deploy sedang dijeda');
+			await expect(held).toContainText('Auto-deploy sedang dijeda');
 			await held.getByRole('button', { name: 'Kenapa push ini tidak di-deploy?' }).click();
 			const detail = page.getByTestId('skipped-push-detail');
 			await expect(detail).toContainText('auto-deploy sedang dijeda setelah rollback');
