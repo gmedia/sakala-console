@@ -60,9 +60,8 @@
 		<div class="space-y-2 rounded-control border border-primary/20 bg-primary-50 p-6" role="status">
 			<p class="font-semibold text-primary">Cek email kamu</p>
 			<p class="text-sm text-foreground">
-				Kalau <strong class="font-semibold text-foreground">{sentTo}</strong> terdaftar di Sakala, tautan
-				untuk membuat kata sandi baru sudah kami kirim ke sana. Tautan berlaku 60 menit. Cek juga folder
-				spam.
+				Kalau <strong class="font-semibold wrap-anywhere text-foreground">{sentTo}</strong> terdaftar,
+				tautannya sudah terkirim dan berlaku 60 menit; cek juga folder spam.
 			</p>
 		</div>
 	{:else}

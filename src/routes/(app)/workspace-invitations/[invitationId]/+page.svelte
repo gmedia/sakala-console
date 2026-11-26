@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { pageTitle } from '$lib/utils/page-title';
+	import FocusedPageLayout from '$lib/components/layout/templates/FocusedPageLayout.svelte';
 	import InvitationLinkPage from '$lib/features/workspaces/components/InvitationLinkPage.svelte';
 
 	// The email links here: `/workspace-invitations/{id}?token=...` (WorkspaceInvitationNotification).
@@ -10,8 +11,9 @@
 
 <svelte:head><title>{pageTitle('Undangan workspace')}</title></svelte:head>
 
-<div class="max-w-reading pb-12">
+<!-- One decision (accept or decline), so the focused template, centred. -->
+<FocusedPageLayout>
 	{#key invitationId}
 		<InvitationLinkPage {invitationId} {token} />
 	{/key}
-</div>
+</FocusedPageLayout>

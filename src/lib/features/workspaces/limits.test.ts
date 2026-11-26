@@ -3,6 +3,7 @@ import { parsePilotLimitsResponse } from '$lib/api/resources/pilot-limits';
 import { getWorkspaceFixture } from '$lib/testing/workspace-fixtures';
 import {
 	formatIdleSleep,
+	limitBadgeLabel,
 	replicasLine,
 	workspaceBuildsPerHourSummary,
 	workspaceIdleSleepSummary,
@@ -32,6 +33,23 @@ describe('workspaceLimitRows', () => {
 		});
 		expect(rows.map((row) => row.label)).toEqual(['Proyek', 'Deployment berjalan']);
 		expect(rows[0].reached).toBe(true);
+	});
+});
+
+describe('limitBadgeLabel', () => {
+	it('reads as used of max, then what is counted', () => {
+		const limits = parsePilotLimitsResponse(getWorkspaceFixture('pilot-limits-team').body);
+		expect(workspaceLimitRows(limits).map(limitBadgeLabel)).toEqual([
+			'1 dari 5 proyek',
+			'0 dari 2 deployment berjalan',
+			'0 dari 3 aplikasi aktif'
+		]);
+	});
+
+	it('writes large numbers the Indonesian way', () => {
+		expect(limitBadgeLabel({ label: 'Proyek', used: 1200, max: 10000 })).toBe(
+			'1.200 dari 10.000 proyek'
+		);
 	});
 });
 

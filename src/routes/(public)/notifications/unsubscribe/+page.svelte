@@ -54,7 +54,7 @@
 			return {
 				tone: 'success' as const,
 				title: 'Email dimatikan',
-				description: `Sakala tidak lagi mengirim ${categoryText} ke alamat ini. Notifikasi di lonceng Console tidak berubah, dan email bisa dinyalakan lagi kapan saja di pengaturan notifikasi.`
+				description: `Sakala tidak lagi mengirim ${categoryText}; nyalakan lagi kapan saja di pengaturan notifikasi.`
 			};
 		}
 		if (state.kind === 'failed') {
@@ -64,7 +64,7 @@
 		return {
 			tone: 'unknown' as const,
 			title: 'Berhenti menerima email ini?',
-			description: `Sakala akan berhenti mengirim ${categoryText} ke alamat ini. Notifikasi di lonceng Console tetap jalan, dan kategori lain tidak berubah.`
+			description: `Hanya ${categoryText} yang berhenti; lonceng Console dan kategori lain tetap jalan.`
 		};
 	});
 	const canRetry = $derived(

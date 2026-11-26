@@ -2,8 +2,7 @@
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import { ApiError, getErrorMessage } from '$lib/api/errors';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { LEGAL_LINKS } from '$lib/config/project';
-	import LegalLink from '$lib/features/auth/components/LegalLink.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import { useExportAccountData } from '$lib/features/auth/mutations';
 	import { describeTruncatedExport, EXPORT_FILE_NAME, saveJsonFile } from '../account-export';
 
@@ -30,33 +29,28 @@
 	}
 </script>
 
-<section aria-labelledby="account-data-title" class="surface-card space-y-4 p-6">
-	<div>
-		<h2 id="account-data-title" class="font-sans text-base font-semibold text-foreground">
-			Salinan datamu
-		</h2>
-		<p class="mt-1 text-sm text-muted">
-			File JSON berisi data akun, proyek, deployment, notifikasi, masukan, dan nama environment
-			variable tanpa nilainya. Log deployment dan jejak audit tidak termasuk.
-		</p>
-	</div>
-
-	<div class="flex flex-wrap items-center justify-end gap-3">
-		<span role="status" class="mr-auto text-sm text-foreground/70">{status}</span>
-		{#if error}
-			<p role="alert" class="mr-auto text-sm text-error-dark">{error}</p>
-		{/if}
+<!-- One row: what it is on the left, the download on the right; what the file holds is folded. -->
+<section aria-labelledby="account-data-title" class="surface-card flex flex-col gap-3 p-4 sm:p-6">
+	<div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+		<div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+			<h2 id="account-data-title" class="font-sans text-base font-semibold text-foreground">
+				Salinan datamu
+			</h2>
+			<p class="text-sm text-muted">Satu file JSON berisi akun dan proyekmu.</p>
+		</div>
 		<Button variant="secondary" disabled={exportData.isPending} onclick={handleExport}>
 			<DownloadSimple size={16} aria-hidden="true" />
 			{exportData.isPending ? 'Menyiapkan...' : 'Unduh data saya'}
 		</Button>
 	</div>
-
-	<p
-		class="flex flex-wrap gap-x-4 border-t border-border pt-4 text-xs text-muted [&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center"
-	>
-		<LegalLink href={LEGAL_LINKS.terms}>Syarat Layanan</LegalLink>
-		<LegalLink href={LEGAL_LINKS.acceptableUse}>Kebijakan Penggunaan Wajar</LegalLink>
-		<LegalLink href={LEGAL_LINKS.privacy}>Pemberitahuan Privasi</LegalLink>
-	</p>
+	<span role="status" class="text-sm text-foreground/70 empty:hidden">{status}</span>
+	{#if error}
+		<p role="alert" class="text-sm text-error-dark">{error}</p>
+	{/if}
+	<LearnMore topic="isi salinan data" testid="account-data-contents">
+		<p>
+			File JSON berisi data akun, proyek, deployment, notifikasi, masukan, dan nama environment
+			variable tanpa nilainya. Log deployment dan jejak audit tidak termasuk.
+		</p>
+	</LearnMore>
 </section>

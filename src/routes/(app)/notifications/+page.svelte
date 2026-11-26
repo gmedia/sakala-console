@@ -8,6 +8,7 @@
 	<title>{pageTitle('Notifikasi')}</title>
 </svelte:head>
 
+<!-- The list template at reading width: short lines read better than rows across the screen. -->
 <div class="flex max-w-reading flex-col gap-6">
 	<MyInvitationsList hideWhenEmpty />
 	<NotificationCenter />

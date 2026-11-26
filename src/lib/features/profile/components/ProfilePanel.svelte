@@ -128,94 +128,72 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<form class="surface-card space-y-8 p-6" onsubmit={handleSave} novalidate>
-		<div class="flex items-center gap-6">
-			<button
-				type="button"
-				onclick={openPhotoModal}
-				class="group relative flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-background-soft ring-1 ring-border/80 transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:outline-none"
-				aria-label="Ubah foto profil"
-			>
-				{#if user?.avatar_url}
-					<img src={user.avatar_url} alt="Foto profil {user.name}" class="size-full object-cover" />
-				{:else}
-					<UserIcon size={36} class="size-9 text-muted group-hover:text-foreground" />
-				{/if}
-			</button>
-
-			<Button variant="link" onclick={openPhotoModal}>Ubah foto</Button>
-		</div>
-
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-			<FormField
-				id="full-name"
-				label="Nama lengkap"
-				autocomplete="name"
-				bind:value={() => name, (next) => (nameEdit = next)}
-				error={errors.name}
-			/>
-			<FormField
-				id="username"
-				label="Username"
-				autocomplete="username"
-				hint={USERNAME_RULE_HINT}
-				bind:value={() => username, (next) => (usernameEdit = next)}
-				error={errors.username ?? usernameProblem}
-			/>
-		</div>
-
-		<div class="flex flex-col items-end gap-2 pt-2">
-			{#if errors.general}
-				<p class="text-xs text-error-base" role="alert">{errors.general}</p>
-			{:else if saved && !isDirty}
-				<p class="text-xs text-primary-dark" role="status">Profil tersimpan.</p>
+<!-- The account's facts sit under the photo, like a resource's facts under its name. -->
+<form class="surface-card flex flex-col gap-6 p-4 sm:p-6" onsubmit={handleSave} novalidate>
+	<div class="flex items-center gap-4 sm:gap-6">
+		<button
+			type="button"
+			onclick={openPhotoModal}
+			class="group relative flex size-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-background-soft ring-1 ring-border/80 transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:outline-none"
+			aria-label="Ubah foto profil"
+		>
+			{#if user?.avatar_url}
+				<img src={user.avatar_url} alt="Foto profil {user.name}" class="size-full object-cover" />
+			{:else}
+				<UserIcon size={36} class="size-9 text-muted group-hover:text-foreground" />
 			{/if}
-			<Button type="submit" disabled={!canSave}>
-				{updateProfile.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
-			</Button>
-		</div>
-	</form>
+		</button>
 
-	<div class="surface-card space-y-6 p-6">
-		<div>
-			<h2 class="font-sans text-base font-semibold text-foreground">Detail akun</h2>
-			<p class="mt-0.5 text-xs text-muted">
-				Ganti email di tab
+		<div class="flex min-w-0 flex-col gap-1">
+			<p class="flex flex-wrap items-center gap-x-2 text-sm text-muted" data-testid="profile-facts">
+				<span class="wrap-anywhere text-foreground">{user?.email ?? ''}</span>
+				<span aria-hidden="true">·</span>
+				<span>bergabung {joinedDate}</span>
+			</p>
+			<p class="flex flex-wrap items-center gap-x-4">
+				<Button variant="link" onclick={openPhotoModal}>Ubah foto</Button>
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
 				<a
 					href={settingsHref('account')}
-					data-sveltekit-replacestate
 					data-sveltekit-noscroll
-					class="font-semibold text-primary-dark hover:underline"
+					class="inline-flex min-h-6 items-center text-sm font-semibold text-primary-dark hover:underline"
 				>
-					Akun dan keamanan</a
-				>.
+					Ganti email
+				</a>
 				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			</p>
 		</div>
-
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-			<div class="space-y-1.5">
-				<label for="email-field" class="block text-sm font-medium text-foreground"> Email </label>
-				<input
-					id="email-field"
-					type="email"
-					value={user?.email ?? ''}
-					disabled
-					class="control-input"
-				/>
-			</div>
-
-			<div class="space-y-1.5">
-				<label for="joined-field" class="block text-sm font-medium text-foreground">
-					Bergabung sejak
-				</label>
-				<input id="joined-field" type="text" value={joinedDate} disabled class="control-input" />
-			</div>
-		</div>
 	</div>
-</div>
+
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+		<FormField
+			id="full-name"
+			label="Nama lengkap"
+			autocomplete="name"
+			bind:value={() => name, (next) => (nameEdit = next)}
+			error={errors.name}
+		/>
+		<FormField
+			id="username"
+			label="Username"
+			autocomplete="username"
+			hint={USERNAME_RULE_HINT}
+			bind:value={() => username, (next) => (usernameEdit = next)}
+			error={errors.username ?? usernameProblem}
+		/>
+	</div>
+
+	<div class="flex flex-wrap items-center justify-end gap-3">
+		{#if errors.general}
+			<p class="mr-auto text-sm text-error-base" role="alert">{errors.general}</p>
+		{:else if saved && !isDirty}
+			<p class="mr-auto text-sm text-primary-dark" role="status">Profil tersimpan.</p>
+		{/if}
+		<Button type="submit" disabled={!canSave}>
+			{updateProfile.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
+		</Button>
+	</div>
+</form>
 
 <input
 	type="file"

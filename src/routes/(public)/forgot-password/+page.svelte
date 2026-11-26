@@ -12,7 +12,7 @@
 			? 'Memeriksa pilihan yang tersedia.'
 			: availability.emailDeliveryOff
 				? 'Tautan untuk membuat kata sandi baru dikirim lewat email.'
-				: 'Masukkan email akunmu. Kami kirim tautan untuk membuat kata sandi baru.'
+				: 'Kami kirim tautan untuk membuat kata sandi baru.'
 	);
 </script>
 

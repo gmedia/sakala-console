@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import Check from 'phosphor-svelte/lib/Check';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import { getErrorMessage } from '$lib/api/errors';
 	import type { Notification } from '$lib/api/resources/notifications';
 	import { useMarkAllNotificationsRead, useMarkNotificationRead } from '../mutations';
@@ -61,66 +62,64 @@
 	</Button>
 {/snippet}
 
-<div class="max-w-reading space-y-6 pb-12">
-	<div class="surface-card space-y-6 p-4 sm:p-6">
-		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-			<div class="flex items-center gap-2">
-				{@render filterButton('all', 'Semua')}
-				{@render filterButton('unread', 'Belum dibaca')}
-			</div>
+{#snippet toolbar()}
+	<div class="flex items-center gap-2">
+		{@render filterButton('all', 'Semua')}
+		{@render filterButton('unread', 'Belum dibaca')}
+	</div>
+	<Button
+		variant="link"
+		onclick={() => markAll.mutate()}
+		disabled={unreadCount === 0 || markAll.isPending}
+	>
+		<Check size={16} class="size-4" />
+		<span>Tandai semua telah dibaca</span>
+	</Button>
+{/snippet}
 
-			<Button
-				variant="link"
-				onclick={() => markAll.mutate()}
-				disabled={unreadCount === 0 || markAll.isPending}
-			>
-				<Check size={16} class="size-4" />
-				<span>Tandai semua telah dibaca</span>
-			</Button>
+<!-- The list template: the filter left and marking all read right, then the notifications. -->
+<ListPageLayout {toolbar}>
+	{#if actionError}
+		<p class="text-sm text-error-base" role="alert">
+			{getErrorMessage(actionError, 'Gagal menandai notifikasi. Coba lagi.')}
+		</p>
+	{/if}
+
+	{#if notificationsQuery.isPending}
+		<p class="py-12 text-center text-sm text-muted" role="status">Memuat notifikasi...</p>
+	{:else if notificationsQuery.isError}
+		<div class="space-y-3 py-12 text-center" role="alert">
+			<p class="text-sm text-error-base">
+				{getErrorMessage(notificationsQuery.error, 'Gagal memuat notifikasi.')}
+			</p>
+			<Button variant="link" onclick={() => notificationsQuery.refetch()}>Coba lagi</Button>
+		</div>
+	{:else if notifications.length > 0}
+		<div class="surface-card divide-y divide-border p-2 sm:p-3" data-testid="notification-list">
+			{#each notifications as notification (notification.id)}
+				<NotificationItemRow {notification} variant="full" onClick={handleItemClick} />
+			{/each}
 		</div>
 
-		{#if actionError}
-			<p class="text-xs text-error-base" role="alert">
-				{getErrorMessage(actionError, 'Gagal menandai notifikasi. Coba lagi.')}
-			</p>
+		{#if lastPage > 1}
+			<div class="flex justify-end">
+				<Pagination
+					{currentPage}
+					totalPages={lastPage}
+					onPageChange={(next) => (currentPage = next)}
+				/>
+			</div>
 		{/if}
-
-		{#if notificationsQuery.isPending}
-			<p class="py-12 text-center text-sm text-muted" role="status">Memuat notifikasi...</p>
-		{:else if notificationsQuery.isError}
-			<div class="space-y-3 py-12 text-center" role="alert">
-				<p class="text-sm text-error-base">
-					{getErrorMessage(notificationsQuery.error, 'Gagal memuat notifikasi.')}
-				</p>
-				<Button variant="link" onclick={() => notificationsQuery.refetch()}>Coba lagi</Button>
-			</div>
-		{:else if notifications.length > 0}
-			<div class="divide-y divide-border border-t border-b border-border">
-				{#each notifications as notification (notification.id)}
-					<NotificationItemRow {notification} variant="full" onClick={handleItemClick} />
-				{/each}
-			</div>
-
-			{#if lastPage > 1}
-				<div class="flex justify-end pt-2">
-					<Pagination
-						{currentPage}
-						totalPages={lastPage}
-						onPageChange={(next) => (currentPage = next)}
-					/>
-				</div>
+	{:else}
+		<div class="surface-card py-6">
+			{#if activeFilter === 'unread'}
+				<NotificationEmptyState
+					title="Tidak ada notifikasi yang belum dibaca"
+					description="Semua notifikasi sudah kamu baca."
+				/>
+			{:else}
+				<NotificationEmptyState />
 			{/if}
-		{:else}
-			<div class="border-t border-border py-12">
-				{#if activeFilter === 'unread'}
-					<NotificationEmptyState
-						title="Tidak ada notifikasi yang belum dibaca"
-						description="Semua notifikasi sudah kamu baca."
-					/>
-				{:else}
-					<NotificationEmptyState />
-				{/if}
-			</div>
-		{/if}
-	</div>
-</div>
+		</div>
+	{/if}
+</ListPageLayout>

@@ -384,7 +384,8 @@ test.describe('team workspaces', () => {
 		await mockWorkspaceApi(page, { persona: 'owner' });
 		await page.goto(teamPage);
 
-		await expect(page.getByTestId('workspace-counts')).toHaveText('1 proyek');
+		// The team page shows the count against the workspace's quota.
+		await expect(page.getByTestId('workspace-quotas')).toContainText('1 dari 5 proyek');
 		await switcher(page).click();
 		await expect(page.getByRole('menuitemradio', { name: new RegExp(TEAM.name) })).toContainText(
 			'Pemilik · 1 proyek'

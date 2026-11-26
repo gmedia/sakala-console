@@ -12,7 +12,7 @@
 
 <AuthSplitLayout
 	title="Buat kata sandi baru"
-	description="Setelah tersimpan, kata sandi lama berhenti berlaku dan kamu bisa langsung masuk."
+	description="Kata sandi lama berhenti berlaku begitu yang baru tersimpan."
 >
 	<ResetPasswordForm />
 </AuthSplitLayout>

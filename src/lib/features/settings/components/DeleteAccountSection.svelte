@@ -76,36 +76,28 @@
 	}
 </script>
 
-<section aria-labelledby="delete-account-title" class="surface-card space-y-4 p-6">
-	<div>
-		<h2 id="delete-account-title" class="font-sans text-base font-semibold text-foreground">
-			Hapus akun
-		</h2>
-		{#if isAdmin}
-			<p class="mt-1 text-sm text-foreground" data-testid="delete-account-admin">
-				Akun admin tidak bisa dihapus sendiri, supaya Sakala tidak kehilangan satu-satunya orang
-				yang bisa menangani laporan. Minta maintainer lain mencabut peran admin kamu dulu, lalu
-				kembali ke sini.
-			</p>
-		{:else}
-			<p class="mt-1 text-sm text-muted">
-				Akun dan semua proyekmu dihapus, dan tindakan ini tidak bisa dibatalkan. Unduh salinan
-				datamu dulu kalau masih perlu.
-			</p>
-		{/if}
-	</div>
-
-	{#if !isAdmin}
-		<div class="flex justify-end">
-			<Button
-				variant="secondary"
-				class="hover:border-error hover:text-error"
-				onclick={() => (open = true)}
-			>
+<!-- The page's danger zone (docs/UI_GUIDELINES.md): one row, last on the account tab. -->
+<section
+	aria-labelledby="delete-account-title"
+	class="flex min-w-0 flex-col gap-3 rounded-card border border-error/30 bg-surface p-4 sm:p-5"
+	data-testid="delete-account-zone"
+>
+	<div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+		<div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+			<h2 id="delete-account-title" class="text-base text-error-dark">Hapus akun</h2>
+			<p class="text-sm text-foreground">Akun dan semua proyekmu dihapus untuk selamanya.</p>
+		</div>
+		{#if !isAdmin}
+			<Button variant="danger" size="sm" onclick={() => (open = true)}>
 				<Trash size={16} aria-hidden="true" />
 				Hapus akun saya
 			</Button>
-		</div>
+		{/if}
+	</div>
+	{#if isAdmin}
+		<p class="text-sm text-foreground" data-testid="delete-account-admin">
+			Akun admin tidak bisa dihapus sendiri. Minta maintainer lain mencabut peran admin kamu dulu.
+		</p>
 	{/if}
 </section>
 
@@ -136,6 +128,8 @@
 		<li>Akun, notifikasi, masukan, dan sambungan GitHub atau Google di Sakala langsung dihapus.</li>
 		<li>Akses GitHub App di sisi GitHub perlu kamu cabut sendiri.</li>
 	</ul>
+
+	<p class="mt-4 text-sm text-foreground">Unduh salinan datamu dulu kalau masih perlu.</p>
 
 	<div class="mt-5 space-y-4">
 		<FormField

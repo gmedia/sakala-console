@@ -687,7 +687,7 @@ test.describe('profile', () => {
 
 		await page.goto('/profile');
 
-		await expect(page.getByLabel('Bergabung sejak')).toHaveValue('15 Maret 2026');
+		await expect(page.getByTestId('profile-facts')).toContainText('bergabung 15 Maret 2026');
 	});
 
 	test('the photo dialog traps focus, closes on Esc, and gives focus back', async ({ page }) => {

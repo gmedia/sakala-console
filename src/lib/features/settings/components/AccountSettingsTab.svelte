@@ -13,7 +13,6 @@
 	} from '$lib/features/auth/availability';
 
 	import AccountDataSection from './AccountDataSection.svelte';
-	import DeleteAccountSection from './DeleteAccountSection.svelte';
 
 	const MIN_PASSWORD_LENGTH = 8;
 
@@ -131,26 +130,25 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<section aria-labelledby="email-card-title" class="surface-card space-y-4 p-6">
-		<div>
+<!-- Deleting the account is the page's `after`, so it stays last below the panel on a phone. -->
+<div class="flex flex-col gap-4">
+	<section aria-labelledby="email-card-title" class="surface-card flex flex-col gap-4 p-4 sm:p-6">
+		<div class="flex flex-col gap-1">
 			<h2 id="email-card-title" class="font-sans text-base font-semibold text-foreground">Email</h2>
-			<p class="mt-0.5 text-xs text-muted">
-				Alamat email dipakai untuk login dan notifikasi penting.
+			<p class="text-sm text-muted">
+				Sekarang <strong class="font-semibold wrap-anywhere text-foreground">{user?.email}</strong>
 			</p>
 		</div>
 
-		<p class="text-sm text-foreground">
-			Email saat ini: <strong class="font-semibold">{user?.email}</strong>
-		</p>
-
 		{#if user?.pending_email && availability.emailActionsAvailable}
-			<div class="rounded-card bg-primary-50 p-4" role="status">
+			<div class="flex flex-col gap-1 rounded-card bg-primary-50 p-4" role="status">
 				<p class="text-sm font-semibold text-primary-dark">Cek email baru</p>
-				<p class="mt-1 text-xs text-foreground">
-					Buka tautan konfirmasi yang kami kirim ke <strong>{user.pending_email}</strong>. Emailmu
-					tetap {user.email} sampai tautan itu dibuka. Kalau tidak ada email masuk, cek folder spam, atau
-					alamat itu mungkin sudah dipakai akun lain.
+				<p class="text-sm text-foreground">
+					Buka tautan yang kami kirim ke <strong class="wrap-anywhere">{user.pending_email}</strong
+					>; sampai itu, emailmu tetap {user.email}.
+				</p>
+				<p class="text-sm text-foreground">
+					Tidak ada email? Cek folder spam, atau alamat itu sudah dipakai akun lain.
 				</p>
 			</div>
 		{/if}
@@ -158,53 +156,55 @@
 		{#if availability.isLoading}
 			<div class="skeleton h-24" role="progressbar" aria-label="Memuat pilihan ganti email"></div>
 		{:else if availability.emailDeliveryOff}
-			<p class="text-xs text-muted" role="status">{EMAIL_CHANGE_UNAVAILABLE_MESSAGE}</p>
+			<p class="text-sm text-muted" role="status">{EMAIL_CHANGE_UNAVAILABLE_MESSAGE}</p>
 		{:else if hasPassword}
-			<form class="space-y-3" onsubmit={handleEmailSubmit} novalidate>
-				<FormField
-					id="new-email"
-					label="Email baru"
-					type="email"
-					autocomplete="email"
-					placeholder="nama@contoh.com"
-					bind:value={newEmail}
-					error={emailErrors.email}
-				/>
-				<FormField
-					id="email-current-password"
-					label="Kata sandi saat ini"
-					type="password"
-					autocomplete="current-password"
-					placeholder="Masukkan kata sandi saat ini"
-					hint="Dipakai untuk memastikan ini memang kamu."
-					bind:value={emailPassword}
-					error={emailErrors.currentPassword}
-				/>
-				{#if emailErrors.general}
-					<p class="text-xs text-error-base" role="alert">{emailErrors.general}</p>
-				{/if}
-				<Button class="ml-auto flex" type="submit" disabled={!canSubmitEmail}>
-					{emailChange.isPending ? 'Mengirim...' : 'Ubah email'}
-				</Button>
+			<form class="flex flex-col gap-4" onsubmit={handleEmailSubmit} novalidate>
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+					<FormField
+						id="new-email"
+						label="Email baru"
+						type="email"
+						autocomplete="email"
+						placeholder="nama@contoh.com"
+						bind:value={newEmail}
+						error={emailErrors.email}
+					/>
+					<FormField
+						id="email-current-password"
+						label="Kata sandi saat ini"
+						type="password"
+						autocomplete="current-password"
+						bind:value={emailPassword}
+						error={emailErrors.currentPassword}
+					/>
+				</div>
+				<div class="flex flex-wrap items-center justify-end gap-3">
+					{#if emailErrors.general}
+						<p class="mr-auto text-sm text-error-base" role="alert">{emailErrors.general}</p>
+					{/if}
+					<Button type="submit" disabled={!canSubmitEmail}>
+						{emailChange.isPending ? 'Mengirim...' : 'Ubah email'}
+					</Button>
+				</div>
 			</form>
 		{:else}
-			<p class="text-xs text-muted">
-				Akunmu masuk lewat GitHub atau Google dan belum punya kata sandi. Buat kata sandi dulu di
-				bawah, baru kamu bisa mengganti email.
-			</p>
+			<p class="text-sm text-muted">Buat kata sandi dulu di bawah, baru email bisa diganti.</p>
 		{/if}
 	</section>
 
-	<section aria-labelledby="password-card-title" class="surface-card space-y-6 p-6">
+	<section
+		aria-labelledby="password-card-title"
+		class="surface-card flex flex-col gap-4 p-4 sm:p-6"
+	>
 		<div class="flex items-start justify-between gap-4">
-			<div>
+			<div class="flex flex-col gap-1">
 				<h2 id="password-card-title" class="font-sans text-base font-semibold text-foreground">
 					{hasPassword ? 'Ubah kata sandi' : 'Buat kata sandi'}
 				</h2>
-				<p class="mt-0.5 text-xs text-muted">
+				<p class="text-sm text-muted">
 					{hasPassword
 						? 'Kata sandi baru mengakhiri sesi di perangkat lain.'
-						: 'Dengan kata sandi, kamu juga bisa masuk tanpa GitHub atau Google.'}
+						: 'Supaya kamu juga bisa masuk tanpa GitHub atau Google.'}
 				</p>
 			</div>
 			<Button
@@ -227,44 +227,48 @@
 		{/if}
 
 		{#if isPasswordOpen}
-			<form id="password-form" class="space-y-5" onsubmit={handlePasswordSubmit} novalidate>
+			<form
+				id="password-form"
+				class="flex flex-col gap-4"
+				onsubmit={handlePasswordSubmit}
+				novalidate
+			>
 				{#if hasPassword}
 					<FormField
 						id="current-password"
 						label="Kata sandi saat ini"
 						type="password"
 						autocomplete="current-password"
-						placeholder="Masukkan kata sandi saat ini"
 						bind:value={currentPassword}
 						error={passwordErrors.currentPassword}
 					/>
 				{/if}
-				<FormField
-					id="new-password"
-					label="Kata sandi baru"
-					type="password"
-					autocomplete="new-password"
-					placeholder="Masukkan kata sandi baru"
-					hint="Minimal 8 karakter."
-					bind:value={newPassword}
-					error={passwordErrors.password ??
-						(newPasswordTooShort ? 'Kata sandi baru minimal 8 karakter.' : undefined)}
-				/>
-				<FormField
-					id="confirm-password"
-					label="Konfirmasi kata sandi baru"
-					type="password"
-					autocomplete="new-password"
-					placeholder="Masukkan ulang kata sandi baru"
-					bind:value={confirmPassword}
-					error={passwordErrors.confirmation ??
-						(passwordMismatch ? 'Konfirmasi kata sandi tidak cocok.' : undefined)}
-				/>
-				{#if passwordErrors.general}
-					<p class="text-xs text-error-base" role="alert">{passwordErrors.general}</p>
-				{/if}
-				<div class="pt-2">
-					<Button class="ml-auto flex" type="submit" disabled={!canSubmitPassword}>
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+					<FormField
+						id="new-password"
+						label="Kata sandi baru"
+						type="password"
+						autocomplete="new-password"
+						hint="Minimal 8 karakter."
+						bind:value={newPassword}
+						error={passwordErrors.password ??
+							(newPasswordTooShort ? 'Kata sandi baru minimal 8 karakter.' : undefined)}
+					/>
+					<FormField
+						id="confirm-password"
+						label="Konfirmasi kata sandi baru"
+						type="password"
+						autocomplete="new-password"
+						bind:value={confirmPassword}
+						error={passwordErrors.confirmation ??
+							(passwordMismatch ? 'Konfirmasi kata sandi tidak cocok.' : undefined)}
+					/>
+				</div>
+				<div class="flex flex-wrap items-center justify-end gap-3">
+					{#if passwordErrors.general}
+						<p class="mr-auto text-sm text-error-base" role="alert">{passwordErrors.general}</p>
+					{/if}
+					<Button type="submit" disabled={!canSubmitPassword}>
 						{#if passwordChange.isPending}
 							Menyimpan...
 						{:else}
@@ -277,5 +281,4 @@
 	</section>
 
 	<AccountDataSection />
-	<DeleteAccountSection />
 </div>

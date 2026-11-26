@@ -113,22 +113,15 @@
 	}
 </script>
 
-<div class="flex w-full max-w-reading flex-col gap-4">
-	<p class="text-sm text-muted">
-		Ceritakan yang kamu alami saat memakai Sakala selama pilot. Tidak wajib, dan tidak mengganggu
-		deployment yang sedang berjalan.
-	</p>
-
+<!-- The page puts this in the focused template; the title says what it is for. -->
+<div class="flex w-full flex-col gap-4">
 	{#if sent}
 		<Card class="flex flex-col gap-3 rounded-control p-4">
 			<div role="status" class="flex flex-col gap-3">
 				<h2 bind:this={successEl} tabindex="-1" class="text-xl outline-none">
 					Masukanmu sudah tersimpan
 				</h2>
-				<p class="text-sm">
-					Tim Sakala membacanya untuk memperbaiki produk. Form ini bukan jalur bantuan, jadi kamu
-					belum tentu mendapat balasan.
-				</p>
+				<p class="text-sm">Form ini bukan jalur bantuan, jadi kamu belum tentu mendapat balasan.</p>
 			</div>
 			<div>
 				<Button variant="secondary" onclick={writeAnother}>Tulis masukan lain</Button>
@@ -221,13 +214,13 @@
 						class="text-xs {messageError ? 'text-error-dark' : 'text-foreground/70'}"
 					>
 						{messageError ||
-							`${MESSAGE_MIN} sampai ${MESSAGE_MAX} karakter. Sekarang ${message.trim().length} karakter.`}
+							`${message.trim().length} dari ${MESSAGE_MAX} karakter, minimal ${MESSAGE_MIN}.`}
 					</p>
 				</div>
 
 				<p class="rounded-control bg-primary-50 p-3 text-sm">
-					Jangan menulis kata sandi, token, atau isi environment variable di sini. Masukan disimpan
-					di akunmu dan dibaca tim Sakala.
+					Jangan menulis kata sandi, token, atau isi environment variable; masukan dibaca tim
+					Sakala.
 				</p>
 
 				<label class="flex min-h-6 items-start gap-2 text-sm">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import UsersThree from 'phosphor-svelte/lib/UsersThree';
@@ -9,6 +10,9 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import InlineEditButton from '$lib/components/ui/InlineEditButton.svelte';
+	import InlineRenameForm from '$lib/components/ui/InlineRenameForm.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
 	import { useCurrentUser } from '$lib/features/auth/queries';
 	import { formatDate } from '$lib/utils/date';
 	import { useActiveWorkspace } from '../access.svelte';
@@ -16,8 +20,11 @@
 		createDeleteWorkspaceMutation,
 		createInviteMutation,
 		createLeaveWorkspaceMutation,
+		createRenameWorkspaceMutation,
 		createRevokeInvitationMutation
 	} from '../mutations';
+	import { limitBadgeLabel, workspaceLimitRows } from '../limits';
+	import { WORKSPACE_NAME_MAX_LENGTH, WORKSPACE_PAGE_COPY as COPY } from '../panel';
 	import {
 		ROLE_DESCRIPTIONS,
 		ROLE_LABELS,
@@ -38,8 +45,7 @@
 	import CreateWorkspaceDialog from './CreateWorkspaceDialog.svelte';
 	import InviteMemberDialog from './InviteMemberDialog.svelte';
 	import RemoveMemberDialog from './RemoveMemberDialog.svelte';
-	import RenameWorkspaceForm from './RenameWorkspaceForm.svelte';
-	import WorkspaceLimits from './WorkspaceLimits.svelte';
+	import WorkspacePanel from './WorkspacePanel.svelte';
 
 	let { workspaceId }: { workspaceId: string } = $props();
 
@@ -66,6 +72,20 @@
 	const myId = $derived(userQuery.data?.id);
 	const leaveBlocked = $derived(leaveGuard(workspace?.role, members));
 	const deleteBlocked = $derived(deleteGuard(limitsQuery.data?.quotas.current_projects_count));
+	const limitRows = $derived(limitsQuery.data ? workspaceLimitRows(limitsQuery.data) : []);
+
+	const RENAME_EDITOR_ID = 'workspace-rename';
+	const renameMutation = createRenameWorkspaceMutation();
+
+	// Renaming is rare and one field, so it opens in place under the name instead of a card.
+	let renaming = $state(false);
+	let renameTrigger = $state<HTMLElement | null>(null);
+
+	async function closeRename() {
+		renaming = false;
+		await tick();
+		renameTrigger?.focus();
+	}
 
 	let inviteOpen = $state(false);
 	let createOpen = $state(false);
@@ -244,48 +264,170 @@
 	</EmptyState>
 	<CreateWorkspaceDialog bind:open={createOpen} />
 {:else}
-	<div class="flex max-w-page flex-col gap-6 pb-12">
-		<section class="flex flex-wrap items-start justify-between gap-4">
-			<div class="min-w-0">
-				<h2 class="font-display text-2xl font-semibold wrap-anywhere text-foreground">
+	{#snippet panel()}
+		<WorkspacePanel limits={limitsQuery.data} />
+	{/snippet}
+
+	{#snippet danger()}
+		<!-- The page's danger zone (docs/UI_GUIDELINES.md): one row each, the reason under a button
+		     that cannot be used yet. -->
+		<div
+			class="flex min-w-0 flex-col divide-y divide-error/20 rounded-card border border-error/30 bg-surface"
+			data-testid="workspace-danger-zone"
+		>
+			<section class="flex min-w-0 flex-col gap-3 p-4 sm:p-5" aria-labelledby="leave-heading">
+				<div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+					<div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+						<h2 id="leave-heading" class="text-base text-error-dark">{COPY.leaveTitle}</h2>
+						<p class="text-sm text-foreground">{COPY.leaveBody}</p>
+					</div>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={Boolean(leaveBlocked)}
+						aria-describedby={leaveBlocked ? 'leave-blocked' : undefined}
+						onclick={(event) => {
+							remember(event);
+							leaveError = null;
+							leaveOpen = true;
+						}}
+					>
+						Keluar dari workspace
+					</Button>
+				</div>
+				{#if leaveBlocked}
+					<p id="leave-blocked" class="text-sm text-foreground" data-testid="leave-blocked">
+						{leaveBlocked}
+					</p>
+				{/if}
+			</section>
+			{#if isOwner}
+				<section class="flex min-w-0 flex-col gap-3 p-4 sm:p-5" aria-labelledby="delete-heading">
+					<div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+						<div class="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+							<h2 id="delete-heading" class="text-base text-error-dark">{COPY.deleteTitle}</h2>
+							<p class="text-sm text-foreground">{COPY.deleteBody}</p>
+						</div>
+						<Button
+							variant="danger"
+							size="sm"
+							disabled={Boolean(deleteBlocked)}
+							aria-describedby={deleteBlocked ? 'delete-blocked' : undefined}
+							onclick={(event) => {
+								remember(event);
+								deleteError = null;
+								deleteOpen = true;
+							}}
+						>
+							Hapus workspace
+						</Button>
+					</div>
+					{#if deleteBlocked}
+						<p id="delete-blocked" class="text-sm text-foreground" data-testid="delete-blocked">
+							{deleteBlocked}
+						</p>
+					{/if}
+				</section>
+			{/if}
+		</div>
+	{/snippet}
+
+	<!-- The form template: the workspace's people left, how roles and limits work right, leaving and
+	     deleting last on every screen. -->
+	<FormPageLayout panelLabel={COPY.panelLabel} {panel} after={danger}>
+		<section class="flex min-w-0 flex-col gap-2" aria-labelledby="workspace-title">
+			<div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+				<h2
+					id="workspace-title"
+					class="min-w-0 font-display text-2xl font-semibold wrap-anywhere text-foreground"
+				>
 					{workspace.name}
 				</h2>
-				<p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-					<span>Workspace tim</span>
-					<span aria-hidden="true">·</span>
-					<span
-						>Peranmu: <strong class="font-medium text-foreground"
-							>{ROLE_LABELS[workspace.role]}</strong
-						></span
-					>
-					<span aria-hidden="true">·</span>
-					<span data-testid="workspace-counts">{workspaceCountsLabel(workspace)}</span>
-				</p>
+				{#if isOwner}
+					<InlineEditButton
+						subject="nama workspace"
+						expanded={renaming}
+						controls={RENAME_EDITOR_ID}
+						onclick={() => (renaming = !renaming)}
+						bind:ref={renameTrigger}
+						testid="edit-workspace-name"
+					/>
+				{/if}
 			</div>
-			{#if isOwner}
-				<Button onclick={() => (inviteOpen = true)}>
-					<UserPlus size={16} aria-hidden="true" />
-					Undang anggota
-				</Button>
+			{#if renaming}
+				<InlineRenameForm
+					id={RENAME_EDITOR_ID}
+					label="Nama workspace"
+					hint={COPY.renameHint(workspace.slug)}
+					value={workspace.name}
+					maxLength={WORKSPACE_NAME_MAX_LENGTH}
+					noun="workspace"
+					save={(name) => renameMutation.mutateAsync({ workspaceId: workspace.id, name })}
+					errorMessage={(error) => workspaceErrorMessage(error, COPY.renameFallback)}
+					onClose={closeRename}
+					testid="workspace-rename"
+				/>
+			{/if}
+			<p
+				class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
+				data-testid="workspace-facts"
+			>
+				<Badge tone={workspace.role === 'owner' ? 'running' : 'neutral'}>
+					<span class="sr-only">{COPY.yourRole}</span>
+					{ROLE_LABELS[workspace.role]}
+				</Badge>
+				<span class="text-foreground">{COPY.team}</span>
+				<span aria-hidden="true">·</span>
+				{#if limitsQuery.data}
+					<span data-testid="limit-profile">
+						{limitsQuery.data.limit_profile
+							? COPY.profile(limitsQuery.data.limit_profile.name)
+							: COPY.defaultProfile}
+					</span>
+				{:else}
+					<span data-testid="workspace-counts">{workspaceCountsLabel(workspace)}</span>
+				{/if}
+			</p>
+			{#if limitsQuery.isPending}
+				<div
+					class="skeleton h-6 w-64 max-w-full"
+					role="status"
+					aria-label={COPY.loadingLimits}
+				></div>
+			{:else if limitRows.length > 0}
+				<ul
+					class="flex flex-wrap items-center gap-1.5"
+					aria-label={COPY.quotasLabel}
+					data-testid="workspace-quotas"
+				>
+					{#each limitRows as row (row.label)}
+						<li>
+							<Badge tone={row.reached ? 'warning' : 'neutral'}>
+								{limitBadgeLabel(row)}{#if row.reached}, {COPY.full}{/if}
+							</Badge>
+						</li>
+					{/each}
+				</ul>
 			{/if}
 		</section>
 
 		{#if workspace.role === 'viewer'}
-			<p
-				class="rounded-control border border-info/20 bg-info/10 p-3 text-sm text-foreground"
-				data-testid="viewer-note"
-			>
+			<p class="text-sm text-muted" data-testid="viewer-note">
 				Kamu pengamat di workspace ini. {ROLE_DESCRIPTIONS.viewer}
 			</p>
 		{/if}
-
-		<WorkspaceLimits limits={limitsQuery.data} isLoading={limitsQuery.isPending} />
 
 		<section class="surface-card flex flex-col gap-4 p-4 sm:p-6" aria-labelledby="members-heading">
 			<div class="flex flex-wrap items-center justify-between gap-2">
 				<h3 id="members-heading" class="text-base font-semibold text-foreground">
 					Anggota{members.length ? ` (${members.length})` : ''}
 				</h3>
+				{#if isOwner}
+					<Button size="sm" onclick={() => (inviteOpen = true)}>
+						<UserPlus size={16} aria-hidden="true" />
+						Undang anggota
+					</Button>
+				{/if}
 			</div>
 
 			{#if membersQuery.isPending}
@@ -357,9 +499,7 @@
 							{/if}
 							{#if isOwner && guard.isLastOwner}
 								<p class="basis-full text-xs text-muted" data-testid="last-owner-note">
-									{isSelf
-										? 'Kamu satu-satunya pemilik. Jadikan anggota lain pemilik dulu sebelum menurunkan peranmu atau keluar.'
-										: guard.reason}
+									{isSelf ? COPY.selfLastOwner : guard.reason}
 								</p>
 							{/if}
 						</li>
@@ -388,10 +528,7 @@
 						</Button>
 					</div>
 				{:else if invitations.length === 0}
-					<p class="text-sm text-muted">
-						Belum ada undangan yang menunggu. Undangan yang diterima langsung pindah ke daftar
-						anggota.
-					</p>
+					<p class="text-sm text-muted">{COPY.noInvitations}</p>
 				{:else}
 					<ul class="divide-y divide-border border-t border-border" data-testid="invitation-list">
 						{#each invitations as invitation (invitation.id)}
@@ -444,67 +581,12 @@
 						{/each}
 					</ul>
 					{#if hasExpired}
-						<p class="text-xs text-muted">
-							Tautan undangan yang kedaluwarsa tidak bisa dipakai lagi. Kirim ulang membuat tautan
-							baru untuk email dan peran yang sama.
-						</p>
+						<p class="text-sm text-muted">{COPY.expiredNote}</p>
 					{/if}
 				{/if}
 			</section>
-
-			<RenameWorkspaceForm {workspace} />
-
-			<section class="surface-card flex flex-col gap-3 p-4 sm:p-6" aria-labelledby="delete-heading">
-				<h3 id="delete-heading" class="text-base font-semibold text-foreground">Hapus workspace</h3>
-				<p class="text-sm text-muted">
-					Workspace hanya bisa dihapus kalau sudah tidak punya proyek. Anggota dan undangannya ikut
-					hilang.
-				</p>
-				{#if deleteBlocked}
-					<p class="text-sm text-foreground" data-testid="delete-blocked">{deleteBlocked}</p>
-				{/if}
-				<div>
-					<Button
-						variant="danger"
-						disabled={Boolean(deleteBlocked)}
-						onclick={(event) => {
-							remember(event);
-							deleteError = null;
-							deleteOpen = true;
-						}}
-					>
-						Hapus workspace
-					</Button>
-				</div>
-			</section>
 		{/if}
-
-		<section class="surface-card flex flex-col gap-3 p-4 sm:p-6" aria-labelledby="leave-heading">
-			<h3 id="leave-heading" class="text-base font-semibold text-foreground">
-				Keluar dari workspace
-			</h3>
-			<p class="text-sm text-muted">
-				Kamu langsung kehilangan akses ke proyek di workspace ini. Proyek yang kamu buat tetap milik
-				workspace.
-			</p>
-			{#if leaveBlocked}
-				<p class="text-sm text-foreground" data-testid="leave-blocked">{leaveBlocked}</p>
-			{/if}
-			<div>
-				<Button
-					variant="secondary"
-					disabled={Boolean(leaveBlocked)}
-					onclick={(event) => {
-						remember(event);
-						leaveError = null;
-						leaveOpen = true;
-					}}
-				>
-					Keluar dari workspace
-				</Button>
-			</div>
-		</section>
-	</div>
+	</FormPageLayout>
 
 	{#if isOwner}
 		<InviteMemberDialog

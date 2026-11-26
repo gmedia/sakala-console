@@ -89,6 +89,16 @@ export const MONOREPO_GUIDE_URL = docsPageUrl(
  */
 export const VARIABLES_GUIDE_URL = docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.variables);
 
+/**
+ * sakala-landing's `src/content/docs/batas-pilot.md`: the limits a workspace starts with, what a
+ * limit profile changes, and when projects sleep. The workspace page links its first section.
+ */
+export const WORKSPACE_LIMITS_GUIDE_URL = docsPageUrl(
+	siteLinks.docsUrl,
+	DOCS_PAGES.pilotLimits,
+	'batas-per-workspace'
+);
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = siteLinks.abuseEmail;
 

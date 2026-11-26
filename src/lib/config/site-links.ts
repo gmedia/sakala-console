@@ -41,6 +41,7 @@ export const DOCS_PAGES = {
 	managedBuckets: 'bucket-terkelola',
 	managedDatabases: 'database-terkelola',
 	monorepo: 'monorepo',
+	pilotLimits: 'batas-pilot',
 	releaseCommand: 'perintah-rilis',
 	variables: 'variabel-dan-secret',
 	roadmap: 'proyek/roadmap'

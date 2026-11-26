@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Links are resolveRoute() output from overview/links.ts.
 	/* eslint-disable svelte/no-navigation-without-resolve */
+	import { sectionNavLinkClass } from '$lib/components/layout/section-nav';
 	import { settingsPageHref } from '../../overview/links';
 	import type { SettingsPage, SettingsSection } from '../../settings-anchors';
 	import { SETTINGS_PANEL_COPY as COPY } from '../../settings-panel';
@@ -26,9 +27,7 @@
 					href={settingsPageHref(projectId, section.page)}
 					aria-current={active ? 'page' : undefined}
 					aria-label={unsaved.has(section.page) ? `${section.label}, ${COPY.unsaved}` : undefined}
-					class="inline-flex min-h-8 items-center gap-1.5 rounded-control px-3 text-sm font-medium transition-colors max-sm:min-h-control-lg {active
-						? 'bg-primary-50 text-primary-dark'
-						: 'text-muted hover:bg-background-soft hover:text-foreground'}"
+					class={sectionNavLinkClass(active)}
 				>
 					{section.label}
 					{#if unsaved.has(section.page)}

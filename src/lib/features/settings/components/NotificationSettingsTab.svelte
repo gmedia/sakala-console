@@ -1,8 +1,5 @@
 <script lang="ts">
-	import Bell from 'phosphor-svelte/lib/Bell';
 	import Check from 'phosphor-svelte/lib/Check';
-	import ShieldCheck from 'phosphor-svelte/lib/ShieldCheck';
-	import UsersThree from 'phosphor-svelte/lib/UsersThree';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { getErrorMessage, getFieldError } from '$lib/api/errors';
 	import type {
@@ -11,10 +8,10 @@
 		NotificationPreferencesChange
 	} from '$lib/api/resources/notifications';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import Switch from '$lib/components/ui/Switch.svelte';
 	import { useUpdateNotificationPreferences } from '$lib/features/notifications/mutations';
 	import { createNotificationPreferencesQuery } from '$lib/features/notifications/queries';
-	import NotificationSectionCard from './NotificationSectionCard.svelte';
 
 	type Row = {
 		category: NotificationCategory;
@@ -47,16 +44,21 @@
 	const TEAM_ROW: Row = {
 		category: 'workspace',
 		title: 'Undangan dan keanggotaan tim',
-		description:
-			'Undangan ke emailmu, undangan yang kamu kirim diterima, serta peranmu diubah atau kamu dikeluarkan dari tim.',
+		description: 'Undangan, undangan yang diterima, dan perubahan peranmu di tim.',
 		email: false
 	};
 	const SECURITY_ROW: Row = {
 		category: 'account_security',
 		title: 'Perubahan kata sandi dan email',
-		description: 'Kabari kalau kata sandi atau email akunmu berubah.',
+		description: 'Saat kata sandi atau email akunmu berubah.',
 		email: false
 	};
+	/** One card, three groups: the switches line up under one pair of column names. */
+	const GROUPS: { id: string; title: string; rows: Row[] }[] = [
+		{ id: 'projects', title: 'Aktivitas proyek', rows: PROJECT_ROWS },
+		{ id: 'team', title: 'Tim', rows: [TEAM_ROW] },
+		{ id: 'security', title: 'Keamanan akun', rows: [SECURITY_ROW] }
+	];
 	const BELL_CATEGORIES: NotificationCategory[] = [
 		...PROJECT_ROWS.map((row) => row.category),
 		TEAM_ROW.category,
@@ -182,7 +184,7 @@
 {#snippet columns()}
 	<!-- The switches name their channel themselves; these headings are for the eye. -->
 	<div
-		class="hidden gap-x-4 pb-1 text-xs font-semibold text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_5rem_7.5rem]"
+		class="hidden gap-x-4 text-xs font-semibold text-muted sm:grid sm:grid-cols-[minmax(0,1fr)_5rem_7.5rem]"
 		aria-hidden="true"
 	>
 		<span></span>
@@ -201,17 +203,12 @@
 		<Button variant="link" onclick={() => preferencesQuery.refetch()}>Coba lagi</Button>
 	</div>
 {:else}
-	<div class="space-y-6">
-		<p class="text-sm text-foreground">
-			Lonceng adalah notifikasi di Console. Email dikirim ke alamat akunmu, supaya kamu tetap tahu
-			saat Console tidak dibuka. Setiap perubahan langsung tersimpan.
-		</p>
-
-		<div class="surface-card flex items-start justify-between gap-4 p-6">
-			<div>
+	<div class="flex flex-col gap-4">
+		<section class="surface-card flex items-start justify-between gap-4 p-4 sm:p-6">
+			<div class="flex flex-col gap-1">
 				<h2 class="font-sans text-base font-semibold text-foreground">Semua notifikasi lonceng</h2>
-				<p id="{uid}-master-description" class="mt-0.5 text-xs text-muted">
-					Menyalakan atau mematikan semua kategori di lonceng sekaligus. Email diatur per kategori.
+				<p id="{uid}-master-description" class="text-sm text-muted">
+					Langsung tersimpan. Email diatur per kategori.
 				</p>
 				{@render note(ALL_ROW)}
 			</div>
@@ -222,23 +219,35 @@
 				busy={feedback.get(ALL_ROW)?.kind === 'saving'}
 				onToggle={toggleAllBell}
 			/>
-		</div>
+		</section>
 
-		<NotificationSectionCard title="Aktivitas proyek" icon={Bell}>
+		<section
+			class="surface-card flex flex-col gap-3 p-4 sm:p-6"
+			aria-labelledby="{uid}-categories"
+			data-testid="notification-categories"
+		>
+			<h2 id="{uid}-categories" class="font-sans text-base font-semibold text-foreground">
+				Per kategori
+			</h2>
 			{@render columns()}
-			{#each PROJECT_ROWS as item (item.category)}
-				{@render row(item)}
+			{#each GROUPS as group (group.id)}
+				<div role="group" aria-labelledby="{uid}-{group.id}" class="border-t border-border pt-3">
+					<h3 id="{uid}-{group.id}" class="text-sm font-semibold text-primary-dark">
+						{group.title}
+					</h3>
+					<div class="divide-y divide-border">
+						{#each group.rows as item (item.category)}
+							{@render row(item)}
+						{/each}
+					</div>
+				</div>
 			{/each}
-		</NotificationSectionCard>
-
-		<NotificationSectionCard title="Tim" icon={UsersThree}>
-			{@render columns()}
-			{@render row(TEAM_ROW)}
-		</NotificationSectionCard>
-
-		<NotificationSectionCard title="Keamanan akun" icon={ShieldCheck}>
-			{@render columns()}
-			{@render row(SECURITY_ROW)}
-		</NotificationSectionCard>
+			<LearnMore topic="lonceng dan email" testid="notification-channels-help">
+				<p>
+					Lonceng adalah notifikasi di Console. Email dikirim ke alamat akunmu, supaya kamu tetap
+					tahu saat Console tidak dibuka.
+				</p>
+			</LearnMore>
+		</section>
 	</div>
 {/if}

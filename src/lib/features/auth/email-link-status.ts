@@ -15,19 +15,17 @@ export const EMAIL_VERIFIED_CONTENT: Record<EmailLinkStatus, AuthStatusContent> 
 	success: {
 		tone: 'success',
 		title: 'Verifikasi email berhasil',
-		description: 'Emailmu sudah terverifikasi. Masuk untuk mulai menyiapkan proyek pertamamu.'
+		description: 'Masuk untuk mulai menyiapkan proyek pertamamu.'
 	},
 	error: {
 		tone: 'error',
 		title: 'Tautan verifikasi tidak berlaku',
-		description:
-			'Tautan ini salah atau sudah kedaluwarsa, jadi emailmu belum terverifikasi. Minta tautan baru di bawah.'
+		description: 'Tautan ini salah atau sudah kedaluwarsa; minta tautan baru di bawah.'
 	},
 	unknown: {
 		tone: 'unknown',
 		title: 'Status verifikasi tidak diketahui',
-		description:
-			'Halaman ini tidak bisa memastikan hasil verifikasimu. Coba masuk: kalau emailmu belum terverifikasi, kamu bisa meminta tautan baru di sana.'
+		description: 'Coba masuk; kalau emailmu belum terverifikasi, minta tautan baru di sana.'
 	}
 };
 
@@ -40,12 +38,11 @@ export const EMAIL_CHANGED_CONTENT: Record<EmailLinkStatus, AuthStatusContent> =
 	error: {
 		tone: 'error',
 		title: 'Tautan ganti email tidak berlaku',
-		description:
-			'Tautan ini salah, sudah dipakai, atau sudah kedaluwarsa, jadi emailmu belum berubah. Minta lagi dari Pengaturan.'
+		description: 'Tautan ini salah, sudah dipakai, atau kedaluwarsa; minta lagi dari Pengaturan.'
 	},
 	unknown: {
 		tone: 'unknown',
 		title: 'Status ganti email tidak diketahui',
-		description: 'Halaman ini tidak bisa memastikan hasilnya. Cek email akunmu di Pengaturan.'
+		description: 'Cek email akunmu di Pengaturan.'
 	}
 };
