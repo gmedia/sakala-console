@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { AUDIT_ALIASES, type AuditEvent } from '$lib/api/resources/admin/audit';
 	import Button from '$lib/components/ui/Button.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
@@ -67,11 +68,7 @@
 	}
 </script>
 
-<AdminPageHeader
-	title="Audit"
-	crumbs={[{ label: 'Audit' }]}
-	description="Catatan setiap aksi admin dan kejadian penting, terbaru dulu. Alasan yang ditulis admin ada di setiap aksi."
->
+<AdminPageHeader title="Audit" crumbs={[{ label: 'Audit' }]}>
 	{#snippet actions()}
 		<TimeRangeFilter
 			id="audit"
@@ -82,125 +79,139 @@
 	{/snippet}
 </AdminPageHeader>
 
-<form class="mb-4 flex flex-wrap items-end gap-3" onsubmit={applyText}>
-	<div class="min-w-0 flex-1 basis-56">
-		<label for="audit-action" class="mb-1 block text-xs font-medium text-muted">Aksi (persis)</label
-		>
-		<input
-			id="audit-action"
-			class="control-input font-mono"
-			bind:value={action}
-			placeholder="project.suspend_requested"
-		/>
-	</div>
-	<FilterSelect
-		id="audit-actor-type"
-		label="Tipe pelaku"
-		value={list.actor_type}
-		options={TYPE_OPTIONS}
-		onChange={(value) => url.update({ actor_type: value })}
-	/>
-	<div class="basis-32">
-		<label for="audit-actor-id" class="mb-1 block text-xs font-medium text-muted">ID pelaku</label>
-		<input id="audit-actor-id" class="control-input font-mono" bind:value={actorId} />
-	</div>
-	<FilterSelect
-		id="audit-subject-type"
-		label="Tipe subjek"
-		value={list.subject_type}
-		options={TYPE_OPTIONS}
-		onChange={(value) => url.update({ subject_type: value })}
-	/>
-	<div class="basis-56">
-		<label for="audit-subject-id" class="mb-1 block text-xs font-medium text-muted">ID subjek</label
-		>
-		<input id="audit-subject-id" class="control-input font-mono" bind:value={subjectId} />
-	</div>
-	<Button type="submit" variant="secondary" size="lg">Terapkan</Button>
-	{#if hasFilters}
-		<Button
-			variant="secondary"
-			size="lg"
-			onclick={() =>
-				url.update({
-					action: null,
-					actor_type: null,
-					actor_id: null,
-					subject_type: null,
-					subject_id: null
-				})}>Hapus filter</Button
-		>
-	{/if}
-</form>
-{#if list.actor_type && !list.actor_id}
-	<p class="mb-3 text-sm text-warning" role="status">
-		Isi ID pelaku juga; tipe pelaku saja tidak dipakai sebagai filter.
-	</p>
-{/if}
+<ListPageLayout>
+	{#snippet controls()}
+		<form class="flex min-w-0 flex-1 flex-wrap items-end gap-3" onsubmit={applyText}>
+			<div class="min-w-0 flex-1 basis-56">
+				<label for="audit-action" class="mb-1 block text-xs font-medium text-muted"
+					>Aksi (persis)</label
+				>
+				<input
+					id="audit-action"
+					class="control-input font-mono"
+					bind:value={action}
+					placeholder="project.suspend_requested"
+				/>
+			</div>
+			<FilterSelect
+				id="audit-actor-type"
+				label="Tipe pelaku"
+				value={list.actor_type}
+				options={TYPE_OPTIONS}
+				onChange={(value) => url.update({ actor_type: value })}
+			/>
+			<div class="basis-32">
+				<label for="audit-actor-id" class="mb-1 block text-xs font-medium text-muted"
+					>ID pelaku</label
+				>
+				<input id="audit-actor-id" class="control-input font-mono" bind:value={actorId} />
+			</div>
+			<FilterSelect
+				id="audit-subject-type"
+				label="Tipe subjek"
+				value={list.subject_type}
+				options={TYPE_OPTIONS}
+				onChange={(value) => url.update({ subject_type: value })}
+			/>
+			<div class="basis-56">
+				<label for="audit-subject-id" class="mb-1 block text-xs font-medium text-muted"
+					>ID subjek</label
+				>
+				<input id="audit-subject-id" class="control-input font-mono" bind:value={subjectId} />
+			</div>
+			<Button type="submit" variant="secondary" size="lg">Terapkan</Button>
+			{#if hasFilters}
+				<Button
+					variant="secondary"
+					size="lg"
+					onclick={() =>
+						url.update({
+							action: null,
+							actor_type: null,
+							actor_id: null,
+							subject_type: null,
+							subject_id: null
+						})}>Hapus filter</Button
+				>
+			{/if}
+		</form>
+	{/snippet}
 
-{#if query.isError && !query.data}
-	<AdminError error={query.error} what="audit log" onRetry={() => query.refetch()} />
-{:else}
-	<AdminTable
-		caption="Audit event"
-		columns={[
-			{ label: 'Waktu' },
-			{ label: 'Aksi' },
-			{ label: 'Pelaku' },
-			{ label: 'Subjek' },
-			{ label: 'Alasan dan rincian' }
-		]}
-		loading={query.isPending}
-		fetching={query.isPlaceholderData}
-		empty={query.data?.data.length === 0}
-		emptyTitle="Tidak ada audit event"
-		emptyText={hasFilters ? 'Ubah atau hapus filter.' : 'Belum ada yang tercatat di rentang ini.'}
-	>
-		{#snippet rows()}
-			{#each query.data?.data ?? [] as event (event.id)}
-				{@const reason = typeof event.metadata.reason === 'string' ? event.metadata.reason : null}
-				<tr class="align-top">
-					<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(event.created_at)}</td>
-					<td class="px-4 py-3 font-mono text-xs font-medium">{event.action}</td>
-					<td class="px-4 py-3">{actor(event)}</td>
-					<td class="px-4 py-3">
-						<span class="font-mono text-xs">{event.subject.type ?? '-'}</span>
-						<p
-							class="max-w-40 truncate font-mono text-xs text-muted"
-							title={event.subject.id ?? ''}
-						>
-							{event.subject.id ?? ''}
-						</p>
-					</td>
-					<td class="max-w-md px-4 py-3">
-						{#if reason}<p class="wrap-anywhere">{reason}</p>{/if}
-						<details class="mt-1">
-							<summary
-								class="inline-flex min-h-6 cursor-pointer items-center text-xs font-medium text-primary-dark"
-								>Rincian</summary
-							>
-							<pre
-								class="mt-1 overflow-x-auto rounded-control bg-background-soft p-2 font-mono text-xs">{JSON.stringify(
-									event.metadata,
-									null,
-									2
-								)}</pre>
-							{#if event.ip_address || event.user_agent}
-								<p class="mt-1 text-xs wrap-anywhere text-muted">
-									{event.ip_address ?? ''}
-									{event.user_agent ?? ''}
+	{#if list.actor_type && !list.actor_id}
+		<p class="text-sm text-warning" role="status">
+			Isi ID pelaku juga; tipe pelaku saja tidak dipakai sebagai filter.
+		</p>
+	{/if}
+
+	{#if query.isError && !query.data}
+		<AdminError error={query.error} what="audit log" onRetry={() => query.refetch()} />
+	{:else}
+		<div class="flex min-w-0 flex-col">
+			<AdminTable
+				caption="Audit event"
+				columns={[
+					{ label: 'Waktu' },
+					{ label: 'Aksi' },
+					{ label: 'Pelaku' },
+					{ label: 'Subjek' },
+					{ label: 'Alasan dan rincian' }
+				]}
+				loading={query.isPending}
+				fetching={query.isPlaceholderData}
+				empty={query.data?.data.length === 0}
+				emptyTitle="Tidak ada audit event"
+				emptyText={hasFilters
+					? 'Ubah atau hapus filter.'
+					: 'Belum ada yang tercatat di rentang ini.'}
+			>
+				{#snippet rows()}
+					{#each query.data?.data ?? [] as event (event.id)}
+						{@const reason =
+							typeof event.metadata.reason === 'string' ? event.metadata.reason : null}
+						<tr class="align-top">
+							<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(event.created_at)}</td>
+							<td class="px-4 py-3 font-mono text-xs font-medium">{event.action}</td>
+							<td class="px-4 py-3">{actor(event)}</td>
+							<td class="px-4 py-3">
+								<span class="font-mono text-xs">{event.subject.type ?? '-'}</span>
+								<p
+									class="max-w-40 truncate font-mono text-xs text-muted"
+									title={event.subject.id ?? ''}
+								>
+									{event.subject.id ?? ''}
 								</p>
-							{/if}
-						</details>
-					</td>
-				</tr>
-			{/each}
-		{/snippet}
-	</AdminTable>
-	<ListPagination
-		meta={query.data?.meta}
-		noun="event"
-		busy={query.isFetching}
-		onPageChange={(page) => url.update({ page })}
-	/>
-{/if}
+							</td>
+							<td class="max-w-md px-4 py-3">
+								{#if reason}<p class="wrap-anywhere">{reason}</p>{/if}
+								<details class="mt-1">
+									<summary
+										class="inline-flex min-h-6 cursor-pointer items-center text-xs font-medium text-primary-dark"
+										>Rincian</summary
+									>
+									<pre
+										class="mt-1 overflow-x-auto rounded-control bg-background-soft p-2 font-mono text-xs">{JSON.stringify(
+											event.metadata,
+											null,
+											2
+										)}</pre>
+									{#if event.ip_address || event.user_agent}
+										<p class="mt-1 text-xs wrap-anywhere text-muted">
+											{event.ip_address ?? ''}
+											{event.user_agent ?? ''}
+										</p>
+									{/if}
+								</details>
+							</td>
+						</tr>
+					{/each}
+				{/snippet}
+			</AdminTable>
+			<ListPagination
+				meta={query.data?.meta}
+				noun="event"
+				busy={query.isFetching}
+				onPageChange={(page) => url.update({ page })}
+			/>
+		</div>
+	{/if}
+</ListPageLayout>

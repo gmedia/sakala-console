@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import { formatDuration } from '$lib/utils/date';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
@@ -54,13 +56,9 @@
 	const hasFilters = $derived(Boolean(list.search || list.category || list.code));
 </script>
 
-<AdminPageHeader
-	title="Analisis kegagalan"
-	crumbs={[{ label: 'Analisis kegagalan' }]}
-	description="Deployment yang gagal di semua proyek, dikelompokkan dengan kategori yang sama yang dilihat pemilik proyek."
->
+<AdminPageHeader title="Analisis kegagalan" crumbs={[{ label: 'Analisis kegagalan' }]}>
 	{#snippet meta()}
-		<span>Dibaca ulang tiap 5 menit</span>
+		<span>{rangeText}, hari penuh WIB · dibaca ulang tiap 5 menit</span>
 	{/snippet}
 	{#snippet actions()}
 		<TimeRangeFilter
@@ -70,152 +68,166 @@
 			onChange={(next) => url.update(rangePatch(next))}
 		/>
 	{/snippet}
-	<p class="text-sm">
-		Rentang: <strong>{rangeText}</strong> <span class="text-muted">(hari penuh WIB)</span>
-	</p>
 </AdminPageHeader>
 
-<section aria-labelledby="failure-summary" class="mb-6">
-	<h2 id="failure-summary" class="mb-3 text-base">Kategori error</h2>
-	{#if summaryQuery.isError && !summary}
-		<AdminError
-			error={summaryQuery.error}
-			what="ringkasan kegagalan"
-			onRetry={() => summaryQuery.refetch()}
-		/>
-	{:else}
-		<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-			<MetricCard
-				label="Semua deployment gagal"
-				help={summary?.previous_total === null
-					? 'Sepanjang waktu, tanpa pembanding.'
-					: 'Panah: dibanding rentang sama panjang sebelumnya. Naik berarti memburuk.'}
-				loading={summaryQuery.isPending}
-				tone="error"
-				value={formatNumber(summary?.total ?? 0)}
-				trend={summary && summary.previous_total !== null
-					? trend(summary.total, summary.previous_total, false)
-					: null}
+<ListPageLayout>
+	<section aria-labelledby="failure-summary" class="flex flex-col gap-3">
+		<h2 id="failure-summary" class="text-base">Kategori error</h2>
+		{#if summaryQuery.isError && !summary}
+			<AdminError
+				error={summaryQuery.error}
+				what="ringkasan kegagalan"
+				onRetry={() => summaryQuery.refetch()}
 			/>
-			{#each topCategories as row (row.category)}
+		{:else}
+			<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 				<MetricCard
-					label={failureCategoryLabel(row.category)}
-					help={FAILURE_CATEGORIES[row.category]?.help ?? ''}
-					value={formatNumber(row.count)}
+					label="Semua deployment gagal"
+					loading={summaryQuery.isPending}
 					tone="error"
-					trend={row.previous_count !== null ? trend(row.count, row.previous_count, false) : null}
+					value={formatNumber(summary?.total ?? 0)}
+					trend={summary && summary.previous_total !== null
+						? trend(summary.total, summary.previous_total, false)
+						: null}
 				/>
-			{/each}
-		</div>
-		{#if summary && summary.total === 0}
-			<p class="mt-3 text-sm text-muted">Tidak ada deployment gagal di rentang ini.</p>
-		{/if}
-	{/if}
-</section>
-
-<section aria-labelledby="failure-list">
-	<h2 id="failure-list" class="mb-3 text-base">Deployment gagal</h2>
-	<ListToolbar
-		id="failures"
-		searchLabel="Cari nama atau slug proyek"
-		search={list.search}
-		onSearch={(value) => url.update({ search: value }, { replace: true })}
-		{hasFilters}
-		onReset={() => url.update({ search: null, category: null, code: null })}
-	>
-		{#snippet filters()}
-			<FilterSelect
-				id="failures-category"
-				label="Kategori"
-				value={list.category}
-				options={FAILURE_CATEGORY_OPTIONS}
-				onChange={(value) => url.update({ category: value })}
-			/>
-			<FilterSelect
-				id="failures-code"
-				label="Kode"
-				value={list.code}
-				options={(summary?.codes ?? [])
-					.filter((row) => row.code !== null)
-					.map((row) => ({ value: row.code!, label: `${row.code} (${row.count})` }))}
-				onChange={(value) => url.update({ code: value })}
-			/>
-		{/snippet}
-	</ListToolbar>
-
-	{#if listQuery.isError && !listQuery.data}
-		<AdminError
-			error={listQuery.error}
-			what="daftar kegagalan"
-			onRetry={() => listQuery.refetch()}
-		/>
-	{:else}
-		<AdminTable
-			caption="Deployment gagal"
-			columns={[
-				{ label: 'Proyek' },
-				{ label: 'Waktu' },
-				{ label: 'Kategori' },
-				{ label: 'Alasan gagal' },
-				{ label: 'Durasi' },
-				{ label: 'Detail', srOnly: true }
-			]}
-			loading={listQuery.isPending}
-			fetching={listQuery.isPlaceholderData}
-			empty={listQuery.data?.data.length === 0}
-			emptyTitle={hasFilters ? 'Tidak ada kegagalan yang cocok' : 'Tidak ada deployment gagal'}
-			emptyText={hasFilters
-				? 'Ubah pencarian atau hapus filter.'
-				: 'Di rentang ini semua deployment selesai tanpa gagal, atau belum ada deployment.'}
-		>
-			{#snippet rows()}
-				{#each listQuery.data?.data ?? [] as row (row.id)}
-					<tr class="hover:bg-background">
-						<td class="px-4 py-3">
-							{#if row.project}
-								<span class="font-medium">{row.project.name}</span>
-								<p class="text-xs text-muted">
-									#{row.sequence}{row.project.deleted ? ' · proyek dihapus' : ''}
-								</p>
-							{:else}-{/if}
-						</td>
-						<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(row.created_at)}</td>
-						<td class="px-4 py-3">
-							<Badge tone="error">{failureCategoryLabel(row.failure.category)}</Badge>
-							{#if row.failure.code}<p class="mt-1 font-mono text-xs text-muted">
-									{row.failure.code}
-								</p>{/if}
-						</td>
-						<td class="max-w-md px-4 py-3">
-							<p class="line-clamp-2 wrap-anywhere">{row.failure.summary ?? 'Tanpa ringkasan'}</p>
-							{#if row.failure.detail}<p
-									class="line-clamp-1 font-mono text-xs wrap-anywhere text-muted"
-								>
-									{row.failure.detail}
-								</p>{/if}
-						</td>
-						<td class="px-4 py-3 whitespace-nowrap"
-							>{row.duration_seconds === null ? '-' : formatDuration(row.duration_seconds)}</td
-						>
-						<td class="px-4 py-3 text-right">
-							<a
-								href={resolve(`/admin/deployments/${row.id}`)}
-								class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
-							>
-								Detail<span class="sr-only">
-									deployment #{row.sequence} {row.project?.name ?? ''}</span
-								>
-							</a>
-						</td>
-					</tr>
+				{#each topCategories as row (row.category)}
+					<MetricCard
+						label={failureCategoryLabel(row.category)}
+						value={formatNumber(row.count)}
+						tone="error"
+						trend={row.previous_count !== null ? trend(row.count, row.previous_count, false) : null}
+					/>
 				{/each}
+			</div>
+			{#if summary && summary.total === 0}
+				<p class="text-sm text-muted">Tidak ada deployment gagal di rentang ini.</p>
+			{/if}
+			<LearnMore topic="kategori dan panah">
+				<p>
+					{summary?.previous_total === null
+						? 'Sepanjang waktu, tanpa pembanding.'
+						: 'Panah: dibanding rentang sama panjang sebelumnya. Naik berarti memburuk.'}
+				</p>
+				{#if topCategories.length}
+					<dl class="grid gap-x-3 gap-y-1 sm:grid-cols-[auto_1fr]">
+						{#each topCategories as row (row.category)}
+							<dt class="font-medium">{failureCategoryLabel(row.category)}</dt>
+							<dd>{FAILURE_CATEGORIES[row.category]?.help ?? ''}</dd>
+						{/each}
+					</dl>
+				{/if}
+			</LearnMore>
+		{/if}
+	</section>
+
+	<section aria-labelledby="failure-list" class="flex flex-col gap-3">
+		<h2 id="failure-list" class="text-base">Deployment gagal</h2>
+		<ListToolbar
+			id="failures"
+			searchLabel="Cari nama atau slug proyek"
+			search={list.search}
+			onSearch={(value) => url.update({ search: value }, { replace: true })}
+			{hasFilters}
+			onReset={() => url.update({ search: null, category: null, code: null })}
+		>
+			{#snippet filters()}
+				<FilterSelect
+					id="failures-category"
+					label="Kategori"
+					value={list.category}
+					options={FAILURE_CATEGORY_OPTIONS}
+					onChange={(value) => url.update({ category: value })}
+				/>
+				<FilterSelect
+					id="failures-code"
+					label="Kode"
+					value={list.code}
+					options={(summary?.codes ?? [])
+						.filter((row) => row.code !== null)
+						.map((row) => ({ value: row.code!, label: `${row.code} (${row.count})` }))}
+					onChange={(value) => url.update({ code: value })}
+				/>
 			{/snippet}
-		</AdminTable>
-		<ListPagination
-			meta={listQuery.data?.meta}
-			noun="kegagalan"
-			busy={listQuery.isFetching}
-			onPageChange={(page) => url.update({ page })}
-		/>
-	{/if}
-</section>
+		</ListToolbar>
+
+		{#if listQuery.isError && !listQuery.data}
+			<AdminError
+				error={listQuery.error}
+				what="daftar kegagalan"
+				onRetry={() => listQuery.refetch()}
+			/>
+		{:else}
+			<div class="flex min-w-0 flex-col">
+				<AdminTable
+					caption="Deployment gagal"
+					columns={[
+						{ label: 'Proyek' },
+						{ label: 'Waktu' },
+						{ label: 'Kategori' },
+						{ label: 'Alasan gagal' },
+						{ label: 'Durasi' },
+						{ label: 'Detail', srOnly: true }
+					]}
+					loading={listQuery.isPending}
+					fetching={listQuery.isPlaceholderData}
+					empty={listQuery.data?.data.length === 0}
+					emptyTitle={hasFilters ? 'Tidak ada kegagalan yang cocok' : 'Tidak ada deployment gagal'}
+					emptyText={hasFilters
+						? 'Ubah pencarian atau hapus filter.'
+						: 'Di rentang ini semua deployment selesai tanpa gagal, atau belum ada deployment.'}
+				>
+					{#snippet rows()}
+						{#each listQuery.data?.data ?? [] as row (row.id)}
+							<tr class="hover:bg-background">
+								<td class="px-4 py-3">
+									{#if row.project}
+										<span class="font-medium">{row.project.name}</span>
+										<p class="text-xs text-muted">
+											#{row.sequence}{row.project.deleted ? ' · proyek dihapus' : ''}
+										</p>
+									{:else}-{/if}
+								</td>
+								<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(row.created_at)}</td>
+								<td class="px-4 py-3">
+									<Badge tone="error">{failureCategoryLabel(row.failure.category)}</Badge>
+									{#if row.failure.code}<p class="mt-1 font-mono text-xs text-muted">
+											{row.failure.code}
+										</p>{/if}
+								</td>
+								<td class="max-w-md px-4 py-3">
+									<p class="line-clamp-2 wrap-anywhere">
+										{row.failure.summary ?? 'Tanpa ringkasan'}
+									</p>
+									{#if row.failure.detail}<p
+											class="line-clamp-1 font-mono text-xs wrap-anywhere text-muted"
+										>
+											{row.failure.detail}
+										</p>{/if}
+								</td>
+								<td class="px-4 py-3 whitespace-nowrap"
+									>{row.duration_seconds === null ? '-' : formatDuration(row.duration_seconds)}</td
+								>
+								<td class="px-4 py-3 text-right">
+									<a
+										href={resolve(`/admin/deployments/${row.id}`)}
+										class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
+									>
+										Detail<span class="sr-only">
+											deployment #{row.sequence} {row.project?.name ?? ''}</span
+										>
+									</a>
+								</td>
+							</tr>
+						{/each}
+					{/snippet}
+				</AdminTable>
+				<ListPagination
+					meta={listQuery.data?.meta}
+					noun="kegagalan"
+					busy={listQuery.isFetching}
+					onPageChange={(page) => url.update({ page })}
+				/>
+			</div>
+		{/if}
+	</section>
+</ListPageLayout>

@@ -6,13 +6,15 @@
 	import { getFieldError } from '$lib/api/errors';
 	import type { ProvisionedAgent } from '$lib/api/resources/admin/agents';
 	import { formatRelativeTime } from '$lib/utils/date';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import AdminPageHeader from '../AdminPageHeader.svelte';
+	import CountLinks from '../CountLinks.svelte';
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
 	import ListToolbar from '../ListToolbar.svelte';
 	import FilterSelect from '../FilterSelect.svelte';
 	import ListPagination from '../ListPagination.svelte';
-	import MetricCard from '../MetricCard.svelte';
 	import ReasonDialog from '../ReasonDialog.svelte';
 	import TokenOnceDialog from '../TokenOnceDialog.svelte';
 	import { publicConfig } from '$lib/config/public';
@@ -26,7 +28,6 @@
 		agentName,
 		agentStatus,
 		authStatus,
-		formatNumber,
 		formatWibDate
 	} from '../../format';
 
@@ -48,6 +49,31 @@
 	const offlineQuery = createAdminCountQuery('agents', () => ({ status: 'offline' }));
 	const neverSeenQuery = createAdminCountQuery('agents', () => ({ never_seen: '1' }));
 	const revokedQuery = createAdminCountQuery('agents', () => ({ auth_status: 'revoked' }));
+
+	// The four counts each open the list filtered to them; what they mean is folded under them.
+	const listHref = resolve('/admin/agents');
+	const counts = $derived([
+		{ key: 'total', label: 'terdaftar', count: totalQuery.data, href: listHref },
+		{
+			key: 'offline',
+			label: 'offline',
+			count: offlineQuery.data,
+			href: `${listHref}?status=offline`,
+			alert: true
+		},
+		{
+			key: 'never',
+			label: 'belum pernah terhubung',
+			count: neverSeenQuery.data,
+			href: `${listHref}?never_seen=1`
+		},
+		{
+			key: 'revoked',
+			label: 'token dicabut',
+			count: revokedQuery.data,
+			href: `${listHref}?auth_status=revoked`
+		}
+	]);
 
 	const provision = createProvisionAgentMutation();
 	let formOpen = $state(false);
@@ -82,11 +108,7 @@
 	const nameInvalid = $derived(!name.trim() || name.length > 120);
 </script>
 
-<AdminPageHeader
-	title="Runtime node"
-	crumbs={[{ label: 'Runtime node' }]}
-	description="Node yang menjalankan build dan deployment. Status berasal dari heartbeat terakhir agent."
->
+<AdminPageHeader title="Runtime node" crumbs={[{ label: 'Runtime node' }]}>
 	{#snippet actions()}
 		<Button onclick={openForm}>
 			<Plus size={16} weight="bold" aria-hidden="true" />
@@ -95,142 +117,133 @@
 	{/snippet}
 </AdminPageHeader>
 
-<section aria-labelledby="agents-summary" class="mb-6">
-	<h2 id="agents-summary" class="sr-only">Ringkasan node</h2>
-	<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-		<MetricCard
-			label="Node terdaftar"
-			help="Semua node, termasuk yang tokennya dicabut."
-			loading={totalQuery.isPending}
-			value={formatNumber(totalQuery.data ?? 0)}
-		/>
-		<MetricCard
-			label="Offline"
-			help="Heartbeat berhenti. Deployment tidak dijadwalkan ke sana."
-			tone="error"
-			loading={offlineQuery.isPending}
-			value={formatNumber(offlineQuery.data ?? 0)}
-		/>
-		<MetricCard
-			label="Belum pernah terhubung"
-			help="Token sudah dibuat, tapi agent belum mengirim heartbeat pertama."
-			loading={neverSeenQuery.isPending}
-			value={formatNumber(neverSeenQuery.data ?? 0)}
-		/>
-		<MetricCard
-			label="Token dicabut"
-			help="Node ini tidak bisa lagi autentikasi atau menerima command."
-			loading={revokedQuery.isPending}
-			value={formatNumber(revokedQuery.data ?? 0)}
-		/>
-	</div>
-</section>
-
-<ListToolbar
-	id="agents"
-	searchLabel="Cari nama, agent ID, atau hostname"
-	search={list.search}
-	onSearch={(value) => url.update({ search: value }, { replace: true })}
-	{hasFilters}
-	onReset={() => url.update({ search: null, status: null, auth_status: null, never_seen: null })}
->
-	{#snippet filters()}
-		<FilterSelect
-			id="agents-status"
-			label="Status"
-			value={list.status}
-			options={AGENT_STATUS_OPTIONS}
-			onChange={(value) => url.update({ status: value })}
-		/>
-		<FilterSelect
-			id="agents-auth"
-			label="Token"
-			value={list.auth_status}
-			options={AUTH_STATUS_OPTIONS}
-			onChange={(value) => url.update({ auth_status: value })}
-		/>
-		<FilterSelect
-			id="agents-never"
-			label="Heartbeat"
-			value={list.never_seen}
-			allLabel="Semua"
-			options={[{ value: '1', label: 'Belum pernah terhubung' }]}
-			onChange={(value) => url.update({ never_seen: value })}
-		/>
+<ListPageLayout>
+	{#snippet toolbar()}
+		<div class="flex min-w-0 flex-wrap items-start gap-x-4 gap-y-2">
+			<CountLinks label="Ringkasan node" items={counts} />
+			<LearnMore topic="status node">
+				<dl class="grid gap-x-3 gap-y-1 sm:grid-cols-[auto_1fr]">
+					<dt class="font-medium">Offline</dt>
+					<dd>Heartbeat berhenti. Deployment tidak dijadwalkan ke sana.</dd>
+					<dt class="font-medium">Belum pernah terhubung</dt>
+					<dd>Token sudah dibuat, tapi agent belum mengirim heartbeat pertama.</dd>
+					<dt class="font-medium">Token dicabut</dt>
+					<dd>Node tidak bisa lagi autentikasi atau menerima command.</dd>
+				</dl>
+			</LearnMore>
+		</div>
 	{/snippet}
-</ListToolbar>
+	{#snippet controls()}
+		<ListToolbar
+			id="agents"
+			searchLabel="Cari nama, agent ID, atau hostname"
+			search={list.search}
+			onSearch={(value) => url.update({ search: value }, { replace: true })}
+			{hasFilters}
+			onReset={() =>
+				url.update({ search: null, status: null, auth_status: null, never_seen: null })}
+		>
+			{#snippet filters()}
+				<FilterSelect
+					id="agents-status"
+					label="Status"
+					value={list.status}
+					options={AGENT_STATUS_OPTIONS}
+					onChange={(value) => url.update({ status: value })}
+				/>
+				<FilterSelect
+					id="agents-auth"
+					label="Token"
+					value={list.auth_status}
+					options={AUTH_STATUS_OPTIONS}
+					onChange={(value) => url.update({ auth_status: value })}
+				/>
+				<FilterSelect
+					id="agents-never"
+					label="Heartbeat"
+					value={list.never_seen}
+					allLabel="Semua"
+					options={[{ value: '1', label: 'Belum pernah terhubung' }]}
+					onChange={(value) => url.update({ never_seen: value })}
+				/>
+			{/snippet}
+		</ListToolbar>
+	{/snippet}
 
-{#if query.isError && !query.data}
-	<AdminError error={query.error} what="daftar node" onRetry={() => query.refetch()} />
-{:else}
-	<AdminTable
-		caption="Daftar runtime node"
-		columns={[
-			{ label: 'Node' },
-			{ label: 'Status' },
-			{ label: 'Token' },
-			{ label: 'Hostname' },
-			{ label: 'Network' },
-			{ label: 'Kemampuan' },
-			{ label: 'Terakhir aktif' }
-		]}
-		loading={query.isPending}
-		fetching={query.isPlaceholderData}
-		empty={query.data?.data.length === 0}
-		emptyTitle={hasFilters ? 'Tidak ada node yang cocok' : 'Belum ada node'}
-		emptyText={hasFilters
-			? 'Ubah pencarian atau hapus filter.'
-			: 'Daftarkan node pertama, lalu pasang token-nya di sakala-agent.'}
-	>
-		{#snippet rows()}
-			{#each query.data?.data ?? [] as agent (agent.id)}
-				{@const status = agentStatus(agent.status)}
-				{@const auth = authStatus(agent.auth_status)}
-				<tr class="hover:bg-background">
-					<td class="px-4 py-3">
-						<a
-							href={resolve(`/admin/agents/${agent.id}`)}
-							class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
-							>{agentName(agent)}</a
-						>
-						<p class="max-w-48 truncate font-mono text-xs text-muted" title={agent.agent_id}>
-							{agent.agent_id}
-						</p>
-					</td>
-					<td class="px-4 py-3"><Badge tone={status.tone}>{status.label}</Badge></td>
-					<td class="px-4 py-3"><Badge tone={auth.tone}>{auth.label}</Badge></td>
-					<td class="px-4 py-3 font-mono text-xs">{agent.hostname ?? '-'}</td>
-					<td class="px-4 py-3 font-mono text-xs">{agent.runtime_network ?? '-'}</td>
-					<td class="px-4 py-3">
-						<div class="flex flex-wrap gap-1">
-							{#each agent.capabilities as capability (capability)}
-								<span class="rounded-full bg-background-soft px-2 py-0.5 font-mono text-xs"
-									>{capability}</span
+	{#if query.isError && !query.data}
+		<AdminError error={query.error} what="daftar node" onRetry={() => query.refetch()} />
+	{:else}
+		<div class="flex min-w-0 flex-col">
+			<AdminTable
+				caption="Daftar runtime node"
+				columns={[
+					{ label: 'Node' },
+					{ label: 'Status' },
+					{ label: 'Token' },
+					{ label: 'Hostname' },
+					{ label: 'Network' },
+					{ label: 'Kemampuan' },
+					{ label: 'Terakhir aktif' }
+				]}
+				loading={query.isPending}
+				fetching={query.isPlaceholderData}
+				empty={query.data?.data.length === 0}
+				emptyTitle={hasFilters ? 'Tidak ada node yang cocok' : 'Belum ada node'}
+				emptyText={hasFilters
+					? 'Ubah pencarian atau hapus filter.'
+					: 'Daftarkan node pertama, lalu pasang token-nya di sakala-agent.'}
+			>
+				{#snippet rows()}
+					{#each query.data?.data ?? [] as agent (agent.id)}
+						{@const status = agentStatus(agent.status)}
+						{@const auth = authStatus(agent.auth_status)}
+						<tr class="hover:bg-background">
+							<td class="px-4 py-3">
+								<a
+									href={resolve(`/admin/agents/${agent.id}`)}
+									class="inline-flex min-h-6 items-center font-medium underline underline-offset-2"
+									>{agentName(agent)}</a
 								>
-							{:else}<span class="text-muted">-</span>{/each}
-						</div>
-					</td>
-					<td class="px-4 py-3 whitespace-nowrap">
-						{#if agent.last_seen_at}
-							{formatRelativeTime(agent.last_seen_at)}
-						{:else}
-							<span class="text-warning">Belum pernah</span>
-							<p class="text-xs text-muted">
-								dibuat {formatWibDate(agent.registered_at ?? agent.created_at)}
-							</p>
-						{/if}
-					</td>
-				</tr>
-			{/each}
-		{/snippet}
-	</AdminTable>
-	<ListPagination
-		meta={query.data?.meta}
-		noun="node"
-		busy={query.isFetching}
-		onPageChange={(page) => url.update({ page })}
-	/>
-{/if}
+								<p class="max-w-48 truncate font-mono text-xs text-muted" title={agent.agent_id}>
+									{agent.agent_id}
+								</p>
+							</td>
+							<td class="px-4 py-3"><Badge tone={status.tone}>{status.label}</Badge></td>
+							<td class="px-4 py-3"><Badge tone={auth.tone}>{auth.label}</Badge></td>
+							<td class="px-4 py-3 font-mono text-xs">{agent.hostname ?? '-'}</td>
+							<td class="px-4 py-3 font-mono text-xs">{agent.runtime_network ?? '-'}</td>
+							<td class="px-4 py-3">
+								<div class="flex flex-wrap gap-1">
+									{#each agent.capabilities as capability (capability)}
+										<span class="rounded-full bg-background-soft px-2 py-0.5 font-mono text-xs"
+											>{capability}</span
+										>
+									{:else}<span class="text-muted">-</span>{/each}
+								</div>
+							</td>
+							<td class="px-4 py-3 whitespace-nowrap">
+								{#if agent.last_seen_at}
+									{formatRelativeTime(agent.last_seen_at)}
+								{:else}
+									<span class="text-warning">Belum pernah</span>
+									<p class="text-xs text-muted">
+										dibuat {formatWibDate(agent.registered_at ?? agent.created_at)}
+									</p>
+								{/if}
+							</td>
+						</tr>
+					{/each}
+				{/snippet}
+			</AdminTable>
+			<ListPagination
+				meta={query.data?.meta}
+				noun="node"
+				busy={query.isFetching}
+				onPageChange={(page) => url.update({ page })}
+			/>
+		</div>
+	{/if}
+</ListPageLayout>
 
 <ReasonDialog
 	open={formOpen}

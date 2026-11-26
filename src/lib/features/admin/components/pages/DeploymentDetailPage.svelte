@@ -10,6 +10,9 @@
 	import AdminPageHeader from '../AdminPageHeader.svelte';
 	import AdminError from '../AdminError.svelte';
 	import DescriptionList from '../DescriptionList.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import { ADMIN_PANEL_COPY, deriveAdminDeploymentSteps } from '../../panel';
 	import {
 		createAdminDeploymentEventsQuery,
 		createAdminDeploymentLogsQuery,
@@ -30,6 +33,7 @@
 		deployment && eventsQuery.data ? normalizeDeploymentTimeline(deployment, eventsQuery.data) : []
 	);
 	const lines = $derived(flattenLogPages(logsQuery.data?.pages ?? []));
+	const panelSteps = $derived(detail ? deriveAdminDeploymentSteps(detail) : []);
 	const title = $derived(
 		detail ? `${detail.project?.name ?? 'Proyek dihapus'} #${deployment?.sequence}` : 'Deployment'
 	);
@@ -39,7 +43,6 @@
 	{title}
 	documentTitle={`${title} · Deployment`}
 	crumbs={[{ label: 'Analisis kegagalan', href: resolve('/admin/failures') }, { label: title }]}
-	description="Detail deployment, timeline tahapnya, dan log yang dilaporkan node."
 >
 	{#if deployment}
 		{@const status = deploymentStatus(deployment.status)}
@@ -52,73 +55,81 @@
 {:else if !detail || !deployment}
 	<div class="skeleton h-64 w-full" role="status" aria-label="Sedang memuat"></div>
 {:else}
-	{#if failure}
-		<div class="mb-6 flex gap-3 rounded-card border border-error/20 bg-error-50 p-5" role="status">
-			<XCircle size={24} class="shrink-0 text-error" aria-hidden="true" />
-			<div class="min-w-0">
-				<p class="font-semibold text-error-dark">
-					{failureCategoryLabel(failure.category)}: {failure.summary}
-				</p>
-				{#if failure.detail}
-					<p class="mt-1 font-mono text-sm wrap-anywhere text-error-dark">{failure.detail}</p>
-				{/if}
-				<p class="mt-2 text-sm text-foreground">
-					{failure.user_fixable
-						? 'Perbaikan ada di sisi pemilik proyek.'
-						: 'Gangguan ada di sisi Sakala; pemilik cukup men-deploy ulang.'}
-					Saran untuk pemilik: {failure.recovery_hint}
-				</p>
-				<p class="mt-1 font-mono text-xs text-muted">
-					{failure.code}{failure.stage ? ` · tahap ${failure.stage}` : ''}
-				</p>
+	{#snippet panel()}
+		<PanelNextSteps steps={panelSteps} />
+	{/snippet}
+
+	<!-- The form template for the facts; the log below spans the full width, as on the member's
+	     deployment page, because log lines need the room. -->
+	<FormPageLayout panelLabel={ADMIN_PANEL_COPY.label} {panel}>
+		{#if failure}
+			<div class="flex gap-3 rounded-card border border-error/20 bg-error-50 p-5" role="status">
+				<XCircle size={24} class="shrink-0 text-error" aria-hidden="true" />
+				<div class="min-w-0">
+					<p class="font-semibold text-error-dark">
+						{failureCategoryLabel(failure.category)}: {failure.summary}
+					</p>
+					{#if failure.detail}
+						<p class="mt-1 font-mono text-sm wrap-anywhere text-error-dark">{failure.detail}</p>
+					{/if}
+					<p class="mt-2 text-sm text-foreground">
+						{failure.user_fixable
+							? 'Perbaikan ada di sisi pemilik proyek.'
+							: 'Gangguan ada di sisi Sakala; pemilik cukup men-deploy ulang.'}
+						Saran untuk pemilik: {failure.recovery_hint}
+					</p>
+					<p class="mt-1 font-mono text-xs text-muted">
+						{failure.code}{failure.stage ? ` · tahap ${failure.stage}` : ''}
+					</p>
+				</div>
+			</div>
+		{/if}
+
+		<div class="@container">
+			<div class="grid gap-6 @2xl:grid-cols-2">
+				<section aria-labelledby="deployment-info" class="flex min-w-0 flex-col gap-3">
+					<h2 id="deployment-info" class="text-base">Informasi</h2>
+					<DescriptionList
+						items={[
+							{ label: 'Proyek', content: projectLink },
+							{ label: 'Commit', value: deployment.commit_sha?.slice(0, 7) ?? '-', mono: true },
+							{ label: 'Pesan commit', value: deployment.commit_message },
+							{ label: 'Branch', value: deployment.branch, mono: true },
+							{ label: 'Pemicu', value: deployment.trigger },
+							{ label: 'Diminta oleh', content: requester },
+							{ label: 'Node', content: nodeLink },
+							{ label: 'Dibuat', value: formatWibDateTime(deployment.created_at) },
+							{
+								label: 'Durasi',
+								value:
+									detail.duration_seconds === null ? '-' : formatDuration(detail.duration_seconds)
+							}
+						]}
+					/>
+				</section>
+				<section aria-labelledby="deployment-timeline" class="flex min-w-0 flex-col gap-3">
+					<h2 id="deployment-timeline" class="text-base">Timeline</h2>
+					<div class="surface-card p-5">
+						{#if eventsQuery.isPending}
+							<div class="skeleton h-32 w-full"></div>
+						{:else if eventsQuery.isError}
+							<AdminError
+								error={eventsQuery.error}
+								what="timeline"
+								onRetry={() => eventsQuery.refetch()}
+							/>
+						{:else if steps.length === 0}
+							<p class="text-sm text-muted">Tidak ada tahap yang tercatat untuk deployment ini.</p>
+						{:else}
+							<DeploymentTimeline {steps} />
+						{/if}
+					</div>
+				</section>
 			</div>
 		</div>
-	{/if}
+	</FormPageLayout>
 
-	<div class="grid gap-6 lg:grid-cols-5">
-		<section aria-labelledby="deployment-info" class="flex min-w-0 flex-col gap-3 lg:col-span-3">
-			<h2 id="deployment-info" class="text-base">Informasi</h2>
-			<DescriptionList
-				items={[
-					{ label: 'Proyek', content: projectLink },
-					{ label: 'Commit', value: deployment.commit_sha?.slice(0, 7) ?? '-', mono: true },
-					{ label: 'Pesan commit', value: deployment.commit_message },
-					{ label: 'Branch', value: deployment.branch, mono: true },
-					{ label: 'Pemicu', value: deployment.trigger },
-					{ label: 'Diminta oleh', content: requester },
-					{ label: 'Node', content: nodeLink },
-					{ label: 'Dibuat', value: formatWibDateTime(deployment.created_at) },
-					{
-						label: 'Durasi',
-						value: detail.duration_seconds === null ? '-' : formatDuration(detail.duration_seconds)
-					}
-				]}
-			/>
-		</section>
-		<section
-			aria-labelledby="deployment-timeline"
-			class="flex min-w-0 flex-col gap-3 lg:col-span-2"
-		>
-			<h2 id="deployment-timeline" class="text-base">Timeline</h2>
-			<div class="surface-card p-5">
-				{#if eventsQuery.isPending}
-					<div class="skeleton h-32 w-full"></div>
-				{:else if eventsQuery.isError}
-					<AdminError
-						error={eventsQuery.error}
-						what="timeline"
-						onRetry={() => eventsQuery.refetch()}
-					/>
-				{:else if steps.length === 0}
-					<p class="text-sm text-muted">Tidak ada tahap yang tercatat untuk deployment ini.</p>
-				{:else}
-					<DeploymentTimeline {steps} />
-				{/if}
-			</div>
-		</section>
-	</div>
-
-	<section aria-labelledby="deployment-logs" class="mt-8 flex flex-col gap-3">
+	<section aria-labelledby="deployment-logs" class="mt-6 flex flex-col gap-3">
 		<h2 id="deployment-logs" class="text-base">Log</h2>
 		{#if logsQuery.isError}
 			<AdminError error={logsQuery.error} what="log" onRetry={() => logsQuery.refetch()} />

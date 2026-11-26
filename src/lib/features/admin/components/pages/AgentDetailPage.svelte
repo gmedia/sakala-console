@@ -10,6 +10,11 @@
 	import AdminError from '../AdminError.svelte';
 	import AdminTable from '../AdminTable.svelte';
 	import DescriptionList from '../DescriptionList.svelte';
+	import AdminDangerZone from '../AdminDangerZone.svelte';
+	import FormPageLayout from '$lib/components/layout/templates/FormPageLayout.svelte';
+	import PanelNextSteps from '$lib/components/panel/PanelNextSteps.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
+	import { ADMIN_PANEL_COPY, deriveAdminAgentSteps } from '../../panel';
 	import FilterSelect from '../FilterSelect.svelte';
 	import ListPagination from '../ListPagination.svelte';
 	import ReasonDialog from '../ReasonDialog.svelte';
@@ -106,6 +111,23 @@
 	}
 
 	const revoked = $derived(agent?.auth_status === 'revoked');
+	const steps = $derived(agent ? deriveAdminAgentSteps(agent) : []);
+	const dangerActions = $derived([
+		{
+			id: 'rotate',
+			label: 'Buat token baru',
+			onclick: () => open('rotate')
+		},
+		...(revoked
+			? []
+			: [
+					{
+						id: 'revoke',
+						label: 'Cabut token',
+						onclick: () => open('revoke')
+					}
+				])
+	]);
 </script>
 
 <AdminPageHeader
@@ -125,14 +147,6 @@
 			<code class="font-mono text-xs wrap-anywhere text-muted">{agent.agent_id}</code>
 		</div>
 	{/if}
-	{#snippet actions()}
-		{#if agent}
-			<Button variant="secondary" onclick={() => open('rotate')}>Buat token baru</Button>
-			{#if !revoked}
-				<Button variant="danger" onclick={() => open('revoke')}>Cabut token</Button>
-			{/if}
-		{/if}
-	{/snippet}
 </AdminPageHeader>
 
 {#if query.isError}
@@ -140,141 +154,158 @@
 {:else if !agent}
 	<div class="skeleton h-64 w-full" role="status" aria-label="Sedang memuat"></div>
 {:else}
-	<DescriptionList
-		items={[
-			{ label: 'Hostname', value: agent.hostname, mono: true },
-			{ label: 'Docker network', value: agent.runtime_network, mono: true },
-			{ label: 'Versi agent', value: agent.agent_version ?? 'Belum melapor', mono: true },
-			{ label: 'Protokol', value: agent.protocol_version },
-			{ label: 'Kemampuan', value: agent.capabilities.join(', ') || '-', mono: true },
-			{
-				label: 'Keadaan yang diminta',
-				value: DESIRED_STATE[agent.desired_state] ?? agent.desired_state
-			},
-			{ label: 'Workload aktif', value: formatNumber(agent.active_workload_count ?? 0) },
-			{ label: 'Command terbuka', value: formatNumber(agent.open_commands_count ?? 0) },
-			{ label: 'Prefix token', value: agent.token_prefix, mono: true },
-			{ label: 'Terdaftar', value: formatWibDateTime(agent.registered_at) },
-			{
-				label: 'Heartbeat terakhir',
-				value: agent.last_seen_at
-					? `${formatWibDateTime(agent.last_seen_at)} (${formatRelativeTime(agent.last_seen_at)})`
-					: 'Belum pernah terhubung'
-			},
-			{ label: 'Deskripsi', value: agent.description }
-		]}
-	/>
-	<p class="mt-2 text-xs text-muted">
-		Log proses sakala-agent tidak dikirim ke API, jadi tidak tampil di sini. Output deploy ada di
-		log deployment-nya.
-	</p>
+	{#snippet panel()}
+		<PanelNextSteps {steps} />
+	{/snippet}
 
-	<section aria-labelledby="command-history" class="mt-8">
-		<h2 id="command-history" class="mb-3 text-base">Riwayat command</h2>
-		<div class="mb-4 flex flex-wrap items-end gap-3">
-			<FilterSelect
-				id="commands-type"
-				label="Command"
-				value={list.type}
-				options={COMMAND_TYPES.map((value) => ({ value, label: value }))}
-				onChange={(value) => url.update({ type: value })}
-			/>
-			<FilterSelect
-				id="commands-status"
-				label="Status"
-				value={list.status}
-				options={COMMAND_STATUS_OPTIONS}
-				onChange={(value) => url.update({ status: value })}
-			/>
-			{#if list.type || list.status}
-				<Button
-					variant="secondary"
-					size="lg"
-					onclick={() => url.update({ type: null, status: null })}>Hapus filter</Button
-				>
-			{/if}
-		</div>
-		{#if commandsQuery.isError && !commandsQuery.data}
-			<AdminError
-				error={commandsQuery.error}
-				what="riwayat command"
-				onRetry={() => commandsQuery.refetch()}
-			/>
-		{:else}
-			<AdminTable
-				caption="Riwayat command node"
-				columns={[
-					{ label: 'Command' },
-					{ label: 'Proyek' },
-					{ label: 'Status' },
-					{ label: 'Dibuat' },
-					{ label: 'Durasi' },
-					{ label: 'Detail', srOnly: true }
-				]}
-				loading={commandsQuery.isPending}
-				fetching={commandsQuery.isPlaceholderData}
-				empty={commandsQuery.data?.data.length === 0}
-				emptyTitle="Belum ada command"
-				emptyText={list.type || list.status
-					? 'Ubah atau hapus filter.'
-					: 'Node ini belum menerima command apa pun.'}
-			>
-				{#snippet rows()}
-					{#each commandsQuery.data?.data ?? [] as command (command.id)}
-						{@const status = commandStatus(command.status)}
-						<tr>
-							<td class="px-4 py-3 font-mono text-xs font-medium">{command.type}</td>
-							<td class="px-4 py-3">
-								{#if command.project}
-									{#if command.project.deleted}{command.project.name} (dihapus){:else}
-										<a
-											href={resolve(`/admin/projects/${command.project.id}`)}
-											class="inline-flex min-h-6 items-center underline underline-offset-2"
-											>{command.project.name}</a
-										>
-									{/if}
-								{:else}<span class="text-muted">Tingkat node</span>{/if}
-							</td>
-							<td class="px-4 py-3">
-								<Badge tone={status.tone}>{status.label}</Badge>
-								{#if command.error_code}<p class="mt-1 font-mono text-xs text-muted">
-										{command.error_code}
-									</p>{/if}
-							</td>
-							<td class="px-4 py-3 whitespace-nowrap">{formatWibDateTime(command.created_at)}</td>
-							<td class="px-4 py-3 whitespace-nowrap"
-								>{command.duration_seconds === null
-									? '-'
-									: formatDuration(command.duration_seconds)}</td
-							>
-							<td class="px-4 py-3 text-right">
-								{#if command.type === 'DeployProject' && command.deployment_id}
-									<a
-										href={resolve(`/admin/deployments/${command.deployment_id}`)}
-										class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
+	{#snippet danger()}
+		<AdminDangerZone body="Node terputus sampai token baru dipasang." actions={dangerActions} />
+	{/snippet}
+
+	<FormPageLayout panelLabel={ADMIN_PANEL_COPY.label} {panel} after={danger}>
+		<DescriptionList
+			columns={2}
+			items={[
+				{ label: 'Hostname', value: agent.hostname, mono: true },
+				{ label: 'Docker network', value: agent.runtime_network, mono: true },
+				{ label: 'Versi agent', value: agent.agent_version ?? 'Belum melapor', mono: true },
+				{ label: 'Protokol', value: agent.protocol_version },
+				{ label: 'Kemampuan', value: agent.capabilities.join(', ') || '-', mono: true },
+				{
+					label: 'Keadaan yang diminta',
+					value: DESIRED_STATE[agent.desired_state] ?? agent.desired_state
+				},
+				{ label: 'Workload aktif', value: formatNumber(agent.active_workload_count ?? 0) },
+				{ label: 'Command terbuka', value: formatNumber(agent.open_commands_count ?? 0) },
+				{ label: 'Prefix token', value: agent.token_prefix, mono: true },
+				{ label: 'Terdaftar', value: formatWibDateTime(agent.registered_at) },
+				{
+					label: 'Heartbeat terakhir',
+					value: agent.last_seen_at
+						? `${formatWibDateTime(agent.last_seen_at)} (${formatRelativeTime(agent.last_seen_at)})`
+						: 'Belum pernah terhubung'
+				},
+				{ label: 'Deskripsi', value: agent.description }
+			]}
+		/>
+
+		<section aria-labelledby="command-history" class="flex flex-col gap-3">
+			<h2 id="command-history" class="text-base">Riwayat command</h2>
+			<div class="flex flex-wrap items-end gap-3">
+				<FilterSelect
+					id="commands-type"
+					label="Command"
+					value={list.type}
+					options={COMMAND_TYPES.map((value) => ({ value, label: value }))}
+					onChange={(value) => url.update({ type: value })}
+				/>
+				<FilterSelect
+					id="commands-status"
+					label="Status"
+					value={list.status}
+					options={COMMAND_STATUS_OPTIONS}
+					onChange={(value) => url.update({ status: value })}
+				/>
+				{#if list.type || list.status}
+					<Button
+						variant="secondary"
+						size="lg"
+						onclick={() => url.update({ type: null, status: null })}>Hapus filter</Button
+					>
+				{/if}
+			</div>
+			{#if commandsQuery.isError && !commandsQuery.data}
+				<AdminError
+					error={commandsQuery.error}
+					what="riwayat command"
+					onRetry={() => commandsQuery.refetch()}
+				/>
+			{:else}
+				<div class="flex min-w-0 flex-col">
+					<AdminTable
+						caption="Riwayat command node"
+						columns={[
+							{ label: 'Command' },
+							{ label: 'Proyek' },
+							{ label: 'Status' },
+							{ label: 'Dibuat' },
+							{ label: 'Durasi' },
+							{ label: 'Detail', srOnly: true }
+						]}
+						loading={commandsQuery.isPending}
+						fetching={commandsQuery.isPlaceholderData}
+						empty={commandsQuery.data?.data.length === 0}
+						emptyTitle="Belum ada command"
+						emptyText={list.type || list.status
+							? 'Ubah atau hapus filter.'
+							: 'Node ini belum menerima command apa pun.'}
+					>
+						{#snippet rows()}
+							{#each commandsQuery.data?.data ?? [] as command (command.id)}
+								{@const status = commandStatus(command.status)}
+								<tr>
+									<td class="px-4 py-3 font-mono text-xs font-medium">{command.type}</td>
+									<td class="px-4 py-3">
+										{#if command.project}
+											{#if command.project.deleted}{command.project.name} (dihapus){:else}
+												<a
+													href={resolve(`/admin/projects/${command.project.id}`)}
+													class="inline-flex min-h-6 items-center underline underline-offset-2"
+													>{command.project.name}</a
+												>
+											{/if}
+										{:else}<span class="text-muted">Tingkat node</span>{/if}
+									</td>
+									<td class="px-4 py-3">
+										<Badge tone={status.tone}>{status.label}</Badge>
+										{#if command.error_code}<p class="mt-1 font-mono text-xs text-muted">
+												{command.error_code}
+											</p>{/if}
+									</td>
+									<td class="px-4 py-3 whitespace-nowrap"
+										>{formatWibDateTime(command.created_at)}</td
 									>
-										Log deployment<span class="sr-only"> {command.type}</span>
-									</a>
-								{:else}
-									<Button variant="link" onclick={() => (selectedCommand = command.id)}>
-										Laporan<span class="sr-only">
-											{command.type} {formatWibDateTime(command.created_at)}</span
-										>
-									</Button>
-								{/if}
-							</td>
-						</tr>
-					{/each}
-				{/snippet}
-			</AdminTable>
-			<ListPagination
-				meta={commandsQuery.data?.meta}
-				noun="command"
-				busy={commandsQuery.isFetching}
-				onPageChange={(page) => url.update({ page })}
-			/>
-		{/if}
-	</section>
+									<td class="px-4 py-3 whitespace-nowrap"
+										>{command.duration_seconds === null
+											? '-'
+											: formatDuration(command.duration_seconds)}</td
+									>
+									<td class="px-4 py-3 text-right">
+										{#if command.type === 'DeployProject' && command.deployment_id}
+											<a
+												href={resolve(`/admin/deployments/${command.deployment_id}`)}
+												class="inline-flex min-h-6 items-center font-medium text-primary-dark underline underline-offset-2"
+											>
+												Log deployment<span class="sr-only"> {command.type}</span>
+											</a>
+										{:else}
+											<Button variant="link" onclick={() => (selectedCommand = command.id)}>
+												Laporan<span class="sr-only">
+													{command.type} {formatWibDateTime(command.created_at)}</span
+												>
+											</Button>
+										{/if}
+									</td>
+								</tr>
+							{/each}
+						{/snippet}
+					</AdminTable>
+					<ListPagination
+						meta={commandsQuery.data?.meta}
+						noun="command"
+						busy={commandsQuery.isFetching}
+						onPageChange={(page) => url.update({ page })}
+					/>
+				</div>
+			{/if}
+			<LearnMore topic="log node" label="Log node">
+				<p>
+					Log proses sakala-agent tidak dikirim ke API, jadi tidak tampil di sini. Output deploy ada
+					di log deployment-nya.
+				</p>
+			</LearnMore>
+		</section>
+	</FormPageLayout>
 
 	<Dialog
 		open={selectedCommand !== null}

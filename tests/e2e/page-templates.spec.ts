@@ -28,6 +28,7 @@ import {
 	succeededEvents,
 	succeededLogLines
 } from './fixtures/realistic-logs';
+import { ADMIN_ROUTES, ids, mockAdminApi } from './fixtures/admin';
 import { mockWizardApi } from './fixtures/create-project';
 import { attachedDatabase, laravelInspection } from './fixtures/wizard-env-database';
 import { cacheValkey, mockValkeyApi, QUEUE_ID, queueValkey } from './fixtures/valkeys';
@@ -949,6 +950,70 @@ test.describe('wizard, overview, schedule form, and Valkey screenshots and word 
 	}
 });
 
+/**
+ * The admin area (wave 5): every admin route, mocked from the captured sakala-api responses, and
+ * the custom domain list with the feature on. Counted under the header like the other pages; the
+ * template's own column where there is one, `#main-content` on the old pages.
+ */
+const ADMIN_REGIONS = {
+	mainColumn: ['[data-testid="list-page"]', '[data-testid="form-page-main"]', '#main-content'],
+	content: ['#main-content'],
+	page: ['body']
+};
+
+/** Loaded: the admin calls answered and no skeleton left in the content. */
+async function adminSettled(page: Page) {
+	await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+	await expect(page.locator('#main-content .skeleton')).toHaveCount(0);
+}
+
+async function mockAdminCustomDomains(page: Page) {
+	await mockAdminApi(page, {
+		override: (call) =>
+			call.path.startsWith('custom-domains') ? capturedDomain('admin-custom-domains') : undefined
+	});
+	await page.route(/\/api\/v1\/app\/pilot-limits(\?.*)?$/, (route) =>
+		route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify(capturedDomain('pilot-limits-domains').body)
+		})
+	);
+}
+
+const ADMIN_PAGES: Record<string, (page: Page) => Promise<void>> = {
+	...Object.fromEntries(
+		ADMIN_ROUTES.map(([name, path]) => [
+			name,
+			async (page: Page) => {
+				await mockAdminApi(page);
+				await page.goto(path);
+				await adminSettled(page);
+			}
+		])
+	),
+	'admin-custom-domains': async (page: Page) => {
+		await mockAdminCustomDomains(page);
+		await page.goto('/admin/custom-domains');
+		await adminSettled(page);
+		await expect(page.getByTestId('admin-custom-domain').first()).toBeVisible();
+	}
+};
+
+test.describe('admin screenshots and word counts', () => {
+	test.skip(!SHOTS_DIR, 'Only when SETTINGS_SHOTS names a folder.');
+
+	for (const [name, open] of Object.entries(ADMIN_PAGES)) {
+		for (const [label, width] of Object.entries(WIDTHS)) {
+			test(`${name} at ${width} px`, async ({ page }) => {
+				await page.setViewportSize({ width, height: 900 });
+				await open(page);
+				await capture(page, `${name}-${label}-${width}`, ADMIN_REGIONS);
+			});
+		}
+	}
+});
+
 test.describe('the page templates', () => {
 	/** Every page and state the templates were applied to, opened the way a person would. */
 	const PAGES: [string, (page: Page) => Promise<void>][] = [
@@ -999,7 +1064,8 @@ test.describe('the page templates', () => {
 		),
 		...Object.entries(LEFTOVER_PAGES).map(
 			([name, { open }]) => [name, open] as [string, (page: Page) => Promise<void>]
-		)
+		),
+		...Object.entries(ADMIN_PAGES)
 	];
 
 	/**
@@ -1033,6 +1099,46 @@ test.describe('the page templates', () => {
 			});
 		}
 	}
+
+	test('admin lists use the list template with their filters in its controls', async ({ page }) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await ADMIN_PAGES['admin-agents'](page);
+		const controls = page.getByTestId('list-page-controls');
+		await expect(
+			controls.getByRole('textbox', { name: 'Cari nama, agent ID, atau hostname' })
+		).toBeVisible();
+		await expect(controls.getByLabel('Status')).toBeVisible();
+		// The counts are badges that open the list filtered to them, not cards with sentences.
+		const counts = page.getByRole('list', { name: 'Ringkasan node' });
+		await counts.getByRole('link', { name: /offline/ }).click();
+		await expect(page).toHaveURL(/\/admin\/agents\?status=offline$/);
+		await expect(controls.getByLabel('Status')).toHaveValue('offline');
+	});
+
+	test('admin details use the form template: steps in the panel, stopping and suspending last', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: WIDTHS.wide, height: 900 });
+		await ADMIN_PAGES['admin-project'](page);
+		const panel = page.getByRole('complementary', { name: 'Langkah dan bantuan' });
+		await expect(panel.getByRole('heading', { level: 2 })).toHaveText(['Berikutnya', 'Bantuan']);
+		await expect(panel.getByRole('link', { name: 'Lihat audit' })).toHaveAttribute(
+			'href',
+			new RegExp(`/admin/audit\\?subject_type=project&subject_id=${ids.project}$`)
+		);
+		// Reconciling is safe and sits by Muat ulang; stopping and suspending are the danger zone.
+		await expect(page.locator('#main-content header')).toContainText('Rekonsiliasi');
+		const after = page.getByTestId('form-page-after');
+		await expect(after.getByRole('button')).toHaveText(['Hentikan', 'Tangguhkan']);
+		const [form, side] = [
+			(await page.getByTestId('form-page-main').boundingBox())!,
+			(await page.getByTestId('form-page-panel').boundingBox())!
+		];
+		expect(side.x).toBeGreaterThan(form.x + form.width);
+
+		await after.getByRole('button', { name: 'Tangguhkan' }).click();
+		await expect(page.getByRole('dialog', { name: 'Tangguhkan proyek?' })).toBeVisible();
+	});
 
 	test('two columns only with the sidebar shown and 56rem of content', async ({ page }) => {
 		await mockState(page, 'on-new');

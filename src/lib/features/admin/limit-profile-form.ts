@@ -31,7 +31,7 @@ export const PROFILE_GROUPS: readonly { id: ProfileFieldGroup; title: string; le
 	{
 		id: 'optional',
 		title: 'Opsional',
-		lead: 'Build per jam, tidur otomatis, replika, database, bucket, Valkey, custom domain, dan region. Kosong berarti ikut bawaan server.'
+		lead: 'Build, tidur, replika, database, bucket, Valkey, custom domain, dan region.'
 	}
 ];
 
@@ -41,7 +41,10 @@ export type ProfileNumberSpec = {
 	group: ProfileFieldGroup;
 	min: number;
 	max: number;
+	/** The whole rule; on the page it sits behind "Pelajari" when `short` is set. */
 	hint: string;
+	/** One line under the field (docs/UI_GUIDELINES.md, text budget). */
+	short?: string;
 	optional?: boolean;
 };
 
@@ -144,6 +147,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		max: 1000,
 		// What sakala-api's PilotRuntimeLimitService::checkBuildRateLimit() counts.
 		hint: `Deployment yang membangun image di workspace ini dalam 60 menit terakhir, termasuk yang gagal. Redeploy yang memakai ulang image tidak dihitung. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_BUILDS_PER_HOUR} kalau tidak diubah).`,
+		short: `Kosong berarti bawaan server (${SERVER_DEFAULT_BUILDS_PER_HOUR}).`,
 		optional: true
 	},
 	{
@@ -152,6 +156,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...IDLE_SLEEP_MINUTES_RANGE,
 		hint: `Kosong berarti ikut bawaan server, 0 berarti proyek tidak pernah tidur, atau 1 sampai ${formatNumber(IDLE_SLEEP_MINUTES_RANGE.max)} menit tanpa pengunjung.`,
+		short: '0 berarti proyek tidak pernah tidur.',
 		optional: true
 	},
 	{
@@ -160,6 +165,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_REPLICAS_RANGE,
 		hint: `Replika per proyek, ${MAX_REPLICAS_RANGE.min} sampai ${MAX_REPLICAS_RANGE.max}. Kosong berarti ${MAX_REPLICAS_RANGE.min}, jadi replika tidak aktif. Semua replika satu proyek berjalan di satu node, yang bisa membatasinya lebih rendah.`,
+		short: `${MAX_REPLICAS_RANGE.min} sampai ${MAX_REPLICAS_RANGE.max}. Kosong berarti ${MAX_REPLICAS_RANGE.min}.`,
 		optional: true
 	},
 	{
@@ -168,6 +174,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_DATABASES_RANGE,
 		hint: `Database terkelola per workspace. 0 berarti workspace ini tidak bisa membuat database. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_DATABASES} kalau tidak diubah). ${DATABASE_PILOT_NOTE}`,
+		short: '0 berarti tidak bisa membuat database.',
 		optional: true
 	},
 	{
@@ -176,6 +183,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_DATABASE_STORAGE_MB_RANGE,
 		hint: `Total ukuran semua database terkelola di workspace. Selama pemakaian mencapai batas ini, database workspace dikunci sampai ukurannya turun lagi; 0 berarti semuanya dikunci. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_DATABASE_STORAGE_MB)} MB kalau tidak diubah).`,
+		short: 'Total semua database di workspace.',
 		optional: true
 	},
 	{
@@ -184,6 +192,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_BUCKETS_RANGE,
 		hint: `Bucket S3 terkelola per workspace. 0 berarti workspace ini tidak bisa membuat bucket. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_BUCKETS} kalau tidak diubah, jadi bucket dibuka per workspace).`,
+		short: '0 berarti tidak bisa membuat bucket.',
 		optional: true
 	},
 	{
@@ -192,6 +201,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_BUCKET_STORAGE_MB_RANGE,
 		hint: `Jumlah kuota semua bucket di workspace, dipesan di disk server saat bucket dibuat. Menurunkannya tidak mengecilkan bucket yang ada, hanya menahan bucket baru dan kenaikan kuota; 0 berarti tidak ada bucket baru. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_BUCKET_STORAGE_MB)} MB kalau tidak diubah).`,
+		short: 'Kuota semua bucket, dipesan di disk.',
 		optional: true
 	},
 	{
@@ -200,6 +210,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_VALKEYS_RANGE,
 		hint: `Valkey terkelola per workspace. 0 berarti workspace ini tidak bisa membuat Valkey. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_VALKEYS} kalau tidak diubah, jadi Valkey dibuka per workspace). ${VALKEY_FLAG_NOTE}`,
+		short: '0 berarti tidak bisa membuat Valkey.',
 		optional: true
 	},
 	{
@@ -208,6 +219,7 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_VALKEY_MEMORY_MB_RANGE,
 		hint: `Jumlah ukuran semua Valkey di workspace (32, 64, atau 128 MB per Valkey), dicadangkan di server sejak Valkey dibuat. Menurunkannya tidak mengecilkan Valkey yang ada, hanya menahan Valkey baru dan pembesaran; 0 berarti tidak ada Valkey baru. Kosong berarti ikut bawaan server (${formatNumber(SERVER_DEFAULT_VALKEY_MEMORY_MB)} MB kalau tidak diubah).`,
+		short: 'Ukuran semua Valkey, dicadangkan di server.',
 		optional: true
 	},
 	{
@@ -216,9 +228,19 @@ export const PROFILE_NUMBER_FIELDS: readonly ProfileNumberSpec[] = [
 		group: 'optional',
 		...MAX_CUSTOM_DOMAINS_RANGE,
 		hint: `Custom domain semua proyek di workspace, termasuk yang menunggu DNS, gagal, atau nonaktif. 0 berarti workspace ini tidak bisa menambah domain. Menurunkannya tidak menghapus domain yang ada. Kosong berarti ikut bawaan server (${SERVER_DEFAULT_MAX_CUSTOM_DOMAINS} kalau tidak diubah). ${CUSTOM_DOMAIN_FLAG_NOTE}`,
+		short: 'Semua domain proyek, termasuk yang gagal.',
 		optional: true
 	}
 ];
+
+/** The region's line under its field, and the whole rule behind "Pelajari". */
+export const REGION_HINT = {
+	short: 'Untuk proyek dan database baru yang tidak memilih region.',
+	full: 'Proyek dan database baru di workspace ini memakai region ini kalau tidak memilih sendiri. Proyek yang sudah berjalan tetap di node-nya sampai di-deploy ulang ke node lain.'
+} as const;
+
+/** The Opsional group's rule for an empty field, said once above its fields. */
+export const OPTIONAL_EMPTY_RULE = 'Kosong berarti ikut bawaan server.';
 
 /** The region select's value for "any region", which the API takes as `null`. */
 export const ANY_REGION = '';

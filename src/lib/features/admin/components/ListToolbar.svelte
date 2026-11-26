@@ -27,7 +27,8 @@
 	});
 </script>
 
-<div class="mb-4 flex flex-wrap items-end gap-3">
+<!-- The `controls` of ListPageLayout: search and filters over the full width. -->
+<div class="flex min-w-0 flex-1 flex-wrap items-end gap-3">
 	{#if onSearch && searchLabel}
 		<div class="min-w-0 flex-1 basis-64">
 			<label for={`${id}-search`} class="mb-1 block text-xs font-medium text-muted">Cari</label>

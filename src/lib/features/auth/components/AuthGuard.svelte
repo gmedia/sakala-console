@@ -20,7 +20,7 @@
 	import CellSignalSlashIcon from 'phosphor-svelte/lib/CellSignalSlashIcon';
 	import ClockIcon from 'phosphor-svelte/lib/ClockIcon';
 	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
-	import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
+	import { ReloadIcon } from '$lib/components/icons';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -133,10 +133,10 @@
 			return {
 				title: 'Sesi kedaluwarsa',
 				description: 'Sesimu sudah tidak berlaku. Muat ulang halaman untuk melanjutkan.',
-				icon: ArrowsClockwiseIcon,
+				icon: ReloadIcon,
 				iconClass: 'text-muted',
 				iconBackgroundClass: 'bg-muted/10',
-				buttonIcon: ArrowsClockwiseIcon,
+				buttonIcon: ReloadIcon,
 				buttonText: 'Muat ulang halaman',
 				onRetry: () => window.location.reload()
 			};
@@ -156,7 +156,7 @@
 			icon: WarningIcon,
 			iconClass: 'text-error-base',
 			iconBackgroundClass: 'bg-error/10',
-			buttonIcon: ArrowsClockwiseIcon,
+			buttonIcon: ReloadIcon,
 			buttonText: 'Muat ulang halaman',
 			onRetry: () => window.location.reload()
 		};

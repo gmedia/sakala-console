@@ -4,7 +4,7 @@
 
 	type Props = {
 		title: string;
-		/** What is counted and over which range: every chart says both. */
+		/** What is counted; the range is in the page header, once for every chart. */
 		subtitle: string;
 		loading?: boolean;
 		empty?: boolean;
