@@ -2,9 +2,10 @@
 	// Links come from resolveRoute() in the routes helpers, some with a query string or anchor.
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import ArrowSquareOut from 'phosphor-svelte/lib/ArrowSquareOut';
-	import Database from 'phosphor-svelte/lib/Database';
 	import Warning from 'phosphor-svelte/lib/Warning';
+	import { DatabaseIcon } from '$lib/components/icons';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import InjectedVariables from '$lib/features/projects/components/detail/InjectedVariables.svelte';
 	import {
 		isLaravelStack,
 		LARAVEL_RELEASE_COMMAND,
@@ -65,7 +66,7 @@
 				id="database-variables-title"
 				class="flex min-w-0 items-center gap-2 text-base text-foreground"
 			>
-				<Database size={18} class="shrink-0 text-primary-dark" aria-hidden="true" />
+				<DatabaseIcon size={18} class="shrink-0 text-primary-dark" aria-hidden="true" />
 				<span class="min-w-0 wrap-anywhere">
 					Dari database <span class="font-mono">{database.name}</span>
 				</span>
@@ -80,49 +81,17 @@
 				</a>
 			{/if}
 		</div>
-		<p class="text-sm text-muted">
-			Disuntik Sakala saat deploy, jadi tidak bisa diubah di sini dan nilainya tidak ditampilkan.
-			Variabel proyek dengan nama yang sama menang.
-			{#if reusesImage}
-				<span data-testid="database-variables-build">{VARIABLE_BUILD_COPY.database}</span>
-			{/if}
-		</p>
 		{#if database.status !== 'ready'}
 			<p class="text-sm text-foreground">{view.description}</p>
 		{/if}
 
-		<ul
-			class="@container flex w-full flex-col divide-y divide-border rounded-control border border-border bg-surface"
-		>
-			{#each rows as row (row.name)}
-				<li
-					class="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto] @2xl:px-6"
-					data-testid={`database-variable-${row.name}`}
-				>
-					<span class="min-w-0 font-mono text-sm font-semibold wrap-anywhere text-foreground">
-						{row.name}
-					</span>
-					<span
-						class="col-span-2 row-start-2 min-w-0 text-sm @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1"
-					>
-						{#if row.overridden}
-							<span class="text-foreground">
-								Nilai dari variabel proyek yang dipakai, bukan dari {database.name}.
-							</span>
-						{:else}
-							<span class="text-muted">dari database {database.name}, nilai disembunyikan</span>
-						{/if}
-					</span>
-					<span class="col-start-2 row-start-1 @2xl:col-start-3">
-						{#if row.overridden}
-							<Badge tone="warning">Ditimpa proyek</Badge>
-						{:else}
-							<Badge tone="neutral">Otomatis</Badge>
-						{/if}
-					</span>
-				</li>
-			{/each}
-		</ul>
+		<InjectedVariables {rows} source={`database ${database.name}`} testidPrefix="database-variable">
+			{#snippet learnMore()}
+				{#if reusesImage}
+					<p data-testid="database-variables-build">{VARIABLE_BUILD_COPY.database}</p>
+				{/if}
+			{/snippet}
+		</InjectedVariables>
 
 		{#if rows.some((row) => row.overridden)}
 			<p
@@ -130,10 +99,7 @@
 				data-testid="database-variables-conflict"
 			>
 				<Warning size={16} class="mt-0.5 shrink-0 text-warning-dark" aria-hidden="true" />
-				<span>
-					Hapus variabel proyek yang bertanda "Menimpa database" di atas kalau aplikasimu harus
-					memakai nilai dari database.
-				</span>
+				<span> Hapus variabel bertanda "Menimpa database" agar nilai database yang dipakai. </span>
 			</p>
 		{/if}
 
@@ -143,9 +109,8 @@
 				data-testid="database-release-hint-laravel"
 			>
 				<p>
-					Proyek Laravel ini belum menjalankan migration. Isi {RELEASE_COMMAND_LABEL.toLowerCase()}
-					dengan <code class="font-mono text-xs">{LARAVEL_RELEASE_COMMAND}</code> supaya tabelnya dibuat
-					setiap deploy, sebelum versi baru menerima trafik.
+					Migration belum jalan. Isi {RELEASE_COMMAND_LABEL.toLowerCase()} dengan
+					<code class="font-mono text-xs">{LARAVEL_RELEASE_COMMAND}</code>.
 				</p>
 				<p class="flex flex-wrap gap-x-4 gap-y-1">
 					{#if !readOnly}
@@ -172,8 +137,8 @@
 	</section>
 {:else if !readOnly && project.databases !== undefined}
 	<p class="mt-6 text-sm text-muted" data-testid="database-variables-none">
-		Butuh PostgreSQL? Pasang database workspace ke proyek ini, dan Sakala menambahkan
-		<code class="font-mono text-xs text-foreground">{DATABASE_VARIABLES[0]}</code> serta variabel
+		Butuh PostgreSQL? Sakala mengisi
+		<code class="font-mono text-xs text-foreground">{DATABASE_VARIABLES[0]}</code> dan
 		<code class="font-mono text-xs text-foreground">DB_*</code> saat deploy.
 		<a
 			href={databasesHref({ projectId: project.id })}

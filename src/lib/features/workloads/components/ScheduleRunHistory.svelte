@@ -13,8 +13,10 @@
 		runDurationText,
 		runExplanation,
 		runHasOutput,
+		runStatusView,
 		SCHEDULE_COPY
 	} from '../schedules';
+	import { runAnchor } from '../schedule-panel';
 	import { formatZonedTime } from '../time';
 	import RunStatusBadge from './RunStatusBadge.svelte';
 	import ScheduleRunLog from './ScheduleRunLog.svelte';
@@ -59,13 +61,26 @@
 		}
 	}
 
+	/** The time a run's title names: when it was due, or when someone started it. */
+	function titleTime(run: ScheduleRun): string {
+		if (run.trigger === SCHEDULE_RUN_TRIGGERS.manual || !run.scheduled_for) {
+			return run.created_at ? formatZonedTime(run.created_at, timezone) : '';
+		}
+		return formatZonedTime(run.scheduled_for, timezone);
+	}
+
 	function runTitle(run: ScheduleRun): string {
 		if (run.trigger === SCHEDULE_RUN_TRIGGERS.manual || !run.scheduled_for) {
-			return SCHEDULE_COPY.manualRun(
-				run.created_at ? formatZonedTime(run.created_at, timezone) : ''
-			);
+			return SCHEDULE_COPY.manualRun(titleTime(run));
 		}
-		return SCHEDULE_COPY.scheduledRun(formatZonedTime(run.scheduled_for, timezone));
+		return SCHEDULE_COPY.scheduledRun(titleTime(run));
+	}
+
+	/** The start, only when it says more than the title: a run that began later than it was due. */
+	function startedText(run: ScheduleRun): string | null {
+		if (!run.started_at) return null;
+		const started = formatZonedTime(run.started_at, timezone);
+		return started === titleTime(run) ? null : started;
 	}
 </script>
 
@@ -74,12 +89,10 @@
 	aria-labelledby="schedule-history-title"
 	data-testid="schedule-run-history"
 >
-	<div>
-		<h2 id="schedule-history-title" class="font-sans text-base font-semibold text-foreground">
-			{SCHEDULE_COPY.history}
-		</h2>
-		<p class="mt-1 text-xs text-foreground/70">{SCHEDULE_COPY.historyKept}</p>
-	</div>
+	<!-- How long runs and logs are kept sits in the panel's Bantuan. -->
+	<h2 id="schedule-history-title" class="font-sans text-base font-semibold text-foreground">
+		{SCHEDULE_COPY.history}
+	</h2>
 
 	{#if stopMessage}
 		<p role="status" class="text-sm text-foreground">{stopMessage}</p>
@@ -108,17 +121,43 @@
 				{@const logOpen = openRunId === run.id}
 				{@const hasLog = runHasOutput(run) || isOpenRun(run.status)}
 				{@const titleId = `run-${run.id}-title`}
+				{@const started = startedText(run)}
+				<!-- One line for the run: its status, when, how long, and how it ended. -->
 				<li
-					class="flex flex-col gap-2 p-3 sm:p-4"
+					id={runAnchor(run.id)}
+					class="flex scroll-mt-4 flex-col gap-1.5 px-3 py-2.5 sm:px-4"
 					data-testid="schedule-run"
 					data-status={run.status}
 				>
-					<div class="flex flex-wrap items-start justify-between gap-2">
-						<div class="flex min-w-0 flex-wrap items-center gap-2">
+					<div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+						<!-- From 640 px the actions keep their place on the right and the facts wrap instead. -->
+						<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:grow sm:basis-0">
 							<RunStatusBadge status={run.status} />
 							<h3 id={titleId} class="text-sm font-medium text-foreground tabular-nums">
 								{runTitle(run)}
 							</h3>
+							{#if started || duration || run.exit_code !== null}
+								<dl class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+									{#if started}
+										<div class="flex gap-1">
+											<dt class="text-foreground/70">{SCHEDULE_COPY.runStartedAt}</dt>
+											<dd class="text-foreground tabular-nums">{started}</dd>
+										</div>
+									{/if}
+									{#if duration}
+										<div class="flex gap-1">
+											<dt class="text-foreground/70">{SCHEDULE_COPY.runDuration}</dt>
+											<dd class="text-foreground tabular-nums">{duration}</dd>
+										</div>
+									{/if}
+									{#if run.exit_code !== null}
+										<div class="flex gap-1">
+											<dt class="text-foreground/70">{SCHEDULE_COPY.runExitCode}</dt>
+											<dd class="font-mono text-foreground">{run.exit_code}</dd>
+										</div>
+									{/if}
+								</dl>
+							{/if}
 						</div>
 						<div class="flex shrink-0 flex-wrap items-center gap-1">
 							{#if !readOnly && isOpenRun(run.status)}
@@ -148,31 +187,15 @@
 						</div>
 					</div>
 
-					<dl class="flex flex-wrap gap-x-5 gap-y-1 text-xs">
-						{#if run.started_at}
-							<div class="flex gap-1">
-								<dt class="text-foreground/70">{SCHEDULE_COPY.runStartedAt}</dt>
-								<dd class="text-foreground tabular-nums">
-									{formatZonedTime(run.started_at, timezone)}
-								</dd>
-							</div>
-						{/if}
-						{#if duration}
-							<div class="flex gap-1">
-								<dt class="text-foreground/70">{SCHEDULE_COPY.runDuration}</dt>
-								<dd class="text-foreground tabular-nums">{duration}</dd>
-							</div>
-						{/if}
-						{#if run.exit_code !== null}
-							<div class="flex gap-1">
-								<dt class="text-foreground/70">{SCHEDULE_COPY.runExitCode}</dt>
-								<dd class="font-mono text-foreground">{run.exit_code}</dd>
-							</div>
-						{/if}
-					</dl>
-
+					<!-- Same size for every run; why one was missed or skipped is quieter context, a failure asks for a fix. -->
 					{#if explanation}
-						<p class="text-sm text-foreground">{explanation}</p>
+						<p
+							class={runStatusView(run.status).tone === 'error'
+								? 'text-sm text-foreground'
+								: 'text-sm text-foreground/70'}
+						>
+							{explanation}
+						</p>
 					{/if}
 
 					<div id="run-{run.id}-log" hidden={!logOpen}>

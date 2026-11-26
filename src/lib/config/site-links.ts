@@ -40,7 +40,9 @@ export const DOCS_PAGES = {
 	fileStorage: 'penyimpanan-file',
 	managedBuckets: 'bucket-terkelola',
 	managedDatabases: 'database-terkelola',
+	monorepo: 'monorepo',
 	releaseCommand: 'perintah-rilis',
+	variables: 'variabel-dan-secret',
 	roadmap: 'proyek/roadmap'
 } as const;
 

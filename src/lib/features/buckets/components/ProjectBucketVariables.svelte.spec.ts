@@ -47,8 +47,12 @@ describe('ProjectBucketVariables', () => {
 		const section = page.getByTestId('bucket-variables');
 		await expect.element(section).toHaveTextContent(`Dari bucket ${bucket.name}`);
 		await expect
-			.element(page.getByTestId('bucket-variable-AWS_SECRET_ACCESS_KEY'))
-			.toHaveTextContent(/nilai disembunyikan/);
+			.element(
+				page
+					.getByTestId('bucket-variable-AWS_SECRET_ACCESS_KEY')
+					.getByRole('img', { name: `Nilai dari bucket ${bucket.name}, disembunyikan` })
+			)
+			.toBeInTheDocument();
 		await expect
 			.element(page.getByTestId('bucket-variable-AWS_DEFAULT_REGION'))
 			.toHaveTextContent(/Ditimpa proyek/);

@@ -44,6 +44,7 @@
 	import { useDeploymentDetail } from '$lib/features/deployments/use-deployment-detail.svelte';
 	import { useFailedDeploymentRedeploy } from '$lib/features/deployments/use-failed-deployment-redeploy.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import DeploymentLiveAnnouncement from '$lib/components/feedback/DeploymentLiveAnnouncement.svelte';
 	import { useProjectAccess } from '$lib/features/workspaces/access.svelte';
 	import OnboardingSourcePrompt from '$lib/features/onboarding/components/OnboardingSourcePrompt.svelte';
@@ -229,45 +230,47 @@
 		{/snippet}
 	</EmptyState>
 {:else if detail.deployment}
-	<!-- Fills the space under the shell's header, so the terminal ends where the viewport does. -->
-	<div class="flex flex-col gap-3 lg:h-[calc(100dvh-7.5rem)]">
-		<div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-			<div class="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-				<Breadcrumb items={breadcrumb} class="shrink-0 text-sm font-semibold" />
-				{#if isRollback}
-					<p class="text-sm text-muted" data-testid="deployment-rollback-of">
-						{#if rollbackTargetHref && detail.deployment.rollback?.target_sequence != null}
-							{HISTORY_COPY.rollbackToLead}
-							<a
-								href={rollbackTargetHref}
-								class="font-mono text-primary-dark tabular-nums underline underline-offset-2"
-								>#{detail.deployment.rollback.target_sequence}</a
-							>
-						{:else}
-							{getRollbackLabel(detail.deployment)}
-						{/if}
-					</p>
-				{/if}
-			</div>
-			{#if detail.deployment.commit_message}
-				<p
-					class="min-w-0 flex-1 truncate text-sm text-foreground max-sm:basis-full lg:text-right"
-					title={detail.deployment.commit_message}
-					data-testid="deployment-commit-message"
-				>
-					{detail.deployment.commit_message}
+	{#snippet toolbar()}
+		<div class="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+			<Breadcrumb items={breadcrumb} class="shrink-0 text-sm font-semibold" />
+			{#if isRollback && detail.deployment}
+				<p class="text-sm text-muted" data-testid="deployment-rollback-of">
+					{#if rollbackTargetHref && detail.deployment.rollback?.target_sequence != null}
+						{HISTORY_COPY.rollbackToLead}
+						<a
+							href={rollbackTargetHref}
+							class="font-mono text-primary-dark tabular-nums underline underline-offset-2"
+							>#{detail.deployment.rollback.target_sequence}</a
+						>
+					{:else}
+						{getRollbackLabel(detail.deployment)}
+					{/if}
 				</p>
 			{/if}
 		</div>
-
+		{#if detail.deployment?.commit_message}
+			<p
+				class="min-w-0 flex-1 truncate text-sm text-foreground max-sm:basis-full lg:text-right"
+				title={detail.deployment.commit_message}
+				data-testid="deployment-commit-message"
+			>
+				{detail.deployment.commit_message}
+			</p>
+		{/if}
+	{/snippet}
+	<!--
+		The list template, filling the window under the shell's header so the terminal ends where the
+		window does: the log stays full width beside its stages, as before.
+	-->
+	<ListPageLayout fill {toolbar}>
 		{#if detail.deploymentError}
 			<div
 				role="status"
 				class="rounded-control border border-warning/30 bg-warning/10 px-4 py-2 text-sm text-warning-dark"
 			>
 				{detail.isWaitingForRateLimit
-					? 'Permintaan ke server sedang dibatasi, jadi data di sini bisa sedikit tertinggal. Sakala mengambil data terbaru otomatis sebentar lagi.'
-					: 'Gagal memuat data terbaru. Menampilkan data terakhir yang tersedia.'}
+					? 'Server sedang membatasi permintaan; data terbaru dimuat sendiri sebentar lagi.'
+					: 'Data terbaru belum termuat. Yang tampil adalah data terakhir.'}
 			</div>
 		{/if}
 
@@ -382,7 +385,7 @@
 
 					{#if isFinished}
 						<p class="border-t border-border pt-4 text-sm text-foreground/70">
-							Ada yang perlu kami tahu dari deployment ini?
+							Masukan soal deployment ini?
 							<!-- eslint-disable svelte/no-navigation-without-resolve -- resolved, plus a query -->
 							<a
 								class="text-primary-dark underline underline-offset-2"
@@ -412,7 +415,7 @@
 				{/key}
 			</div>
 		</div>
-	</div>
+	</ListPageLayout>
 {:else}
 	<EmptyState
 		icon={WarningCircle}

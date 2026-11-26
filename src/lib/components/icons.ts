@@ -13,6 +13,9 @@ export { default as DeployIcon } from 'phosphor-svelte/lib/ArrowsClockwise';
 export { default as RotateCredentialIcon } from 'phosphor-svelte/lib/Key';
 export { default as WorkerIcon } from 'phosphor-svelte/lib/Cpu';
 export { default as ScheduleIcon } from 'phosphor-svelte/lib/CalendarBlank';
+/** Starting something by hand: a schedule's Jalankan sekarang, and Aktifkan lagi after a pause. */
+export { default as RunIcon } from 'phosphor-svelte/lib/Play';
+export { default as PauseIcon } from 'phosphor-svelte/lib/Pause';
 export { default as ErrorIcon } from 'phosphor-svelte/lib/WarningCircle';
 export { default as SuccessIcon } from 'phosphor-svelte/lib/CheckCircle';
 /** A suggestion: next steps and "Saran untuk Laravel". */

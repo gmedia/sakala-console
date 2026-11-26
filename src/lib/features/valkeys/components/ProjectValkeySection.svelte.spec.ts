@@ -73,8 +73,12 @@ describe('ProjectValkeySection', () => {
 		await expect.element(section).toHaveTextContent('Persisten');
 		for (const name of ['REDIS_URL', 'REDIS_HOST', 'REDIS_PORT', 'REDIS_PASSWORD']) {
 			await expect
-				.element(page.getByTestId(`valkey-variable-${name}`))
-				.toHaveTextContent(/nilai disembunyikan/);
+				.element(
+					page
+						.getByTestId(`valkey-variable-${name}`)
+						.getByRole('img', { name: 'Nilai dari Valkey antrean-toko, disembunyikan' })
+				)
+				.toBeInTheDocument();
 		}
 		await expect
 			.element(page.getByTestId('valkey-variables-cache-warning'))

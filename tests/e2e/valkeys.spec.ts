@@ -348,9 +348,11 @@ test.describe('Valkey on a project', () => {
 		const section = page.getByTestId('valkey-variables');
 		await expect(section).toContainText('Dari Valkey antrean-toko');
 		for (const name of ['REDIS_URL', 'REDIS_HOST', 'REDIS_PORT', 'REDIS_PASSWORD']) {
-			await expect(page.getByTestId(`valkey-variable-${name}`)).toContainText(
-				'nilai disembunyikan'
-			);
+			await expect(
+				page
+					.getByTestId(`valkey-variable-${name}`)
+					.getByRole('img', { name: 'Nilai dari Valkey antrean-toko, disembunyikan' })
+			).toBeVisible();
 		}
 		await expect(page.getByTestId('valkey-laravel-different-QUEUE_CONNECTION')).toContainText(
 			'sekarang database'

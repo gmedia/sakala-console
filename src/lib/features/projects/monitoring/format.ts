@@ -4,7 +4,6 @@ import type { MetricsRangeOption } from './ranges';
 export const MONITORING_COPY = {
 	/** Short like the other tabs, so all four fit a 320 px screen. */
 	tab: 'Metrik',
-	intro: 'Pemakaian CPU, memori, replika, dan restart proyek ini.',
 	rangeLabel: 'Rentang waktu',
 	empty: {
 		description: 'Data muncul beberapa menit setelah proyek berjalan.'
@@ -15,6 +14,8 @@ export const MONITORING_COPY = {
 	retrying: 'Memuat...',
 	loading: 'Memuat metrik...',
 	noPointsInRange: 'Belum ada data di rentang ini.',
+	/** What a chart counts, behind "Pelajari" on its card (docs/UI_GUIDELINES.md, text budget). */
+	learnTopic: (chart: string) => `cara membaca ${chart}`,
 	cpuNote:
 		'100% = 1 core, dijumlah dari semua replika, jadi bisa lebih dari 100%. Diukur sesaat sekali per menit, jadi lonjakan singkat bisa terlewat.',
 	/**
@@ -42,7 +43,7 @@ export const MONITORING_COPY = {
 	titles: { cpu: 'CPU', memory: 'Memori', replicas: 'Replika', restarts: 'Restart' },
 	/** The successful deployments drawn on the charts, and their list for anyone not hovering. */
 	markers: {
-		title: 'Deployment berhasil di rentang ini',
+		title: 'Penanda deployment',
 		key: 'Garis tegak di grafik menandai saat deployment selesai.',
 		manual: 'Deployment manual',
 		partial: (count: number) => `Penanda hanya mencakup ${count} deployment terbaru.`

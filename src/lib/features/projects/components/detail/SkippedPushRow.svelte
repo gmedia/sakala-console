@@ -3,6 +3,7 @@
 	import FastForward from 'phosphor-svelte/lib/FastForward';
 	import Info from 'phosphor-svelte/lib/Info';
 	import Pause from 'phosphor-svelte/lib/Pause';
+	import { MONOREPO_GUIDE_URL } from '$lib/config/project';
 	import { cn } from '$lib/utils/cn';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
 	import type { SkippedPush } from '../../type';
@@ -20,6 +21,7 @@
 	const held = $derived(isHeldPush(skip));
 	const title = $derived(skippedPushTitle(skip));
 	const files = $derived(skippedPushFiles(skip));
+	const status = $derived(held ? SKIPPED_PUSH_COPY.heldStatus : SKIPPED_PUSH_COPY.skippedStatus);
 	const question = $derived(
 		held ? SKIPPED_PUSH_COPY.heldQuestion : SKIPPED_PUSH_COPY.skippedQuestion
 	);
@@ -33,7 +35,7 @@
 -->
 <li
 	class={cn(
-		'grid gap-x-2.5 gap-y-1 bg-background px-4 py-3 @3xl:items-center @3xl:gap-x-3 @3xl:py-2.5',
+		'grid gap-x-2.5 gap-y-1 bg-background px-4 py-2.5 @3xl:items-center @3xl:gap-x-3',
 		historyRowColumns(withActions)
 	)}
 	data-testid="skipped-push-row"
@@ -50,15 +52,15 @@
 				<FastForward size={11} weight="bold" />
 			{/if}
 		</span>
-		<span class="hidden text-sm text-muted @3xl:inline"
-			>{held ? SKIPPED_PUSH_COPY.heldStatus : SKIPPED_PUSH_COPY.skippedStatus}</span
-		>
+		<span class="hidden text-sm text-muted @3xl:inline">{status}</span>
 	</span>
 
 	<div class="min-w-0 @3xl:col-start-3 @3xl:row-start-1">
 		<div class="flex min-w-0 items-start gap-1 @3xl:items-center">
 			<!-- Wraps on a phone: the folder name at the end is the point. -->
 			<p class="min-w-0 text-sm leading-6 wrap-anywhere text-muted @3xl:truncate" {title}>
+				<!-- Narrow rows have no status column, so the status leads the title there. -->
+				<span class="@3xl:hidden">{status}:</span>
 				{title}
 			</p>
 			<Popover.Root>
@@ -89,18 +91,11 @@
 							<p class="text-sm text-muted">{SKIPPED_PUSH_COPY.heldNext(skip.branch)}</p>
 						{:else}
 							<p class="text-sm text-foreground">
-								Commit <span class="font-mono">{shortSha(skip.commit_sha)}</span> hanya mengubah file
-								milik proyek lain di repository ini, jadi proyek ini tidak di-deploy ulang.
+								Commit <span class="font-mono">{shortSha(skip.commit_sha)}</span>
+								{SKIPPED_PUSH_COPY.skippedReason}
 							</p>
-							<p class="text-sm text-muted">
-								Perubahan di dalam <span class="font-mono wrap-anywhere">{skip.root_directory}</span
-								> men-deploy proyek ini. Perubahan di folder proyek lain hanya men-deploy proyek itu.
-								File bersama di luar folder proyek mana pun, seperti lockfile atau README di root, men-deploy
-								semua proyek.
-							</p>
-							<p class="text-sm text-muted">
-								Kalau file yang berubah tidak bisa dipastikan, misalnya pada force push, semua
-								proyek tetap di-deploy.
+							<p class="text-sm wrap-anywhere text-muted">
+								{SKIPPED_PUSH_COPY.skippedRule(skip.root_directory)}
 							</p>
 						{/if}
 						{#if !held || files.paths.length > 0}
@@ -117,6 +112,17 @@
 									{/if}
 								</ul>
 							</div>
+						{/if}
+						{#if !held}
+							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the docs site -->
+							<a
+								href={MONOREPO_GUIDE_URL}
+								target="_blank"
+								rel="external noopener noreferrer"
+								class="inline-flex min-h-6 items-center text-sm font-medium text-primary-dark underline underline-offset-2"
+							>
+								{SKIPPED_PUSH_COPY.guide}<span class="sr-only">&nbsp;(tab baru)</span>
+							</a>
 						{/if}
 					</Popover.Content>
 				</Popover.Portal>

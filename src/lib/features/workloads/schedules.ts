@@ -35,7 +35,6 @@ export const SCHEDULE_COPY = {
 	save: 'Simpan jadwal',
 	saving: 'Menyimpan...',
 	cancel: 'Batal',
-	edit: 'Ubah',
 	pause: 'Jeda',
 	resume: 'Aktifkan lagi',
 	delete: 'Hapus jadwal',
@@ -404,13 +403,23 @@ export function cronError(
 	return undefined;
 }
 
+/** What is wrong with a run's time limit typed as text, or `undefined` when the API would take it. */
+export function timeoutError(value: string, limits: Pick<ScheduleLimits, 'maxTimeoutSeconds'>) {
+	const timeout = parseWholeNumber(value);
+	return timeout === null ||
+		Number.isNaN(timeout) ||
+		timeout < SCHEDULE_RULES.minTimeoutSeconds ||
+		timeout > limits.maxTimeoutSeconds
+		? `Batas waktu run antara ${SCHEDULE_RULES.minTimeoutSeconds} dan ${limits.maxTimeoutSeconds} detik.`
+		: undefined;
+}
+
 export function scheduleDraftErrors(
 	draft: ScheduleDraft,
 	limits: ScheduleLimits,
 	from: Date = new Date()
 ): ScheduleDraftErrors {
 	const name = draft.name.trim();
-	const timeout = parseWholeNumber(draft.timeout_seconds);
 	return {
 		name: !name
 			? 'Isi nama jadwal, misalnya Laporan harian.'
@@ -425,13 +434,7 @@ export function scheduleDraftErrors(
 			from
 		),
 		timezone: draft.timezone.trim() ? undefined : 'Pilih zona waktu.',
-		timeout_seconds:
-			timeout === null ||
-			Number.isNaN(timeout) ||
-			timeout < SCHEDULE_RULES.minTimeoutSeconds ||
-			timeout > limits.maxTimeoutSeconds
-				? `Batas waktu run antara ${SCHEDULE_RULES.minTimeoutSeconds} dan ${limits.maxTimeoutSeconds} detik.`
-				: undefined
+		timeout_seconds: timeoutError(draft.timeout_seconds, limits)
 	};
 }
 

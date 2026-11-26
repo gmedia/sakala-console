@@ -72,7 +72,7 @@
 -->
 <li
 	class={cn(
-		'relative grid gap-x-2.5 gap-y-1 px-4 py-3 transition-colors hover:bg-surface-tint @3xl:items-center @3xl:gap-x-3 @3xl:py-2.5',
+		'relative grid gap-x-2.5 gap-y-1 px-4 py-2.5 transition-colors hover:bg-surface-tint @3xl:items-center @3xl:gap-x-3',
 		historyRowColumns(withActions)
 	)}
 	data-testid="deployment-row"

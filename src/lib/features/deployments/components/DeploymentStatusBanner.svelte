@@ -314,22 +314,24 @@
 						</div>
 					{/if}
 					{#if failureCode}
-						<p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-							<span>Kode <span class="font-mono wrap-anywhere">{failureCode}</span></span>
+						<!-- One line: the code, which links to its explanation where the guide has one. -->
+						<p class="text-xs text-muted">
 							{#if failureDocs}
 								<!-- eslint-disable svelte/no-navigation-without-resolve -- a page on the landing site -->
 								<a
 									href={failureDocs}
 									target="_blank"
 									rel="noreferrer noopener"
-									class="inline-flex min-h-6 items-center gap-1 font-medium text-primary-dark underline underline-offset-2"
+									class="inline-flex min-h-6 items-center gap-1 font-medium wrap-anywhere text-primary-dark underline underline-offset-2"
 									data-testid="failure-docs-link"
 								>
-									{FAILURE_DOCS_COPY.link}
-									<ArrowSquareOut size={12} aria-hidden="true" />
-									<span class="sr-only">{FAILURE_DOCS_COPY.newTab}</span>
+									<span>Kode <span class="font-mono">{failureCode}</span></span>
+									<span class="sr-only">, {FAILURE_DOCS_COPY.link} {FAILURE_DOCS_COPY.newTab}</span>
+									<ArrowSquareOut size={12} class="shrink-0" aria-hidden="true" />
 								</a>
 								<!-- eslint-enable svelte/no-navigation-without-resolve -->
+							{:else}
+								<span>Kode <span class="font-mono wrap-anywhere">{failureCode}</span></span>
 							{/if}
 						</p>
 					{/if}

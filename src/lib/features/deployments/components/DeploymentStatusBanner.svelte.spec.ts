@@ -160,7 +160,7 @@ describe('a failed deployment', () => {
 	it('links a code the guide explains to its heading, in a new tab', async () => {
 		await render(DeploymentStatusBanner, { ...failed, failureCode: 'runtime_app_not_listening' });
 
-		const link = page.getByRole('link', { name: /Baca penjelasan kode ini/ });
+		const link = page.getByRole('link', { name: /baca penjelasan kode ini/ });
 		await expect
 			.element(link)
 			.toHaveAttribute('href', 'https://sakala.dev/docs/deploy-gagal#runtime_app_not_listening');

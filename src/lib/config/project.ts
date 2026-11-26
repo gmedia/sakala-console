@@ -73,6 +73,22 @@ export function bucketGuideUrl(anchor?: BucketGuideAnchor | null): string {
  */
 export const DATABASE_GUIDE_URL = docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.managedDatabases);
 
+/**
+ * sakala-landing's `src/content/docs/monorepo.md`: which pushes deploy which project of a monorepo,
+ * shared files at the root, and force pushes. A skipped push in the history links to its section.
+ */
+export const MONOREPO_GUIDE_URL = docsPageUrl(
+	siteLinks.docsUrl,
+	DOCS_PAGES.monorepo,
+	'push-di-monorepo'
+);
+
+/**
+ * sakala-landing's `src/content/docs/variabel-dan-secret.md`: project variables, secrets, the ones
+ * Sakala fills in for an attached database, bucket, or Valkey, and when a change needs a build.
+ */
+export const VARIABLES_GUIDE_URL = docsPageUrl(siteLinks.docsUrl, DOCS_PAGES.variables);
+
 /** Where the owner of a suspended project appeals. */
 export const ABUSE_EMAIL = siteLinks.abuseEmail;
 

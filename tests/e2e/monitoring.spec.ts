@@ -158,7 +158,7 @@ test.describe('monitoring', () => {
 
 			await expect(page.getByRole('radio', { name: '1 jam' })).toBeChecked();
 			await expect(page.getByTestId('metrics-data-start')).toHaveText(/^Data mulai /);
-			const list = page.getByRole('region', { name: 'Deployment berhasil di rentang ini' });
+			const list = page.getByRole('region', { name: 'Penanda deployment' });
 			await expect(list.getByRole('link', { name: 'Deployment #1' })).toBeVisible();
 			await expect(list).toContainText('feat: halaman menu kopi');
 			await expect(page.locator('figure canvas')).toHaveCount(4);

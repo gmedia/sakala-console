@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Key from 'phosphor-svelte/lib/Key';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
+	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { tick } from 'svelte';
 	import Eye from 'phosphor-svelte/lib/Eye';
@@ -21,7 +23,7 @@
 		createDeleteEnvironmentVariableMutation,
 		createUpdateEnvironmentVariableMutation
 	} from '../../mutations';
-	import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
+	import { REDEPLOY_REQUIRED_COPY, VARIABLES_PAGE_COPY } from '../../presentation';
 	import type { EnvironmentVariable } from '../../type';
 	import { getEnvironmentVariableValue } from '../../api';
 	import { ENV_KEY_REGEX, normalizeEnvKey } from '../../validation/environmentVariable';
@@ -467,406 +469,411 @@
 	const inputClass = 'control-input min-w-0';
 </script>
 
-<div class="flex w-full max-w-280 flex-col">
-	{#if access.readOnly}
-		<p class="mb-4 text-sm text-muted" data-testid="env-read-only">
-			Kamu hanya bisa melihat nama variabel dan nilai yang bukan secret. Nilai secret dan perubahan
-			variabel hanya untuk pemilik dan anggota workspace.
-		</p>
-	{/if}
+<!-- The list template: the variables across the full width, the project's facts in its header. -->
+<ListPageLayout>
+	<div class="flex w-full min-w-0 flex-col">
+		{#if access.readOnly}
+			<p class="mb-4 text-sm text-muted" data-testid="env-read-only">
+				{VARIABLES_PAGE_COPY.readOnly}
+			</p>
+		{/if}
 
-	{#if projectQuery.data?.redeploy_required && !access.readOnly}
-		<div class="mb-4 flex flex-col gap-2">
-			<RedeployRequiredNotice
-				project={projectQuery.data}
-				message={REDEPLOY_REQUIRED_COPY.variables}
-			/>
-		</div>
-	{/if}
-
-	<div class="@container w-full rounded-control border border-border bg-surface">
-		{#if query.isLoading}
-			<div class="p-6 text-center text-sm text-muted">Memuat environment variables...</div>
-		{:else if query.isError}
-			<div class="p-6 text-center text-sm text-error">Gagal memuat data environment variables.</div>
-		{:else if query.data}
-			{#if query.data.length === 0 && !isAdding}
-				<EmptyState
-					icon={Key}
-					title="Belum ada variabel"
-					description="Isi kalau aplikasimu membaca nilai dari environment, misalnya DATABASE_URL. Isi file .env bisa ditempel sekaligus."
-					class="border-none py-8 sm:py-8"
+		{#if projectQuery.data?.redeploy_required && !access.readOnly}
+			<div class="mb-4 flex flex-col gap-2">
+				<RedeployRequiredNotice
+					project={projectQuery.data}
+					message={REDEPLOY_REQUIRED_COPY.variables}
 				/>
-			{:else}
-				<ul class="flex w-full flex-col divide-y divide-border">
-					{#each query.data as env (env.id)}
-						<li
-							class="grid min-h-18 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 p-4 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto_auto] @2xl:gap-x-4 @2xl:px-6 @2xl:py-2"
-						>
-							<span class="flex min-w-0 flex-col">
-								<span class="min-w-0 font-mono text-sm font-semibold text-foreground">
-									<EnvKey name={env.key} />
-								</span>
-								{#if env.is_secret}
-									<span class="text-xs text-foreground/70">Secret</span>
-								{/if}
-								{#if overridesDatabase.has(env.key)}
-									<span
-										class="text-xs font-medium text-warning-dark"
-										data-testid="env-overrides-database">Menimpa database</span
-									>
-								{/if}
-								{#if overridesBucket.has(env.key)}
-									<span
-										class="text-xs font-medium text-warning-dark"
-										data-testid="env-overrides-bucket">Menimpa bucket</span
-									>
-								{/if}
-								{#if overridesValkey.has(env.key)}
-									<span
-										class="text-xs font-medium text-warning-dark"
-										data-testid="env-overrides-valkey">Menimpa Valkey</span
-									>
-								{/if}
-							</span>
+			</div>
+		{/if}
 
-							<span
-								class="col-span-3 row-start-2 flex h-7 min-w-0 items-center @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1 @2xl:h-10"
+		<div class="@container w-full rounded-control border border-border bg-surface">
+			{#if query.isLoading}
+				<div class="p-6 text-center text-sm text-muted">Memuat environment variables...</div>
+			{:else if query.isError}
+				<div class="p-6 text-center text-sm text-error">
+					Gagal memuat data environment variables.
+				</div>
+			{:else if query.data}
+				{#if query.data.length === 0 && !isAdding}
+					<EmptyState
+						icon={Key}
+						title="Belum ada variabel"
+						description="Isi kalau aplikasimu membaca nilai dari environment, misalnya DATABASE_URL. Isi file .env bisa ditempel sekaligus."
+						class="border-none py-8 sm:py-8"
+					/>
+				{:else}
+					<ul class="flex w-full flex-col divide-y divide-border">
+						{#each query.data as env (env.id)}
+							<!-- One line from 42rem up: the name with its badges, the value, then the actions. -->
+							<li
+								class="grid min-h-12 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 px-4 py-2 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto_auto] @2xl:gap-x-4 @2xl:px-6 @2xl:py-1"
 							>
-								{#if !env.is_secret}
-									<span class="truncate font-mono text-sm text-foreground/70 select-all">
-										{env.value ?? ''}
+								<span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+									<span class="min-w-0 font-mono text-sm font-semibold text-foreground">
+										<EnvKey name={env.key} />
 									</span>
-								{:else if visibleIds.has(env.id)}
-									<span class="truncate font-mono text-sm text-foreground/70 select-all">
-										{revealedValues[env.id] ?? ''}
-									</span>
-								{:else}
-									<span
-										class="truncate font-mono text-sm text-muted select-none"
-										aria-label="Nilai disembunyikan"
-										role="img"
-									>
-										••••••••••••
-									</span>
-								{/if}
-							</span>
+									{#if env.is_secret}
+										<Badge tone="neutral">{VARIABLES_PAGE_COPY.secret}</Badge>
+									{/if}
+									{#if overridesDatabase.has(env.key)}
+										<span data-testid="env-overrides-database"
+											><Badge tone="warning">Menimpa database</Badge></span
+										>
+									{/if}
+									{#if overridesBucket.has(env.key)}
+										<span data-testid="env-overrides-bucket"
+											><Badge tone="warning">Menimpa bucket</Badge></span
+										>
+									{/if}
+									{#if overridesValkey.has(env.key)}
+										<span data-testid="env-overrides-valkey"
+											><Badge tone="warning">Menimpa Valkey</Badge></span
+										>
+									{/if}
+								</span>
 
-							<span class="flex shrink-0 items-center gap-1 @2xl:col-start-3">
-								{#if env.is_secret && !access.readOnly}
-									<Button
-										variant="ghost"
-										size="icon"
-										onclick={() => toggleReveal(env.id)}
-										disabled={loadingRevealIds.has(env.id)}
-										aria-pressed={visibleIds.has(env.id)}
-										aria-label={`${visibleIds.has(env.id) ? 'Sembunyikan' : 'Tampilkan'} nilai ${env.key}`}
-										title={visibleIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
-									>
-										{#if loadingRevealIds.has(env.id)}
-											<CircleNotch size={20} weight="bold" class="animate-spin text-primary" />
-										{:else if visibleIds.has(env.id)}
-											<EyeSlash size={24} weight="regular" />
-										{:else}
-											<Eye size={24} weight="regular" />
-										{/if}
-									</Button>
-								{/if}
+								<span
+									class="col-span-3 row-start-2 flex h-7 min-w-0 items-center @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1 @2xl:h-10"
+								>
+									{#if !env.is_secret}
+										<span class="truncate font-mono text-sm text-foreground/70 select-all">
+											{env.value ?? ''}
+										</span>
+									{:else if visibleIds.has(env.id)}
+										<span class="truncate font-mono text-sm text-foreground/70 select-all">
+											{revealedValues[env.id] ?? ''}
+										</span>
+									{:else}
+										<span
+											class="truncate font-mono text-sm text-muted select-none"
+											aria-label="Nilai disembunyikan"
+											role="img"
+										>
+											••••••••••••
+										</span>
+									{/if}
+								</span>
+
+								<span class="flex shrink-0 items-center gap-1 @2xl:col-start-3">
+									{#if env.is_secret && !access.readOnly}
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => toggleReveal(env.id)}
+											disabled={loadingRevealIds.has(env.id)}
+											aria-pressed={visibleIds.has(env.id)}
+											aria-label={`${visibleIds.has(env.id) ? 'Sembunyikan' : 'Tampilkan'} nilai ${env.key}`}
+											title={visibleIds.has(env.id) ? 'Sembunyikan nilai' : 'Tampilkan nilai'}
+										>
+											{#if loadingRevealIds.has(env.id)}
+												<CircleNotch size={20} weight="bold" class="animate-spin text-primary" />
+											{:else if visibleIds.has(env.id)}
+												<EyeSlash size={24} weight="regular" />
+											{:else}
+												<Eye size={24} weight="regular" />
+											{/if}
+										</Button>
+									{/if}
+
+									{#if !access.readOnly}
+										<Button
+											variant="ghost"
+											size="sm"
+											id={`env-edit-button-${env.id}`}
+											onclick={() => handleOpenEdit(env)}
+											aria-label={`Ubah ${env.key}`}
+										>
+											Ubah
+										</Button>
+									{/if}
+								</span>
 
 								{#if !access.readOnly}
 									<Button
 										variant="ghost"
 										size="sm"
-										id={`env-edit-button-${env.id}`}
-										onclick={() => handleOpenEdit(env)}
-										aria-label={`Ubah ${env.key}`}
+										class="text-error-dark hover:text-error-dark"
+										onclick={() => handlePromptDelete(env)}
+										disabled={deleteMutation.isPending}
+										aria-label={`Hapus ${env.key}`}
 									>
-										Ubah
+										Hapus
 									</Button>
 								{/if}
-							</span>
 
-							{#if !access.readOnly}
-								<Button
-									variant="ghost"
-									size="sm"
-									class="text-error-dark hover:text-error-dark"
-									onclick={() => handlePromptDelete(env)}
-									disabled={deleteMutation.isPending}
-									aria-label={`Hapus ${env.key}`}
-								>
-									Hapus
-								</Button>
-							{/if}
+								{#if revealErrors.has(env.id)}
+									<p role="alert" class="col-span-full text-xs text-error-dark">
+										{revealErrors.get(env.id)}
+									</p>
+								{/if}
 
-							{#if revealErrors.has(env.id)}
-								<p role="alert" class="col-span-full text-xs text-error-dark">
-									{revealErrors.get(env.id)}
+								{#if editingEnv?.id === env.id}
+									<!-- Esc is a shortcut; the Batal button stays the accessible path. -->
+									<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+									<form
+										onsubmit={handleSaveEdit}
+										onkeydown={handleEditKeydown}
+										novalidate
+										aria-label={`Ubah ${env.key}`}
+										class="col-span-full mt-2 rounded-control bg-primary-50/50 p-3"
+									>
+										<label for="env-edit-value" class="text-xs font-medium text-foreground">
+											Nilai baru
+										</label>
+										<input
+											bind:this={editValueInput}
+											bind:value={editValue}
+											oninput={() => (editValueError = '')}
+											id="env-edit-value"
+											type="text"
+											placeholder={env.is_secret
+												? 'Kosongkan untuk mempertahankan nilai'
+												: 'Isi nilai'}
+											autocomplete="off"
+											spellcheck="false"
+											aria-invalid={editValueError ? 'true' : undefined}
+											aria-describedby={editValueError ? 'env-edit-value-error' : undefined}
+											class="{inputClass} mt-1 {editValueError
+												? 'border-error-dark focus:border-error-dark'
+												: 'border-border-strong focus:border-primary'}"
+										/>
+										{#if editValueError}
+											<p id="env-edit-value-error" class="mt-1 text-xs text-error-dark">
+												{editValueError}
+											</p>
+										{/if}
+
+										<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
+											<input type="checkbox" bind:checked={editIsSecret} class="size-4" />
+											{VARIABLES_PAGE_COPY.secretLabel}
+										</label>
+
+										{#if editFormError}
+											<p role="alert" class="mt-2 text-xs text-error-dark">
+												{editFormError}
+											</p>
+										{/if}
+
+										<VariableBuildHint
+											id="env-edit-build-hint"
+											class="mt-3"
+											project={projectQuery.data}
+											keys={[env.key]}
+										/>
+
+										<div class="mt-3 flex justify-end gap-2">
+											<Button variant="ghost" onclick={handleCancelEdit}>Batal</Button>
+											<Button
+												type="submit"
+												disabled={updateMutation.isPending}
+												aria-describedby="env-edit-build-hint"
+											>
+												{updateMutation.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
+											</Button>
+										</div>
+									</form>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			{/if}
+
+			{#if isAdding}
+				<!-- Esc is a shortcut; the Batal button stays the accessible path. -->
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+				<form
+					onsubmit={handleSave}
+					onkeydown={handleFormKeydown}
+					novalidate
+					aria-label="Tambah variabel"
+					class="w-full rounded-b-control border-t border-border bg-primary-50/50 p-4 @2xl:px-6"
+				>
+					<div class="flex flex-col gap-3 @2xl:flex-row @2xl:items-start">
+						<div class="flex min-w-0 flex-col gap-1 @2xl:w-58 @2xl:shrink-0">
+							<label for="env-new-key" class="text-xs font-medium text-foreground">
+								Nama variabel
+							</label>
+							<input
+								bind:this={keyInput}
+								id="env-new-key"
+								type="text"
+								placeholder="NAMA_VARIABEL"
+								value={newKey}
+								oninput={handleKeyInput}
+								onpaste={handleKeyPaste}
+								autocomplete="off"
+								spellcheck="false"
+								aria-invalid={keyError ? 'true' : undefined}
+								aria-describedby={keyError ? 'env-new-key-error' : undefined}
+								class="{inputClass} uppercase placeholder:normal-case {keyError
+									? 'border-error-dark focus:border-error-dark'
+									: 'border-border-strong focus:border-primary'}"
+							/>
+							{#if keyError}
+								<p id="env-new-key-error" class="text-xs text-error-dark">
+									{keyError}
 								</p>
 							{/if}
+						</div>
 
-							{#if editingEnv?.id === env.id}
-								<!-- Esc is a shortcut; the Batal button stays the accessible path. -->
-								<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-								<form
-									onsubmit={handleSaveEdit}
-									onkeydown={handleEditKeydown}
-									novalidate
-									aria-label={`Ubah ${env.key}`}
-									class="col-span-full mt-2 rounded-control bg-primary-50/50 p-3"
-								>
-									<label for="env-edit-value" class="text-xs font-medium text-foreground">
-										Nilai baru
-									</label>
-									<input
-										bind:this={editValueInput}
-										bind:value={editValue}
-										oninput={() => (editValueError = '')}
-										id="env-edit-value"
-										type="text"
-										placeholder={env.is_secret
-											? 'Kosongkan untuk mempertahankan nilai'
-											: 'Isi nilai'}
-										autocomplete="off"
-										spellcheck="false"
-										aria-invalid={editValueError ? 'true' : undefined}
-										aria-describedby={editValueError ? 'env-edit-value-error' : undefined}
-										class="{inputClass} mt-1 {editValueError
-											? 'border-error-dark focus:border-error-dark'
-											: 'border-border-strong focus:border-primary'}"
-									/>
-									{#if editValueError}
-										<p id="env-edit-value-error" class="mt-1 text-xs text-error-dark">
-											{editValueError}
-										</p>
-									{/if}
-
-									<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
-										<input type="checkbox" bind:checked={editIsSecret} class="size-4" />
-										Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
-									</label>
-
-									{#if editFormError}
-										<p role="alert" class="mt-2 text-xs text-error-dark">
-											{editFormError}
-										</p>
-									{/if}
-
-									<VariableBuildHint
-										id="env-edit-build-hint"
-										class="mt-3"
-										project={projectQuery.data}
-										keys={[env.key]}
-									/>
-
-									<div class="mt-3 flex justify-end gap-2">
-										<Button variant="ghost" onclick={handleCancelEdit}>Batal</Button>
-										<Button
-											type="submit"
-											disabled={updateMutation.isPending}
-											aria-describedby="env-edit-build-hint"
-										>
-											{updateMutation.isPending ? 'Menyimpan...' : 'Simpan perubahan'}
-										</Button>
-									</div>
-								</form>
+						<div class="flex min-w-0 flex-1 flex-col gap-1">
+							<label for="env-new-value" class="text-xs font-medium text-foreground"> Nilai </label>
+							<input
+								bind:this={valueInput}
+								id="env-new-value"
+								type="text"
+								placeholder="Isi nilai"
+								bind:value={newValue}
+								oninput={handleValueInput}
+								autocomplete="off"
+								spellcheck="false"
+								aria-invalid={valueError ? 'true' : undefined}
+								aria-describedby={valueError ? 'env-new-value-error' : undefined}
+								class="{inputClass} {valueError
+									? 'border-error-dark focus:border-error-dark'
+									: 'border-border-strong focus:border-primary'}"
+							/>
+							{#if valueError}
+								<p id="env-new-value-error" class="text-xs text-error-dark">
+									{valueError}
+								</p>
 							{/if}
-						</li>
-					{/each}
-				</ul>
+						</div>
+
+						<div class="flex shrink-0 items-center justify-end gap-2 @2xl:pt-6.5">
+							<Button
+								size="icon"
+								type="submit"
+								disabled={addMutation.isPending}
+								aria-label="Simpan"
+								aria-describedby="env-new-build-hint"
+								title="Simpan"
+							>
+								{#if addMutation.isPending}
+									<CircleNotch size={20} weight="bold" class="animate-spin" />
+								{:else}
+									<Check size={24} weight="bold" />
+								{/if}
+							</Button>
+
+							<Button
+								variant="ghost"
+								size="icon"
+								onclick={handleCancelAdd}
+								aria-label="Batal"
+								title="Batal"
+							>
+								<X size={24} weight="regular" />
+							</Button>
+						</div>
+					</div>
+
+					<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
+						<input type="checkbox" bind:checked={newIsSecret} class="size-4" />
+						{VARIABLES_PAGE_COPY.secretLabel}
+					</label>
+					<VariableBuildHint
+						id="env-new-build-hint"
+						class="mt-2"
+						project={projectQuery.data}
+						keys={[newKey.trim()]}
+					/>
+
+					{#if formError}
+						<p role="alert" class="mt-2 text-xs text-error-dark">{formError}</p>
+					{/if}
+				</form>
 			{/if}
-		{/if}
+		</div>
 
 		{#if isAdding}
-			<!-- Esc is a shortcut; the Batal button stays the accessible path. -->
-			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-			<form
-				onsubmit={handleSave}
-				onkeydown={handleFormKeydown}
-				novalidate
-				aria-label="Tambah variabel"
-				class="w-full rounded-b-control border-t border-border bg-primary-50/50 p-4 @2xl:px-6"
-			>
-				<div class="flex flex-col gap-3 @2xl:flex-row @2xl:items-start">
-					<div class="flex min-w-0 flex-col gap-1 @2xl:w-58 @2xl:shrink-0">
-						<label for="env-new-key" class="text-xs font-medium text-foreground">
-							Nama variabel
-						</label>
-						<input
-							bind:this={keyInput}
-							id="env-new-key"
-							type="text"
-							placeholder="NAMA_VARIABEL"
-							value={newKey}
-							oninput={handleKeyInput}
-							onpaste={handleKeyPaste}
-							autocomplete="off"
-							spellcheck="false"
-							aria-invalid={keyError ? 'true' : undefined}
-							aria-describedby={keyError ? 'env-new-key-error' : undefined}
-							class="{inputClass} uppercase placeholder:normal-case {keyError
-								? 'border-error-dark focus:border-error-dark'
-								: 'border-border-strong focus:border-primary'}"
-						/>
-						{#if keyError}
-							<p id="env-new-key-error" class="text-xs text-error-dark">
-								{keyError}
-							</p>
-						{/if}
-					</div>
-
-					<div class="flex min-w-0 flex-1 flex-col gap-1">
-						<label for="env-new-value" class="text-xs font-medium text-foreground"> Nilai </label>
-						<input
-							bind:this={valueInput}
-							id="env-new-value"
-							type="text"
-							placeholder="Isi nilai"
-							bind:value={newValue}
-							oninput={handleValueInput}
-							autocomplete="off"
-							spellcheck="false"
-							aria-invalid={valueError ? 'true' : undefined}
-							aria-describedby={valueError ? 'env-new-value-error' : undefined}
-							class="{inputClass} {valueError
-								? 'border-error-dark focus:border-error-dark'
-								: 'border-border-strong focus:border-primary'}"
-						/>
-						{#if valueError}
-							<p id="env-new-value-error" class="text-xs text-error-dark">
-								{valueError}
-							</p>
-						{/if}
-					</div>
-
-					<div class="flex shrink-0 items-center justify-end gap-2 @2xl:pt-6.5">
-						<Button
-							size="icon"
-							type="submit"
-							disabled={addMutation.isPending}
-							aria-label="Simpan"
-							aria-describedby="env-new-build-hint"
-							title="Simpan"
-						>
-							{#if addMutation.isPending}
-								<CircleNotch size={20} weight="bold" class="animate-spin" />
-							{:else}
-								<Check size={24} weight="bold" />
-							{/if}
-						</Button>
-
-						<Button
-							variant="ghost"
-							size="icon"
-							onclick={handleCancelAdd}
-							aria-label="Batal"
-							title="Batal"
-						>
-							<X size={24} weight="regular" />
-						</Button>
-					</div>
-				</div>
-
-				<label class="mt-3 flex min-h-6 items-center gap-2 text-sm">
-					<input type="checkbox" bind:checked={newIsSecret} class="size-4" />
-					Simpan sebagai secret, nilainya hanya terlihat lewat tombol tampilkan
-				</label>
-				<VariableBuildHint
-					id="env-new-build-hint"
-					class="mt-2"
-					project={projectQuery.data}
-					keys={[newKey.trim()]}
-				/>
-
-				{#if formError}
-					<p role="alert" class="mt-2 text-xs text-error-dark">{formError}</p>
-				{/if}
-			</form>
+			<p class="mt-3 text-xs text-foreground/70">{VARIABLES_PAGE_COPY.addHint}</p>
 		{/if}
-	</div>
 
-	{#if isAdding}
-		<p class="mt-3 text-xs text-foreground/70">
-			Nama variabel otomatis jadi UPPERCASE_SNAKE_CASE. Tekan Enter atau centang untuk simpan, Esc
-			atau silang untuk batal.
-		</p>
-	{/if}
-
-	{#if importOpen && !access.readOnly}
-		<div class="mt-4" id={VARIABLES_ANCHORS.envExample}>
-			<EnvImportPanel
-				existingKeys={query.data?.map((env) => env.key) ?? []}
-				envExample={importFromExample && envExampleSource ? envExampleSource : undefined}
-				initialText={importText}
-				portNote={() => 'Ubah Port di tab Pengaturan kalau aplikasimu butuh port tertentu.'}
-				confirmLabel={(count) => `Simpan ${count} variabel`}
-				headingLevel={2}
-				busy={importing}
-				error={importError}
-				confirmHint={importBuildHint}
-				onApply={handleImport}
-				onCancel={closeImport}
-			/>
-		</div>
-	{:else if !isAdding && !access.readOnly}
-		<div class="mt-4 flex flex-col gap-2 sm:flex-row">
-			<Button
-				variant="secondary"
-				size="lg"
-				class="w-full sm:flex-1"
-				bind:ref={addButton}
-				onclick={handleOpenAdd}
-			>
-				<Plus size={24} weight="regular" />
-				<span>Tambah variabel</span>
-			</Button>
-			<Button
-				variant="secondary"
-				size="lg"
-				class="w-full sm:flex-1"
-				bind:ref={importButton}
-				onclick={() => openImport()}
-			>
-				<ClipboardText size={24} weight="regular" aria-hidden="true" />
-				<span>Tempel dari .env</span>
-			</Button>
-			{#if envExampleSource}
+		{#if importOpen && !access.readOnly}
+			<div class="mt-4" id={VARIABLES_ANCHORS.envExample}>
+				<EnvImportPanel
+					existingKeys={query.data?.map((env) => env.key) ?? []}
+					envExample={importFromExample && envExampleSource ? envExampleSource : undefined}
+					initialText={importText}
+					portNote={() => 'Ubah Port di tab Pengaturan kalau aplikasimu butuh port tertentu.'}
+					confirmLabel={(count) => `Simpan ${count} variabel`}
+					headingLevel={2}
+					busy={importing}
+					error={importError}
+					confirmHint={importBuildHint}
+					onApply={handleImport}
+					onCancel={closeImport}
+				/>
+			</div>
+		{:else if !isAdding && !access.readOnly}
+			<!-- Under the list they add to, sized to their labels; full width on a phone, where they stack. -->
+			<div class="mt-3 flex flex-wrap gap-2">
 				<Button
 					variant="secondary"
-					size="lg"
-					class="w-full sm:flex-1"
-					bind:ref={envExampleButton}
-					onclick={openEnvExample}
+					class="w-full sm:w-auto"
+					bind:ref={addButton}
+					onclick={handleOpenAdd}
 				>
-					<FileText size={24} weight="regular" aria-hidden="true" />
-					<span>{SUGGESTION_COPY.tabAction}</span>
+					<Plus size={18} aria-hidden="true" />
+					<span>Tambah variabel</span>
 				</Button>
-			{/if}
-		</div>
-	{/if}
+				<Button
+					variant="secondary"
+					class="w-full sm:w-auto"
+					bind:ref={importButton}
+					onclick={() => openImport()}
+				>
+					<ClipboardText size={18} aria-hidden="true" />
+					<span>Tempel dari .env</span>
+				</Button>
+				{#if envExampleSource}
+					<Button
+						variant="secondary"
+						class="w-full sm:w-auto"
+						bind:ref={envExampleButton}
+						onclick={openEnvExample}
+					>
+						<FileText size={18} aria-hidden="true" />
+						<span>{SUGGESTION_COPY.tabAction}</span>
+					</Button>
+				{/if}
+			</div>
+		{/if}
 
-	{#if projectQuery.data}
-		<ProjectDatabaseVariables project={projectQuery.data} readOnly={access.readOnly} />
-		<ProjectBucketVariables project={projectQuery.data} readOnly={access.readOnly} {projectKeys} />
-		<ProjectValkeySection project={projectQuery.data} readOnly={access.readOnly} {projectValues} />
-	{/if}
+		{#if projectQuery.data}
+			<ProjectDatabaseVariables project={projectQuery.data} readOnly={access.readOnly} />
+			<ProjectBucketVariables
+				project={projectQuery.data}
+				readOnly={access.readOnly}
+				{projectKeys}
+			/>
+			<ProjectValkeySection
+				project={projectQuery.data}
+				readOnly={access.readOnly}
+				{projectValues}
+			/>
+		{/if}
 
-	<!-- Said beside the import's save button, for the keys it is about to save. -->
-	{#snippet importBuildHint(plan: EnvImportPlan, id: string)}
-		<VariableBuildHint
-			{id}
+		<!-- Said beside the import's save button, for the keys it is about to save. -->
+		{#snippet importBuildHint(plan: EnvImportPlan, id: string)}
+			<VariableBuildHint
+				{id}
+				project={projectQuery.data}
+				keys={[...plan.toAdd, ...plan.toOverwrite].map((env) => env.key)}
+			/>
+		{/snippet}
+
+		<DeleteEnvConfirmModal
+			open={deletingEnv !== null}
+			envKey={deletingEnv?.key ?? ''}
 			project={projectQuery.data}
-			keys={[...plan.toAdd, ...plan.toOverwrite].map((env) => env.key)}
+			isLoading={deleteMutation.isPending}
+			error={deleteError}
+			onConfirm={handleConfirmDelete}
+			onClose={handleCloseDelete}
 		/>
-	{/snippet}
-
-	<DeleteEnvConfirmModal
-		open={deletingEnv !== null}
-		envKey={deletingEnv?.key ?? ''}
-		project={projectQuery.data}
-		isLoading={deleteMutation.isPending}
-		error={deleteError}
-		onConfirm={handleConfirmDelete}
-		onClose={handleCloseDelete}
-	/>
-</div>
+	</div>
+</ListPageLayout>

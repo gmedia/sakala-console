@@ -1,11 +1,12 @@
 <script lang="ts">
 	// Links come from resolveRoute() in the routes helpers, some with a query string.
 	/* eslint-disable svelte/no-navigation-without-resolve */
-	import Archive from 'phosphor-svelte/lib/Archive';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import Warning from 'phosphor-svelte/lib/Warning';
 	import { toast } from 'svelte-sonner';
+	import { BucketIcon } from '$lib/components/icons';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import InjectedVariables from '$lib/features/projects/components/detail/InjectedVariables.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { getErrorMessage } from '$lib/api/errors';
 	import { isLaravelStack } from '$lib/features/projects/build-help';
@@ -89,7 +90,7 @@
 				id="bucket-variables-title"
 				class="flex min-w-0 items-center gap-2 text-base text-foreground"
 			>
-				<Archive size={18} class="shrink-0 text-primary-dark" aria-hidden="true" />
+				<BucketIcon size={18} class="shrink-0 text-primary-dark" aria-hidden="true" />
 				<span class="min-w-0 wrap-anywhere">
 					Dari bucket <span class="font-mono">{bucket.name}</span>
 				</span>
@@ -104,46 +105,11 @@
 				</a>
 			{/if}
 		</div>
-		<p class="text-sm text-muted">
-			Disuntik Sakala saat deploy, jadi tidak bisa diubah di sini dan nilainya tidak ditampilkan.
-			Variabel proyek dengan nama yang sama menang.
-		</p>
 		{#if bucket.status !== 'ready'}
 			<p class="text-sm text-foreground">{view.description}</p>
 		{/if}
 
-		<ul
-			class="@container flex w-full flex-col divide-y divide-border rounded-control border border-border bg-surface"
-		>
-			{#each rows as row (row.name)}
-				<li
-					class="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5 @2xl:grid-cols-[14.5rem_minmax(0,1fr)_auto] @2xl:px-6"
-					data-testid={`bucket-variable-${row.name}`}
-				>
-					<span class="min-w-0 font-mono text-sm font-semibold wrap-anywhere text-foreground">
-						{row.name}
-					</span>
-					<span
-						class="col-span-2 row-start-2 min-w-0 text-sm @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1"
-					>
-						{#if row.overridden}
-							<span class="text-foreground">
-								Nilai dari variabel proyek yang dipakai, bukan dari {bucket.name}.
-							</span>
-						{:else}
-							<span class="text-muted">dari bucket {bucket.name}, nilai disembunyikan</span>
-						{/if}
-					</span>
-					<span class="col-start-2 row-start-1 @2xl:col-start-3">
-						{#if row.overridden}
-							<Badge tone="warning">Ditimpa proyek</Badge>
-						{:else}
-							<Badge tone="neutral">Otomatis</Badge>
-						{/if}
-					</span>
-				</li>
-			{/each}
-		</ul>
+		<InjectedVariables {rows} source={`bucket ${bucket.name}`} testidPrefix="bucket-variable" />
 
 		{#if keyOverridden}
 			<p
@@ -164,10 +130,7 @@
 				data-testid="bucket-variables-conflict"
 			>
 				<Warning size={16} class="mt-0.5 shrink-0 text-warning-dark" aria-hidden="true" />
-				<span>
-					Hapus variabel proyek yang bertanda "Menimpa bucket" di atas kalau aplikasimu harus
-					memakai nilai dari bucket.
-				</span>
+				<span> Hapus variabel bertanda "Menimpa bucket" agar nilai bucket yang dipakai. </span>
 			</p>
 		{/if}
 
@@ -200,7 +163,7 @@
 	</section>
 {:else if offerBucket}
 	<p class="mt-3 text-sm text-muted" data-testid="bucket-variables-offer">
-		Aplikasimu menyimpan file upload? Buat bucket, dan Sakala menambahkan variabel
+		Menyimpan file upload? Sakala mengisi
 		<code class="font-mono text-xs text-foreground">AWS_*</code> saat deploy.
 		<CreateProjectBucketLink projectId={project.id} />
 	</p>
