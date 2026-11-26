@@ -11,7 +11,8 @@ import {
 	type MockDomain
 } from './fixtures/domains';
 
-const SETTINGS_URL = `/projects/${PROJECT_ID}/settings`;
+/** Custom domains have their own settings page. */
+const SETTINGS_URL = `/projects/${PROJECT_ID}/settings/domain`;
 const OVERVIEW_URL = `/projects/${PROJECT_ID}`;
 
 /**
@@ -58,7 +59,8 @@ test.describe('where custom domains appear', () => {
 		await page.goto(SETTINGS_URL);
 		await settled(page);
 		const link = page.getByTestId('settings-sections').getByRole('link', { name: 'Domain' });
-		await expect(link).toHaveAttribute('href', '#domain');
+		await expect(link).toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/domain`);
+		await expect(link).toHaveAttribute('aria-current', 'page');
 		await expect(section(page).getByRole('heading', { name: 'Domain' })).toBeVisible();
 		await expect(section(page)).toContainText('Belum ada domain');
 		await expect(section(page).getByTestId('domain-quota')).toHaveText(
@@ -379,7 +381,7 @@ test.describe('the project address', () => {
 		await expect(card).toContainText('Aktif');
 		await expect(card.getByRole('link', { name: 'Atur domain' })).toHaveAttribute(
 			'href',
-			`/projects/${PROJECT_ID}/settings#domain`
+			`/projects/${PROJECT_ID}/settings/domain`
 		);
 	});
 
@@ -399,7 +401,7 @@ test.describe('the project address', () => {
 		const card = page.getByTestId('overview-custom-domains');
 		await expect(card).toContainText('Belum ada.');
 		await card.getByRole('link', { name: 'Tambah domain' }).click();
-		await expect(page).toHaveURL(new RegExp(`/projects/${PROJECT_ID}/settings#domain$`));
+		await expect(page).toHaveURL(new RegExp(`/projects/${PROJECT_ID}/settings/domain$`));
 		await expect(section(page)).toBeInViewport();
 	});
 });

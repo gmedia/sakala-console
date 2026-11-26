@@ -2,7 +2,8 @@
 	import { pageTitle } from '$lib/utils/page-title';
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import { resolve } from '$app/paths';
-	import SquaresFour from 'phosphor-svelte/lib/SquaresFour';
+	import { ProjectIcon } from '$lib/components/icons';
+	import ListPageLayout from '$lib/components/layout/templates/ListPageLayout.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/feedback/EmptyState.svelte';
 	import CreateProjectHeroCard from '$lib/features/projects/components/create/CreateProjectHeroCard.svelte';
@@ -75,53 +76,54 @@
 
 {#snippet viewerNote()}
 	<p class="text-sm text-muted" data-testid="viewer-create-note">
-		Kamu pengamat di {active?.name}, jadi bisa melihat proyeknya tetapi tidak bisa membuat proyek
-		baru.
+		Kamu pengamat di {active?.name}: hanya bisa melihat proyek.
 	</p>
 {/snippet}
 
 <svelte:head><title>{pageTitle('Proyek')}</title></svelte:head>
-<div class="flex flex-col gap-6">
-	{#if isTrulyEmpty && !canCreate}
+{#if isTrulyEmpty && !canCreate}
+	<!-- First run: long text is allowed here (docs/UI_GUIDELINES.md). -->
+	<div class="flex flex-col gap-6">
 		<EmptyState
-			icon={SquaresFour}
+			icon={ProjectIcon}
 			tone="muted"
 			title={`Belum ada proyek di ${active?.name ?? 'workspace ini'}`}
 			description="Proyek yang dibuat pemilik atau anggota workspace ini akan muncul di sini."
 		/>
 		{@render viewerNote()}
-	{:else if isTrulyEmpty}
+	</div>
+{:else if isTrulyEmpty}
+	<div class="flex flex-col gap-6">
 		<CreateProjectHeroCard workspaceName={teamName} />
 		<PilotQuotaNotice limits={pilotLimitsQuery.data} workspaceName={teamName} />
-	{:else}
-		<div class="flex flex-wrap items-center justify-between gap-4">
-			<div class="min-w-0 flex-1 basis-64">
-				{#if canCreate}
-					<PilotQuotaNotice limits={pilotLimitsQuery.data} workspaceName={teamName} />
-				{:else}
-					{@render viewerNote()}
-				{/if}
-			</div>
+	</div>
+{:else}
+	{#snippet toolbar()}
+		<div class="min-w-0 flex-1 basis-64">
 			{#if canCreate}
-				<Button href={resolve('/projects/new')}>
-					<Plus size={16} weight="bold" aria-hidden="true" />
-					Buat proyek
-				</Button>
+				<PilotQuotaNotice limits={pilotLimitsQuery.data} workspaceName={teamName} compact />
+			{:else}
+				{@render viewerNote()}
 			{/if}
 		</div>
-
-		{#if showControls}
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<ProjectFilter bind:value={filter} />
-				<SearchInput
-					class="w-full sm:w-64"
-					placeholder="Cari proyek"
-					debounce={300}
-					onSearch={(value) => (search = value)}
-				/>
-			</div>
+		{#if canCreate}
+			<Button href={resolve('/projects/new')}>
+				<Plus size={16} weight="bold" aria-hidden="true" />
+				Buat proyek
+			</Button>
 		{/if}
-
+	{/snippet}
+	{#snippet controls()}
+		<ProjectFilter bind:value={filter} />
+		<SearchInput
+			class="w-full sm:w-64"
+			placeholder="Cari proyek"
+			debounce={300}
+			onSearch={(value) => (search = value)}
+		/>
+	{/snippet}
+	<!-- The list template: full width, status and the primary action above, filters once useful. -->
+	<ListPageLayout {toolbar} controls={showControls ? controls : undefined}>
 		<ProjectList
 			projects={projectsQuery.data?.projects ?? []}
 			isCheckingEmptyState={isCurrentResultEmpty && hasAnyProjectQuery.isPending}
@@ -136,5 +138,5 @@
 			}}
 			onPageChange={(page) => (currentPage = page)}
 		/>
-	{/if}
-</div>
+	</ListPageLayout>
+{/if}

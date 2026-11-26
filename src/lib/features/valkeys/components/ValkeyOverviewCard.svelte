@@ -6,6 +6,9 @@
 	import StorageBar from '$lib/features/databases/components/StorageBar.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { formatDate, formatRelativeTime } from '$lib/utils/date';
+	import { VALKEY_PANEL_COPY as FACTS } from '../panel';
+	import ValkeyModeLabel from './ValkeyModeLabel.svelte';
+	import ValkeyStatusBadge from './ValkeyStatusBadge.svelte';
 	import {
 		LOCKED_COPY,
 		VALKEY_COPY,
@@ -15,11 +18,8 @@
 		separateFailure,
 		valkeyMemoryMeter,
 		valkeyMemoryNotice,
-		valkeyModeView,
 		valkeyStatusView
 	} from '../presentation';
-	import ValkeyModeLabel from './ValkeyModeLabel.svelte';
-	import ValkeyStatusBadge from './ValkeyStatusBadge.svelte';
 
 	let { valkey }: { valkey: Valkey } = $props();
 
@@ -28,7 +28,6 @@
 	const NOT_REPORTED = 'Belum dilaporkan';
 
 	const view = $derived(valkeyStatusView(valkey));
-	const mode = $derived(valkeyModeView(valkey.mode));
 	const failure = $derived(separateFailure(valkey));
 	const steps = $derived(valkey.status === 'provisioning' ? provisioningSteps(valkey) : []);
 	const meter = $derived(valkeyMemoryMeter(valkey));
@@ -46,26 +45,33 @@
 	aria-labelledby="valkey-overview-title"
 	data-testid="valkey-overview"
 >
-	<div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
-		<div class="flex min-w-0 flex-col gap-1.5">
-			<h2 id="valkey-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
-				{valkey.name}
-			</h2>
-			<p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
-				<ValkeyModeLabel mode={valkey.mode} />
+	<!-- The store's facts in one line of badges and values, like a project's header. -->
+	<div class="flex min-w-0 flex-col gap-2">
+		<h2 id="valkey-overview-title" class="font-mono text-xl wrap-anywhere text-foreground">
+			{valkey.name}
+		</h2>
+		<p
+			class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted"
+			data-testid="valkey-facts"
+		>
+			<ValkeyStatusBadge {valkey} />
+			<ValkeyModeLabel mode={valkey.mode} />
+			<span class="text-foreground tabular-nums">{formatMegabytes(valkey.maxmemory_mb)}</span>
+			<span aria-hidden="true">·</span>
+			{#if valkey.region}
+				<span class="font-mono text-foreground">{valkey.region}</span>
+			{:else}
+				<span>{FACTS.autoRegion}</span>
+			{/if}
+			<span aria-hidden="true">·</span>
+			<span data-testid="valkey-facts-projects"
+				>{FACTS.projects(countFormat.format(valkey.projects.length))}</span
+			>
+			{#if valkey.created_at}
 				<span aria-hidden="true">·</span>
-				{#if valkey.region}
-					<span>region <span class="font-mono text-foreground">{valkey.region}</span></span>
-				{:else}
-					<span>region dipilih otomatis</span>
-				{/if}
-				{#if valkey.created_at}
-					<span aria-hidden="true">·</span>
-					<span>dibuat {formatDate(valkey.created_at)}</span>
-				{/if}
-			</p>
-		</div>
-		<ValkeyStatusBadge {valkey} />
+				<span>{FACTS.created(formatDate(valkey.created_at))}</span>
+			{/if}
+		</p>
 	</div>
 
 	<!-- Polite, so the change from Menyiapkan to Siap is heard without moving focus. -->
@@ -125,12 +131,6 @@
 			{/if}
 		{/if}
 	</div>
-
-	<p class="text-sm text-foreground" data-testid="valkey-mode-explanation">
-		<span class="font-medium">Mode {mode.label.toLowerCase()}.</span>
-		{mode.summary}
-		{mode.whenFull}
-	</p>
 
 	{#if memoryNotice}
 		<p

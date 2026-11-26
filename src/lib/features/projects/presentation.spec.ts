@@ -491,6 +491,7 @@ describe('pilot limits', () => {
 
 		expect(notice.reached).toBe(false);
 		expect(notice.message).toContain('1 dari 3');
+		expect(notice.badge).toBe('Kuota: 1 dari 3 proyek');
 	});
 
 	it('says the quota is used up, and what frees it', () => {
@@ -505,7 +506,8 @@ describe('pilot limits', () => {
 		const used = getProjectQuotaNotice({ quotas }, 'Tim Facility');
 		expect(used).toEqual({
 			reached: false,
-			message: 'Workspace Tim Facility memakai 1 dari 3 proyek, dibagi untuk semua anggotanya.'
+			message: 'Workspace Tim Facility memakai 1 dari 3 proyek, dibagi untuk semua anggotanya.',
+			badge: 'Kuota tim: 1 dari 3 proyek'
 		});
 
 		const full = getProjectQuotaNotice(

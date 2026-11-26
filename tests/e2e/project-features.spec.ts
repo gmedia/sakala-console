@@ -3,44 +3,56 @@ import { baseProject, DEPLOYMENT_ID, mockProjectApi, PROJECT_ID } from './fixtur
 import { mockWizardApi, pilotLimits } from './fixtures/create-project';
 
 const SETTINGS_URL = `/projects/${PROJECT_ID}/settings`;
+/** The build fields have their own settings page. */
+const BUILD_URL = `${SETTINGS_URL}/build`;
 
 test.describe('project settings: build configuration', () => {
 	test('no field says "Belum tersedia", and the help tells Dockerfile from auto builds', async ({
 		page
 	}) => {
 		await mockProjectApi(page);
-		await page.goto(SETTINGS_URL);
+		await page.goto(BUILD_URL);
 
 		await expect(page.getByLabel('Build command')).toBeEditable();
 		await expect(page.getByText('Belum tersedia')).toHaveCount(0);
+		// One short line per field; the full help sits behind "Pelajari" at the end of the section.
 		await expect(page.getByLabel('Build command')).toHaveAccessibleDescription(
-			/Hanya dipakai saat build otomatis dengan Railpack/
+			'Contoh: npm run build.'
 		);
 		await expect(page.getByLabel('Start command')).toHaveAccessibleDescription(
-			/Berlaku untuk Dockerfile dan Railpack/
+			'Contoh: npm start.'
 		);
 		await expect(page.getByLabel('Port')).toHaveAccessibleDescription(/Sekarang 3000/);
+		const railpack = page.getByText(/Hanya dipakai saat build otomatis dengan Railpack/);
+		await expect(railpack).toBeHidden();
+		await page.locator('summary', { hasText: 'build dan start' }).click();
+		await expect(railpack).toBeVisible();
+		await expect(page.getByText(/Berlaku untuk Dockerfile dan Railpack/)).toBeVisible();
 	});
 
-	test('groups the form in Umum, Build dan start, and a closed Lanjutan, with links to each', async ({
+	test('splits the settings into pages, with a closed Lanjutan on Build dan start', async ({
 		page
 	}) => {
 		await mockProjectApi(page);
 		await page.goto(SETTINGS_URL);
+		// The old address opens the first page.
+		await expect(page).toHaveURL(new RegExp(`${SETTINGS_URL}/general$`));
 
 		const sections = page.getByRole('navigation', { name: 'Bagian pengaturan' });
 		await expect(sections.getByRole('link')).toHaveText([
 			'Umum',
 			'Build dan start',
-			'Lanjutan',
 			'Zona berbahaya'
 		]);
-		await expect(page.getByRole('heading', { level: 2 })).toHaveText([
-			'Umum',
-			'Build dan start',
-			'Lanjutan',
-			'Zona berbahaya'
-		]);
+		await expect(sections.getByRole('link', { name: 'Umum' })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+		// The page's own form, then the panel: guides only, project facts stay in the header.
+		await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Umum', 'Bantuan']);
+
+		await sections.getByRole('link', { name: 'Build dan start' }).click();
+		await expect(page).toHaveURL(new RegExp(`${BUILD_URL}$`));
 		await expect(page.getByRole('button', { name: 'Lanjutan' })).toHaveAttribute(
 			'aria-expanded',
 			'false'
@@ -51,13 +63,18 @@ test.describe('project settings: build configuration', () => {
 			'placeholder',
 			'Dideteksi otomatis'
 		);
-
-		await sections.getByRole('link', { name: 'Lanjutan' }).click();
-		await expect(page).toHaveURL(new RegExp(`${SETTINGS_URL}#lanjutan$`));
+		await page.getByRole('button', { name: 'Lanjutan' }).click();
 		await expect(page.getByLabel('Release command')).toBeVisible();
 
 		await sections.getByRole('link', { name: 'Zona berbahaya' }).click();
 		await expect(page.getByRole('button', { name: 'Hapus proyek' })).toBeInViewport();
+	});
+
+	test('a link from before the split lands on its field', async ({ page }) => {
+		await mockProjectApi(page);
+		await page.goto(`${SETTINGS_URL}#releaseCommand`);
+		await expect(page).toHaveURL(new RegExp(`${BUILD_URL}#releaseCommand$`));
+		await expect(page.getByLabel('Release command')).toBeInViewport();
 	});
 
 	test('saves only the fields that changed, and null clears one', async ({ page }) => {
@@ -74,7 +91,7 @@ test.describe('project settings: build configuration', () => {
 				return { body: { data: { ...baseProject, ...body } } };
 			}
 		});
-		await page.goto(SETTINGS_URL);
+		await page.goto(BUILD_URL);
 
 		await expect(page.getByLabel('Port')).toHaveValue('8080');
 		await page.getByLabel('Port').fill('');
@@ -96,7 +113,7 @@ test.describe('project settings: build configuration', () => {
 				body: JSON.stringify({ data: { ...baseProject, preview_status: 'pending' } })
 			});
 		});
-		await page.goto(SETTINGS_URL);
+		await page.goto(BUILD_URL);
 
 		await page.getByLabel('Root Directory').fill('apps/web');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
@@ -112,7 +129,7 @@ test.describe('project settings: build configuration', () => {
 				return { body: { data: baseProject } };
 			}
 		});
-		await page.goto(SETTINGS_URL);
+		await page.goto(BUILD_URL);
 
 		await page.getByLabel('Port').fill('99999');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
@@ -131,7 +148,7 @@ test.describe('project settings: build configuration', () => {
 				}
 			})
 		});
-		await page.goto(SETTINGS_URL);
+		await page.goto(BUILD_URL);
 
 		await page.getByLabel('Root Directory').fill('apps/web');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
@@ -156,11 +173,16 @@ test.describe('project settings: build configuration', () => {
 				return { status: 201, body: { data: { id: DEPLOYMENT_ID } } };
 			}
 		});
-		await page.goto(SETTINGS_URL);
+		await page.goto(BUILD_URL);
 
 		await page.getByLabel('Build command').fill('pnpm build');
 		await page.getByRole('link', { name: 'Variabel', exact: true }).click();
 		await page.getByRole('link', { name: 'Pengaturan', exact: true }).click();
+		// Back on Umum, Build dan start is marked as holding a change.
+		await page
+			.getByRole('navigation', { name: 'Bagian pengaturan' })
+			.getByRole('link', { name: 'Build dan start, belum disimpan' })
+			.click();
 		await expect(page.getByLabel('Build command')).toHaveValue('pnpm build');
 
 		await page.getByRole('button', { name: 'Redeploy' }).click();
@@ -183,7 +205,9 @@ test.describe('project settings: build configuration', () => {
 
 		const toggle = page.getByRole('switch', { name: 'Auto-deploy' });
 		await expect(toggle).toHaveAttribute('aria-checked', 'false');
-		await expect(toggle).toHaveAccessibleDescription(/berlangganan event push/);
+		await expect(toggle).toHaveAccessibleDescription('Deploy otomatis setiap push ke branch ini.');
+		await page.locator('summary', { hasText: 'auto-deploy' }).click();
+		await expect(page.getByText(/berlangganan event push/)).toBeVisible();
 
 		await toggle.click();
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
@@ -205,9 +229,11 @@ test.describe('project settings: build configuration', () => {
 		const toggle = page.getByRole('switch', { name: 'Auto-deploy' });
 		await expect(toggle).toBeDisabled();
 		await expect(toggle).toHaveAttribute('aria-checked', 'false');
-		await expect(toggle).toHaveAccessibleDescription(
-			/tidak tersedia untuk proyek dari URL GitHub publik/
-		);
+		await expect(toggle).toHaveAccessibleDescription('Hanya untuk repository lewat GitHub App.');
+		await page.locator('summary', { hasText: 'auto-deploy' }).click();
+		await expect(
+			page.getByText(/tidak tersedia untuk proyek dari URL GitHub publik/)
+		).toBeVisible();
 	});
 });
 

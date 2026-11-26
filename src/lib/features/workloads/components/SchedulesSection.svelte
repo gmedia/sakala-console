@@ -5,6 +5,7 @@
 	import Plus from 'phosphor-svelte/lib/Plus';
 	import type { PilotLimits } from '$lib/api/resources/pilot-limits';
 	import Button from '$lib/components/ui/Button.svelte';
+	import LearnMore from '$lib/components/ui/LearnMore.svelte';
 	import { buttonClasses } from '$lib/components/ui/button-classes';
 	import { SETTINGS_SECTION_IDS } from '$lib/features/projects/settings-anchors';
 	import { formatRelativeTime } from '$lib/utils/date';
@@ -12,6 +13,7 @@
 	import { createSchedulesQuery, isFeatureOffError } from '../queries';
 	import { newScheduleHref, scheduleHref, suggestedScheduleHref } from '../routes';
 	import {
+		isScheduleQuotaFull,
 		SCHEDULE_COPY,
 		scheduleLimits,
 		scheduleQuotaText,
@@ -38,7 +40,10 @@
 	);
 
 	const schedules = $derived(schedulesQuery.data ?? []);
-	const quotaText = $derived(scheduleQuotaText(scheduleLimits(limits)));
+	const quotaLimits = $derived(scheduleLimits(limits));
+	const quotaText = $derived(scheduleQuotaText(quotaLimits));
+	// The quota is status: shown while it stops something, otherwise one click away.
+	const quotaBlocks = $derived(quotaLimits.maxSchedules === 0 || isScheduleQuotaFull(quotaLimits));
 	const suggestion = $derived(readOnly ? null : scheduleSuggestion(framework, schedules));
 
 	let arrived = false;
@@ -155,12 +160,18 @@
 		{/if}
 
 		<div class="flex flex-col gap-1 text-xs text-foreground/70">
-			{#if quotaText}
+			{#if quotaText && quotaBlocks}
 				<p data-testid="schedule-quota">{quotaText}</p>
 			{/if}
 			{#if readOnly}
 				<p>{SCHEDULE_COPY.readOnly}</p>
 			{/if}
 		</div>
+		<LearnMore topic="jadwal">
+			<p>{SCHEDULE_COPY.introLearn}</p>
+			{#if quotaText && !quotaBlocks}
+				<p data-testid="schedule-quota">{quotaText}</p>
+			{/if}
+		</LearnMore>
 	{/if}
 </section>

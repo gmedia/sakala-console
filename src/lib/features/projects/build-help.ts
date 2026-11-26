@@ -50,3 +50,26 @@ export const START_COMMAND_EXAMPLE = 'Contoh: npm start.';
 export const RELEASE_COMMAND_EXAMPLE = 'Contoh untuk Laravel: php artisan migrate --force.';
 export const RELEASE_COMMAND_PLACEHOLDER = 'Tidak ada';
 export const ROOT_DIRECTORY_PLACEHOLDER = 'Root repository';
+
+/**
+ * The one line under each settings field (maintainer, 2026-11-25: less text on screen). The full
+ * explanations above stay one click away, behind "Pelajari" in the same section.
+ */
+export const SETTINGS_FIELD_HINTS = {
+	autoDeploy: 'Deploy otomatis setiap push ke branch ini.',
+	autoDeployUnavailable: 'Hanya untuk repository lewat GitHub App.',
+	rootDirectory: 'Contoh: apps/web.',
+	port: (current: number) => `Sekarang ${current}.`,
+	buildCommand: BUILD_COMMAND_EXAMPLE,
+	startCommand: START_COMMAND_EXAMPLE,
+	releaseCommand: 'Sekali tiap deploy, misalnya migration.'
+} as const;
+
+/** The rows behind "Pelajari" in Build dan start that no single field owns. */
+export const SETTINGS_LEARN_COPY = {
+	emptyTerm: 'Kosong',
+	empty: 'Sakala mendeteksinya dari repository.',
+	appliesTerm: 'Kapan berlaku',
+	applies: 'Mulai deployment berikutnya. Redeploy juga menyimpan perubahan yang belum tersimpan.',
+	releaseGuide: `Panduan ${RELEASE_COMMAND_LABEL.toLowerCase()}`
+} as const;

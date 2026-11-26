@@ -12,7 +12,10 @@ export const REPLICAS_COPY = {
 	label: 'Replika',
 	help: 'Replika menjalankan beberapa salinan aplikasimu dan membagi pengunjung di antaranya. Cocok untuk aplikasi stateless: file atau sesi yang disimpan di disk container tidak ikut terbagi. Perubahan berlaku pada deploy berikutnya.',
 	unavailable:
-		'Replika belum aktif untuk workspace ini. Admin Sakala bisa mengaktifkannya lewat profil batas workspace.'
+		'Replika belum aktif untuk workspace ini. Admin Sakala bisa mengaktifkannya lewat profil batas workspace.',
+	/** The line under the field; `help` and `unavailable` sit behind "Pelajari". */
+	shortUnavailable: 'Belum aktif di workspace ini.',
+	shortMaximum: (max: number) => `Paling banyak ${max} di workspace ini.`
 } as const;
 
 /** The most replicas the project may run, `1` from an API that does not report it. */
@@ -34,11 +37,14 @@ export function replicasRangeMessage(maxReplicas: number): string {
 	return `Isi jumlah replika dengan bilangan bulat ${MIN_REPLICAS} sampai ${maxReplicas}.`;
 }
 
-/** The help under the field: the explanation, and the workspace's maximum when there is a choice. */
+/**
+ * The line under the field: the workspace's maximum when there is a choice, or that there is none.
+ * The explanation itself sits behind "Pelajari" in the settings.
+ */
 export function replicasHint(maxReplicas: number): string {
 	return replicasAvailable(maxReplicas)
-		? `${REPLICAS_COPY.help} Paling banyak ${maxReplicas} replika di workspace ini.`
-		: REPLICAS_COPY.unavailable;
+		? REPLICAS_COPY.shortMaximum(maxReplicas)
+		: REPLICAS_COPY.shortUnavailable;
 }
 
 /**

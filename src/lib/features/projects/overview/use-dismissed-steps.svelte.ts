@@ -1,4 +1,5 @@
 import { SvelteSet } from 'svelte/reactivity';
+import { useCurrentUser } from '$lib/features/auth/queries';
 import { readDismissedSteps, writeDismissedSteps, type DismissalStorage } from './next-steps';
 
 function browserStorage(): DismissalStorage | null {
@@ -9,13 +10,20 @@ function browserStorage(): DismissalStorage | null {
 	}
 }
 
-/** The suggestions this browser hid for one project, remembered in `localStorage`. */
+/**
+ * The suggestions this person hid for one project, remembered in `localStorage` under their user id
+ * and the project id. The overview's "Langkah berikutnya" and the settings pages' "Berikutnya" share
+ * it: one choice, wherever it was made.
+ */
 export function useDismissedSteps(projectId: () => string) {
+	const user = useCurrentUser();
+	const owner = () => user.data?.id;
 	const dismissed = new SvelteSet<string>();
 
-	// The layout stays mounted across projects, so the set follows the project in view.
+	// The layout stays mounted across projects, and the user arrives after the first render, so the
+	// set follows both.
 	$effect.pre(() => {
-		const stored = readDismissedSteps(browserStorage(), projectId());
+		const stored = readDismissedSteps(browserStorage(), projectId(), owner());
 		dismissed.clear();
 		for (const id of stored) dismissed.add(id);
 	});
@@ -26,7 +34,12 @@ export function useDismissedSteps(projectId: () => string) {
 		},
 		dismiss(id: string) {
 			dismissed.add(id);
-			writeDismissedSteps(browserStorage(), projectId(), dismissed);
+			writeDismissedSteps(browserStorage(), projectId(), dismissed, owner());
+		},
+		/** Brings back every hidden suggestion of this project. */
+		restore() {
+			dismissed.clear();
+			writeDismissedSteps(browserStorage(), projectId(), dismissed, owner());
 		}
 	};
 }

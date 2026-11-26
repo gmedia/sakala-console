@@ -677,26 +677,33 @@ export function getProjectQuotaNotice(
 ): {
 	reached: boolean;
 	message: string;
+	/** The same quota as a badge, for a list's toolbar while there is room (status, not prose). */
+	badge: string;
 } {
 	const { current_projects_count: current, max_projects_per_user: max } = limits.quotas;
+	const badge = `${workspaceName ? 'Kuota tim' : 'Kuota'}: ${current} dari ${max} proyek`;
 	if (workspaceName) {
 		return current >= max
 			? {
+					badge,
 					reached: true,
 					message: `Kuota proyek workspace ${workspaceName} sudah terpakai semua, ${current} dari ${max}. Hapus proyek yang tidak dipakai di workspace ini, atau minta admin Sakala memasang profil batas yang lebih besar.`
 				}
 			: {
+					badge,
 					reached: false,
 					message: `Workspace ${workspaceName} memakai ${current} dari ${max} proyek, dibagi untuk semua anggotanya.`
 				};
 	}
 	if (current >= max) {
 		return {
+			badge,
 			reached: true,
 			message: `Kuota proyek selama pilot sudah terpakai semua, ${current} dari ${max}. Hapus proyek yang tidak dipakai lewat tab Pengaturan di halaman proyeknya, supaya bisa membuat yang baru.`
 		};
 	}
 	return {
+		badge,
 		reached: false,
 		message: `Kamu memakai ${current} dari ${max} proyek yang tersedia selama pilot.`
 	};

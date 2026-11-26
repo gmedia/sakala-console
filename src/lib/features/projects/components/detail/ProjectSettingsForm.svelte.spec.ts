@@ -2,21 +2,22 @@ import { page, userEvent } from 'vitest/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { resetRateLimit } from '$lib/api/rate-limit';
-import QueryTestHost from '$lib/testing/QueryTestHost.svelte';
 import {
 	baseProject,
 	personalWorkspace,
 	PROJECT_ID
 } from '../../../../../../tests/e2e/fixtures/project-detail';
 import {
-	RELEASE_COMMAND_EXAMPLE,
 	RELEASE_COMMAND_HELP,
 	RELEASE_COMMAND_LABEL,
-	RELEASE_COMMAND_PLACEHOLDER
+	RELEASE_COMMAND_PLACEHOLDER,
+	SETTINGS_FIELD_HINTS
 } from '../../build-help';
+import { SETTINGS_PANEL_COPY } from '../../settings-panel';
 import { REDEPLOY_REQUIRED_COPY } from '../../presentation';
 import { REPLICAS_COPY } from '../../replicas';
-import ProjectSettingsTab from './ProjectSettingsTab.svelte';
+import { SETTINGS_PAGES, type SettingsPage } from '../../settings-anchors';
+import ProjectSettingsPageTestHost from '../settings/ProjectSettingsPageTestHost.svelte';
 
 vi.mock('$lib/config/public', () => ({ publicConfig: { apiUrl: 'http://api.test' } }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
@@ -51,6 +52,13 @@ async function answer(request: Request): Promise<Response> {
 		});
 	}
 	if (pathname.endsWith('/branches')) return json(200, { data: [] });
+	// The side panel reads the header's recent deployments.
+	if (pathname.endsWith('/deployments')) {
+		return json(200, {
+			data: [],
+			meta: { current_page: 1, from: null, last_page: 1, per_page: 6, to: null, total: 0 }
+		});
+	}
 	if (pathname === `/api/v1/app/projects/${PROJECT_ID}` && request.method === 'PUT') {
 		const body = (await request.json()) as Body;
 		saved.push(body);
@@ -61,10 +69,9 @@ async function answer(request: Request): Promise<Response> {
 	return json(200, { data: project });
 }
 
-const renderTab = () =>
-	render(QueryTestHost, {
-		props: { component: ProjectSettingsTab, props: { projectId: PROJECT_ID } }
-	});
+/** One settings page inside what the project layout provides; Build dan start unless named. */
+const renderTab = (settingsPage: SettingsPage = SETTINGS_PAGES.build) =>
+	render(ProjectSettingsPageTestHost, { props: { projectId: PROJECT_ID, page: settingsPage } });
 const replicasField = () => page.getByRole('spinbutton', { name: REPLICAS_COPY.label });
 const save = () => page.getByRole('button', { name: 'Simpan perubahan' });
 const advancedToggle = () => page.getByRole('button', { name: 'Lanjutan' });
@@ -95,8 +102,8 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('ProjectSettingsTab, replicas', () => {
-	it('offers 1 to the workspace maximum, with the explanation', async () => {
+describe('Project settings, replicas', () => {
+	it('offers 1 to the workspace maximum, with the maximum under the field', async () => {
 		await renderTab();
 		await openAdvanced();
 
@@ -105,11 +112,7 @@ describe('ProjectSettingsTab, replicas', () => {
 		await expect.element(field).toHaveValue(1);
 		await expect.element(field).toHaveAttribute('min', '1');
 		await expect.element(field).toHaveAttribute('max', '4');
-		await expect
-			.element(field)
-			.toHaveAccessibleDescription(
-				`${REPLICAS_COPY.help} Paling banyak 4 replika di workspace ini.`
-			);
+		await expect.element(field).toHaveAccessibleDescription(REPLICAS_COPY.shortMaximum(4));
 	});
 
 	it('is disabled with the reason when the workspace allows one replica', async () => {
@@ -118,7 +121,9 @@ describe('ProjectSettingsTab, replicas', () => {
 		await openAdvanced();
 
 		await expect.element(replicasField()).toBeDisabled();
-		await expect.element(replicasField()).toHaveAccessibleDescription(REPLICAS_COPY.unavailable);
+		await expect
+			.element(replicasField())
+			.toHaveAccessibleDescription(REPLICAS_COPY.shortUnavailable);
 	});
 
 	it.each(['0', '5'])('refuses %s before sending', async (value) => {
@@ -182,11 +187,11 @@ describe('ProjectSettingsTab, replicas', () => {
 	});
 });
 
-describe('ProjectSettingsTab, release command', () => {
+describe('Project settings, release command', () => {
 	const migrate = 'php artisan migrate --force';
 	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
 
-	it('explains when the command runs and what a failure does, with the example in the help', async () => {
+	it('says in one line when the command runs, with the full explanation one click away', async () => {
 		await renderTab();
 		await openAdvanced();
 
@@ -197,7 +202,13 @@ describe('ProjectSettingsTab, release command', () => {
 			.toHaveAttribute('placeholder', RELEASE_COMMAND_PLACEHOLDER);
 		await expect
 			.element(releaseField())
-			.toHaveAccessibleDescription(`${RELEASE_COMMAND_HELP} ${RELEASE_COMMAND_EXAMPLE}`);
+			.toHaveAccessibleDescription(SETTINGS_FIELD_HINTS.releaseCommand);
+
+		const learnMore = page.getByTestId('advanced-learn-more');
+		const explanation = learnMore.getByText(RELEASE_COMMAND_HELP, { exact: false });
+		await expect.element(explanation).not.toBeVisible();
+		await learnMore.getByText('Pelajari').click();
+		await expect.element(explanation).toBeVisible();
 	});
 
 	it('saves a new command alone, then says the project needs a redeploy', async () => {
@@ -284,35 +295,95 @@ describe('ProjectSettingsTab, release command', () => {
 	});
 });
 
-describe('ProjectSettingsTab, sections', () => {
-	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
+describe('Project settings, one draft across the form pages', () => {
+	const nameField = () => page.getByRole('textbox', { name: 'Nama proyek' });
+	const portField = () => page.getByRole('textbox', { name: 'Port' });
 
-	it('groups the form under Umum, Build dan start, and Lanjutan, with the danger zone last', async () => {
-		await renderTab();
+	it('keeps a change from Umum on Build dan start, marks it, and saves both together', async () => {
+		const screen = await renderTab(SETTINGS_PAGES.general);
+		await expect.element(page.getByText('Subdomain, dibuat otomatis')).not.toBeInTheDocument();
+		await userEvent.fill(nameField(), 'kopi-baru');
 
-		const headings = page.getByRole('heading', { level: 2 });
-		await expect.element(headings.nth(0)).toHaveTextContent('Umum');
-		await expect.element(headings.nth(1)).toHaveTextContent('Build dan start');
-		await expect.element(headings.nth(2)).toHaveTextContent('Lanjutan');
-		await expect.element(headings.nth(3)).toHaveTextContent('Zona berbahaya');
+		await screen.rerender({ page: SETTINGS_PAGES.build });
+		await expect
+			.element(page.getByTestId('settings-also-saves'))
+			.toHaveTextContent(SETTINGS_PANEL_COPY.alsoSaves('Umum'));
+		await expect
+			.element(page.getByRole('link', { name: /^Umum/ }))
+			.toHaveAccessibleName(`Umum, ${SETTINGS_PANEL_COPY.unsaved}`);
 
-		const links = page.getByRole('navigation', { name: 'Bagian pengaturan' }).getByRole('link');
-		await expect.element(links.nth(0)).toHaveAttribute('href', '#umum');
-		await expect.element(links.nth(3)).toHaveAttribute('href', '#zona-berbahaya');
+		await userEvent.fill(portField(), '8080');
+		await save().click();
+		await expect.poll(() => saved).toEqual([{ name: 'kopi-baru', configured_port: 8080 }]);
+		await expect.element(page.getByTestId('settings-also-saves')).not.toBeInTheDocument();
 	});
 
-	it('keeps Lanjutan closed while it holds nothing, and the link at the top opens it', async () => {
+	it('points at the other page when a field there stops the save', async () => {
+		const screen = await renderTab(SETTINGS_PAGES.build);
+		await userEvent.fill(portField(), 'bukan-angka');
+
+		await screen.rerender({ page: SETTINGS_PAGES.general });
+		await userEvent.fill(nameField(), 'kopi-baru');
+		await save().click();
+
+		await expect
+			.element(page.getByTestId('settings-other-page-error'))
+			.toHaveTextContent(SETTINGS_PANEL_COPY.fixOn('Build dan start'));
+		await expect
+			.element(page.getByRole('link', { name: SETTINGS_PANEL_COPY.fixOn('Build dan start') }))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/build`);
+		expect(saved).toEqual([]);
+	});
+});
+
+describe('Project settings, sections', () => {
+	const releaseField = () => page.getByRole('textbox', { name: RELEASE_COMMAND_LABEL });
+
+	it('gives each part its own page, linked from the navigation, with the current one marked', async () => {
+		await renderTab(SETTINGS_PAGES.general);
+
+		const form = page.getByTestId('form-page-main').getByRole('heading', { level: 2 });
+		await expect.element(form.nth(0)).toHaveTextContent('Umum');
+		await expect
+			.element(page.getByRole('heading', { name: 'Build dan start' }))
+			.not.toBeInTheDocument();
+		await expect
+			.element(page.getByRole('heading', { name: 'Zona berbahaya' }))
+			.not.toBeInTheDocument();
+
+		const nav = page.getByRole('navigation', { name: SETTINGS_PANEL_COPY.nav });
+		const links = nav.getByRole('link');
+		await expect
+			.element(links.nth(0))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/general`);
+		await expect.element(links.nth(0)).toHaveAttribute('aria-current', 'page');
+		await expect
+			.element(links.nth(1))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/build`);
+		await expect
+			.element(nav.getByRole('link', { name: 'Zona berbahaya' }))
+			.toHaveAttribute('href', `/projects/${PROJECT_ID}/settings/danger`);
+	});
+
+	it('keeps Lanjutan closed on Build dan start while it holds nothing', async () => {
 		await renderTab();
 
+		await expect
+			.element(page.getByTestId('form-page-main').getByRole('heading', { name: 'Build dan start' }))
+			.toBeVisible();
 		await expect.element(advancedToggle()).toHaveAttribute('aria-expanded', 'false');
 		// Hidden fields are out of the accessibility tree too, so their role finds nothing.
 		await expect.element(releaseField()).not.toBeInTheDocument();
 		await expect.element(replicasField()).not.toBeInTheDocument();
 
-		await page
-			.getByRole('navigation', { name: 'Bagian pengaturan' })
-			.getByRole('link', { name: 'Lanjutan' })
-			.click();
+		await advancedToggle().click();
+		await expect.element(releaseField()).toBeVisible();
+	});
+
+	it('opens Lanjutan when a link from before the split lands on it', async () => {
+		location.hash = '#lanjutan';
+		await renderTab();
+
 		await expect.element(releaseField()).toBeVisible();
 	});
 

@@ -286,7 +286,7 @@ test.describe('project overview', () => {
 		await openOverview(page);
 
 		await page.getByRole('link', { name: 'Atur release command' }).click();
-		await expect(page).toHaveURL(new RegExp(`${OVERVIEW_URL}/settings#releaseCommand$`));
+		await expect(page).toHaveURL(new RegExp(`${OVERVIEW_URL}/settings/build#releaseCommand$`));
 		await expect(page.locator('#releaseCommand')).toBeInViewport();
 	});
 });

@@ -52,8 +52,8 @@ describe('the replicas setting', () => {
 	it('is only available when the workspace allows more than one', () => {
 		expect(replicasAvailable(1)).toBe(false);
 		expect(replicasAvailable(2)).toBe(true);
-		expect(replicasHint(1)).toBe(REPLICAS_COPY.unavailable);
-		expect(replicasHint(3)).toBe(`${REPLICAS_COPY.help} Paling banyak 3 replika di workspace ini.`);
+		expect(replicasHint(1)).toBe(REPLICAS_COPY.shortUnavailable);
+		expect(replicasHint(3)).toBe('Paling banyak 3 di workspace ini.');
 	});
 
 	it('accepts whole numbers from 1 to the workspace maximum', () => {

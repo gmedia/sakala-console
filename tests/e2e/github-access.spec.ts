@@ -199,6 +199,8 @@ test.describe('auto-deploy on a Public URL project', () => {
 		await expect(toggle).toBeDisabled();
 		await expect(toggle).toHaveAttribute('aria-checked', 'false');
 
+		// The start command is on Build dan start; its Save sends nothing about auto-deploy either.
+		await page.goto(`/projects/${PROJECT_ID}/settings/build`);
 		await page.getByLabel('Start command').fill('node server.js');
 		await page.getByRole('button', { name: 'Simpan perubahan' }).click();
 

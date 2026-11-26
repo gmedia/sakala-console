@@ -33,6 +33,10 @@ export function useWorkloadAvailability(
 		get limits(): PilotLimits | undefined {
 			return limitsQuery.data;
 		},
+		/** Whether the limits have been read, or could not be: until then the flags are unknown. */
+		get settled(): boolean {
+			return limitsQuery.isSuccess || limitsQuery.isError;
+		},
 		get workers(): boolean {
 			return flags.workers;
 		},

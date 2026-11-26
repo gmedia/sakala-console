@@ -4,6 +4,7 @@
 	import { createProjectQuery } from '$lib/features/projects/queries';
 	import ProjectHeaderBanner from '$lib/features/projects/components/detail/ProjectHeaderBanner.svelte';
 	import { resolveRoute } from '$app/paths';
+	import { settingsHref } from '$lib/features/projects/overview/links';
 	import { initProjectDetailContext } from '$lib/features/projects/detail/projectDetailState.svelte';
 	import {
 		activeProjectTab,
@@ -58,7 +59,8 @@
 			case 'environments':
 				return resolveRoute('/(app)/projects/[id]/environments', { id });
 			case 'settings':
-				return resolveRoute('/(app)/projects/[id]/settings', { id });
+				// The first settings page directly, without the redirect of the old address.
+				return settingsHref(id);
 		}
 	}
 
@@ -99,6 +101,7 @@
 			aria-label="Bagian proyek"
 		>
 			{#each PROJECT_TABS as tab (tab)}
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolveRoute() output -->
 				<a
 					href={tabHref(tab)}
 					aria-current={activeTab === tab ? 'page' : undefined}
@@ -109,6 +112,7 @@
 				>
 					{PROJECT_TAB_LABELS[tab]}
 				</a>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			{/each}
 		</nav>
 		{#if moreTabs}

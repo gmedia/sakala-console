@@ -260,6 +260,9 @@ export async function mockViewerWorkspaces(page: Page) {
 }
 
 export const SETTINGS_URL = `/projects/${PROJECT_ID}/settings`;
+/** The settings sub-pages that hold workers and schedules. */
+export const PROCESSES_URL = `${SETTINGS_URL}/processes`;
+export const SCHEDULES_URL = `${SETTINGS_URL}/schedules`;
 
 /**
  * Screenshots for the pull request, written only when WORKLOAD_SCREENSHOTS names a folder, so CI
